@@ -97,7 +97,12 @@ What this says:
 
 - **Latency is worse than the batch numbers above.** Back-to-back calls keep the hardware warm. With realistic spacing both models take about 3.2 to 3.7 s, not 2 s. The 2 s target would be missed either way.
 - **Memory:** Apple's model costs about half a gigabyte in a system process. Qwen costs about 2.5 GB in ours, and on this Mac, already under memory pressure (about 2.7 GB of swap in use before I started), loading it pushed other apps into compression. A 4B model on an 8 GB Mac is probably too heavy. I haven't tested that.
-- **Energy: inconclusive.** `top`'s energy score was dominated by noise from unrelated processes (including this app's own helper processes), and the Apple run's totals contain a bogus negative reading from `top`, which I have since filtered in the script but not rerun. The per-process increases for the inference processes (6 to 10 points) are the same size as unrelated background processes, so no energy conclusion is supported. Real numbers need `powermetrics`, which needs `sudo`: `sudo powermetrics --samplers cpu_power,gpu_power,ane_power -i 1000 -n 120`, run in a terminal while `eval/measure_resources.py` runs.
+- **Energy, first pass with `top`: inconclusive** (noise from unrelated processes, plus a bogus negative reading in the Apple run's totals, now filtered in the script).
+- **Energy with `powermetrics` (Apple's model, 20 judgments 10 s apart, run on 2026-10-01):**
+  - **Neural Engine (clean signal):** 0 mW before and after, about 660 mW averaged over the 200 s call window. That is roughly 6.6 J per judgment, or about 1.8 W for the roughly 3.7 s each one runs. At 50 judgments an hour that is about 330 J, or 0.09 Wh, which is around 0.1% of a 70 Wh battery.
+  - **Total CPU and GPU power: not attributable.** The machine's baseline drifted from 3.8 W at the start to 7.0 W, and the no-calls phase after the run read 7.0 W, the same as during the calls (this Mac was also running my other work). Treating the whole 3.2 W rise as inference would give about 32 J per judgment, or about 0.6% of battery per hour at 50 judgments, but that is not a measurement. Only the Neural Engine figure above is attributable.
+  - **Not covered:** screen capture, OCR and the rest of the app. Qwen was not measured with `powermetrics`.
+  - **Conclusion:** the judge itself looks cheap in energy at plan-level cadence. A repeat on a quieter Mac would firm up the CPU and GPU part.
 
 ### Stage 2: Apple's built-in sentence embeddings (no training, no download)
 

@@ -146,6 +146,7 @@ def main() -> int:
     ap.add_argument("--interval", type=float, default=10.0, help="seconds between judgments (tightened cadence is 8-10 s)")
     ap.add_argument("--idle", type=float, default=20.0, help="seconds per idle phase")
     ap.add_argument("--out", default=os.path.join(HERE, "results"))
+    ap.add_argument("--tag", default="", help="suffix for the result file name")
     args = ap.parse_args()
 
     items = [s for s in scenarios.load_dir(os.path.join(HERE, "scenarios")) if not s.project and "sensitive" not in s.tags]
@@ -223,9 +224,11 @@ def main() -> int:
         for d, c, m, b in delta]
     report["system"] = {"before": snap0, "after_load": snap_loaded, "after_calls": snap_calls, "after_unload": snap_end}
     report["samples"] = {"idle": len(idle), "loaded": len(loaded), "calls": len(calls)}
+    report["phases_epoch"] = {"idle": [t_idle0, t_idle1], "loaded_idle": [t_loaded0, t_loaded1],
+                              "calls": [t_calls0, t_calls1], "loaded_idle_after": [t_post0, t_post1]}
 
     os.makedirs(args.out, exist_ok=True)
-    path = os.path.join(args.out, "resources_%s.json" % backend.name.replace(":", "-"))
+    path = os.path.join(args.out, "resources_%s%s.json" % (backend.name.replace(":", "-"), ("_" + args.tag) if args.tag else ""))
     with open(path, "w") as fh:
         json.dump(report, fh, indent=1)
     print(json.dumps(report, indent=1))

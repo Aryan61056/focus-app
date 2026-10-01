@@ -1,0 +1,124 @@
+/* Shared board chrome for the visual direction boards. Not part of the product UI. */
+:root {
+  --page-bg: oklch(0.98 0 0);
+  --page-ink: oklch(0.2 0 0);
+  --page-ink-2: oklch(0.42 0 0);
+  --page-line: oklch(0 0 0 / 0.12);
+  --page-chip: oklch(0.94 0 0);
+  --page-focus: oklch(0.5 0.19 258);
+  --stage-radius: 14px;
+  --z-menubar: 10;
+  --z-surface: 20;
+  --z-overlay: 30;
+}
+:root[data-theme="dark"] {
+  --page-bg: oklch(0.16 0 0);
+  --page-ink: oklch(0.95 0 0);
+  --page-ink-2: oklch(0.75 0 0);
+  --page-line: oklch(1 0 0 / 0.14);
+  --page-chip: oklch(0.24 0 0);
+  --page-focus: oklch(0.75 0.14 258);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page-bg: oklch(0.16 0 0);
+    --page-ink: oklch(0.95 0 0);
+    --page-ink-2: oklch(0.75 0 0);
+    --page-line: oklch(1 0 0 / 0.14);
+    --page-chip: oklch(0.24 0 0);
+    --page-focus: oklch(0.75 0.14 258);
+  }
+}
+* { box-sizing: border-box; }
+html { color-scheme: light dark; }
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+body {
+  margin: 0;
+  background: var(--page-bg);
+  color: var(--page-ink);
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.board { max-width: 1120px; margin: 0 auto; padding: 32px 24px 96px; }
+.board-head { display: flex; flex-wrap: wrap; gap: 16px 32px; justify-content: space-between; align-items: end; padding-bottom: 24px; border-bottom: 1px solid var(--page-line); }
+.board-head h1 { margin: 0 0 4px; font-size: 1.6rem; line-height: 1.2; font-weight: 650; letter-spacing: -0.01em; text-wrap: balance; }
+.board-head p { margin: 0; max-width: 62ch; color: var(--page-ink-2); text-wrap: pretty; }
+.board-nav { display: flex; gap: 12px; align-items: center; font-size: 0.85rem; }
+.board-nav a { color: var(--page-ink-2); text-decoration: none; }
+.board-nav a:hover { color: var(--page-ink); text-decoration: underline; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 20px 0 8px; font-size: 0.85rem; color: var(--page-ink-2); }
+.seg { display: inline-flex; background: var(--page-chip); border-radius: 8px; padding: 2px; }
+.seg button { font: inherit; font-size: 0.85rem; color: var(--page-ink-2); background: transparent; border: 0; padding: 4px 12px; border-radius: 6px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--page-bg); color: var(--page-ink); box-shadow: 0 0 0 1px var(--page-line); }
+.seg button:hover { color: var(--page-ink); }
+.seg button:focus-visible, .controls input:focus-visible, .tabs button:focus-visible { outline: 2px solid var(--page-focus); outline-offset: 2px; }
+.controls label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.tabs { display: flex; gap: 4px; margin: 24px 0 0; border-bottom: 1px solid var(--page-line); }
+.tabs button { font: inherit; font-size: 0.95rem; color: var(--page-ink-2); background: none; border: 0; border-bottom: 2px solid transparent; padding: 8px 12px; margin-bottom: -1px; cursor: pointer; }
+.tabs button[aria-selected="true"] { color: var(--page-ink); border-bottom-color: var(--page-ink); }
+.tabs button:hover { color: var(--page-ink); }
+.panel[hidden] { display: none; }
+.block { margin-top: 40px; }
+.block h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 650; }
+.block > p { margin: 0 0 14px; max-width: 70ch; color: var(--page-ink-2); font-size: 0.9rem; text-wrap: pretty; }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px; }
+@media (max-width: 520px) { .pair { grid-template-columns: 1fr; } }
+
+/* Faux desktop. The wall is neutral on purpose: it exists so glass has something to sit on. */
+.stage { position: relative; height: 340px; border-radius: var(--stage-radius); overflow: hidden; isolation: isolate; box-shadow: 0 0 0 1px var(--page-line); background: var(--wall); }
+.stage.tall { height: 400px; }
+.stage.short { height: 220px; }
+.wall { position: absolute; inset: 0; z-index: 0; background: var(--wall); }
+.menubar { position: absolute; top: 0; left: 0; right: 0; height: 26px; z-index: var(--z-menubar); display: flex; align-items: center; justify-content: space-between; padding: 0 12px; font-size: 12px; color: var(--mb-ink); background: var(--mb-bg); -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4); }
+.menubar .left, .menubar .right { display: flex; gap: 14px; align-items: center; }
+.menubar .app { font-weight: 650; }
+.win { position: absolute; z-index: 1; border-radius: 10px; background: var(--win-bg); box-shadow: 0 0 0 1px var(--win-line), 0 8px 24px oklch(0 0 0 / 0.14); overflow: hidden; transition: filter 300ms cubic-bezier(0.25, 1, 0.5, 1); }
+.win .bar { height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; background: var(--win-bar); border-bottom: 1px solid var(--win-line); }
+.win .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--win-dot); }
+.win .title { margin-left: 8px; font-size: 11px; color: var(--win-ink-2); }
+.win .body { padding: 16px 18px; display: grid; gap: 8px; }
+.win .ln { height: 8px; border-radius: 4px; background: var(--win-ln); }
+.win .ln.h { height: 12px; width: 40%; background: var(--win-ln-strong); }
+.win .ln.w90 { width: 90%; } .win .ln.w75 { width: 75%; } .win .ln.w60 { width: 60%; } .win .ln.w40 { width: 40%; }
+.win .swatch { height: 70px; border-radius: 6px; background: var(--win-swatch); }
+.win .swatch.second { background: var(--win-swatch-2); }
+.stage .veilable { filter: grayscale(var(--veil, 0)); }
+.cap { margin: 8px 2px 0; font-size: 0.8rem; color: var(--page-ink-2); }
+.slider { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 0.85rem; color: var(--page-ink-2); }
+.slider input { width: 220px; accent-color: var(--page-ink); }
+.ringrow { display: flex; flex-wrap: wrap; gap: 28px; align-items: end; padding: 20px 22px; border-radius: var(--stage-radius); background: var(--page-chip); }
+.ringrow figure { margin: 0; display: grid; justify-items: center; gap: 8px; font-size: 0.8rem; color: var(--page-ink-2); }
+.ringrow .sm, .ringrow .lg { color: var(--page-ink); }
+.pillrow { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; padding: 22px; border-radius: var(--stage-radius); background: var(--wall); box-shadow: 0 0 0 1px var(--page-line); }
+.opaque *, .opaque *::before { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+.opaque { --force-opaque: 1; }
+.still *, .still *::before { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .win { transition: none; } }
+
+/* Faux desktop tokens, identical across directions so only the product UI differs. */
+:root {
+  --wall: linear-gradient(150deg, oklch(0.84 0.025 250), oklch(0.72 0.05 285));
+  --mb-bg: oklch(1 0 0 / 0.55); --mb-ink: oklch(0.2 0 0);
+  --win-bg: oklch(0.99 0 0); --win-bar: oklch(0.96 0 0); --win-line: oklch(0 0 0 / 0.1); --win-dot: oklch(0.82 0 0);
+  --win-ink-2: oklch(0.45 0 0); --win-ln: oklch(0.91 0 0); --win-ln-strong: oklch(0.78 0 0);
+  --win-swatch: oklch(0.84 0.09 30); --win-swatch-2: oklch(0.82 0.08 200);
+}
+:root[data-theme="dark"] {
+  --wall: linear-gradient(150deg, oklch(0.3 0.04 260), oklch(0.2 0.05 290));
+  --mb-bg: oklch(0 0 0 / 0.35); --mb-ink: oklch(0.95 0 0);
+  --win-bg: oklch(0.24 0 0); --win-bar: oklch(0.28 0 0); --win-line: oklch(1 0 0 / 0.12); --win-dot: oklch(0.42 0 0);
+  --win-ink-2: oklch(0.75 0 0); --win-ln: oklch(0.33 0 0); --win-ln-strong: oklch(0.46 0 0);
+  --win-swatch: oklch(0.5 0.1 30); --win-swatch-2: oklch(0.5 0.09 200);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --wall: linear-gradient(150deg, oklch(0.3 0.04 260), oklch(0.2 0.05 290));
+    --mb-bg: oklch(0 0 0 / 0.35); --mb-ink: oklch(0.95 0 0);
+    --win-bg: oklch(0.24 0 0); --win-bar: oklch(0.28 0 0); --win-line: oklch(1 0 0 / 0.12); --win-dot: oklch(0.42 0 0);
+    --win-ink-2: oklch(0.75 0 0); --win-ln: oklch(0.33 0 0); --win-ln-strong: oklch(0.46 0 0);
+    --win-swatch: oklch(0.5 0.1 30); --win-swatch-2: oklch(0.5 0.09 200);
+  }
+}
+.notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 170px; height: 26px; background: #000; border-radius: 0 0 14px 14px; z-index: calc(var(--z-menubar) + 1); }

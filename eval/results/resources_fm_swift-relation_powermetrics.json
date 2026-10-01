@@ -1,0 +1,104 @@
+{
+ "backend": "fm_swift:relation",
+ "calls": 20,
+ "interval_s": 10.0,
+ "load_s": 0.2,
+ "footprint_after_load_mb": 5,
+ "first_call_ms": 4964,
+ "footprint_loaded_idle_mb": 9,
+ "cpu_seconds_per_call_in_process": 0.05,
+ "footprint_peak_mb": 9,
+ "latency_ms": {
+  "p50": 3869,
+  "p95": 4108
+ },
+ "energy_impact_total_top20": {
+  "idle_baseline": 174.49090909090913,
+  "loaded_idle": 280.87692307692305,
+  "during_calls": 275.18100558659233,
+  "loaded_idle_after": 338.3071428571429
+ },
+ "top_energy_increase_vs_idle": [
+  {
+   "process": "mediaanalysisd",
+   "energy_impact_delta": 21.1,
+   "mem_mb_during": 66,
+   "mem_mb_idle": 0
+  },
+  {
+   "process": "aned",
+   "energy_impact_delta": 10.4,
+   "mem_mb_during": 22,
+   "mem_mb_idle": 0
+  },
+  {
+   "process": "corespotlightd",
+   "energy_impact_delta": 9.2,
+   "mem_mb_during": 194,
+   "mem_mb_idle": 0
+  },
+  {
+   "process": "Comet",
+   "energy_impact_delta": 8.6,
+   "mem_mb_during": 520,
+   "mem_mb_idle": 507
+  },
+  {
+   "process": "TGOnDeviceInfere",
+   "energy_impact_delta": 7.2,
+   "mem_mb_during": 459,
+   "mem_mb_idle": 0
+  },
+  {
+   "process": "spotlightknowled",
+   "energy_impact_delta": 6.7,
+   "mem_mb_during": 115,
+   "mem_mb_idle": 22
+  }
+ ],
+ "system": {
+  "before": {
+   "swap_used_mb": 2425.44,
+   "mem_free_pct": 52,
+   "compressor_mb": 5333.640625
+  },
+  "after_load": {
+   "swap_used_mb": 2425.44,
+   "mem_free_pct": 52,
+   "compressor_mb": 5280.328125
+  },
+  "after_calls": {
+   "swap_used_mb": 3144.88,
+   "mem_free_pct": 50,
+   "compressor_mb": 5157.59375
+  },
+  "after_unload": {
+   "swap_used_mb": 3136.88,
+   "mem_free_pct": 53,
+   "compressor_mb": 4951.734375
+  }
+ },
+ "samples": {
+  "idle": 11,
+  "loaded": 13,
+  "calls": 179
+ },
+ "phases_epoch": {
+  "idle": [
+   1790891594.6053739,
+   1790891609.610487
+  ],
+  "loaded_idle": [
+   1790891616.83182,
+   1790891631.839173
+  ],
+  "calls": [
+   1790891631.923813,
+   1790891831.997674
+  ],
+  "loaded_idle_after": [
+   1790891832.046239,
+   1790891847.046632
+  ]
+ }
+}
