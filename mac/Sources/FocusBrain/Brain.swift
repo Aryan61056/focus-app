@@ -290,7 +290,7 @@ public struct Brain {
         guard let w = window, nextCheckAt <= t, !powerCritical else { return false }
         if let f = inFlight, t - f.at < 15 { return false }
         if sessionRules[w.windowKey] != nil || sessionRules[w.siteKey] != nil { return false }
-        if w.ruleLabel == .onTask { return false }
+        if w.ruleLabel == .onTask || w.ruleLabel == .unsure { return false }
         if let c = cacheEntry(w.windowKey), c.kind == .refused, t - c.at < 900 { return false }
         requestJudgment("cadence", urgency: (block?.flagged == true) ? "high" : "normal", t)
         return true
@@ -432,6 +432,7 @@ public struct Brain {
         }
         if let rl = w.ruleLabel {
             if rl == .onTask { applyEvidence(.on, observedAt: t, t, w, contentKey: "", source: .rule) }
+            else if rl == .unsure { applyEvidence(.neutral, observedAt: t, t, w, contentKey: "", source: .rule) }   // "never judged" windows: no model call, never advances past Drifting
             else { applyEvidence(.strong, observedAt: t, t, w, contentKey: "rule:" + w.windowKey, source: .rule) }
             return
         }

@@ -29,6 +29,7 @@ struct InsightsView: View {
                                 fact("Readings", "\(t.total)")
                                 fact("Read by the model", "\(t.model)")
                                 fact("Settled by your rules", "\(t.rule)")
+                                if t.skipped > 0 { fact("Left alone (never-judged list)", "\(t.skipped)") }
                                 fact("Sessions", "\(store.sessions.count)")
                             }
                             Text(a.answered == 0 ? "Answers in Review show whether Focus's calls match yours." : "The agreement figure counts only the \(a.answered) answers you gave in Review. That is a small sample, so read it loosely.")

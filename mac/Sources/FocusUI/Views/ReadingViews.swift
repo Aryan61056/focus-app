@@ -6,12 +6,13 @@ extension Reading {
     var ring: RingState { switch call { case .on: return .on; case .unsure: return .unsure; case .off: return .drift } }
     var tint: Color { call == .on ? Tokens.accent : Tokens.ink }
     var appText: String { source == .sensitive ? "Private window" : (app.isEmpty ? "A window" : app) }
-    var titleText: String { source == .sensitive ? "Not read" : title }
+    var titleText: String { source == .sensitive || source == .skipped ? "Not read" : title }
     /// Third step of "how Focus decided", in plain words.
     var outcomeTitle: String {
         if failed { return "Could not read it" }
         switch (source, call) {
         case (.sensitive, _): return "Skipped"
+        case (.skipped, _): return "Not judged"
         case (.rule, _): return "Your rule decided"
         case (_, .on): return "Confident"
         case (_, .unsure): return "Not sure"
@@ -22,6 +23,7 @@ extension Reading {
         if failed { return "Treated as not sure. Focus does nothing." }
         switch (source, call) {
         case (.sensitive, _): return "Private windows are never read."
+        case (.skipped, _): return "It is on your never-judged list, so Focus did not read it."
         case (.rule, _): return "A rule you set applies, so the model was not needed."
         case (_, .on): return "It matches the task. Nothing to do."
         case (_, .unsure): return "Focus waits and does nothing."

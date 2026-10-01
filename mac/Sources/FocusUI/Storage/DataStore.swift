@@ -59,7 +59,7 @@ public final class DataStore {
     /// Totals over every saved session that recorded reads.
     public var readTotals: ReadStats {
         var t = ReadStats()
-        for r in sessions.compactMap(\.reads) { t.model += r.model; t.rule += r.rule; t.onTask += r.onTask; t.unsure += r.unsure; t.offTask += r.offTask }
+        for r in sessions.compactMap(\.reads) { t.model += r.model; t.rule += r.rule; t.skipped += r.skipped; t.onTask += r.onTask; t.unsure += r.unsure; t.offTask += r.offTask }
         return t
     }
 

@@ -23,8 +23,16 @@ public struct TimelineSegment: Codable, Equatable, Sendable {
 /// How many checks Focus made in a session and what it concluded. Counts only: no titles, no text.
 public struct ReadStats: Codable, Equatable, Sendable {
     public var model = 0, rule = 0, onTask = 0, unsure = 0, offTask = 0
+    /// Windows left alone because they are on the never-judged list. Not part of `total`.
+    public var skipped = 0
     public var total: Int { onTask + unsure + offTask }
     public init() {}
+    public init(from d: Decoder) throws {
+        let c = try d.container(keyedBy: CodingKeys.self)
+        model = try c.decodeIfPresent(Int.self, forKey: .model) ?? 0; rule = try c.decodeIfPresent(Int.self, forKey: .rule) ?? 0
+        onTask = try c.decodeIfPresent(Int.self, forKey: .onTask) ?? 0; unsure = try c.decodeIfPresent(Int.self, forKey: .unsure) ?? 0
+        offTask = try c.decodeIfPresent(Int.self, forKey: .offTask) ?? 0; skipped = try c.decodeIfPresent(Int.self, forKey: .skipped) ?? 0
+    }
 }
 
 public struct SessionRecord: Codable, Identifiable, Equatable, Sendable {

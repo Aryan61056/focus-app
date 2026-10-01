@@ -6,6 +6,7 @@ struct SettingsView: View {
     @Bindable var c: SessionController
     @Bindable var store: DataStore
     @State private var confirmDelete = false
+    @State private var skip = true
     var body: some View {
         Scroller {
             VStack(alignment: .leading, spacing: 26) {
@@ -22,6 +23,13 @@ struct SettingsView: View {
                 }
                 group("What Focus looks at") {
                     row("Window titles and text", "The app name, the title, the page address and the words in the window.") { Text("On").foregroundStyle(Tokens.ink2) }
+                    row("Skip personal messages, music and blank pages", "Focus leaves these alone: it does not read them and does not count them as off topic.") {
+                        Toggle("", isOn: $skip).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
+                    }
+                    if skip {
+                        RuleGroup(title: "Apps", symbol: "app", items: Binding(get: { c.prefs.neverJudgedApps }, set: { c.prefs.neverJudgedApps = $0 }), addLabel: "Add app")
+                            .padding(.horizontal, 16).padding(.bottom, 10).overlay(alignment: .top) { Divider().overlay(Tokens.line) }
+                    }
                     row("Never looked at", "Password managers, banking sites and private windows are skipped, always.") { Label("Always on", systemImage: "lock").foregroundStyle(Tokens.ink2) }
                 }
                 group("Privacy") {
@@ -36,6 +44,8 @@ struct SettingsView: View {
             }
             .frame(maxWidth: 640, alignment: .leading)
         }
+        .onAppear { skip = c.prefs.skipPersonal }
+        .onChange(of: skip) { _, v in c.prefs.skipPersonal = v }
         .confirmationDialog("Delete everything?", isPresented: $confirmDelete) {
             Button("Delete everything", role: .destructive) { store.deleteEverything() }
         } message: { Text("Projects, sessions, rules and review moments are removed from this Mac. This cannot be undone.") }

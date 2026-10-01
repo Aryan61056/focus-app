@@ -817,3 +817,8 @@ Check: the state machine runs as in T10 (Drifting at 125, confirmed at 175), but
 | Shadow mode | T16 |
 
 Not yet covered, to add with the first implementation: `PowerChange`, `Sleep`/`Wake`, `ignore_window`, `mark_relevant`, `dismiss`, a gate repeat in Strict (where the 3-minute repeat meets the rate cap at the third interrupt), `ruleLabel = off_task`, out-of-order and stale judgments, and property tests (PLAN 9.3): no `Interrupt` without a STRONG latest evidence, never two `Interrupt` within 600 s more than twice, veil never above cap, every hold clears veil and timer.
+
+
+## Addendum (2026-10-01): never-judged windows
+
+`WindowChangeInput.ruleLabel` may be `unsure`. The brain treats it as NEUTRAL evidence with source rule and issues no `RequestJudgment` for that window (same as an on_task rule for requests). It never advances past Drifting. Used for the default never-judged list (personal messaging, music, blank pages). The golden traces do not use it; `ReadingTests.NeverJudgedTests` covers it end to end.

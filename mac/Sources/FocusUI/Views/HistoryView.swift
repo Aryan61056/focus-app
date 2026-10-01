@@ -56,7 +56,7 @@ struct SessionDrawer: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("What Focus read").font(Tokens.text(12.5, .semibold))
                         ReadingSplit(stats: r)
-                        Text("\(r.total) checks: \(r.onTask) on task, \(r.unsure) not sure, \(r.offTask) off topic. \(r.rule) were settled by your rules.")
+                        Text("\(r.total) checks: \(r.onTask) on task, \(r.unsure) not sure, \(r.offTask) off topic. \(r.rule) were settled by your rules\(r.skipped > 0 ? " and \(r.skipped) were left alone." : ".")")
                             .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
                     }
                 }

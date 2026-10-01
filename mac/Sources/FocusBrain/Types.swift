@@ -43,7 +43,7 @@ public struct JudgmentInput: Sendable {
 public struct WindowChangeInput: Sendable {
     public var windowKey: String
     public var siteKey: String
-    public var ruleLabel: JudgmentLabel?   // stage 1 project rule: on_task or off_task
+    public var ruleLabel: JudgmentLabel?   // stage 1 project rule: on_task or off_task; unsure means "never judged" (neutral, no model call)
     public init(windowKey: String, siteKey: String? = nil, ruleLabel: JudgmentLabel? = nil) {
         self.windowKey = windowKey; self.siteKey = siteKey ?? windowKey; self.ruleLabel = ruleLabel
     }

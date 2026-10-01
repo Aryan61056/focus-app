@@ -62,6 +62,24 @@ public enum Rules {
         return sensitiveDomains.contains { hostMatches(host, $0) }
     }
 
+    /// Apps Focus does not judge by default: personal messaging and music. Neither is read nor counted as off task.
+    /// Slack, Mail and similar can be work, so they are not here. The owner approved a default list on 2026-10-01; this exact
+    /// list is a starting point the user can edit in Settings.
+    public static let defaultNeverJudgedApps: [String] = [
+        "Messages", "WhatsApp", "Telegram", "Signal", "Music", "Spotify", "Podcasts", "Tidal", "Pandora",
+    ]
+    static let blankPageTitles: Set<String> = ["new tab", "start page", "untitled", "favorites", "top sites", "new window"]
+
+    /// True for a blank new-tab or start page, or an app on the list (matched by name, ignoring case).
+    public static func isNeverJudged(_ m: Moment, apps: [String]) -> Bool {
+        let app = m.app.lowercased()
+        if apps.contains(where: { $0.lowercased() == app }) { return true }
+        let title = m.windowTitle.trimmingCharacters(in: .whitespaces).lowercased()
+        let (host, _) = hostAndPath(m.url)
+        let blankURL = m.url.isEmpty || m.url.hasPrefix("about:blank") || m.url.hasPrefix("chrome://newtab") || m.url.hasPrefix("favorites://") || host == "newtab"
+        return blankPageTitles.contains(title) && blankURL && m.documentPath.isEmpty
+    }
+
     public struct RuleHit: Equatable, Sendable { public var label: Label; public var rule: String }
 
     /// Deny beats allow. Returns nil when no project rule decides.

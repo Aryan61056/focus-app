@@ -12,7 +12,7 @@ public struct LearnedRule: Equatable, Sendable { public var scope: String, kind:
 /// One thing Focus read and concluded. Lives in memory for the running session only; titles are never saved.
 public struct Reading: Identifiable, Equatable, Sendable {
     public enum Call: Sendable { case on, unsure, off }
-    public enum Source: Sendable { case model, rule, sensitive }
+    public enum Source: Sendable { case model, rule, sensitive, skipped }
     public let id = UUID()
     public var at: Double, date: Date
     public var key: String, app: String, title: String
@@ -127,6 +127,12 @@ public final class SessionController {
         }
         if sensitiveUp { sensitiveUp = false; send(.sensitiveLeft) }
         let hit = Rules.stage1(m)
+        if hit == nil, prefs.skipPersonal, Rules.isNeverJudged(m, apps: prefs.neverJudgedApps) {
+            // Not read, not sent to the model, not counted as off task. The title is dropped: chat titles are names.
+            record(Reading(at: now(), date: date(), key: Keys.window(w), app: w.app, title: "", call: .unsure, source: .skipped, reason: "Personal messages, music and blank pages are not judged."))
+            send(.windowChange(WindowChangeInput(windowKey: Keys.window(w), siteKey: Keys.site(w), ruleLabel: .unsure)))
+            return
+        }
         if let hit { record(Reading(at: now(), date: date(), key: Keys.window(w), app: w.app, title: w.title, call: Self.call(hit.label), source: .rule, reason: Self.ruleReason(hit.rule))) }
         send(.windowChange(WindowChangeInput(windowKey: Keys.window(w), siteKey: Keys.site(w), ruleLabel: hit.map { Self.brainLabel($0.label) })))
     }
@@ -145,8 +151,8 @@ public final class SessionController {
 
     /// Newest first, and a window that is read again replaces its own latest line instead of repeating it.
     func record(_ r: Reading) {
-        switch r.source { case .model: stats.model += 1; case .rule: stats.rule += 1; case .sensitive: break }
-        if r.source != .sensitive { switch r.call { case .on: stats.onTask += 1; case .unsure: stats.unsure += 1; case .off: stats.offTask += 1 } }
+        switch r.source { case .model: stats.model += 1; case .rule: stats.rule += 1; case .skipped: stats.skipped += 1; case .sensitive: break }
+        if r.source == .model || r.source == .rule { switch r.call { case .on: stats.onTask += 1; case .unsure: stats.unsure += 1; case .off: stats.offTask += 1 } }
         if let first = readings.first, first.key == r.key, first.call == r.call, first.source == r.source { readings[0].at = r.at; readings[0].date = r.date; readings[0].reason = r.reason; return }
         readings.insert(r, at: 0)
         if readings.count > 12 { readings.removeLast() }

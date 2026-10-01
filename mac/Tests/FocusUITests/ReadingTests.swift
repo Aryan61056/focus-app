@@ -129,3 +129,60 @@ final class PromptBox: @unchecked Sendable {
     func set(_ v: String) { lock.lock(); s = v; lock.unlock() }
     var value: String { lock.lock(); defer { lock.unlock() }; return s }
 }
+
+@MainActor
+final class NeverJudgedTests: XCTestCase {
+    var t = 0.0
+    let spy = CountingJudge { _ in Verdict(label: .offTask, reason: "would be off topic") }
+    func make() -> SessionController { SessionController(judge: spy, now: { [unowned self] in self.t }) }
+    func advance(_ c: SessionController, to target: Double) async { while t < target { t += 1; c.tick(); await c.waitForJudgments() } }
+    let editor = WindowSnapshot(app: "Notes", title: "Calc homework")
+
+    func testMessagingWindowIsNeverSentToTheJudgeAndNeverNudges() async {
+        let c = make()
+        c.windowChanged(WindowSnapshot(app: "Messages", title: "Alex Rivera"))
+        c.begin(task: "Calc homework", preset: .strict, shadow: false)
+        await advance(c, to: 400)
+        XCTAssertEqual(spy.calls, 0, "a never-judged app must not reach the model")
+        XCTAssertNil(c.surface)
+        XCTAssertEqual(c.latest?.source, .skipped)
+        XCTAssertEqual(c.latest?.title, "", "chat titles are names; the title is dropped")
+        XCTAssertEqual(c.stats.skipped, 1)
+        XCTAssertEqual(c.stats.offTask, 0)
+    }
+
+    func testBlankNewTabIsNotJudged() async {
+        let c = make()
+        c.windowChanged(WindowSnapshot(app: "Safari", title: "Start Page", url: "favorites://"))
+        c.begin(task: "Calc homework", preset: .standard, shadow: false)
+        await advance(c, to: 200)
+        XCTAssertEqual(spy.calls, 0)
+        XCTAssertEqual(c.latest?.source, .skipped)
+    }
+
+    func testTurningTheSwitchOffJudgesThemAgain() async {
+        let c = make()
+        c.prefs.skipPersonal = false
+        c.windowChanged(WindowSnapshot(app: "Messages", title: "Alex Rivera"))
+        c.begin(task: "Calc homework", preset: .standard, shadow: false)
+        await advance(c, to: 5)
+        XCTAssertGreaterThan(spy.calls, 0)
+    }
+
+    func testAProjectAllowRuleBeatsTheNeverJudgedList() async {
+        let store = DataStore()
+        var p = store.addProject(name: "Calc homework"); p.profile.alwaysAllowApps = ["Spotify"]; store.update(p)
+        let c = SessionController(judge: spy, store: store, now: { [unowned self] in self.t })
+        c.windowChanged(WindowSnapshot(app: "Spotify", title: "Focus playlist"))
+        c.begin(task: "Calc homework", preset: .standard, shadow: false)
+        XCTAssertEqual(c.latest?.source, .rule)
+        XCTAssertEqual(c.latest?.call, .on)
+    }
+
+    func testOrdinaryWorkWindowsAreStillJudged() {
+        let m = Moment(task: "x", app: "Notes", windowTitle: "Calc homework", url: "", documentPath: "", windowText: "", project: ProjectProfile())
+        XCTAssertFalse(Rules.isNeverJudged(m, apps: Rules.defaultNeverJudgedApps))
+        let tab = Moment(task: "x", app: "Safari", windowTitle: "New Tab", url: "https://example.com/new", documentPath: "", windowText: "", project: ProjectProfile())
+        XCTAssertFalse(Rules.isNeverJudged(tab, apps: []), "a page titled New Tab on a real address is still judged")
+    }
+}
