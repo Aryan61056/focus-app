@@ -1,0 +1,13 @@
+{"trace":"T06-unsure-flood","ticks":{"from":0,"until":430},"ignore":["RequestJudgment"],"prelude":{"preset":"Standard"},"steps":[
+{"t":100,"ev":{"WindowChange":{"windowKey":"w:music"}},"fx":[]},
+{"t":103.5,"ev":{"Judgment":{"observedAt":100,"windowKey":"w:music","contentKey":"c:m1","label":"unsure"}},"fx":[]},
+{"t":117.5,"ev":{"Judgment":{"observedAt":114,"windowKey":"w:music","contentKey":"c:m1","label":"unsure"}},"fx":[]},
+{"t":125,"ev":"Tick","fx":[{"Beacon":{"state":"watching"}}]},
+{"t":141.5,"ev":{"Judgment":{"observedAt":138,"windowKey":"w:music","contentKey":"c:m2","label":"unsure"}},"fx":[]},
+{"t":185.5,"ev":{"Judgment":{"observedAt":182,"windowKey":"w:music","contentKey":"c:m3","label":"off_task","strong":false}},"fx":[]},
+{"t":249.5,"ev":{"Judgment":{"observedAt":246,"windowKey":"w:music","contentKey":"c:m3","label":"unsure"}},"repeat":{"every":64,"until":377.5},"fx":[]},
+{"t":400,"ev":{"WindowChange":{"windowKey":"w:editor"}},"fx":[]},
+{"t":415,"ev":"Tick","fx":[{"Beacon":{"state":"recovering"}}]},
+{"t":420,"ev":"Tick","fx":[{"Beacon":{"state":"resting"}}]},
+{"t":430,"ev":{"SessionEnd":{"reason":"user"}},"fx":[{"Beacon":{"state":"off"}},{"Summary":{"activeSeconds":430,"offTopicSeconds":0,"unsureSeconds":300,"drifts":0,"interrupts":0,"refusals":0}}]}
+]}

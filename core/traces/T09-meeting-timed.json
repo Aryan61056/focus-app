@@ -1,0 +1,9 @@
+{"trace":"T09-meeting-timed","ticks":{"from":0,"until":5110},"ignore":["RequestJudgment"],"prelude":{"preset":"Standard","mode":"Timed","durationSeconds":3000},"steps":[
+{"t":600,"ev":{"MeetingStart":{}},"fx":[{"Beacon":{"state":"paused","reason":"meeting"}},{"Clock":{"seconds":2400,"running":false}}]},
+{"t":2400,"ev":{"MeetingEnd":{}},"fx":[{"AskResume":{"reason":"meeting"}}]},
+{"t":2410,"ev":{"UserAction":{"action":"resume"}},"fx":[{"Beacon":{"state":"resting"}},{"Clock":{"seconds":2400,"running":true}}]},
+{"t":4690,"ev":"Tick","fx":[{"WrapUp":{"remaining":120}}]},
+{"t":4700,"ev":{"UserAction":{"action":"extend","minutes":5}},"fx":[{"Clock":{"seconds":410,"running":true}}]},
+{"t":4990,"ev":"Tick","fx":[{"WrapUp":{"remaining":120}}]},
+{"t":5110,"ev":"Tick","fx":[{"Beacon":{"state":"off"}},{"Summary":{"activeSeconds":3300,"offTopicSeconds":0,"unsureSeconds":0,"drifts":0,"interrupts":0,"refusals":0}}]}
+]}

@@ -16,6 +16,8 @@ Context of use: mid-task, glancing at the app for about three seconds, often on 
 
 A native focus app. The user states a task, a local AI compares the screen to it, and the app nudges gently and escalates gently if they keep drifting. Projects keep context between sessions. Nothing leaves the device: no cloud inference, no accounts, no telemetry.
 
+Surfaces: a full app window for projects, history, insights, review and settings; a menu bar popover for quick control; and a notch presence that is deliberately more aesthetic than functional.
+
 Success: a returning user starts in one keypress (under 10 seconds), a first session starts in under 90 seconds, false nudges are rare enough that people trust the ones they get, and nobody says it felt like too much.
 
 ## Brand Personality
@@ -28,7 +30,7 @@ Speaks like a calm colleague: brief, second person, sentence case, no exclamatio
 
 - Fomi-style cartoon personas and the tomato. The default style has no mascot. The cat is an optional later pack.
 - Anything with a surveillance or stalkerware feel: stealth behavior, employer-dashboard looks, alarming "monitoring" imagery. The app is never invisible while it watches.
-- The generic SaaS dashboard: hero-metric tiles, gradient accents, identical card grids, chrome that outweighs content.
+- The generic SaaS dashboard: hero-metric tiles, gradient accents, identical card grids, chrome that outweighs content. Owner update 2026-10-01: the app should still be a full, proper app window (sidebar, tables, insights) that shows what it can do. Familiar SaaS structure is welcome; the decoration listed here is not.
 
 ## Design Principles
 

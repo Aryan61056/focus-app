@@ -1,0 +1,10 @@
+{"trace":"T13-that-was-fine","ticks":{"from":0,"until":300},"ignore":["RequestJudgment"],"prelude":{"preset":"Standard"},"steps":[
+{"t":100,"ev":{"WindowChange":{"windowKey":"w:yt-lecture","siteKey":"s:youtube"}},"fx":[]},
+{"t":103.5,"ev":{"Judgment":{"observedAt":100,"windowKey":"w:yt-lecture","contentKey":"c:l1","label":"off_task","strong":true}},"repeat":{"every":14,"until":187.5},"fx":[]},
+{"t":125,"ev":"Tick","fx":[{"Beacon":{"state":"drifting"}},{"Veil":{"from":0,"to":30,"seconds":30}},{"OffTopicTimer":{"seconds":25,"running":true,"visible":true}}]},
+{"t":175,"ev":"Tick","fx":[{"Beacon":{"state":"interrupted"}},{"Veil":{"from":30,"to":60,"seconds":30}},{"Interrupt":{"kind":"card","severity":1,"block":1,"windowKey":"w:yt-lecture"}}]},
+{"t":180,"ev":{"UserAction":{"action":"that_was_fine"}},"fx":[{"Withdraw":{"what":"card"}},{"Beacon":{"state":"resting"}},{"Veil":{"from":35,"to":0,"seconds":5}},{"OffTopicTimer":{"seconds":80,"running":false,"visible":false}},{"LearnRule":{"scope":"project","kind":"allow","keyType":"window","key":"w:yt-lecture"}}]},
+{"t":200,"ev":{"WindowChange":{"windowKey":"w:editor"}},"fx":[]},
+{"t":260,"ev":{"WindowChange":{"windowKey":"w:yt-lecture","siteKey":"s:youtube"}},"fx":[]},
+{"t":300,"ev":{"SessionEnd":{"reason":"user"}},"fx":[{"Beacon":{"state":"off"}},{"Summary":{"activeSeconds":300,"offTopicSeconds":0,"unsureSeconds":0,"drifts":0,"interrupts":1,"refusals":0}}]}
+]}

@@ -18,7 +18,8 @@ Design context (register, personality, anti-references, principles) is in `PRODU
   Spike S5 may overturn this. Fallback: two native implementations plus shared golden-trace tests.
 - Default style is **Quiet** (calm, professional). The cat is an optional "Playful" pack, late in the roadmap. No mascot art now. No tomato.
 - Mechanism and look are separate: the brain emits abstract effects, a style renders them (PLAN 7.1b).
-- The notch holds only the nine quick functions (PLAN 4.6). No function lives only in the notch.
+- **Visual direction (owner, 2026-10-01): B "Lichen"** (`docs/design/b-lichen.*`). The product is a proper app window (sidebar, projects, history, insights, review, rules, settings) plus a light menu bar and notch presence. The owner wants it to convey the app's capability, even if it reads as a SaaS-style app.
+- **The notch is aesthetic, not functional (owner, 2026-10-01, replaces PLAN 4.6's nine functions).** It shows the ring, the task and the time, and expands only to a nudge or two buttons (Pause, Open app). Every function lives in the app window and the menu bar popover; none lives only in the notch.
 - The no-timer session mode is named **Open**. Time budgets for messaging are optional and off by default.
 - **Never overwhelm** (PLAN 4.8 calm rules and start flow) is a hard requirement for anything user-facing.
 
@@ -44,7 +45,7 @@ Do not write "OS-enforced", "cannot reach the network" or "0 bytes sent" in any 
 7. Model refusal or guardrail error is `unsure` plus a flag. Never a crash and never a nudge.
 
 ## How to work here
-- Functions before visuals. No mockups or visual designs unless the owner asks. The visual-direction spike (S10) starts only on their say-so.
+- Functions before visuals, except where the owner asks for visual work (they did on 2026-10-01: use the impeccable skill for any UI design).
 - One spike or feature at a time, finished and verified before the next. Commit often; messages say why.
 - Be honest. Report failures with real output. Never say something works unless it was run. Mark anything unverified.
 - Windows: code can be written here but cannot be run on this Mac. Say so plainly. Never claim Windows behavior is verified.

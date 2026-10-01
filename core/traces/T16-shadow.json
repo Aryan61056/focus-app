@@ -1,0 +1,6 @@
+{"trace":"T16-shadow","ticks":{"from":0,"until":180},"ignore":["RequestJudgment"],"prelude":{"preset":"Standard","shadow":true},"steps":[
+{"t":100,"ev":{"WindowChange":{"windowKey":"w:yt"}},"fx":[]},
+{"t":103.5,"ev":{"Judgment":{"observedAt":100,"windowKey":"w:yt","contentKey":"c:yt1","label":"off_task","strong":true}},"repeat":{"every":14,"until":173.5},"fx":[]},
+{"t":175,"ev":"Tick","fx":[{"ShadowMark":{"block":1,"kind":"card","windowKey":"w:yt"}}]},
+{"t":180,"ev":{"SessionEnd":{"reason":"user"}},"fx":[{"Beacon":{"state":"off"}},{"Summary":{"activeSeconds":180,"offTopicSeconds":80,"unsureSeconds":0,"drifts":1,"interrupts":0,"refusals":0}}]}
+]}

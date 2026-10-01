@@ -1,0 +1,9 @@
+{"trace":"T12-panic","ticks":{"from":0,"until":210},"ignore":["RequestJudgment"],"prelude":{"preset":"Strict"},"steps":[
+{"t":50,"ev":{"WindowChange":{"windowKey":"w:yt"}},"fx":[]},
+{"t":53.5,"ev":{"Judgment":{"observedAt":50,"windowKey":"w:yt","contentKey":"c:yt1","label":"off_task","strong":true}},"repeat":{"every":14,"until":81.5},"fx":[]},
+{"t":60,"ev":"Tick","fx":[{"Beacon":{"state":"drifting"}},{"Veil":{"from":0,"to":40,"seconds":40}},{"OffTopicTimer":{"seconds":10,"running":true,"visible":true}}]},
+{"t":95,"ev":"Tick","fx":[{"Beacon":{"state":"interrupted"}},{"Veil":{"from":35,"to":80,"seconds":45}},{"Interrupt":{"kind":"gate","severity":1,"block":1,"windowKey":"w:yt"}}]},
+{"t":97,"ev":{"UserAction":{"action":"panic"}},"fx":[{"Withdraw":{"what":"gate"}},{"Beacon":{"state":"paused","reason":"user"}},{"Veil":{"from":37,"to":0,"seconds":0}},{"OffTopicTimer":{"seconds":47,"running":false,"visible":false}},{"Clock":{"seconds":97,"running":false}}]},
+{"t":200,"ev":{"UserAction":{"action":"resume"}},"fx":[{"Beacon":{"state":"resting"}},{"Clock":{"seconds":97,"running":true}}]},
+{"t":210,"ev":{"SessionEnd":{"reason":"user"}},"fx":[{"Beacon":{"state":"off"}},{"Summary":{"activeSeconds":107,"offTopicSeconds":47,"unsureSeconds":0,"drifts":1,"interrupts":1,"refusals":0}}]}
+]}

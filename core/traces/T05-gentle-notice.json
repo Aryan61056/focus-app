@@ -1,0 +1,11 @@
+{"trace":"T05-gentle-notice","ticks":{"from":0,"until":330},"ignore":["RequestJudgment"],"prelude":{"preset":"Gentle"},"steps":[
+{"t":100,"ev":{"WindowChange":{"windowKey":"w:yt"}},"fx":[]},
+{"t":103.5,"ev":{"Judgment":{"observedAt":100,"windowKey":"w:yt","contentKey":"c:yt1","label":"off_task","strong":true}},"repeat":{"every":14,"until":271.5},"fx":[]},
+{"t":145,"ev":"Tick","fx":[{"Beacon":{"state":"drifting"}}]},
+{"t":160,"ev":"Tick","fx":[{"OffTopicTimer":{"seconds":60,"running":true,"visible":true}}]},
+{"t":280,"ev":"Tick","fx":[{"Beacon":{"state":"interrupted"}},{"Interrupt":{"kind":"notice","severity":1,"block":1,"windowKey":"w:yt"}}]},
+{"t":300,"ev":{"WindowChange":{"windowKey":"w:editor"}},"fx":[{"OffTopicTimer":{"seconds":200,"running":false,"visible":true}}]},
+{"t":315,"ev":"Tick","fx":[{"Beacon":{"state":"recovering"}},{"OffTopicTimer":{"seconds":200,"running":false,"visible":false}}]},
+{"t":320,"ev":"Tick","fx":[{"Beacon":{"state":"resting"}}]},
+{"t":330,"ev":{"SessionEnd":{"reason":"user"}},"fx":[{"Beacon":{"state":"off"}},{"Summary":{"activeSeconds":330,"offTopicSeconds":200,"unsureSeconds":0,"drifts":1,"interrupts":1,"refusals":0}}]}
+]}

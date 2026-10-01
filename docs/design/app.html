@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Focus app window</title>
+<link rel="stylesheet" href="board.css">
+<link rel="stylesheet" href="b-lichen.css">
+<link rel="stylesheet" href="app.css">
+<style>main.board { max-width: 1360px; }</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="r-on" viewBox="0 0 18 18"><circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" stroke-width="2.25"/></symbol>
+  <symbol id="r-unsure" viewBox="0 0 18 18"><circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" stroke-width="2.25" stroke-dasharray="2.4 2.4" stroke-linecap="round"/></symbol>
+  <symbol id="r-drift" viewBox="0 0 18 18"><circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-dasharray="29.5 8.2" transform="rotate(-60 9 9)"/></symbol>
+  <symbol id="r-pause" viewBox="0 0 18 18"><rect x="5.2" y="4" width="2.8" height="10" rx="1.4" fill="currentColor"/><rect x="10" y="4" width="2.8" height="10" rx="1.4" fill="currentColor"/></symbol>
+  <symbol id="r-break" viewBox="0 0 18 18"><circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" stroke-width="2.25"/><circle cx="9" cy="9" r="1.9" fill="currentColor"/></symbol>
+  <symbol id="r-prog" viewBox="0 0 18 18"><circle cx="9" cy="9" r="6" fill="none" stroke="var(--track)" stroke-width="2.25"/><circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-dasharray="22.6 15.1" transform="rotate(-90 9 9)"/></symbol>
+  <symbol id="i-today" viewBox="0 0 20 20"><rect x="3.5" y="4.5" width="13" height="12" rx="3"/><path d="M3.5 8.5h13"/></symbol>
+  <symbol id="i-projects" viewBox="0 0 20 20"><path d="M3 6.5a2 2 0 0 1 2-2h3l1.6 1.8H15a2 2 0 0 1 2 2V14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-history" viewBox="0 0 20 20"><circle cx="10" cy="10" r="6.5"/><path d="M10 6.5V10l2.4 1.6"/></symbol>
+  <symbol id="i-insights" viewBox="0 0 20 20"><path d="M5 16V10M10 16V4.5M15 16v-8"/></symbol>
+  <symbol id="i-review" viewBox="0 0 20 20"><path d="M4.5 6.5L6 8l2.5-3M11 6.5h4.5M4.5 13L6 14.5l2.5-3M11 13h4.5"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 20 20"><path d="M4 6h8M15.5 6H16M4 14h.5M8.5 14H16"/><circle cx="13.7" cy="6" r="1.7"/><circle cx="6.5" cy="14" r="1.7"/></symbol>
+  <symbol id="i-search" viewBox="0 0 20 20"><circle cx="9" cy="9" r="5"/><path d="M13 13l3.5 3.5"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 20 20"><path d="M10 4.5v11M4.5 10h11"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 20 20"><path d="M3 6.5a2 2 0 0 1 2-2h3l1.6 1.8H15a2 2 0 0 1 2 2V14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 20 20"><circle cx="10" cy="10" r="6.5"/><path d="M3.5 10h13M10 3.5c2 2 2.8 4.2 2.8 6.5S12 14.5 10 16.5C8 14.5 7.2 12.3 7.2 10S8 5.5 10 3.5z"/></symbol>
+  <symbol id="i-app" viewBox="0 0 20 20"><rect x="4" y="4" width="12" height="12" rx="3"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 20 20"><rect x="4.5" y="9" width="11" height="7.5" rx="2"/><path d="M7 9V7a3 3 0 0 1 6 0v2"/></symbol>
+  <symbol id="i-x" viewBox="0 0 20 20"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></symbol>
+  <symbol id="i-play" viewBox="0 0 20 20"><path d="M7 5l8 5-8 5z"/></symbol>
+</svg>
+
+<main class="board">
+  <header class="board-head">
+    <div>
+      <h1>Focus app window, direction B</h1>
+      <p>The full app around the quiet ring: projects, history, insights, review and settings, plus a notch that is deliberately more aesthetic than functional. Synthetic data. A mockup, not product code.</p>
+    </div>
+    <nav class="board-nav" aria-label="Boards"><a href="index.html">Compare directions</a><a href="b-lichen.html">Lichen components</a></nav>
+  </header>
+
+  <div class="controls" role="group" aria-label="Board options">
+    <span>Theme</span>
+    <span class="seg"><button type="button" data-theme-btn="system" aria-pressed="true">System</button><button type="button" data-theme-btn="light" aria-pressed="false">Light</button><button type="button" data-theme-btn="dark" aria-pressed="false">Dark</button></span>
+    <label><input type="checkbox" id="opaque"> Reduce transparency</label>
+    <label><input type="checkbox" id="still"> Reduce motion</label>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="Surfaces">
+    <button role="tab" id="tab-app" aria-selected="true" aria-controls="p-app" type="button">App window</button>
+    <button role="tab" id="tab-notch" aria-selected="false" aria-controls="p-notch" type="button">Notch and menu bar</button>
+  </div>
+
+  <!-- ===================== APP WINDOW ===================== -->
+  <section class="panel" id="p-app" role="tabpanel" aria-labelledby="tab-app">
+    <p class="a-note-board" style="margin:14px 0 10px">Click the sidebar to move between screens. Start session opens the start sheet. Everything in the window is made-up sample data.</p>
+    <div class="a-fit" id="fit">
+      <div class="a-desk"></div>
+      <div class="a-win" id="win">
+
+        <!-- Sidebar -->
+        <aside class="a-side" aria-label="Sidebar">
+          <div class="a-lights" aria-hidden="true"><i></i><i></i><i></i></div>
+          <div class="a-brand"><span class="ring"><svg><use href="#r-on"/></svg></span>Focus</div>
+          <nav class="a-nav" aria-label="Main">
+            <button type="button" data-go="today" aria-current="page"><svg><use href="#i-today"/></svg>Today</button>
+            <button type="button" data-go="projects"><svg><use href="#i-projects"/></svg>Projects<span class="count">4</span></button>
+            <button type="button" data-go="history"><svg><use href="#i-history"/></svg>History</button>
+            <button type="button" data-go="insights"><svg><use href="#i-insights"/></svg>Insights</button>
+            <button type="button" data-go="review"><svg><use href="#i-review"/></svg>Review<span class="count">5</span></button>
+          </nav>
+          <div class="a-label">Recent projects</div>
+          <div class="a-proj">
+            <button type="button" class="live" data-go="projects"><span class="ring"><svg><use href="#r-prog"/></svg></span>Calc homework<span class="sub">24:10</span></button>
+            <button type="button" data-go="projects"><span class="ring"><svg><use href="#r-on"/></svg></span>Essay on sleep and memory</button>
+            <button type="button" data-go="projects"><span class="ring"><svg><use href="#r-on"/></svg></span>Lab report on pendulums</button>
+          </div>
+          <div class="spacer"></div>
+          <div class="a-mini" aria-label="Current session">
+            <span class="ring"><svg><use href="#r-prog"/></svg></span>
+            <b>Calc homework</b>
+            <span class="t num">24:10</span>
+            <span>On task</span>
+          </div>
+          <nav class="a-nav" aria-label="Settings"><button type="button" data-go="settings"><svg><use href="#i-settings"/></svg>Settings</button></nav>
+        </aside>
+
+        <!-- Main -->
+        <div class="a-main">
+          <div class="a-top">
+            <div class="a-search"><svg class="a-ico"><use href="#i-search"/></svg>Search projects and sessions<kbd>⌘K</kbd></div>
+            <div class="right"><button class="btn primary" type="button" id="open-start"><svg><use href="#i-play"/></svg>Start session</button></div>
+          </div>
+          <div class="a-scroll">
+
+            <!-- TODAY -->
+            <div class="a-view" data-view="today">
+              <div class="a-head"><div><h1>Today</h1><p>Thursday, 1 October</p></div></div>
+              <div class="a-cols">
+                <div class="a-stack">
+                  <div class="a-panel a-session">
+                    <span class="ring"><svg><use href="#r-prog"/></svg></span>
+                    <div><h2>Calc homework</h2></div>
+                    <div class="acts"><button class="btn" type="button">Pause</button><button class="btn" type="button">Take a break</button><button class="btn plain" type="button">End session</button></div>
+                    <div class="meta">Open session, started 12:02, 24 minutes in</div>
+                    <div><span class="a-state"><span class="ring"><svg><use href="#r-on"/></svg></span>On task</span></div>
+                    <div class="a-next"><span>Next step</span><b>Check problem 4</b><span class="check">Last check 12 seconds ago, reading window titles and text</span></div>
+                  </div>
+
+                  <div>
+                    <div class="a-h2">Your day<small>8:00 to 18:00</small></div>
+                    <div class="a-track" id="day-track" aria-label="Focus timeline for today"></div>
+                    <div class="a-axis" id="day-axis" aria-hidden="true"></div>
+                    <div class="a-legend"><span><i class="on"></i>On task</span><span><i class="un"></i>Unsure</span><span><i class="off"></i>Off topic</span></div>
+                    <p class="a-sentence">2 h 14 min on task across 3 sessions. You slipped twice and were back in about a minute each time.</p>
+                  </div>
+
+                  <div>
+                    <div class="a-h2">Projects<button class="a-link" type="button" data-go="projects">See all</button></div>
+                    <div class="a-rows">
+                      <div class="a-row a-proj-row hov"><div><b>Calc homework</b><small>Calculus II, chapter 5</small></div><span class="a-sub">Today</span><span class="a-num a-right">3 h 40 min</span><button class="btn sm" type="button">Continue</button></div>
+                      <div class="a-row a-proj-row hov"><div><b>Essay on sleep and memory</b><small>Draft two, citations left</small></div><span class="a-sub">Yesterday</span><span class="a-num a-right">2 h 05 min</span><button class="btn sm" type="button">Continue</button></div>
+                      <div class="a-row a-proj-row hov"><div><b>Lab report on pendulums</b><small>Results section</small></div><span class="a-sub">Monday</span><span class="a-num a-right">1 h 10 min</span><button class="btn sm" type="button">Continue</button></div>
+                      <div class="a-row a-proj-row hov"><div><b>Thesis reading</b><small>Papers from the shared folder</small></div><span class="a-sub">Last week</span><span class="a-num a-right">0 min</span><button class="btn sm" type="button">Continue</button></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="a-stack">
+                  <div class="a-panel">
+                    <div class="a-h2">This week<small>hours on task</small></div>
+                    <div class="a-bars" id="week-bars"></div>
+                    <div class="a-days" id="week-days"></div>
+                    <p class="a-sentence" style="font-size:13px">11 h 20 min on task. Tuesday was your longest day.</p>
+                  </div>
+                  <div class="a-panel tint">
+                    <div class="a-h2">Learned from you<button class="a-link" type="button">Review all</button></div>
+                    <div class="a-learn">
+                      <div class="a-row"><div>Desmos counts for Calc homework<small>From “That was fine”, Tuesday</small></div><button class="btn sm plain" type="button">Undo</button></div>
+                      <div class="a-row"><div>Spotify counts everywhere<small>You marked it relevant, Monday</small></div><button class="btn sm plain" type="button">Undo</button></div>
+                      <div class="a-row"><div>Messages is never judged<small>Your setting</small></div><button class="btn sm plain" type="button">Undo</button></div>
+                    </div>
+                  </div>
+                  <div class="a-panel">
+                    <div class="a-h2">On this Mac</div>
+                    <div class="a-facts">
+                      <div><span>Judge</span>Apple on-device model</div>
+                      <div><span>Looking at</span>Window titles and text</div>
+                      <div><span>Stored</span><span class="a-num" style="color:var(--ink)">14 MB</span></div>
+                    </div>
+                    <p style="margin-top:10px"><button class="a-link" type="button" data-go="settings">Privacy settings</button></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PROJECTS -->
+            <div class="a-view" data-view="projects" hidden>
+              <div class="a-head"><div><h1>Projects</h1><p>What each project counts as on task. Focus keeps this between sessions.</p></div><button class="btn plain" type="button"><svg><use href="#i-plus"/></svg>New project</button></div>
+              <div class="a-split">
+                <div class="a-list" role="list" aria-label="Projects">
+                  <button type="button" aria-current="true"><b>Calc homework</b><small>Today · 3 h 40 min this week</small></button>
+                  <button type="button"><b>Essay on sleep and memory</b><small>Yesterday · 2 h 05 min</small></button>
+                  <button type="button"><b>Lab report on pendulums</b><small>Monday · 1 h 10 min</small></button>
+                  <button type="button"><b>Thesis reading</b><small>Last week</small></button>
+                </div>
+                <div>
+                  <div class="a-head" style="margin-bottom:14px"><div><h1 style="font-size:22px">Calc homework</h1><p>Created 14 September · 6 sessions · 9 h 40 min in total</p></div><button class="btn primary" type="button"><svg><use href="#i-play"/></svg>Start session</button></div>
+                  <div class="a-field"><label for="ctx">What this project is</label><textarea class="a-text" id="ctx" rows="2">Calculus II, chapter 5: integration by parts. The textbook is the PDF in Documents.</textarea><span class="help">Focus reads this when it is unsure about a window. It stays on this Mac.</span></div>
+                  <div class="a-field"><label for="nxt">Next step</label><input class="a-text" id="nxt" value="Check problem 4"></div>
+                  <div class="a-field">
+                    <span class="lb">Counts as on task</span>
+                    <div>
+                      <div class="a-group"><span>Apps</span><div class="a-chipset"><span class="a-tag"><svg class="a-ico"><use href="#i-app"/></svg>Preview<button type="button" aria-label="Remove Preview"><svg><use href="#i-x"/></svg></button></span><span class="a-tag"><svg class="a-ico"><use href="#i-app"/></svg>Notes<button type="button" aria-label="Remove Notes"><svg><use href="#i-x"/></svg></button></span><span class="a-tag"><svg class="a-ico"><use href="#i-app"/></svg>Calculator<button type="button" aria-label="Remove Calculator"><svg><use href="#i-x"/></svg></button></span><button class="a-add" type="button">Add app</button></div></div>
+                      <div class="a-group"><span>Sites</span><div class="a-chipset"><span class="a-tag"><svg class="a-ico"><use href="#i-globe"/></svg>khanacademy.org<button type="button" aria-label="Remove khanacademy.org"><svg><use href="#i-x"/></svg></button></span><span class="a-tag"><svg class="a-ico"><use href="#i-globe"/></svg>desmos.com<button type="button" aria-label="Remove desmos.com"><svg><use href="#i-x"/></svg></button></span><span class="a-tag"><svg class="a-ico"><use href="#i-globe"/></svg>wolframalpha.com<button type="button" aria-label="Remove wolframalpha.com"><svg><use href="#i-x"/></svg></button></span><button class="a-add" type="button">Add site</button></div></div>
+                      <div class="a-group"><span>Folders</span><div class="a-chipset"><span class="a-tag"><svg class="a-ico"><use href="#i-folder"/></svg>~/Documents/Calc II<button type="button" aria-label="Remove folder"><svg><use href="#i-x"/></svg></button></span><button class="a-add" type="button">Add folder</button></div></div>
+                      <div class="a-group"><span>Never</span><div class="a-chipset"><span class="a-tag"><svg class="a-ico"><use href="#i-globe"/></svg>youtube.com/shorts<button type="button" aria-label="Remove youtube.com/shorts"><svg><use href="#i-x"/></svg></button></span><button class="a-add" type="button">Add</button></div></div>
+                    </div>
+                  </div>
+                  <div class="a-field">
+                    <span class="lb">Recent sessions</span>
+                    <div class="a-rows" style="margin-top:2px">
+                      <div class="a-row hov" style="grid-template-columns:150px 1fr 70px"><span>Today, 12:02</span><div class="mini" aria-hidden="true"><i class="on" style="flex:8"></i><i class="un" style="flex:1"></i><i class="on" style="flex:5"></i></div><span class="a-num a-right">24 min</span></div>
+                      <div class="a-row hov" style="grid-template-columns:150px 1fr 70px"><span>Tuesday, 14:10</span><div class="mini" aria-hidden="true"><i class="on" style="flex:10"></i><i class="off" style="flex:1"></i><i class="on" style="flex:12"></i></div><span class="a-num a-right">1 h 12</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- HISTORY -->
+            <div class="a-view" data-view="history" hidden>
+              <div class="a-head"><div><h1>History</h1><p>Every session, kept on this Mac. Delete any of them at any time.</p></div></div>
+              <div class="a-tools">
+                <button class="chip" type="button" aria-pressed="true">This week</button><button class="chip" type="button" aria-pressed="false">This month</button><button class="chip" type="button" aria-pressed="false">All time</button>
+                <span style="flex:1"></span><button class="btn sm plain" type="button">All projects</button>
+              </div>
+              <div class="a-hist">
+                <div>
+                  <div class="a-thead a-hcols" style="padding:0 10px 8px"><span>Date</span><span>Project</span><span class="a-right">Length</span><span>Focus</span><span class="a-right">Slips</span><span class="a-right">Nudges</span></div>
+                  <div class="a-rows" id="hist-rows" role="listbox" aria-label="Sessions"></div>
+                </div>
+                <aside class="a-panel a-drawer" id="hist-drawer" aria-live="polite"></aside>
+              </div>
+            </div>
+
+            <!-- INSIGHTS -->
+            <div class="a-view" data-view="insights" hidden>
+              <div class="a-head"><div><h1>Insights</h1><p>The last four weeks. Everything here is worked out on this Mac.</p></div><span><button class="chip" type="button" aria-pressed="false">Week</button> <button class="chip" type="button" aria-pressed="true">4 weeks</button> <button class="chip" type="button" aria-pressed="false">All</button></span></div>
+              <p class="a-quote" style="margin-bottom:22px">You spent 41 hours on task. Mornings are your strongest time: <span id="morning-share">68</span>% of your focused minutes start before noon.</p>
+              <div class="a-ins">
+                <div class="a-stack">
+                  <div class="a-panel">
+                    <div class="a-h2">When you focus<small>focused minutes by hour and day</small></div>
+                    <div class="a-heat" id="heat"></div>
+                    <div class="a-hscale"><span>Less</span><i style="opacity:.15"></i><i style="opacity:.4"></i><i style="opacity:.7"></i><i></i><span>More</span></div>
+                  </div>
+                  <div class="a-panel">
+                    <div class="a-h2">Hours on task per day<small>average over 4 weeks</small></div>
+                    <div class="a-bars" id="avg-bars"></div>
+                    <div class="a-days" id="avg-days"></div>
+                  </div>
+                </div>
+                <div class="a-stack">
+                  <div class="a-panel">
+                    <div class="a-h2">Where focus slips<small>share of off-topic time</small></div>
+                    <div class="a-hbar"><span>Video</span><span class="tr"><i style="width:46%"></i></span><span>46%</span></div>
+                    <div class="a-hbar"><span>Social</span><span class="tr"><i style="width:27%"></i></span><span>27%</span></div>
+                    <div class="a-hbar"><span>Messages</span><span class="tr"><i style="width:14%"></i></span><span>14%</span></div>
+                    <div class="a-hbar"><span>News</span><span class="tr"><i style="width:8%"></i></span><span>8%</span></div>
+                    <div class="a-hbar"><span>Shopping</span><span class="tr"><i style="width:5%"></i></span><span>5%</span></div>
+                    <p class="a-sub" style="margin-top:8px">Categories only. Focus does not keep a list of the pages you visited.</p>
+                  </div>
+                  <div class="a-panel">
+                    <div class="a-h2">How well Focus is reading you</div>
+                    <div class="a-facts">
+                      <div><span>Nudges you got</span><b class="a-num">9</b></div>
+                      <div><span>Marked “That was fine”</span><b class="a-num">2</b></div>
+                      <div><span>Typical time to get back</span><b class="a-num">1 min 20 s</b></div>
+                    </div>
+                    <p class="a-sub" style="margin-top:8px">Both corrections became rules, so the same thing will not nudge you again.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- REVIEW -->
+            <div class="a-view" data-view="review" hidden>
+              <div class="a-head"><div><h1>Review</h1><p>Moments Focus would have nudged you about. Your answers teach it what counts.</p></div></div>
+              <div class="a-panel tint a-banner">
+                <span class="ring"><svg><use href="#r-unsure"/></svg></span>
+                <div><b>Practice mode</b><div class="a-sub" style="margin-top:2px">Focus is watching but will not interrupt you yet. Two more sessions.</div><div class="a-steps" aria-label="Practice progress: 1 of 3 sessions"><i class="done"></i><i></i><i></i></div></div>
+                <button class="btn plain" type="button">Turn nudges on now</button>
+              </div>
+              <div class="a-h2">5 moments to look at</div>
+              <div id="review-list"></div>
+              <p class="a-sub" style="margin-top:12px">Answers stay on this Mac. You can see and undo everything Focus learns under Projects.</p>
+            </div>
+
+            <!-- SETTINGS -->
+            <div class="a-view" data-view="settings" hidden>
+              <div class="a-head"><div><h1>Settings</h1></div></div>
+              <div class="a-set">
+                <nav aria-label="Settings sections"><button type="button" aria-current="true">General</button><button type="button">Nudges</button><button type="button">What Focus looks at</button><button type="button">Privacy</button><button type="button">Appearance</button><button type="button">Shortcuts</button></nav>
+                <div>
+                  <section>
+                    <div class="a-h2">Nudges</div>
+                    <div class="a-form">
+                      <div class="a-opts" role="group" aria-label="Nudge style">
+                        <button class="a-opt" type="button" aria-pressed="true"><b>Gentle</b><span>One quiet note after about three minutes.</span></button>
+                        <button class="a-opt" type="button" aria-pressed="false"><b>Standard</b><span>A card after about a minute, again every five.</span></button>
+                        <button class="a-opt" type="button" aria-pressed="false"><b>Strict</b><span>A pause screen after 45 seconds.</span></button>
+                      </div>
+                      <div class="a-frow"><div><b>Sound</b><small>Off by default. Nudges never name what you were looking at.</small></div><button class="a-switch" type="button" role="switch" aria-checked="false" aria-label="Sound"></button></div>
+                      <div class="a-frow"><div><b>Ask for a next step when you return</b><small>One short question after a long drift.</small></div><button class="a-switch" type="button" role="switch" aria-checked="false" aria-label="Ask for next step"></button></div>
+                      <div class="a-frow"><div><b>Practice mode</b><small>Watch without interrupting for the first three sessions.</small></div><button class="a-switch" type="button" role="switch" aria-checked="true" aria-label="Practice mode"></button></div>
+                    </div>
+                  </section>
+                  <section>
+                    <div class="a-h2">What Focus looks at</div>
+                    <div class="a-form">
+                      <div class="a-frow"><div><b>Window titles and text</b><small>The app name, the title, the page address and the words in the window.</small></div><button class="a-switch" type="button" role="switch" aria-checked="true" aria-label="Titles and text"></button></div>
+                      <div class="a-frow"><div><b>Screenshots</b><small>Lets Focus read pages as an image. Needs Screen Recording permission. Not stored.</small></div><button class="a-switch" type="button" role="switch" aria-checked="false" aria-label="Screenshots"></button></div>
+                      <div class="a-frow"><div><b>Never looked at</b><small>Password managers, banking sites and private windows are skipped, always.</small></div><span class="a-kv"><svg class="a-ico"><use href="#i-lock"/></svg>Always on</span></div>
+                    </div>
+                  </section>
+                  <section>
+                    <div class="a-h2">Privacy</div>
+                    <div class="a-form">
+                      <div class="a-frow"><div><b>Where the work happens</b><small>The judge is Apple’s on-device model. There is no account.</small></div><span class="a-kv">On this Mac</span></div>
+                      <div class="a-frow"><div><b>Your data</b><small>14 MB of sessions, projects and rules.</small></div><span style="display:flex;gap:8px"><button class="btn sm plain" type="button">Export</button><button class="btn sm plain" type="button">Delete everything</button></span></div>
+                    </div>
+                  </section>
+                  <section>
+                    <div class="a-h2">Appearance</div>
+                    <div class="a-form">
+                      <div class="a-frow"><div><b>Accent</b><small>Lichen green, or follow the accent in System Settings.</small></div><span class="seg"><button type="button" aria-pressed="true">Lichen</button><button type="button" aria-pressed="false">System</button></span></div>
+                    </div>
+                  </section>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Start session sheet -->
+        <div class="a-scrim" id="start-sheet" hidden>
+          <div class="sheet-start" role="dialog" aria-label="Start a session">
+            <h3>What are you working on?</h3>
+            <div class="stack">
+              <div class="field"><span>Lab report on pendulums</span><span class="caret"></span></div>
+              <div class="confirm">Okay. Lab report on pendulums. Your notes and physics sites count.</div>
+            </div>
+            <div class="chips" role="group" aria-label="Session type"><button class="chip" type="button" aria-pressed="true">Open</button><button class="chip" type="button" aria-pressed="false">Timed</button><button class="chip" type="button" aria-pressed="false">Adjust</button></div>
+            <div style="display:flex;gap:8px;margin-top:18px"><button class="btn primary" style="flex:1;height:40px" type="button" id="close-start">Start</button><button class="btn plain" type="button" id="cancel-start">Cancel</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== NOTCH AND MENU BAR ===================== -->
+  <section class="panel" id="p-notch" role="tabpanel" aria-labelledby="tab-notch" hidden>
+    <section class="block">
+      <h2>The notch</h2>
+      <p>Mostly for looks. At rest it is a ring and a time on either side of the notch. Point at it and it opens to the task and two buttons. A nudge opens it once, with one action. Everything else is in the app and the menu bar.</p>
+      <div class="isl-ctl" role="group" aria-label="Notch state">
+        <span>State</span>
+        <span class="seg" id="isl-states"><button type="button" data-st="on" aria-pressed="true">On task</button><button type="button" data-st="drift" aria-pressed="false">Drifting</button><button type="button" data-st="nudge" aria-pressed="false">Nudge</button><button type="button" data-st="break" aria-pressed="false">Break</button></span>
+        <span>Hover the notch to open it.</span>
+      </div>
+      <div class="isl-stage" id="isl-stage">
+        <div class="wall"></div>
+        <div class="menubar"><div class="left"><span class="app">Notes</span><span>File</span><span>Edit</span><span>View</span></div><div class="right"><span>Wi-Fi</span><span>12:26</span></div></div>
+        <div class="win veilable" style="top:48px;left:7%;right:7%;bottom:-30px"><div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="title">Chapter 5 notes</span></div><div class="body"><div class="ln h"></div><div class="ln w90"></div><div class="ln w75"></div><div class="ln w60"></div><div class="ln w90"></div></div></div>
+        <div class="isl" id="isl" data-mood="on" tabindex="0" role="group" aria-label="Focus in the notch">
+          <div class="ears"><span class="ring" id="isl-ring"><svg><use href="#r-prog"/></svg></span><span class="t" id="isl-t">24:10</span></div>
+          <div class="body">
+            <div class="view-rest">
+              <div class="row"><span class="ring" id="isl-ring2"><svg><use href="#r-prog"/></svg></span><div><b>Calc homework</b><span class="s" id="isl-s">On task</span></div><span class="t" id="isl-t2">24:10</span></div>
+              <div class="btns"><button class="btn" type="button" id="isl-b1">Pause</button><button class="btn" type="button">Open Focus</button></div>
+            </div>
+            <div class="view-nudge">
+              <div class="msg">Back to Calc homework?</div>
+              <div class="btns"><button class="btn primary" type="button">Back to task</button><button class="btn" type="button">Not now</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="a-note-board">The shape grows down from the notch and never sideways. Nothing flashes, the nudge never names what you were looking at, and with Reduce motion it changes size instantly. Hover shows the same two buttons that the keyboard reaches with Tab.</p>
+    </section>
+
+    <section class="block">
+      <h2>Macs without a notch</h2>
+      <p>The same presence as a small floating pill at the top of the screen. Same states, same two buttons on hover.</p>
+      <div class="stage short">
+        <div class="wall"></div>
+        <div class="menubar"><div class="left"><span class="app">Notes</span><span>File</span><span>Edit</span></div><div class="right"><span>Wi-Fi</span><span>12:26</span></div></div>
+        <div class="pill glass is-on" style="position:absolute;z-index:20;top:46px;left:50%;transform:translateX(-50%)"><span class="ring"><svg><use href="#r-prog"/></svg></span><span class="task">Calc homework</span><span class="time">24:10</span></div>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2>Menu bar popover</h2>
+      <p>Click the ring in the menu bar for every quick function. This is where the nine functions live, in a standard menu list, so nothing crowds the notch.</p>
+      <div class="stage isl-pop-stage">
+        <div class="wall"></div>
+        <div class="menubar"><div class="left"><span class="app">Notes</span><span>File</span><span>Edit</span><span>View</span></div><div class="right"><span class="ring mb-ring" style="background:var(--sel);border-radius:6px;padding:2px;font-size:22px"><svg><use href="#r-on"/></svg></span><span>12:26</span></div></div>
+        <div class="mpop glass" role="menu" aria-label="Focus menu">
+          <div class="head"><span class="ring"><svg><use href="#r-prog"/></svg></span><b>Calc homework</b><span class="t">24:10</span><span>On task · Open session</span></div>
+          <hr>
+          <button class="mi" role="menuitem" type="button">Pause<kbd>⌥P</kbd></button>
+          <button class="mi" role="menuitem" type="button">Take a break<span class="go">5, 10, 15 min</span></button>
+          <button class="mi" role="menuitem" type="button">Snooze<span class="go">15, 30, 60 min</span></button>
+          <hr>
+          <button class="mi" role="menuitem" type="button">Next step</button>
+          <button class="mi" role="menuitem" type="button">Jot a thought</button>
+          <button class="mi" role="menuitem" type="button">That was fine</button>
+          <button class="mi" role="menuitem" type="button">Back to task</button>
+          <hr>
+          <button class="mi" role="menuitem" type="button">Extend<span class="go">Timed only</span></button>
+          <button class="mi" role="menuitem" type="button">End session</button>
+          <hr>
+          <button class="mi" role="menuitem" type="button">Open Focus<kbd>⌘1</kbd></button>
+          <button class="mi" role="menuitem" type="button">Settings<kbd>⌘,</kbd></button>
+        </div>
+      </div>
+    </section>
+  </section>
+</main>
+<script src="board.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

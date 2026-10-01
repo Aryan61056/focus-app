@@ -1,4 +1,12 @@
-# Visual direction exploration (spike S10, first pass)
+# Visual direction (spike S10)
+
+**Chosen by the owner on 2026-10-01: direction B (Lichen).** Their feedback on the first pass: too much going on at the notch, so the notch becomes aesthetic rather than functional; and it should be a proper app, even if it reads as a SaaS-style app, because the first pass was too minimal to show what the app can do. `app.html` is the response: a full app window plus the simplified notch and menu bar. The three first-pass boards below stay for reference.
+
+| File | What it is |
+|---|---|
+| `app.html` (with `app.css`, `app.js`) | B as a full app: Today, Projects, History, Insights, Review, Settings, the start sheet, the notch (four states, hover to open), the no-notch pill and the menu bar popover that now holds the nine quick functions |
+
+## First pass (exploration)
 
 Three boards for the Quiet style, built as static HTML so they can be compared in light and dark. They are mockups, not product code.
 
@@ -32,3 +40,14 @@ Open any file in a normal browser. In the Claude desktop browser pane use the `d
 ## Next once a direction is chosen
 
 Formalize the tokens (color, type scale, spacing, radius, elevation, motion) as one file generated into SwiftUI and XAML resources, run `/impeccable document` to seed DESIGN.md, and build the three core components natively on both OSs (PLAN spike S10).
+
+
+## The app board: what it decides
+
+- Structure: sidebar (Today, Projects, History, Insights, Review, Settings, recent projects, a live mini session), a top bar with search and one primary action. Standard SaaS-style layout on purpose, in B's quiet tokens: green only for on-task state and the primary action, texture and shape (never red) for unsure and off topic.
+- Review is the shadow-mode surface (practice mode), and it is where corrections are taught. This follows the Apple-model decision: nudges wait until the app has been checked against the user.
+- Insights shows categories only, never page titles, and says so. Privacy copy says "on this Mac", not "cannot reach the network" (see CLAUDE.md claims we must not make yet).
+- Notch: ring and time at rest, task and two buttons on hover, one sentence and one action for a nudge. It animates its size on purpose (the one place layout animation is used); with Reduce motion it changes instantly.
+- Sample numbers are internally consistent (timeline, week total, history rows) but made up. The "mornings" share in Insights is computed from the heat map data in the page.
+
+Checks done: rendered in light and dark with headless Chrome, the impeccable detector (3 flags reviewed: a 1px divider, times read as numbered markers, the intentional notch morph). Not done: contrast table for the new surfaces (they reuse B's verified tokens, but chart and heat map colors are not yet checked), keyboard order inside the mock, Windows version of the app window, real device rendering.
