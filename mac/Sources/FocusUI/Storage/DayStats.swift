@@ -43,4 +43,32 @@ public enum DayStats {
             return (d, total(sessions, on: d, calendar: cal).onTaskSeconds / 3600)
         }
     }
+
+    /// On-task seconds by weekday (0 = Monday) and clock hour, with a piece that crosses an hour split between the hours.
+    public static func heat(_ sessions: [SessionRecord], calendar cal: Calendar = .current) -> [[Double]] {
+        var grid = Array(repeating: Array(repeating: 0.0, count: 24), count: 7)
+        for s in sessions {
+            let wd = (cal.component(.weekday, from: s.start) + 5) % 7   // Sunday = 1 in Calendar, so Monday becomes 0
+            var cursor = hourOfDay(s.start, cal)
+            for seg in s.segments {
+                var left = seg.seconds / 3600
+                while left > 1e-9 {
+                    let hour = Int(cursor)
+                    if hour > 23 { break }
+                    let take = min(left, Double(hour + 1) - cursor)
+                    if seg.kind == .on { grid[wd][hour] += take * 3600 }
+                    cursor += take; left -= take
+                }
+            }
+        }
+        return grid
+    }
+
+    /// Share of on-task time that happened before noon, or nil when there is nothing to say.
+    public static func morningShare(_ grid: [[Double]]) -> Int? {
+        let all = grid.flatMap { $0 }.reduce(0, +)
+        guard all >= 3600 else { return nil }
+        let morning = grid.flatMap { $0[0..<12] }.reduce(0, +)
+        return Int((morning / all * 100).rounded())
+    }
 }

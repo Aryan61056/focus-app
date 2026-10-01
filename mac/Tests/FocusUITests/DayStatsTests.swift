@@ -45,3 +45,22 @@ final class DayStatsTests: XCTestCase {
         XCTAssertEqual(w[6].hours, 0)
     }
 }
+
+extension DayStatsTests {
+    func testHeatSplitsAPieceAcrossHoursAndCountsOnlyOnTask() {
+        // Thursday 1 Oct 2026, 9:30 start: 45 min on task (30 in hour 9, 15 in hour 10), then 10 min off topic
+        let s = [rec(date(1, 9, 30), [(.on, 45), (.off, 10)])]
+        let g = DayStats.heat(s, calendar: cal)
+        let thursday = 3
+        XCTAssertEqual(g[thursday][9], 30 * 60, accuracy: 1e-6)
+        XCTAssertEqual(g[thursday][10], 15 * 60, accuracy: 1e-6)
+        XCTAssertEqual(g[thursday][11], 0)
+        XCTAssertEqual(g.flatMap { $0 }.reduce(0, +), 45 * 60, accuracy: 1e-6)
+    }
+
+    func testMorningShareNeedsAnHourOfDataThenReportsPercent() {
+        XCTAssertNil(DayStats.morningShare(DayStats.heat([rec(date(1, 9), [(.on, 30)])], calendar: cal)))
+        let g = DayStats.heat([rec(date(1, 9), [(.on, 60)]), rec(date(1, 14), [(.on, 60)]), rec(date(2, 10), [(.on, 60)])], calendar: cal)
+        XCTAssertEqual(DayStats.morningShare(g), 67)
+    }
+}

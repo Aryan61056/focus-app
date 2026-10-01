@@ -18,6 +18,16 @@ struct InsightsView: View {
                 if t.total == 0 {
                     EmptyState(title: "Nothing to show yet", text: "After a session, this shows what Focus read, how often it was sure, and how often you agreed with it.")
                 } else {
+                    if let share = DayStats.morningShare(DayStats.heat(store.sessions)) {
+                        Text("Mornings are your strongest time: \(share)% of your focused minutes fall before noon.").font(Tokens.rounded(19, .semibold)).fixedSize(horizontal: false, vertical: true).frame(maxWidth: 620, alignment: .leading)
+                    }
+                    Panel {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(alignment: .firstTextBaseline) { Text("When you focus").font(Tokens.text(15, .semibold)); Spacer(); Text("on-task time by hour and day").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
+                            Heatmap(grid: DayStats.heat(store.sessions))
+                        }
+                    }
+                    .frame(maxWidth: 560)
                     Panel {
                         VStack(alignment: .leading, spacing: 14) {
                             Text("How well Focus is reading you").font(Tokens.text(15, .semibold)).accessibilityAddTraits(.isHeader)
@@ -48,6 +58,32 @@ struct InsightsView: View {
         VStack(spacing: 0) {
             Divider().overlay(Tokens.line)
             HStack { Text(k).foregroundStyle(Tokens.ink2); Spacer(); Text(v).monospacedDigit() }.font(Tokens.text(13)).padding(.vertical, 8)
+        }
+    }
+}
+
+/// Hours 8 to 19 down, Monday to Sunday across. Darkness is on-task time; the figure is in the accessibility label.
+struct Heatmap: View {
+    var grid: [[Double]]
+    var body: some View {
+        let peak = max(grid.flatMap { $0 }.max() ?? 1, 1)
+        let days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        VStack(spacing: 3) {
+            HStack(spacing: 3) {
+                Text("").frame(width: 34)
+                ForEach(days, id: \.self) { Text($0).font(Tokens.text(11.5)).foregroundStyle(Tokens.ink2).frame(maxWidth: .infinity) }
+            }
+            ForEach(8..<20, id: \.self) { h in
+                HStack(spacing: 3) {
+                    Text("\(h):00").font(Tokens.rounded(11.5)).foregroundStyle(Tokens.ink2).frame(width: 34, alignment: .trailing)
+                    ForEach(0..<7, id: \.self) { d in
+                        let v = grid[d][h]
+                        RoundedRectangle(cornerRadius: 4).fill(Tokens.control).overlay { RoundedRectangle(cornerRadius: 4).fill(Tokens.accent.opacity(0.15 + 0.85 * v / peak)).opacity(v > 0 ? 1 : 0) }
+                            .frame(height: 16)
+                            .accessibilityElement().accessibilityLabel("\(days[d]) \(h):00, \(Int(v / 60)) minutes on task")
+                    }
+                }
+            }
         }
     }
 }
