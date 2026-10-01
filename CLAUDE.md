@@ -22,6 +22,11 @@ Design context (register, personality, anti-references, principles) is in `PRODU
 - The no-timer session mode is named **Open**. Time budgets for messaging are optional and off by default.
 - **Never overwhelm** (PLAN 4.8 calm rules and start flow) is a hard requirement for anything user-facing.
 
+- **Judge model on Mac (owner, 2026-10-01): Apple's system model**, chosen for low memory and no download because the app runs in the background.
+  The cost is accuracy (S1: about 71-79% strict precision, 57-67% recall on clear distractions with the two-judge rule). Safeguards must make up for it:
+  rules and project context first, sustained agreement before any nudge, shadow mode, `unsure` does nothing. Qwen3-4B stays in the harness as a reference only.
+  Windows needs its own runtime choice. Revisit if energy measurements (powermetrics) say otherwise.
+
 ## Decisions still the owner's (do not decide)
 Product name, audience, pricing, open-sourcing the engine, minimum OS, Mac distribution, languages.
 PLAN.md section 12 only holds recommendations. They are not decisions.
