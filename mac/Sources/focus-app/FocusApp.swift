@@ -4,9 +4,10 @@ import FocusJudge
 
 @main
 struct FocusApp: App {
-    @State private var controller = SessionController(judge: ProcessInfo.processInfo.environment["FOCUS_DEMO"] == "1"
-        ? ScriptedJudge(markers: [("youtube", .off), ("Calc", .on), ("khanacademy", .on)])
-        : DefaultJudge.make())
+    // FOCUS_DEMO=1 runs a scripted session against an in-memory store, so demo data never reaches the real store file.
+    @State private var controller = ProcessInfo.processInfo.environment["FOCUS_DEMO"] == "1"
+        ? SessionController(judge: ScriptedJudge(markers: [("youtube", .off), ("Calc", .on), ("khanacademy", .on)]), store: DataStore())
+        : SessionController(judge: DefaultJudge.make(), store: DataStore(url: DataStore.defaultURL), prefs: Preferences())
     @State private var demo: DemoSenses?
     @Environment(\.openWindow) private var openWindow
 

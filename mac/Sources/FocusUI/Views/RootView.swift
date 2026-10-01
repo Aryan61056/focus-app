@@ -27,6 +27,10 @@ public struct RootView: View {
                 Group {
                     switch selection {
                     case .today: TodayView(c: c, showStart: $showStart)
+                    case .projects: if let st = c.store { ProjectsView(c: c, store: st) } else { ComingNext(section: selection) }
+                    case .history: if let st = c.store { HistoryView(store: st) } else { ComingNext(section: selection) }
+                    case .review: if let st = c.store { ReviewView(c: c, store: st) } else { ComingNext(section: selection) }
+                    case .settings: if let st = c.store { SettingsView(c: c, store: st) } else { ComingNext(section: selection) }
                     default: ComingNext(section: selection)
                     }
                 }

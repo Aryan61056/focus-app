@@ -111,3 +111,61 @@ final class ControllerTests: XCTestCase {
         XCTAssertEqual(Keys.window(WindowSnapshot(app: "Notes", title: "  Calc   Homework ")), "notes|calc homework")
     }
 }
+
+@MainActor
+final class ControllerStoreTests: XCTestCase {
+    var t = 0.0
+    let judge = CountingJudge { p in Verdict(label: p.contains("youtube") ? .offTask : .onTask) }
+    func advance(_ c: SessionController, to target: Double) async { while t < target { t += 1; c.tick(); await c.waitForJudgments() } }
+    let editor = WindowSnapshot(app: "Notes", title: "Calc homework")
+    let video = WindowSnapshot(app: "Safari", title: "clip youtube", url: "https://youtube.com/watch?v=1")
+
+    func testSessionIsRecordedWithTimelineThatAddsUp() async {
+        let store = DataStore()
+        let c = SessionController(judge: judge, store: store, now: { [unowned self] in self.t })
+        c.windowChanged(editor)
+        c.begin(task: "Calc homework", preset: .standard, shadow: false)
+        await advance(c, to: 40)
+        c.windowChanged(video); await advance(c, to: 110)
+        c.windowChanged(editor); await advance(c, to: 180)
+        c.end()
+        let r = store.sessions.first!
+        XCTAssertEqual(store.projects.map { $0.name }, ["Calc homework"])
+        XCTAssertEqual(r.projectId, store.projects.first?.id)
+        XCTAssertEqual(r.segments.reduce(0) { $0 + $1.seconds }, 180, accuracy: 1.5)
+        XCTAssertTrue(r.segments.contains { $0.kind == .off })
+        XCTAssertGreaterThan(r.drifts, 0)
+    }
+
+    func testThatWasFinePersistsASiteRuleForTheProjectAndTheNextSessionUsesIt() async {
+        let store = DataStore()
+        let c = SessionController(judge: judge, store: store, now: { [unowned self] in self.t })
+        c.windowChanged(editor)
+        c.begin(task: "Calc homework", preset: .standard, shadow: false)
+        await advance(c, to: 10)
+        c.windowChanged(video)
+        while c.surface == nil && t < 300 { await advance(c, to: t + 1) }
+        c.act(.markRelevant)
+        c.end()
+        XCTAssertEqual(store.projects.first?.profile.alwaysAllowDomains, ["youtube.com"])
+        // next session: the same site is on task by rule, with no judge call
+        let before = judge.calls
+        t = 0
+        let c2 = SessionController(judge: judge, store: store, now: { [unowned self] in self.t })
+        c2.windowChanged(video)
+        c2.begin(task: "Calc homework", preset: .standard, shadow: false)
+        await advance(c2, to: 200)
+        XCTAssertEqual(judge.calls, before)
+        XCTAssertEqual(c2.presence.state, "resting")
+    }
+
+    func testPracticeModeQueuesMomentsForReview() async {
+        let store = DataStore()
+        let c = SessionController(judge: judge, store: store, now: { [unowned self] in self.t })
+        c.windowChanged(editor)
+        c.begin(task: "Calc homework", preset: .standard, shadow: true)
+        await advance(c, to: 20); c.windowChanged(video); await advance(c, to: 200)
+        XCTAssertGreaterThan(store.openReviewCount, 0)
+        XCTAssertEqual(store.review.first?.siteKey, "safari|youtube.com")
+    }
+}

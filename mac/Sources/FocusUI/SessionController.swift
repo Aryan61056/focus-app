@@ -44,24 +44,42 @@ public final class SessionController {
     @ObservationIgnored private var brain = Brain()
     @ObservationIgnored private let judge: any Judge
     @ObservationIgnored private let now: () -> Double
+    @ObservationIgnored public let store: DataStore?
+    public let prefs: Preferences
+    @ObservationIgnored private let date: () -> Date
+    @ObservationIgnored private var projectId: UUID?
+    @ObservationIgnored private var sessionId = UUID()
+    @ObservationIgnored private var startedAt = Date()
+    @ObservationIgnored private var segKind: TimelineSegment.Kind?
+    @ObservationIgnored private var segStart = 0.0
+    @ObservationIgnored private var segments: [TimelineSegment] = []
     @ObservationIgnored private var project = ProjectProfile()
     @ObservationIgnored private var sensitiveUp = false
     @ObservationIgnored private var tasks: [Task<Void, Never>] = []
     @ObservationIgnored private var timer: Timer?
     @ObservationIgnored var totalSeconds = 0.0
 
-    public init(judge: any Judge, now: @escaping () -> Double = { ProcessInfo.processInfo.systemUptime }) {
-        self.judge = judge; self.now = now
+    public init(judge: any Judge, store: DataStore? = nil, prefs: Preferences? = nil, now: @escaping () -> Double = { ProcessInfo.processInfo.systemUptime }, date: @escaping () -> Date = Date.init) {
+        self.judge = judge; self.store = store; self.now = now; self.date = date
+        self.prefs = prefs ?? Preferences(defaults: UserDefaults(suiteName: "focus.tests.\(UUID().uuidString)")!)
     }
 
     // MARK: session
-    public func begin(task: String, mode: Mode = .open, duration: Double? = nil, preset: Preset = .gentle,
-                      shadow: Bool = true, project: ProjectProfile = ProjectProfile(), autoTick: Bool = false) {
+    public func begin(task: String, mode: Mode = .open, duration: Double? = nil, preset: Preset? = nil,
+                      shadow: Bool? = nil, project: ProjectProfile = ProjectProfile(), projectId: UUID? = nil, autoTick: Bool = false) {
         guard !isActive else { return }
-        self.project = project; self.shadow = shadow
+        var profile = project
+        var pid = projectId
+        if let store {
+            let p = pid.flatMap { store.project($0) } ?? store.projectNamed(task)
+            pid = p.id; profile = p.profile
+        }
+        let shadow = shadow ?? prefs.practiceActive
+        self.project = profile; self.projectId = pid; self.shadow = shadow
+        sessionId = UUID(); startedAt = date(); segments = []; segKind = nil; segStart = now()
         taskName = task; self.mode = mode; totalSeconds = duration ?? 0
         summary = nil; shadowMarks = 0; learnedRules = []; wrapUp = false; askResume = nil
-        var c = SessionConfig(); c.taskId = task; c.mode = mode; c.durationSeconds = duration; c.preset = preset; c.shadow = shadow
+        var c = SessionConfig(); c.taskId = task; c.mode = mode; c.durationSeconds = duration; c.preset = preset ?? prefs.preset; c.shadow = shadow
         isActive = true
         send(.sessionStart(c))
         if let w = currentWindow { windowChanged(w) }
@@ -121,7 +139,7 @@ public final class SessionController {
     func apply(_ effects: [Effect], _ t: Double) {
         for e in effects {
             switch e {
-            case .beacon(let s, let r): presence = Presence(state: s, reason: r)
+            case .beacon(let s, let r): presence = Presence(state: s, reason: r); markSegment(s, t)
             case .veil(_, let to, let secs): veilTarget = to; veilDuration = secs
             case .offTopicTimer(let s, let r, let v): offTopic = TimerState(seconds: s, running: r, visible: v, at: t)
             case .clock(let s, let r): clock = ClockState(seconds: s, running: r, at: t)
@@ -131,18 +149,42 @@ public final class SessionController {
             case .reentryPrompt: reentryOpen = true
             case .wrapUp: wrapUp = true
             case .askResume(let r): askResume = r
-            case .shadowMark: shadowMarks += 1
-            case .learnRule(let s, let k, let kt, let key): learnedRules.append(LearnedRule(scope: s, kind: k, keyType: kt, key: key))
+            case .shadowMark(_, _, let wk):
+                shadowMarks += 1
+                store?.addReview(ReviewMoment(sessionId: sessionId, projectId: projectId, at: date(), windowKey: wk, siteKey: currentWindow.map(Keys.site) ?? wk))
+            case .learnRule(let s, let k, let kt, let key):
+                let rule = LearnedRule(scope: s, kind: k, keyType: kt, key: key)
+                learnedRules.append(rule)
+                if let store, let pid = projectId { store.apply(rule, to: pid); if let p = store.project(pid) { project = p.profile } }
             case .bringBack(let w): onBringBack?(w)
             case .cue: onCue?()
             case .requestJudgment(let id, _, _, let wk, _): requestJudgment(id: id, windowKey: wk, observedAt: t)
             case .summary(let a, let o, let u, let d, let i, let r):
                 summary = SessionSummary(activeSeconds: a, offTopicSeconds: o, unsureSeconds: u, drifts: d, interrupts: i, refusals: r)
+                markSegment("off", t)
+                store?.record(SessionRecord(projectId: projectId, task: taskName, timed: mode == .timed, start: startedAt, end: date(), activeSeconds: a,
+                                            offTopicSeconds: o, unsureSeconds: u, drifts: d, interrupts: i, refusals: r, shadowMarks: shadowMarks,
+                                            segments: segments.filter { $0.seconds >= 1 }))
+                prefs.sessionFinished(wasPractice: shadow)
                 isActive = false; surface = nil; reentryOpen = false; askResume = nil; wrapUp = false
                 timer?.invalidate(); timer = nil
             }
             if case .beacon(let s, _) = e, s != "paused" { askResume = nil }
         }
+    }
+
+    /// Builds the session timeline (seconds per state, never window titles) from beacon changes.
+    private func markSegment(_ beacon: String, _ t: Double) {
+        let kind: TimelineSegment.Kind?
+        switch beacon {
+        case "resting", "recovering": kind = .on
+        case "watching": kind = .unsure
+        case "drifting", "interrupted": kind = .off
+        case "paused": kind = .gap
+        default: kind = nil
+        }
+        if let k = segKind, t > segStart { segments.append(TimelineSegment(k, t - segStart)) }
+        segKind = kind; segStart = t
     }
 
     private func requestJudgment(id: Int, windowKey: String, observedAt: Double) {

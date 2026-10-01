@@ -43,4 +43,42 @@ let judge = ScriptedJudge(markers: [("youtube", .off), ("Calc", .on)])
     for dark in [false, true] { render(c, "nudge", dark: dark) }
     print("state:", c.presence, "surface:", String(describing: c.surface), "veil:", c.veilTarget)
 }
+
+@MainActor func seededStore() -> DataStore {
+    let store = DataStore()
+    var calc = store.addProject(name: "Calc homework")
+    calc.context = "Calculus II, chapter 5: integration by parts. The textbook is the PDF in Documents."
+    calc.nextStep = "Check problem 4"
+    calc.profile.alwaysAllowApps = ["Preview", "Notes", "Calculator"]
+    calc.profile.alwaysAllowDomains = ["khanacademy.org", "desmos.com", "wolframalpha.com"]
+    calc.profile.linkedPaths = ["~/Documents/Calc II"]
+    calc.profile.alwaysOffDomains = ["youtube.com/shorts"]
+    store.update(calc)
+    let essay = store.addProject(name: "Essay on sleep and memory")
+    _ = store.addProject(name: "Lab report on pendulums")
+    func rec(_ p: Project, _ daysAgo: Double, _ minutes: Double, _ segs: [(TimelineSegment.Kind, Double)], drifts: Int, note: String = "") {
+        let start = Date(timeIntervalSince1970: 1_790_000_000 - daysAgo * 86400)
+        let segments = segs.map { TimelineSegment($0.0, $0.1 * 60) }
+        let off = segs.filter { $0.0 == .off }.reduce(0) { $0 + $1.1 } * 60, un = segs.filter { $0.0 == .unsure }.reduce(0) { $0 + $1.1 } * 60
+        var r = SessionRecord(projectId: p.id, task: p.name, timed: false, start: start, end: start.addingTimeInterval(minutes * 60), activeSeconds: minutes * 60,
+                              offTopicSeconds: off, unsureSeconds: un, drifts: drifts, interrupts: 0, refusals: 0, shadowMarks: 0, segments: segments)
+        r.note = note
+        store.record(r)
+    }
+    rec(essay, 3, 95, [(.on, 30), (.off, 3), (.on, 40), (.off, 2), (.on, 20)], drifts: 2, note: "Added three citations.")
+    rec(calc, 2, 72, [(.on, 30), (.off, 1), (.on, 41)], drifts: 1)
+    rec(calc, 1, 44, [(.on, 25), (.off, 1), (.on, 18)], drifts: 1, note: "Problems 1 to 3 done. Stuck on 4.")
+    store.addReview(ReviewMoment(sessionId: nil, projectId: calc.id, at: Date(timeIntervalSince1970: 1_789_950_000), windowKey: "safari|youtube.com/watch", siteKey: "safari|youtube.com"))
+    store.addReview(ReviewMoment(sessionId: nil, projectId: essay.id, at: Date(timeIntervalSince1970: 1_789_900_000), windowKey: "safari|nytimes.com/a", siteKey: "safari|nytimes.com"))
+    return store
+}
+
+@MainActor func screens() {
+    let store = seededStore()
+    let c = SessionController(judge: judge, store: store, now: { 0 })
+    for (sec, name) in [(AppSection.projects, "projects"), (.history, "history"), (.review, "review"), (.settings, "settings")] {
+        for dark in [false, true] { render(c, name, dark: dark, selection: sec) }
+    }
+}
 await run()
+screens()
