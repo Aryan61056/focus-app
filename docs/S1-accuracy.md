@@ -99,6 +99,21 @@ What this says:
 - **Memory:** Apple's model costs about half a gigabyte in a system process. Qwen costs about 2.5 GB in ours, and on this Mac, already under memory pressure (about 2.7 GB of swap in use before I started), loading it pushed other apps into compression. A 4B model on an 8 GB Mac is probably too heavy. I haven't tested that.
 - **Energy: inconclusive.** `top`'s energy score was dominated by noise from unrelated processes (including this app's own helper processes), and the Apple run's totals contain a bogus negative reading from `top`, which I have since filtered in the script but not rerun. The per-process increases for the inference processes (6 to 10 points) are the same size as unrelated background processes, so no energy conclusion is supported. Real numbers need `powermetrics`, which needs `sudo`: `sudo powermetrics --samplers cpu_power,gpu_power,ane_power -i 1000 -n 120`, run in a terminal while `eval/measure_resources.py` runs.
 
+### Stage 2: Apple's built-in sentence embeddings (no training, no download)
+
+Cosine distance between the task and "app, title, url, window text", on the 63 dev moments that reach a model (`eval/embed_analysis.py`).
+
+| Separation (AUC, 1.0 is perfect) | Title and url only | With window text |
+|---|---|---|
+| off-task vs on-task | 0.84 | 0.85 |
+| off-task vs unsure | 0.63 | 0.61 |
+| unsure vs on-task | 0.83 | 0.79 |
+
+- **As a nudge gate it is weak.** Flagging off-task by distance at a threshold reaches 100% lenient precision only when recall on clear distractions falls to 29% (title only, strict precision 75%). It can't tell off-task from unsure, which is where the LLM judges also struggle.
+- **As an LLM-skipping shortcut it helps a little.** Skipping the LLM when the distance is below the closest off-task moment seen on dev leaked no off-task moments on either set, but resolved only 17 of 63 dev moments (in-sample) and 3 of 28 held-out. That is far from the plan's "80% end before an LLM" target.
+- **Caveat:** my scenarios are hard cases by design. Real traffic is mostly on-task and repetitive, so this understates what a shortcut would save. It can't be tested without real usage data.
+- **Where the savings more plausibly come from** is not a model: project rules and linked resources, a cache so each distinct page is judged once per task, change-triggered checks, and adaptive cadence. Those need an episode-level simulation to size.
+
 ## What I found
 
 1. **The model over-flags.** It answers `off_task` for almost anything that doesn't mention the task. It turns "neutral" moments (new tab, music, personal message, empty chat, mixed feed) into off-task calls about 70% of the time, despite explicit rules and a "when in doubt, unsure" instruction.
