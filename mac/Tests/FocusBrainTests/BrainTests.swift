@@ -239,3 +239,33 @@ final class BrainPropertyTests: XCTestCase {
         for (x, y) in zip(a, b) { XCTAssertEqual(x.0, y.0); XCTAssertEqual(x.1, y.1) }
     }
 }
+
+import BrainSim
+
+final class SimTests: XCTestCase {
+    func verdicts() throws -> [Verdict] {
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        return try Sim.loadVerdicts(root.appendingPathComponent("eval/results/verdicts_two_judge.json"))
+    }
+
+    func testSameSeedGivesTheSameEpisode() throws {
+        let v = try verdicts()
+        let a = Sim.episode(verdicts: v, preset: .standard, shadow: false, hours: 1, seed: 3)
+        let b = Sim.episode(verdicts: v, preset: .standard, shadow: false, hours: 1, seed: 3)
+        XCTAssertEqual(a.requests, b.requests)
+        XCTAssertEqual(a.nudges.map { $0.t }, b.nudges.map { $0.t })
+    }
+
+    /// Regression guard on the recorded verdicts, not a claim about real use (docs/EPISODE-SIM.md).
+    func testNeutralDefaultsRemoveTheKnownFalseNudges() throws {
+        let v = try verdicts()
+        var beh = Behaviour(); beh.neutralDefaults = true
+        var plain = 0, guarded = 0
+        for s in 0..<40 {
+            plain += Sim.episode(verdicts: v, preset: .standard, shadow: false, hours: 3, seed: UInt64(s)).falseNudges
+            guarded += Sim.episode(verdicts: v, preset: .standard, shadow: false, hours: 3, seed: UInt64(s), behaviour: beh).falseNudges
+        }
+        XCTAssertGreaterThan(plain, 10)
+        XCTAssertEqual(guarded, 0)
+    }
+}

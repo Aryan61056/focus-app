@@ -67,6 +67,9 @@ Apple on-device model is reachable through the FoundationModels framework (Swift
 ## Repo layout
 - `docs/PLAN.md` the plan. `docs/S1-accuracy.md` the S1 results and recommendation.
 - `eval/` S1 accuracy harness (scenarios, runner, Swift model helper, tests, results). See `eval/README.md`.
+- `mac/` Swift package: `FocusJudge` (judge pipeline port), `FocusBrain` (state machine), `BrainTraces` and `brain-trace` (golden trace runner), `BrainSim` and `brain-sim` (episode simulator).
+- `core/` shared across platforms: `prompts/` (single source of judge instructions), `traces/` (golden traces extracted from `docs/BRAIN-SPEC.md`). `tools/` generators and checks.
+- `docs/BRAIN-SPEC.md` the brain spec (draft 0.1, written by a subagent, reviewed and implemented). `docs/EPISODE-SIM.md` simulated false nudges per session.
 - `spikes/` the other spikes, one folder each (`spikes/s2-mac-capture/`, ...). Empty for now.
 
 ## Run and verify
@@ -80,6 +83,10 @@ python3 eval/combine_results.py <run-a.json> <run-b.json>                      #
 python3 eval/run_eval.py --backend mlx_text --order relation                   # local Qwen text model (needs `uv sync` in eval/ and models in eval/.cache/models/)
 python3 eval/run_eval.py --backend mlx_vlm --text-mode pixels                  # Qwen3-VL reading synthetic screenshots
 python3 eval/measure_resources.py --backend mlx_text                           # memory/CPU/energy proxy; needs a quiet machine
+(cd mac && swift test)                                                         # Swift judge port + brain (golden traces, scenarios, property tests)
+python3 tools/check_parity.py                                                  # Swift judge pipeline vs Python harness, all 100 scenarios
+(cd mac && swift run -q brain-trace ../core/traces)                            # golden traces against the Swift brain
+python3 eval/export_verdicts.py && (cd mac && swift build -c release && .build/release/brain-sim --verdicts ../eval/results/verdicts_two_judge.json)   # episode simulator, docs/EPISODE-SIM.md
 ```
 Gotcha: Xcode's `python3` shim exports `SDKROOT` for the Command Line Tools SDK, which is newer than the compiler.
 `eval/focus_eval/backends.py` clears it before calling `swiftc`. Do the same for any new Swift helper started from Python.
