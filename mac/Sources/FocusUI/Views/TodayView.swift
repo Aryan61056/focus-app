@@ -18,6 +18,7 @@ struct TodayView: View {
             if c.isActive { SessionPanel(c: c); ReadingPanel(c: c) } else { IdlePanel(c: c, showStart: $showStart); HowFocusDecides() }
             if let a = c.askResume { AwayBanner(c: c, reason: a) }
             if c.wrapUp && c.isActive { Panel(tinted: true) { Text("Two minutes left. Extend, or wrap up when you are ready.").font(Tokens.text(13.5)) } }
+            if let st = c.store { TodayExtras(c: c, store: st) }
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)

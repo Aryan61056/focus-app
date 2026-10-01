@@ -77,6 +77,18 @@ let judge = ScriptedJudge(readings: [
         r.reads = rs
         store.record(r)
     }
+    // Sessions earlier today, so Today's day track and week bars have something to show.
+    let cal = Calendar.current
+    func today(_ hour: Int, _ minutes: Double, _ segs: [(TimelineSegment.Kind, Double)], drifts: Int) {
+        let start = cal.date(bySettingHour: hour, minute: 5, second: 0, of: Date())!
+        let off = segs.filter { $0.0 == .off }.reduce(0) { $0 + $1.1 } * 60, un = segs.filter { $0.0 == .unsure }.reduce(0) { $0 + $1.1 } * 60
+        store.record(SessionRecord(projectId: calc.id, task: calc.name, timed: false, start: start, end: start.addingTimeInterval(minutes * 60), activeSeconds: minutes * 60,
+                                   offTopicSeconds: off, unsureSeconds: un, drifts: drifts, interrupts: 0, refusals: 0, shadowMarks: 0, segments: segs.map { TimelineSegment($0.0, $0.1 * 60) }))
+    }
+    today(9, 50, [(.on, 22), (.unsure, 2), (.on, 24), (.off, 2)], drifts: 1)
+    today(11, 40, [(.on, 18), (.off, 1), (.on, 21)], drifts: 1)
+    for d in 1...5 { let h = [2.0, 3.2, 1.4, 2.6, 0.8][d - 1]; let start = cal.date(byAdding: .day, value: -d, to: Date())!
+        store.record(SessionRecord(projectId: calc.id, task: calc.name, timed: false, start: start, end: start.addingTimeInterval(h * 3600), activeSeconds: h * 3600, offTopicSeconds: 0, unsureSeconds: 0, drifts: 0, interrupts: 0, refusals: 0, shadowMarks: 0, segments: [TimelineSegment(.on, h * 3600)])) }
     rec(essay, 3, 95, [(.on, 30), (.off, 3), (.on, 40), (.off, 2), (.on, 20)], drifts: 2, note: "Added three citations.")
     rec(calc, 2, 72, [(.on, 30), (.off, 1), (.on, 41)], drifts: 1)
     rec(calc, 1, 44, [(.on, 25), (.off, 1), (.on, 18)], drifts: 1, note: "Problems 1 to 3 done. Stuck on 4.")
@@ -94,6 +106,8 @@ let judge = ScriptedJudge(readings: [
 @MainActor func screens() {
     let store = seededStore()
     let c = SessionController(judge: judge, store: store, now: { 0 })
+    render(c, "today-full", dark: false, selection: .today)
+    render(c, "today-full", dark: true, selection: .today)
     for (sec, name) in [(AppSection.projects, "projects"), (.history, "history"), (.review, "review"), (.insights, "insights"), (.settings, "settings")] {
         for dark in [false, true] { render(c, name, dark: dark, selection: sec) }
     }
