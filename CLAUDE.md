@@ -53,7 +53,7 @@ PLAN.md section 12 only holds recommendations. They are not decisions.
 ## Machine
 MacBook Pro M1 Pro, 16 GB, macOS 27.0, Xcode 26.6 (SDK 26.5), Swift 6.3.3, uv 0.11, system Python 3.9 (stdlib only for now).
 Not installed: Rust, .NET, Ollama, Xcode 27. No confirmed Windows PC.
-Apple on-device model is reachable through the FoundationModels framework (Swift). The `fm` CLI exists but needs `sudo fm license` (owner has not agreed).
+Apple on-device model is reachable through the FoundationModels framework (Swift). The `fm` CLI is licensed (owner accepted the terms on 2026-10-01). The harness still uses the framework, which gives guided generation.
 
 ## Repo layout
 - `docs/PLAN.md` the plan. `docs/S1-accuracy.md` the S1 results and recommendation.

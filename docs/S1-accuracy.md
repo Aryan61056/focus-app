@@ -15,7 +15,7 @@ Date: 2026-10-01 · Machine: M1 Pro, 16 GB, macOS 27.0 · Model: Apple on-device
 | Screenshot path: synthetic render plus Apple Vision OCR, fed to the same judge | `eval/swift/shotgen/` | run |
 | Stage 2 (embedding relevance) | | **not built** |
 | Stage 4 (vision-language judge on pixels) | | **blocked**: FoundationModels in SDK 26.5 has no image input (needs Xcode 27) |
-| `fm` CLI backend | | **not used**: needs `sudo fm license` (legal terms), which you haven't agreed to. The framework route gives the same model without it |
+| `fm` CLI backend | | **not used**: you have since accepted its license, but the framework route gives the same model plus guided generation |
 
 Windows: nothing written or run.
 
@@ -85,4 +85,3 @@ Other measured numbers:
 
 - **Xcode 27** (to test image input in Foundation Models): download size and install need your approval. Not started.
 - **MLX models**: nothing downloaded. If you approve, I'd propose a Qwen3 4B-class text model (about 2.5 GB) from Hugging Face's `mlx-community`, and Qwen3-VL-4B (about 3 GB) for vision. I'll confirm exact names, sizes and licenses before any download. Running MLX also needs a Python environment through `uv`, which is another approval.
-- **`sudo fm license`**: optional. Not needed for this work.
