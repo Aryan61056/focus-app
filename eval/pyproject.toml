@@ -1,0 +1,12 @@
+[project]
+name = "focus-eval"
+version = "0.1.0"
+description = "S1 accuracy eval harness for focus-app. The stdlib-only core runs on any Python 3.9+; these dependencies are only for the MLX backends."
+requires-python = ">=3.12"
+dependencies = [
+    "mlx-lm",
+    "mlx-vlm",
+]
+
+[tool.uv]
+package = false
