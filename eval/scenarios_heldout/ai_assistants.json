@@ -1,0 +1,28 @@
+[
+  {
+    "id": "h-ai-01",
+    "category": "ai_assistants",
+    "difficulty": "clear",
+    "task": "Write history essay on the causes of World War I",
+    "app": "Google Chrome",
+    "window_title": "Alliance system before WWI - ChatGPT",
+    "url": "https://chatgpt.com/c/ww1alli",
+    "document_path": "",
+    "window_text": "You: explain how the alliance system pulled Europe into war in 1914. ChatGPT: The Triple Entente and the Triple Alliance meant a local conflict could escalate.",
+    "label": "on_task",
+    "notes": "AI chat on the essay."
+  },
+  {
+    "id": "h-ai-02",
+    "category": "ai_assistants",
+    "difficulty": "clear",
+    "task": "Build investor pitch deck for Series A",
+    "app": "Google Chrome",
+    "window_title": "Write a poem about autumn - Claude",
+    "url": "https://claude.ai/chat/autumnpoem",
+    "document_path": "",
+    "window_text": "You: write a short poem about autumn leaves. Claude: Amber hands let go of branches...",
+    "label": "off_task",
+    "notes": "Unrelated chat."
+  }
+]

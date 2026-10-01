@@ -1,0 +1,41 @@
+[
+  {
+    "id": "h-msg-01",
+    "category": "messaging",
+    "difficulty": "clear",
+    "task": "Add dark mode to the Android app settings screen",
+    "app": "Slack",
+    "window_title": "android-team | Orbital | Slack",
+    "url": "",
+    "document_path": "",
+    "window_text": "#android-team. mia: PR for the dark mode toggle is ready for review. ravi: looks good, one nit on the preference key. Thread: 4 replies.",
+    "label": "on_task",
+    "notes": "Work thread on the feature."
+  },
+  {
+    "id": "h-msg-02",
+    "category": "messaging",
+    "difficulty": "gray",
+    "task": "Write up lab report for physics experiment on pendulums",
+    "app": "Discord",
+    "window_title": "meme-dump | Physics Club",
+    "url": "",
+    "document_path": "",
+    "window_text": "#meme-dump. user1: [image] when the pendulum swings past your exam. user2: lol. user3: [image] cat on a swing.",
+    "label": "off_task",
+    "notes": "Club meme channel, not the lab."
+  },
+  {
+    "id": "h-msg-03",
+    "category": "messaging",
+    "difficulty": "gray",
+    "task": "Build investor pitch deck for Series A",
+    "app": "Messages",
+    "window_title": "Jordan",
+    "url": "",
+    "document_path": "",
+    "window_text": "Jordan: dinner at 8? Jordan: I booked the Thai place.",
+    "label": "unsure",
+    "notes": "Personal message."
+  }
+]

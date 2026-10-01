@@ -1,0 +1,93 @@
+[
+  {
+    "id": "nav-01",
+    "category": "neutral_nav",
+    "difficulty": "gray",
+    "task": "Calc homework: integration by parts problems",
+    "app": "Safari",
+    "window_title": "Start Page",
+    "url": "favorites://",
+    "document_path": "",
+    "window_text": "Favorites. Apple. iCloud. News. Reading List. Privacy Report.",
+    "label": "unsure",
+    "notes": "New tab. Navigation is neutral."
+  },
+  {
+    "id": "nav-02",
+    "category": "neutral_nav",
+    "difficulty": "clear",
+    "task": "Calc homework: integration by parts problems",
+    "app": "Google Chrome",
+    "window_title": "integration by parts examples - Google Search",
+    "url": "https://www.google.com/search?q=integration+by+parts+examples",
+    "document_path": "",
+    "window_text": "integration by parts examples. Khan Academy: Integration by parts. Paul's Online Notes. MIT OCW.",
+    "label": "on_task",
+    "notes": "Searching for task content."
+  },
+  {
+    "id": "nav-03",
+    "category": "neutral_nav",
+    "difficulty": "clear",
+    "task": "Fix duplicate-charge bug in the payments-service checkout flow",
+    "app": "Google Chrome",
+    "window_title": "best pizza near me - Google Search",
+    "url": "https://www.google.com/search?q=best+pizza+near+me",
+    "document_path": "",
+    "window_text": "best pizza near me. Open now. Luigi's Pizzeria 4.7. Slice House 4.5. Map results.",
+    "label": "off_task",
+    "notes": "Personal search."
+  },
+  {
+    "id": "nav-04",
+    "category": "neutral_nav",
+    "difficulty": "clear",
+    "task": "Write literature review on sleep and memory for psychology course",
+    "app": "Google Chrome",
+    "window_title": "sleep memory consolidation meta-analysis - Google Scholar",
+    "url": "https://scholar.google.com/scholar?q=sleep+memory+consolidation+meta-analysis",
+    "document_path": "",
+    "window_text": "Sleep and memory consolidation: a meta-analysis. Diekelmann & Born. Cited by 4,210.",
+    "label": "on_task",
+    "notes": "Literature search."
+  },
+  {
+    "id": "nav-05",
+    "category": "neutral_nav",
+    "difficulty": "gray",
+    "task": "Prepare Q3 budget spreadsheet for finance review",
+    "app": "Finder",
+    "window_title": "Downloads",
+    "url": "",
+    "document_path": "",
+    "window_text": "Downloads. budget_template.xlsx. invoice_2291.pdf. vacation_photos.zip. IMG_2201.heic.",
+    "label": "unsure",
+    "notes": "File browser; contents not visible."
+  },
+  {
+    "id": "nav-06",
+    "category": "neutral_nav",
+    "difficulty": "gray",
+    "task": "Write blog post about our product launch",
+    "app": "Spotify",
+    "window_title": "Deep Focus - Spotify",
+    "url": "",
+    "document_path": "",
+    "window_text": "Deep Focus. Peaceful piano. Instrumental. Now playing: Weightless. 2:41.",
+    "label": "unsure",
+    "notes": "Music is neutral."
+  },
+  {
+    "id": "nav-07",
+    "category": "neutral_nav",
+    "difficulty": "clear",
+    "task": "Calc homework: integration by parts problems",
+    "app": "Calculator",
+    "window_title": "Calculator",
+    "url": "",
+    "document_path": "",
+    "window_text": "Scientific. 0.3678794. e^-1.",
+    "label": "on_task",
+    "notes": "A standard supporting tool for math homework."
+  }
+]

@@ -1,0 +1,93 @@
+[
+  {
+    "id": "soc-01",
+    "category": "social",
+    "difficulty": "clear",
+    "task": "Write literature review on sleep and memory for psychology course",
+    "app": "Safari",
+    "window_title": "r/neuroscience on Reddit: New meta-analysis links sleep spindles to memory consolidation",
+    "url": "https://www.reddit.com/r/neuroscience/comments/1abc23/new_metaanalysis_sleep_spindles_memory/",
+    "document_path": "",
+    "window_text": "Posted by u/neurofan. Meta-analysis of 38 studies: sleep spindle density correlates with overnight memory retention (r = 0.31). 214 comments. Top: Does this hold in older adults?",
+    "label": "on_task",
+    "notes": "Reddit used for research on the exact topic."
+  },
+  {
+    "id": "soc-02",
+    "category": "social",
+    "difficulty": "clear",
+    "task": "Write literature review on sleep and memory for psychology course",
+    "app": "Safari",
+    "window_title": "r/memes - Reddit",
+    "url": "https://www.reddit.com/r/memes/",
+    "document_path": "",
+    "window_text": "r/memes. Top today: When the WiFi drops during a boss fight. Me explaining my 3 AM thoughts. Dog tax Tuesday.",
+    "label": "off_task",
+    "notes": "Same site as soc-01, opposite verdict. Site-level rules would fail one of the pair."
+  },
+  {
+    "id": "soc-03",
+    "category": "social",
+    "difficulty": "gray",
+    "task": "Fix duplicate-charge bug in the payments-service checkout flow",
+    "app": "Google Chrome",
+    "window_title": "r/ExperiencedDevs: How do you handle idempotency when payment webhooks retry? : r/ExperiencedDevs",
+    "url": "https://www.reddit.com/r/ExperiencedDevs/comments/1xyz90/idempotency_webhooks/",
+    "document_path": "",
+    "window_text": "How do you handle idempotency when payment webhooks retry? We keep double-charging on retries. 87 comments. Top: store the event id before calling the processor.",
+    "label": "on_task",
+    "notes": "Social site, but the thread is about the bug being fixed."
+  },
+  {
+    "id": "soc-04",
+    "category": "social",
+    "difficulty": "gray",
+    "task": "Fix duplicate-charge bug in the payments-service checkout flow",
+    "app": "Google Chrome",
+    "window_title": "r/programming - Reddit",
+    "url": "https://www.reddit.com/r/programming/",
+    "document_path": "",
+    "window_text": "r/programming. Why I rewrote my todo app in Zig. JavaScript fatigue 2026. Postgres 19 released. Show: my terminal setup.",
+    "label": "unsure",
+    "notes": "Programming front page. Related field, not the task. Reasonable people differ."
+  },
+  {
+    "id": "soc-05",
+    "category": "social",
+    "difficulty": "clear",
+    "task": "Calc homework: integration by parts problems",
+    "app": "Safari",
+    "window_title": "r/learnmath: Stuck on choosing u and dv for integration by parts : r/learnmath",
+    "url": "https://www.reddit.com/r/learnmath/comments/1def45/u_and_dv/",
+    "document_path": "",
+    "window_text": "Stuck choosing u and dv for integration by parts. Use LIATE as a rule of thumb. For x*e^x take u = x. 41 comments.",
+    "label": "on_task",
+    "notes": "Homework help on the exact topic."
+  },
+  {
+    "id": "soc-06",
+    "category": "social",
+    "difficulty": "gray",
+    "task": "Write blog post about our product launch",
+    "app": "Google Chrome",
+    "window_title": "Home / X",
+    "url": "https://x.com/home",
+    "document_path": "",
+    "window_text": "For you. Following. Hot take: standups are theater. Launch day lessons from a solo founder. Meme of the day.",
+    "label": "unsure",
+    "notes": "Social timeline during a marketing task. Could be research, could be drift."
+  },
+  {
+    "id": "soc-07",
+    "category": "social",
+    "difficulty": "clear",
+    "task": "Prepare Q3 budget spreadsheet for finance review",
+    "app": "Safari",
+    "window_title": "Instagram",
+    "url": "https://www.instagram.com/reels/Cx1aaa/",
+    "document_path": "",
+    "window_text": "Reels. Sunset timelapse over the bay. Dog meets baby for the first time. Follow. 21K likes.",
+    "label": "off_task",
+    "notes": "Entertainment reels during a budget task."
+  }
+]

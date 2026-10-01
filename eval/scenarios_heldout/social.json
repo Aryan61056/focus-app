@@ -1,0 +1,41 @@
+[
+  {
+    "id": "h-soc-01",
+    "category": "social",
+    "difficulty": "clear",
+    "task": "Write up lab report for physics experiment on pendulums",
+    "app": "Safari",
+    "window_title": "r/Physics: Why does a pendulum's period not depend on mass? : r/Physics",
+    "url": "https://www.reddit.com/r/Physics/comments/1pend01/pendulum_period_mass/",
+    "document_path": "",
+    "window_text": "Why does a pendulum's period not depend on mass? Top answer: gravity scales with mass, so mass cancels. T = 2 pi sqrt(L/g). 63 comments.",
+    "label": "on_task",
+    "notes": "Question on the experiment."
+  },
+  {
+    "id": "h-soc-02",
+    "category": "social",
+    "difficulty": "gray",
+    "task": "Add dark mode to the Android app settings screen",
+    "app": "Google Chrome",
+    "window_title": "r/androiddev - Reddit",
+    "url": "https://www.reddit.com/r/androiddev/",
+    "document_path": "",
+    "window_text": "r/androiddev. Weekly questions thread. Compose 1.9 released. Show: my open-source launcher. Hiring thread.",
+    "label": "unsure",
+    "notes": "Developer front page, not the feature."
+  },
+  {
+    "id": "h-soc-03",
+    "category": "social",
+    "difficulty": "clear",
+    "task": "Build investor pitch deck for Series A",
+    "app": "Google Chrome",
+    "window_title": "TikTok - Make Your Day",
+    "url": "https://www.tiktok.com/foryou",
+    "document_path": "",
+    "window_text": "For You. Following. Pasta hack in 30 seconds. Dance challenge. 1.2M likes. Share.",
+    "label": "off_task",
+    "notes": "Short video feed."
+  }
+]

@@ -1,0 +1,80 @@
+[
+  {
+    "id": "ai-01",
+    "category": "ai_assistants",
+    "difficulty": "clear",
+    "task": "Fix duplicate-charge bug in the payments-service checkout flow",
+    "app": "Google Chrome",
+    "window_title": "Debug duplicate charge on webhook retry - ChatGPT",
+    "url": "https://chatgpt.com/c/6a1b2c3d",
+    "document_path": "",
+    "window_text": "You: my checkout creates two charges when the client retries. ChatGPT: This is likely an idempotency problem. Store the key before calling the processor.",
+    "label": "on_task",
+    "notes": "AI chat about the task."
+  },
+  {
+    "id": "ai-02",
+    "category": "ai_assistants",
+    "difficulty": "clear",
+    "task": "Fix duplicate-charge bug in the payments-service checkout flow",
+    "app": "Google Chrome",
+    "window_title": "Plan a 5-day trip to Lisbon - ChatGPT",
+    "url": "https://chatgpt.com/c/6a1b2c4e",
+    "document_path": "",
+    "window_text": "You: plan a 5-day trip to Lisbon in October. ChatGPT: Day 1 Alfama and the Miradouros. Day 2 Belem.",
+    "label": "off_task",
+    "notes": "Same site as ai-01, unrelated chat."
+  },
+  {
+    "id": "ai-03",
+    "category": "ai_assistants",
+    "difficulty": "clear",
+    "task": "Calc homework: integration by parts problems",
+    "app": "Google Chrome",
+    "window_title": "Integration by parts help - Claude",
+    "url": "https://claude.ai/chat/7f8e9d",
+    "document_path": "",
+    "window_text": "You: walk me through the integral of x e^x dx. Claude: Pick u = x and dv = e^x dx, so du = dx and v = e^x.",
+    "label": "on_task",
+    "notes": "AI chat on the task."
+  },
+  {
+    "id": "ai-04",
+    "category": "ai_assistants",
+    "difficulty": "gray",
+    "task": "Calc homework: integration by parts problems",
+    "app": "Google Chrome",
+    "window_title": "ChatGPT",
+    "url": "https://chatgpt.com/",
+    "document_path": "",
+    "window_text": "What can I help with? Message ChatGPT. Suggestions: Write a poem. Summarize a PDF.",
+    "label": "unsure",
+    "notes": "Empty new chat; no content to judge."
+  },
+  {
+    "id": "ai-05",
+    "category": "ai_assistants",
+    "difficulty": "clear",
+    "task": "Write blog post about our product launch",
+    "app": "Google Chrome",
+    "window_title": "Draft intro for product launch post - Claude",
+    "url": "https://claude.ai/chat/1a2b3c",
+    "document_path": "",
+    "window_text": "You: draft an intro for our launch post about Orbit. Claude: Today we are launching Orbit, a scheduling API built for developers.",
+    "label": "on_task",
+    "notes": "AI chat for the task."
+  },
+  {
+    "id": "ai-06",
+    "category": "ai_assistants",
+    "difficulty": "gray",
+    "task": "Study for organic chemistry exam: reaction mechanisms",
+    "app": "Google Chrome",
+    "window_title": "Write a 1000-word essay on The Great Gatsby - Gemini",
+    "url": "https://gemini.google.com/app/9f8e7d",
+    "document_path": "",
+    "window_text": "You: write a 1000-word essay on symbolism in The Great Gatsby. Gemini: The green light at the end of Daisy's dock...",
+    "label": "off_task",
+    "notes": "AI used for a different assignment than the exam prep goal."
+  }
+]

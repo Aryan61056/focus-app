@@ -1,0 +1,41 @@
+[
+  {
+    "id": "h-nav-01",
+    "category": "neutral_nav",
+    "difficulty": "gray",
+    "task": "Write history essay on the causes of World War I",
+    "app": "Google Chrome",
+    "window_title": "New Tab",
+    "url": "chrome://newtab/",
+    "document_path": "",
+    "window_text": "Search Google or type a URL. Shortcuts: Gmail, YouTube, Calendar, Drive.",
+    "label": "unsure",
+    "notes": "Navigation surface."
+  },
+  {
+    "id": "h-nav-02",
+    "category": "neutral_nav",
+    "difficulty": "clear",
+    "task": "Write up lab report for physics experiment on pendulums",
+    "app": "Google Chrome",
+    "window_title": "pendulum period formula derivation - Google Search",
+    "url": "https://www.google.com/search?q=pendulum+period+formula+derivation",
+    "document_path": "",
+    "window_text": "pendulum period formula derivation. Hyperphysics. Khan Academy. Wikipedia: Pendulum (mechanics).",
+    "label": "on_task",
+    "notes": "Searching for task content."
+  },
+  {
+    "id": "h-nav-03",
+    "category": "neutral_nav",
+    "difficulty": "gray",
+    "task": "Write history essay on the causes of World War I",
+    "app": "Music",
+    "window_title": "Classical Focus - Apple Music",
+    "url": "",
+    "document_path": "",
+    "window_text": "Classical Focus. Debussy: Clair de lune. Now playing 3:12. Up next: Satie Gymnopedie No. 1.",
+    "label": "unsure",
+    "notes": "Music is neutral."
+  }
+]

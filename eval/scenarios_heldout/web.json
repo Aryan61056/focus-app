@@ -1,0 +1,54 @@
+[
+  {
+    "id": "h-web-01",
+    "category": "web",
+    "difficulty": "clear",
+    "task": "Write history essay on the causes of World War I",
+    "app": "Safari",
+    "window_title": "Assassination of Archduke Franz Ferdinand - Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Assassination_of_Archduke_Franz_Ferdinand_of_Austria",
+    "document_path": "",
+    "window_text": "Assassination of Archduke Franz Ferdinand. 28 June 1914, Sarajevo. Gavrilo Princip. Triggered the July Crisis.",
+    "label": "on_task",
+    "notes": "Key event for the essay."
+  },
+  {
+    "id": "h-web-02",
+    "category": "web",
+    "difficulty": "clear",
+    "task": "Write up lab report for physics experiment on pendulums",
+    "app": "Google Chrome",
+    "window_title": "Hotels in Barcelona - Booking.com",
+    "url": "https://www.booking.com/city/es/barcelona.html",
+    "document_path": "",
+    "window_text": "Hotels in Barcelona. 412 properties. From 89 dollars per night. Free cancellation. Genius discounts.",
+    "label": "off_task",
+    "notes": "Travel booking."
+  },
+  {
+    "id": "h-web-03",
+    "category": "web",
+    "difficulty": "gray",
+    "task": "Build investor pitch deck for Series A",
+    "app": "Google Chrome",
+    "window_title": "Series A funding hits record in Q2 - TechCrunch",
+    "url": "https://techcrunch.com/2026/07/12/series-a-funding-record-q2/",
+    "document_path": "",
+    "window_text": "Series A funding hits record in Q2. Median round size 14 million dollars. AI infrastructure leads. Investors cite durable revenue.",
+    "label": "unsure",
+    "notes": "Funding news: could inform the deck or be a news break."
+  },
+  {
+    "id": "h-web-04",
+    "category": "web",
+    "difficulty": "clear",
+    "task": "Add dark mode to the Android app settings screen",
+    "app": "Google Chrome",
+    "window_title": "IMDb Top 250 Movies",
+    "url": "https://www.imdb.com/chart/top/",
+    "document_path": "",
+    "window_text": "Top 250 Movies. 1. The Shawshank Redemption 9.3. 2. The Godfather 9.2. 3. The Dark Knight 9.0.",
+    "label": "off_task",
+    "notes": "Movie list."
+  }
+]

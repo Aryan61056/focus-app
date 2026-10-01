@@ -1,0 +1,67 @@
+[
+  {
+    "id": "h-app-01",
+    "category": "work_apps",
+    "difficulty": "clear",
+    "task": "Add dark mode to the Android app settings screen",
+    "app": "Android Studio",
+    "window_title": "SettingsScreen.kt - MyApp",
+    "url": "",
+    "document_path": "~/work/MyApp/app/src/main/java/com/example/settings/SettingsScreen.kt",
+    "window_text": "@Composable fun SettingsScreen(vm: SettingsViewModel) { val dark by vm.darkMode.collectAsState(); Switch(checked = dark, onCheckedChange = vm::setDarkMode) }",
+    "label": "on_task",
+    "notes": "The screen being changed."
+  },
+  {
+    "id": "h-app-02",
+    "category": "work_apps",
+    "difficulty": "gray",
+    "task": "Add dark mode to the Android app settings screen",
+    "app": "Android Studio",
+    "window_title": "GameEngine.kt - SpaceShooter",
+    "url": "",
+    "document_path": "~/personal/SpaceShooter/GameEngine.kt",
+    "window_text": "class GameEngine { fun update(dt: Float) { player.move(dt); enemies.forEach { it.step(dt) } } }",
+    "label": "off_task",
+    "notes": "Another project in the same IDE."
+  },
+  {
+    "id": "h-app-03",
+    "category": "work_apps",
+    "difficulty": "clear",
+    "task": "Build investor pitch deck for Series A",
+    "app": "Keynote",
+    "window_title": "SeriesA_Deck_v7.key",
+    "url": "",
+    "document_path": "~/Documents/Fundraise/SeriesA_Deck_v7.key",
+    "window_text": "Slide 12: Traction. ARR 2.4M, 140 percent net revenue retention. Slide 13: Team.",
+    "label": "on_task",
+    "notes": "The deck."
+  },
+  {
+    "id": "h-app-04",
+    "category": "work_apps",
+    "difficulty": "gray",
+    "task": "Build investor pitch deck for Series A",
+    "app": "Keynote",
+    "window_title": "Birthday slideshow.key",
+    "url": "",
+    "document_path": "~/Documents/Personal/Birthday slideshow.key",
+    "window_text": "Slide 3: Mom's 60th birthday. Photos from 1985.",
+    "label": "off_task",
+    "notes": "Personal presentation."
+  },
+  {
+    "id": "h-app-05",
+    "category": "work_apps",
+    "difficulty": "clear",
+    "task": "Write up lab report for physics experiment on pendulums",
+    "app": "Terminal",
+    "window_title": "python analyze_pendulum.py - lab-report - zsh",
+    "url": "",
+    "document_path": "",
+    "window_text": "$ python analyze_pendulum.py. Fitted g = 9.78 +/- 0.06 m/s^2 from 12 trials. Saved fig_period_vs_length.png.",
+    "label": "on_task",
+    "notes": "Analyzing the experiment data."
+  }
+]

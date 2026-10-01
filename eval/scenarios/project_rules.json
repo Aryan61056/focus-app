@@ -1,0 +1,104 @@
+[
+  {
+    "id": "lnk-01",
+    "category": "project_rules",
+    "difficulty": "clear",
+    "task": "Fix duplicate-charge bug in the payments-service checkout flow",
+    "app": "Google Chrome",
+    "window_title": "Settings - acme/payments-service",
+    "url": "https://github.com/acme/payments-service/settings",
+    "document_path": "",
+    "window_text": "Settings. General. Branches. Webhooks. Collaborators.",
+    "label": "on_task",
+    "notes": "Inside a linked repo: on-task by rule, no model call needed.",
+    "project": {
+      "linked_domains": [
+        "github.com/acme/payments-service",
+        "docs.stripe.com"
+      ]
+    }
+  },
+  {
+    "id": "lnk-02",
+    "category": "project_rules",
+    "difficulty": "clear",
+    "task": "Fix duplicate-charge bug in the payments-service checkout flow",
+    "app": "Steam",
+    "window_title": "Library - Steam",
+    "url": "",
+    "document_path": "",
+    "window_text": "Library. Baldur's Gate 3. Hades II.",
+    "label": "off_task",
+    "notes": "User put Steam on the always-off list for this project.",
+    "project": {
+      "always_off_apps": [
+        "Steam"
+      ]
+    }
+  },
+  {
+    "id": "lnk-03",
+    "category": "project_rules",
+    "difficulty": "clear",
+    "task": "Write literature review on sleep and memory for psychology course",
+    "app": "Preview",
+    "window_title": "walker2017.pdf",
+    "url": "",
+    "document_path": "~/Documents/Thesis/refs/walker2017.pdf",
+    "window_text": "Walker, M. P. Why We Sleep. Chapter 6: Memory consolidation during sleep.",
+    "label": "on_task",
+    "notes": "Document inside a linked folder.",
+    "project": {
+      "linked_paths": [
+        "~/Documents/Thesis/"
+      ]
+    }
+  },
+  {
+    "id": "lnk-04",
+    "category": "project_rules",
+    "difficulty": "gray",
+    "task": "Write blog post about our product launch",
+    "app": "Google Chrome",
+    "window_title": "Pricing | Cal.com",
+    "url": "https://cal.com/pricing",
+    "document_path": "",
+    "window_text": "Pricing. Free. Teams 15 dollars per user per month. Organizations. Compare plans.",
+    "label": "on_task",
+    "notes": "Only knowable from the project context card (competitor research).",
+    "project": {
+      "context": "The blog is about Orbit, our developer-focused scheduling API. Competitors to mention: Calendly and Cal.com."
+    }
+  },
+  {
+    "id": "lnk-05",
+    "category": "project_rules",
+    "difficulty": "gray",
+    "task": "Write blog post about our product launch",
+    "app": "Google Chrome",
+    "window_title": "Pricing | Cal.com",
+    "url": "https://cal.com/pricing",
+    "document_path": "",
+    "window_text": "Pricing. Free. Teams 15 dollars per user per month. Organizations. Compare plans.",
+    "label": "unsure",
+    "notes": "Same page as lnk-04 with no context card. A model should not guess."
+  },
+  {
+    "id": "lnk-06",
+    "category": "project_rules",
+    "difficulty": "gray",
+    "task": "Write blog post about our product launch",
+    "app": "Google Chrome",
+    "window_title": "Feed | LinkedIn",
+    "url": "https://www.linkedin.com/feed/",
+    "document_path": "",
+    "window_text": "Start a post. 5 lessons from launching a developer tool. Hiring: Staff Engineer.",
+    "label": "on_task",
+    "notes": "User corrected 'that was fine' for LinkedIn in this project: always-allow rule.",
+    "project": {
+      "always_allow_domains": [
+        "linkedin.com"
+      ]
+    }
+  }
+]

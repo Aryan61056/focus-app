@@ -1,0 +1,54 @@
+[
+  {
+    "id": "h-yt-01",
+    "category": "youtube",
+    "difficulty": "clear",
+    "task": "Write history essay on the causes of World War I",
+    "app": "Google Chrome",
+    "window_title": "Causes of World War I: Crash Course World History #36 - YouTube",
+    "url": "https://www.youtube.com/watch?v=wwiCauses1",
+    "document_path": "",
+    "window_text": "Causes of World War I. Crash Course World History. Militarism, alliances, imperialism, nationalism. 5.1M views.",
+    "label": "on_task",
+    "notes": "Video on the essay topic."
+  },
+  {
+    "id": "h-yt-02",
+    "category": "youtube",
+    "difficulty": "clear",
+    "task": "Write history essay on the causes of World War I",
+    "app": "Google Chrome",
+    "window_title": "Minecraft Hardcore: Day 100 - YouTube",
+    "url": "https://www.youtube.com/watch?v=mcHard100",
+    "document_path": "",
+    "window_text": "Minecraft Hardcore Day 100. We finally beat the Ender Dragon. 2.3M views. Live chat replay.",
+    "label": "off_task",
+    "notes": "Gaming video."
+  },
+  {
+    "id": "h-yt-03",
+    "category": "youtube",
+    "difficulty": "clear",
+    "task": "Add dark mode to the Android app settings screen",
+    "app": "Google Chrome",
+    "window_title": "Material 3 Dark Theme in Jetpack Compose - Android Developers - YouTube",
+    "url": "https://www.youtube.com/watch?v=m3Dark2026",
+    "document_path": "",
+    "window_text": "Material 3 dark theme in Jetpack Compose. isSystemInDarkTheme, dynamic color, theming your settings screen. Android Developers.",
+    "label": "on_task",
+    "notes": "Directly on the feature."
+  },
+  {
+    "id": "h-yt-04",
+    "category": "youtube",
+    "difficulty": "gray",
+    "task": "Build investor pitch deck for Series A",
+    "app": "Google Chrome",
+    "window_title": "How I Built a $10M Startup - Podcast Clip - YouTube",
+    "url": "https://www.youtube.com/watch?v=startupClip9",
+    "document_path": "",
+    "window_text": "How I built a 10 million dollar startup. Founder interview clip. Lessons on hiring and fundraising. 880K views.",
+    "label": "unsure",
+    "notes": "Startup advice: same field as the task, not the task."
+  }
+]

@@ -1,0 +1,54 @@
+[
+  {
+    "id": "h-lnk-01",
+    "category": "project_rules",
+    "difficulty": "clear",
+    "task": "Write up lab report for physics experiment on pendulums",
+    "app": "Google Chrome",
+    "window_title": "Pendulums - Physics LibreTexts",
+    "url": "https://phys.libretexts.org/Bookshelves/pendulums",
+    "document_path": "",
+    "window_text": "Pendulums. Simple and physical pendulums.",
+    "label": "on_task",
+    "notes": "Linked domain.",
+    "project": {
+      "linked_domains": [
+        "phys.libretexts.org"
+      ]
+    }
+  },
+  {
+    "id": "h-lnk-02",
+    "category": "project_rules",
+    "difficulty": "clear",
+    "task": "Build investor pitch deck for Series A",
+    "app": "Google Chrome",
+    "window_title": "r/startups - Reddit",
+    "url": "https://www.reddit.com/r/startups/",
+    "document_path": "",
+    "window_text": "r/startups. Weekly feedback thread. How do you price a B2B tool?",
+    "label": "off_task",
+    "notes": "User put reddit.com on the always-off list for this project.",
+    "project": {
+      "always_off_domains": [
+        "reddit.com"
+      ]
+    }
+  },
+  {
+    "id": "h-lnk-03",
+    "category": "project_rules",
+    "difficulty": "gray",
+    "task": "Build investor pitch deck for Series A",
+    "app": "Google Chrome",
+    "window_title": "Pricing - Grid Insight",
+    "url": "https://gridinsight.example/pricing",
+    "document_path": "",
+    "window_text": "Pricing. Starter 499 per month. Enterprise: contact sales. Compare plans.",
+    "label": "on_task",
+    "notes": "Competitor named in the project context card.",
+    "project": {
+      "context": "Lumen sells B2B energy analytics. Competitors to benchmark in the deck: Grid Insight and Watt Logic."
+    }
+  }
+]
