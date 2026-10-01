@@ -1,0 +1,32 @@
+# macOS
+.DS_Store
+
+# Privacy rule: no screenshots and no model files in the repo, ever.
+*.png
+*.jpg
+*.jpeg
+*.heic
+*.gif
+*.mp4
+*.mov
+screenshots/
+shots/
+models/
+*.gguf
+*.safetensors
+*.mlpackage
+*.mlmodelc
+*.onnx
+*.bin
+*.npz
+
+# Build and cache output
+eval/.build/
+eval/.cache/
+**/.build/
+**/target/
+**/DerivedData/
+**/__pycache__/
+*.pyc
+.venv/
+.uv-cache/
