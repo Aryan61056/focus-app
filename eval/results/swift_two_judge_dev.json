@@ -1,0 +1,1268 @@
+{
+  "meta" : {
+    "backend" : "swift-apple-two-judge",
+    "rules" : true
+  },
+  "results" : [
+    {
+      "category" : "adversarial_misc",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "off_task",
+      "id" : "adv-01",
+      "latency_ms" : 8263.4060382843018,
+      "pred" : "off_task",
+      "reason" : "Page shows memes, not integration by parts problems.",
+      "second" : "unsure",
+      "stage" : "model",
+      "tags" : [
+        "injection"
+      ],
+      "title" : "Funny Cat Pictures - 9GAG"
+    },
+    {
+      "category" : "adversarial_misc",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "on_task",
+      "id" : "adv-02",
+      "latency_ms" : 4275.3540277481079,
+      "pred" : "unsure",
+      "reason" : "API concept irrelevant to payments-service checkout bug",
+      "second" : "on_task",
+      "stage" : "model",
+      "tags" : [
+        "injection"
+      ],
+      "title" : "Idempotent requests | Stripe API Reference"
+    },
+    {
+      "category" : "adversarial_misc",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : null,
+      "gold" : "unsure",
+      "id" : "adv-03",
+      "latency_ms" : 0,
+      "pred" : "unsure",
+      "reason" : "sensitive window, not read",
+      "second" : null,
+      "stage" : "sensitive",
+      "tags" : [
+        "sensitive"
+      ],
+      "title" : "1Password - Vault"
+    },
+    {
+      "category" : "adversarial_misc",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : null,
+      "gold" : "unsure",
+      "id" : "adv-04",
+      "latency_ms" : 0,
+      "pred" : "unsure",
+      "reason" : "sensitive window, not read",
+      "second" : null,
+      "stage" : "sensitive",
+      "tags" : [
+        "sensitive"
+      ],
+      "title" : "Accounts | Chase"
+    },
+    {
+      "category" : "adversarial_misc",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : null,
+      "gold" : "unsure",
+      "id" : "adv-05",
+      "latency_ms" : 0,
+      "pred" : "unsure",
+      "reason" : "sensitive window, not read",
+      "second" : null,
+      "stage" : "sensitive",
+      "tags" : [
+        "sensitive"
+      ],
+      "title" : "Start Page - Private Browsing"
+    },
+    {
+      "category" : "adversarial_misc",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "on_task",
+      "id" : "adv-06",
+      "latency_ms" : 4203.6300897598267,
+      "pred" : "unsure",
+      "reason" : "Shows integration by parts examples, not homework problems.",
+      "second" : "on_task",
+      "stage" : "model",
+      "tags" : [
+        "i18n"
+      ],
+      "title" : "Integración por partes - ejemplos resueltos - YouTube"
+    },
+    {
+      "category" : "adversarial_misc",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "off_task",
+      "id" : "adv-07",
+      "latency_ms" : 4355.3600311279297,
+      "pred" : "off_task",
+      "reason" : "Video shows cooking steps, not academic research methodology",
+      "second" : "off_task",
+      "stage" : "model",
+      "tags" : [
+        "i18n"
+      ],
+      "title" : "Cómo hacer tortilla española | Receta fácil - YouTube"
+    },
+    {
+      "category" : "ai_assistants",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "on_task",
+      "gold" : "on_task",
+      "id" : "ai-01",
+      "latency_ms" : 2220.1730012893677,
+      "pred" : "on_task",
+      "reason" : "ChatGPT explains idempotency causing duplicate charges.",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Debug duplicate charge on webhook retry - ChatGPT"
+    },
+    {
+      "category" : "ai_assistants",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "off_task",
+      "id" : "ai-02",
+      "latency_ms" : 4783.5780382156372,
+      "pred" : "unsure",
+      "reason" : "Not related to payments-service checkout or duplicate-charge.",
+      "second" : "on_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Plan a 5-day trip to Lisbon - ChatGPT"
+    },
+    {
+      "category" : "ai_assistants",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "on_task",
+      "gold" : "on_task",
+      "id" : "ai-03",
+      "latency_ms" : 2375.5509853363037,
+      "pred" : "on_task",
+      "reason" : "Shows integration by parts steps for x e^x dx problem.",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Integration by parts help - Claude"
+    },
+    {
+      "category" : "ai_assistants",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "unsure",
+      "id" : "ai-04",
+      "latency_ms" : 4561.7660284042358,
+      "pred" : "unsure",
+      "reason" : "Not a calculator or integration resource page.",
+      "second" : "on_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "ChatGPT"
+    },
+    {
+      "category" : "ai_assistants",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "on_task",
+      "gold" : "on_task",
+      "id" : "ai-05",
+      "latency_ms" : 2405.9449434280396,
+      "pred" : "on_task",
+      "reason" : "Contains product launch intro text, not full blog post.",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Draft intro for product launch post - Claude"
+    },
+    {
+      "category" : "ai_assistants",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "off_task",
+      "id" : "ai-06",
+      "latency_ms" : 4404.2419195175171,
+      "pred" : "unsure",
+      "reason" : "Page discusses literary symbolism, not chemical reaction mechanisms.",
+      "second" : "on_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Write a 1000-word essay on The Great Gatsby - Gemini"
+    },
+    {
+      "category" : "messaging",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "on_task",
+      "gold" : "on_task",
+      "id" : "msg-01",
+      "latency_ms" : 2225.9049415588379,
+      "pred" : "on_task",
+      "reason" : "Discussing duplicate-charge bug with engineering team.",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "payments-eng | Acme | Slack"
+    },
+    {
+      "category" : "messaging",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "off_task",
+      "id" : "msg-02",
+      "latency_ms" : 4321.1590051651001,
+      "pred" : "off_task",
+      "reason" : "Contains unrelated workplace chat content.",
+      "second" : "unsure",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "random | Acme | Slack"
+    },
+    {
+      "category" : "messaging",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "unsure",
+      "gold" : "on_task",
+      "id" : "msg-03",
+      "latency_ms" : 2242.5498962402344,
+      "pred" : "unsure",
+      "reason" : "Request mentions payments fix but lacks technical details.",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Priya (manager) | Acme | Slack"
+    },
+    {
+      "category" : "messaging",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : "unsure",
+      "gold" : "unsure",
+      "id" : "msg-04",
+      "latency_ms" : 2293.8239574432373,
+      "pred" : "unsure",
+      "reason" : "Not a support or checkout interface, just channel overview.",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "All unreads | Acme | Slack"
+    },
+    {
+      "category" : "messaging",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "on_task",
+      "gold" : "on_task",
+      "id" : "msg-05",
+      "latency_ms" : 2289.6280288696289,
+      "pred" : "on_task",
+      "reason" : "Ticket mentions order not received, needs tracking confirmation.",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Order #88213 not received - Inbox - Mail"
+    },
+    {
+      "category" : "messaging",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "unsure",
+      "id" : "msg-06",
+      "latency_ms" : 4288.3760929107666,
+      "pred" : "off_task",
+      "reason" : "Text is personal conversation, not budgeting information.",
+      "second" : "unsure",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Mom"
+    },
+    {
+      "category" : "messaging",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "unsure",
+      "gold" : "on_task",
+      "id" : "msg-07",
+      "latency_ms" : 2196.9490051269531,
+      "pred" : "unsure",
+      "reason" : "Group chat discusses integration by parts problem, not problems themselves.",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Calc 2 study group"
+    },
+    {
+      "category" : "messaging",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "on_task",
+      "gold" : "on_task",
+      "id" : "msg-08",
+      "latency_ms" : 2358.9130640029907,
+      "pred" : "on_task",
+      "reason" : "Title mentions budget review; content requests forecast upload.",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Q3 budget review - Chat | Microsoft Teams"
+    },
+    {
+      "category" : "neutral_nav",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "unsure",
+      "id" : "nav-01",
+      "latency_ms" : 3978.1880378723145,
+      "pred" : "off_task",
+      "reason" : "Not a learning platform with integration by parts problems.",
+      "second" : "unsure",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Start Page"
+    },
+    {
+      "category" : "neutral_nav",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "unsure",
+      "gold" : "on_task",
+      "id" : "nav-02",
+      "latency_ms" : 2317.3179626464844,
+      "pred" : "unsure",
+      "reason" : "Results page lists examples, not direct integration problems.",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "integration by parts examples - Google Search"
+    },
+    {
+      "category" : "neutral_nav",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "off_task",
+      "id" : "nav-03",
+      "latency_ms" : 4285.0649356842041,
+      "pred" : "off_task",
+      "reason" : "Not related to payments-service checkout or duplicate-charge.",
+      "second" : "unsure",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "best pizza near me - Google Search"
+    },
+    {
+      "category" : "neutral_nav",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "on_task",
+      "gold" : "on_task",
+      "id" : "nav-04",
+      "latency_ms" : 2384.1619491577148,
+      "pred" : "on_task",
+      "reason" : "Page lists academic work on sleep and memory consolidation.",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "sleep memory consolidation meta-analysis - Google Scholar"
+    },
+    {
+      "category" : "neutral_nav",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : "unsure",
+      "gold" : "unsure",
+      "id" : "nav-05",
+      "latency_ms" : 2114.7119998931885,
+      "pred" : "unsure",
+      "reason" : "File browser showing unrelated download files",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Downloads"
+    },
+    {
+      "category" : "neutral_nav",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "unsure",
+      "id" : "nav-06",
+      "latency_ms" : 3987.3589277267456,
+      "pred" : "unsure",
+      "reason" : "Playing music unrelated to product launch planning.",
+      "second" : "on_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Deep Focus - Spotify"
+    },
+    {
+      "category" : "neutral_nav",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "on_task",
+      "id" : "nav-07",
+      "latency_ms" : 4073.0369091033936,
+      "pred" : "unsure",
+      "reason" : "Shows exponential value, not integration by parts problems.",
+      "second" : "on_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Calculator"
+    },
+    {
+      "category" : "project_rules",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : null,
+      "gold" : "on_task",
+      "id" : "lnk-01",
+      "latency_ms" : 0,
+      "pred" : "on_task",
+      "reason" : "linked_domain",
+      "second" : null,
+      "stage" : "rule",
+      "tags" : [
+
+      ],
+      "title" : "Settings - acme\/payments-service"
+    },
+    {
+      "category" : "project_rules",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : null,
+      "gold" : "off_task",
+      "id" : "lnk-02",
+      "latency_ms" : 0,
+      "pred" : "off_task",
+      "reason" : "always_off_app",
+      "second" : null,
+      "stage" : "rule",
+      "tags" : [
+
+      ],
+      "title" : "Library - Steam"
+    },
+    {
+      "category" : "project_rules",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : null,
+      "gold" : "on_task",
+      "id" : "lnk-03",
+      "latency_ms" : 0,
+      "pred" : "on_task",
+      "reason" : "linked_path",
+      "second" : null,
+      "stage" : "rule",
+      "tags" : [
+
+      ],
+      "title" : "walker2017.pdf"
+    },
+    {
+      "category" : "project_rules",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "on_task",
+      "id" : "lnk-04",
+      "latency_ms" : 4250.899076461792,
+      "pred" : "unsure",
+      "reason" : "Shows competitor pricing unrelated to product launch planning",
+      "second" : "on_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Pricing | Cal.com"
+    },
+    {
+      "category" : "project_rules",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "unsure",
+      "id" : "lnk-05",
+      "latency_ms" : 4299.1191148757935,
+      "pred" : "unsure",
+      "reason" : "Page shows pricing info, not launch planning tools.",
+      "second" : "on_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Pricing | Cal.com"
+    },
+    {
+      "category" : "project_rules",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : null,
+      "gold" : "on_task",
+      "id" : "lnk-06",
+      "latency_ms" : 0,
+      "pred" : "on_task",
+      "reason" : "always_allow_domain",
+      "second" : null,
+      "stage" : "rule",
+      "tags" : [
+
+      ],
+      "title" : "Feed | LinkedIn"
+    },
+    {
+      "category" : "social",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "on_task",
+      "id" : "soc-01",
+      "latency_ms" : 4764.1379833221436,
+      "pred" : "unsure",
+      "reason" : "Reddit post discusses sleep spindles and memory correlation, not systematic review.",
+      "second" : "on_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "r\/neuroscience on Reddit: New meta-analysis links sleep spindles to memory consolidation"
+    },
+    {
+      "category" : "social",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "off_task",
+      "id" : "soc-02",
+      "latency_ms" : 4420.0299978256226,
+      "pred" : "unsure",
+      "reason" : "Reddit memes site irrelevant to sleep and memory research",
+      "second" : "on_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "r\/memes - Reddit"
+    },
+    {
+      "category" : "social",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "on_task",
+      "id" : "soc-03",
+      "latency_ms" : 4591.3159847259521,
+      "pred" : "unsure",
+      "reason" : "Discusses idempotency, unrelated to payment-service checkout.",
+      "second" : "on_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "r\/ExperiencedDevs: How do you handle idempotency when payment webhooks retry? : r\/ExperiencedDevs"
+    },
+    {
+      "category" : "social",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "unsure",
+      "id" : "soc-04",
+      "latency_ms" : 4644.4070339202881,
+      "pred" : "unsure",
+      "reason" : "Discussion forum not related to payments-service checkout.",
+      "second" : "on_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "r\/programming - Reddit"
+    },
+    {
+      "category" : "social",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "on_task",
+      "gold" : "on_task",
+      "id" : "soc-05",
+      "latency_ms" : 2340.4040336608887,
+      "pred" : "on_task",
+      "reason" : "Discusses choosing u\/dv for integration by parts problems.",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "r\/learnmath: Stuck on choosing u and dv for integration by parts : r\/learnmath"
+    },
+    {
+      "category" : "social",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "unsure",
+      "id" : "soc-06",
+      "latency_ms" : 4097.1710681915283,
+      "pred" : "unsure",
+      "reason" : "Page shows unrelated social media content, not blog content.",
+      "second" : "on_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Home \/ X"
+    },
+    {
+      "category" : "social",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "off_task",
+      "id" : "soc-07",
+      "latency_ms" : 4112.5770807266235,
+      "pred" : "off_task",
+      "reason" : "Instagram is not related to budgeting or finance tasks.",
+      "second" : "unsure",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Instagram"
+    },
+    {
+      "category" : "web",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "on_task",
+      "gold" : "on_task",
+      "id" : "web-01",
+      "latency_ms" : 2218.6219692230225,
+      "pred" : "on_task",
+      "reason" : "Page provides foundational information for sleep and memory research.",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Sleep and memory - Wikipedia"
+    },
+    {
+      "category" : "web",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "off_task",
+      "id" : "web-02",
+      "latency_ms" : 4301.435112953186,
+      "pred" : "unsure",
+      "reason" : "Historical timeline unrelated to sleep and memory research.",
+      "second" : "on_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "List of Roman emperors - Wikipedia"
+    },
+    {
+      "category" : "web",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "off_task",
+      "id" : "web-03",
+      "latency_ms" : 4124.7410774230957,
+      "pred" : "off_task",
+      "reason" : "Film summary unrelated to sleep and memory research.",
+      "second" : "unsure",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Avengers: Endgame - Wikipedia"
+    },
+    {
+      "category" : "web",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "off_task",
+      "id" : "web-04",
+      "latency_ms" : 4439.9169683456421,
+      "pred" : "unsure",
+      "reason" : "Showing product for purchase, not budgeting tool.",
+      "second" : "on_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Logitech G502 Wireless Gaming Mouse - Amazon.com"
+    },
+    {
+      "category" : "web",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "unsure",
+      "id" : "web-05",
+      "latency_ms" : 4471.479058265686,
+      "pred" : "unsure",
+      "reason" : "Page shows product listing, not design tools.",
+      "second" : "on_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Amazon.com: 7-in-1 USB-C Hub Adapter"
+    },
+    {
+      "category" : "web",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : "error",
+      "first" : "off_task",
+      "gold" : "unsure",
+      "id" : "web-06",
+      "latency_ms" : 2741.7359352111816,
+      "pred" : "off_task",
+      "reason" : "Article discusses Fed policy, unrelated to budgeting.",
+      "second" : "unsure",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Fed signals September rate cut - The New York Times"
+    },
+    {
+      "category" : "web",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "off_task",
+      "id" : "web-07",
+      "latency_ms" : 4510.5290412902832,
+      "pred" : "unsure",
+      "reason" : "Display shows sports scores, not budgeting tools.",
+      "second" : "on_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "NBA Scores and Schedule - ESPN"
+    },
+    {
+      "category" : "web",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "off_task",
+      "id" : "web-08",
+      "latency_ms" : 4200.2509832382202,
+      "pred" : "off_task",
+      "reason" : "Steam library page has no connection to integration by parts.",
+      "second" : "unsure",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Library - Steam"
+    },
+    {
+      "category" : "web",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "off_task",
+      "id" : "web-09",
+      "latency_ms" : 4467.0341014862061,
+      "pred" : "off_task",
+      "reason" : "Window shows chess game, not organic chemistry content.",
+      "second" : "off_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Play Chess Online - Chess.com"
+    },
+    {
+      "category" : "web",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : "on_task",
+      "gold" : "on_task",
+      "id" : "web-10",
+      "latency_ms" : 2035.7979536056519,
+      "pred" : "on_task",
+      "reason" : "Shows inspiration for mobile onboarding design concepts",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Mobile onboarding flows - Dribbble"
+    },
+    {
+      "category" : "work_apps",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "unsure",
+      "gold" : "on_task",
+      "id" : "ide-01",
+      "latency_ms" : 2232.725977897644,
+      "pred" : "unsure",
+      "reason" : "Code references duplicate-charge handling without full context.",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "charge.ts - payments-service"
+    },
+    {
+      "category" : "work_apps",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : "unsure",
+      "gold" : "off_task",
+      "id" : "ide-02",
+      "latency_ms" : 2326.6469240188599,
+      "pred" : "unsure",
+      "reason" : "Code shows payment logic, not checkout bug details.",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "app.py - pokemon-tracker"
+    },
+    {
+      "category" : "work_apps",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "unsure",
+      "id" : "ide-03",
+      "latency_ms" : 4073.8370418548584,
+      "pred" : "unsure",
+      "reason" : "Shell script file unrelated to payments-service checkout.",
+      "second" : "on_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : ".zshrc - dotfiles"
+    },
+    {
+      "category" : "work_apps",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "on_task",
+      "gold" : "on_task",
+      "id" : "ide-04",
+      "latency_ms" : 2432.0030212402344,
+      "pred" : "on_task",
+      "reason" : "Test result shows duplicate charge in checkout.spec.ts file.",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "npm test -- checkout.spec.ts - payments-service - zsh"
+    },
+    {
+      "category" : "work_apps",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "off_task",
+      "id" : "ide-05",
+      "latency_ms" : 4343.3609008789062,
+      "pred" : "unsure",
+      "reason" : "Code shows game structure, not checkout system.",
+      "second" : "on_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Board.swift - DungeonDash"
+    },
+    {
+      "category" : "work_apps",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "unsure",
+      "gold" : "on_task",
+      "id" : "ide-06",
+      "latency_ms" : 2954.1029930114746,
+      "pred" : "unsure",
+      "reason" : "Issue is code pull request, not direct bug fix documentation.",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Fix idempotency handling in charge handler by dana-k - Pull Request #482 - acme\/payments-service"
+    },
+    {
+      "category" : "work_apps",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "unsure",
+      "id" : "ide-07",
+      "latency_ms" : 4520.1549530029297,
+      "pred" : "unsure",
+      "reason" : "Not related to payments-service checkout or duplicate-charge.",
+      "second" : "on_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Trending repositories on GitHub today"
+    },
+    {
+      "category" : "work_apps",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "unsure",
+      "gold" : "on_task",
+      "id" : "ide-08",
+      "latency_ms" : 2428.4830093383789,
+      "pred" : "unsure",
+      "reason" : "Discusses Stripe duplicate charges, not checkout-specific fix.",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Stripe: duplicate charges on retry - Stack Overflow"
+    },
+    {
+      "category" : "work_apps",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "unsure",
+      "gold" : "on_task",
+      "id" : "ide-09",
+      "latency_ms" : 2287.0280742645264,
+      "pred" : "unsure",
+      "reason" : "Lists onboarding screens but lacks design files or tools.",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Onboarding v3 - Figma"
+    },
+    {
+      "category" : "work_apps",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "off_task",
+      "id" : "ide-10",
+      "latency_ms" : 4917.917013168335,
+      "pred" : "unsure",
+      "reason" : "Page shows design elements for a wedding invitation, not onboarding.",
+      "second" : "on_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Wedding invitation (personal) - Figma"
+    },
+    {
+      "category" : "work_apps",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "unsure",
+      "gold" : "on_task",
+      "id" : "ide-11",
+      "latency_ms" : 2586.10999584198,
+      "pred" : "unsure",
+      "reason" : "Contains budget data but lacks spreadsheet structure or analysis.",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Q3_Budget_FY26.xlsx - Excel"
+    },
+    {
+      "category" : "youtube",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "on_task",
+      "gold" : "on_task",
+      "id" : "yt-01",
+      "latency_ms" : 2289.4260883331299,
+      "pred" : "on_task",
+      "reason" : "Video title matches integration by parts calculus topic.",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Integration by Parts - Full Lecture | MIT 18.01SC - YouTube"
+    },
+    {
+      "category" : "youtube",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "off_task",
+      "id" : "yt-02",
+      "latency_ms" : 4366.4009571075439,
+      "pred" : "off_task",
+      "reason" : "Playing a cat video is unrelated to integration by parts.",
+      "second" : "off_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Cat fails jump #shorts - YouTube"
+    },
+    {
+      "category" : "youtube",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "off_task",
+      "id" : "yt-03",
+      "latency_ms" : 4212.1239900588989,
+      "pred" : "off_task",
+      "reason" : "Video about comedy fails irrelevant to calculus.",
+      "second" : "off_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Top 10 Funniest Fails of 2026 (Try Not To Laugh) - YouTube"
+    },
+    {
+      "category" : "youtube",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "unsure",
+      "id" : "yt-04",
+      "latency_ms" : 4091.7880535125732,
+      "pred" : "unsure",
+      "reason" : "Channel promotes unrelated math content, not homework help.",
+      "second" : "on_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "YouTube"
+    },
+    {
+      "category" : "youtube",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : "unsure",
+      "gold" : "on_task",
+      "id" : "yt-05",
+      "latency_ms" : 2259.2309713363647,
+      "pred" : "unsure",
+      "reason" : "Video covers integration technique, not specific problems.",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Trigonometric Substitution Explained - Calculus 2 - YouTube"
+    },
+    {
+      "category" : "youtube",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : "off_task",
+      "gold" : "unsure",
+      "id" : "yt-06",
+      "latency_ms" : 4565.6789541244507,
+      "pred" : "unsure",
+      "reason" : "Playing music unrelated to calculus integration by parts.",
+      "second" : "on_task",
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "lofi hip hop radio - beats to relax\/study to - YouTube"
+    },
+    {
+      "category" : "youtube",
+      "confidence" : null,
+      "difficulty" : "clear",
+      "error" : null,
+      "first" : "on_task",
+      "gold" : "on_task",
+      "id" : "yt-07",
+      "latency_ms" : 2267.259955406189,
+      "pred" : "on_task",
+      "reason" : "Covers SN1\/SN2 reaction mechanisms relevant to organic chemistry.",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "SN1 vs SN2 Reactions: Mechanisms and Stereochemistry | Organic Chemistry - YouTube"
+    },
+    {
+      "category" : "youtube",
+      "confidence" : null,
+      "difficulty" : "gray",
+      "error" : null,
+      "first" : "unsure",
+      "gold" : "on_task",
+      "id" : "yt-08",
+      "latency_ms" : 2564.3019676208496,
+      "pred" : "unsure",
+      "reason" : "Lecture explains duplicate charges but doesn't address checkout-specific fix.",
+      "second" : null,
+      "stage" : "model",
+      "tags" : [
+
+      ],
+      "title" : "Idempotency Keys in Payment APIs - Conference Talk - YouTube"
+    }
+  ]
+}
