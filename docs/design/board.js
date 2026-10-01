@@ -9,7 +9,8 @@
   document.querySelectorAll("[data-theme-btn]").forEach(function (b) { b.addEventListener("click", function () { setTheme(b.dataset.themeBtn); }); });
   var saved = "system";
   try { saved = localStorage.getItem("board-theme") || "system"; } catch (e) {}
-  setTheme(saved);
+  var fromHash = location.hash.replace("#", "");
+  setTheme(fromHash === "light" || fromHash === "dark" ? fromHash : saved);
 
   var tabs = document.querySelectorAll("[role=tab]");
   tabs.forEach(function (t) {

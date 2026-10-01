@@ -31,6 +31,9 @@ Design context (register, personality, anti-references, principles) is in `PRODU
 Product name, audience, pricing, open-sourcing the engine, minimum OS, Mac distribution, languages.
 PLAN.md section 12 only holds recommendations. They are not decisions.
 
+## Claims we must not make yet
+Do not write "OS-enforced", "cannot reach the network" or "0 bytes sent" in any user-facing text until the privacy tests T1 to T4 in `docs/SECURITY-REVIEW.md` pass. Say nothing about Windows isolation until T10 passes on real Windows.
+
 ## Principles that shape code
 1. A false nudge costs more than a miss. Every threshold leans conservative. `unsure` never advances past Drifting.
 2. Private by construction: screenshots live in memory for seconds, never on disk. Engine has no network.
@@ -57,7 +60,7 @@ PLAN.md section 12 only holds recommendations. They are not decisions.
 
 ## Machine
 MacBook Pro M1 Pro, 16 GB, macOS 27.0, Xcode 26.6 (SDK 26.5), Swift 6.3.3, uv 0.11, system Python 3.9 (stdlib only for now).
-Not installed: Rust, .NET, Ollama, Xcode 27. No confirmed Windows PC.
+Rust 1.99 installed via Homebrew rustup (owner approved 2026-10-01); use `export PATH="/opt/homebrew/opt/rustup/bin:$PATH"`. Not installed: .NET, Ollama, Xcode 27. No confirmed Windows PC.
 Apple on-device model is reachable through the FoundationModels framework (Swift). The `fm` CLI is licensed (owner accepted the terms on 2026-10-01). The harness still uses the framework, which gives guided generation.
 
 ## Repo layout

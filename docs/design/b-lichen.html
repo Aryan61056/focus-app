@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direction B: Lichen</title>
+<link rel="stylesheet" href="board.css">
+<link rel="stylesheet" href="b-lichen.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <!-- Bolder ring with round caps. In the pill the ring doubles as session progress. -->
+  <symbol id="r-on" viewBox="0 0 18 18"><circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" stroke-width="2.25"/></symbol>
+  <symbol id="r-unsure" viewBox="0 0 18 18"><circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" stroke-width="2.25" stroke-dasharray="2.4 2.4" stroke-linecap="round"/></symbol>
+  <symbol id="r-drift" viewBox="0 0 18 18"><circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-dasharray="29.5 8.2" transform="rotate(-60 9 9)"/></symbol>
+  <symbol id="r-pause" viewBox="0 0 18 18"><rect x="5.2" y="4" width="2.8" height="10" rx="1.4" fill="currentColor"/><rect x="10" y="4" width="2.8" height="10" rx="1.4" fill="currentColor"/></symbol>
+  <symbol id="r-break" viewBox="0 0 18 18"><circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" stroke-width="2.25"/><circle cx="9" cy="9" r="1.9" fill="currentColor"/></symbol>
+  <symbol id="r-prog" viewBox="0 0 18 18"><circle cx="9" cy="9" r="6" fill="none" stroke="var(--track)" stroke-width="2.25"/><circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-dasharray="22.6 15.1" transform="rotate(-90 9 9)"/></symbol>
+</svg>
+
+<main class="board">
+  <header class="board-head">
+    <div>
+      <h1>Direction B: Lichen</h1>
+      <p>One quiet green, used only for "you are on task" and the single primary action. A bolder ring that doubles as session progress, softer shapes, a rounded numeral face. Warmer and more ownable than Native, still calm.</p>
+    </div>
+    <nav class="board-nav" aria-label="Directions"><a href="index.html">All directions</a><a href="a-native.html">A: Native</a><a href="c-graphite.html">C: Graphite</a></nav>
+  </header>
+
+  <div class="controls">
+    <span class="seg" role="group" aria-label="Theme">
+      <button type="button" data-theme-btn="system" aria-pressed="true">System</button>
+      <button type="button" data-theme-btn="light" aria-pressed="false">Light</button>
+      <button type="button" data-theme-btn="dark" aria-pressed="false">Dark</button>
+    </span>
+    <label><input type="checkbox" id="opaque"> Reduce transparency</label>
+    <label><input type="checkbox" id="still"> Reduce motion</label>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="Platform">
+    <button role="tab" id="t-mac" aria-selected="true" aria-controls="p-mac">macOS</button>
+    <button role="tab" id="t-win" aria-selected="false" aria-controls="p-win">Windows</button>
+  </div>
+
+  <div class="panel" id="p-mac" role="tabpanel" aria-labelledby="t-mac">
+
+    <section class="block">
+      <h2>The ring</h2>
+      <p>A heavier stroke with round caps. Same grammar: closed is on task, dashed is unsure, open with a gap is drifting, bars are paused, a dot is a break. Menu bar size and 4x. The last one is the pill version in a Timed session, where the arc shows time used.</p>
+      <div class="ringrow">
+        <figure><span class="ring sm" style="font-size:18px"><svg><use href="#r-on"/></svg></span><span class="ring lg" style="font-size:72px"><svg><use href="#r-on"/></svg></span><figcaption>On task</figcaption></figure>
+        <figure><span class="ring sm" style="font-size:18px"><svg><use href="#r-unsure"/></svg></span><span class="ring lg" style="font-size:72px"><svg><use href="#r-unsure"/></svg></span><figcaption>Unsure</figcaption></figure>
+        <figure><span class="ring sm" style="font-size:18px"><svg><use href="#r-drift"/></svg></span><span class="ring lg" style="font-size:72px"><svg><use href="#r-drift"/></svg></span><figcaption>Drifting</figcaption></figure>
+        <figure><span class="ring sm" style="font-size:18px"><svg><use href="#r-pause"/></svg></span><span class="ring lg" style="font-size:72px"><svg><use href="#r-pause"/></svg></span><figcaption>Paused</figcaption></figure>
+        <figure><span class="ring sm" style="font-size:18px"><svg><use href="#r-break"/></svg></span><span class="ring lg" style="font-size:72px"><svg><use href="#r-break"/></svg></span><figcaption>Break</figcaption></figure>
+        <figure><span class="ring sm" style="font-size:18px"><svg><use href="#r-prog"/></svg></span><span class="ring lg" style="font-size:72px;color:var(--accent)"><svg><use href="#r-prog"/></svg></span><figcaption>Timed, 60% used</figcaption></figure>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2>While you work, and when you drift</h2>
+      <p>The pill is larger than in A and does one extra job: its ring shows progress. Green appears only while on task. When you drift the pill turns neutral and gains a firmer edge, and the screen slowly loses color. Drag the slider.</p>
+      <div class="stage" id="stage-drift">
+        <div class="wall"></div>
+        <div class="menubar"><div class="left"><span class="app">Notes</span><span>File</span><span>Edit</span><span>View</span></div><div class="right"><span class="ring mb-ring"><svg><use href="#r-drift"/></svg></span><span>10:42</span></div></div>
+        <div class="win veilable" style="left:7%;top:48px;width:62%;height:250px"><div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="title">Calc homework</span></div><div class="body"><div class="ln h"></div><div class="ln w90"></div><div class="ln w75"></div><div class="swatch"></div><div class="ln w60"></div></div></div>
+        <div class="win veilable" style="left:44%;top:120px;width:48%;height:190px"><div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="title">Browser</span></div><div class="body"><div class="swatch second"></div><div class="ln w75"></div><div class="ln w40"></div></div></div>
+        <div class="pill glass is-drift floating"><span class="ring"><svg><use href="#r-drift"/></svg></span><span class="task">Calc homework</span><span class="time">Off topic 0:42</span></div>
+      </div>
+      <div class="slider"><label for="v1">Color drain</label><input id="v1" type="range" min="0" max="60" value="35" data-veil="#stage-drift"><output>35%</output></div>
+      <div class="pillrow" style="margin-top:16px">
+        <div class="pill glass is-on"><span class="ring"><svg><use href="#r-prog"/></svg></span><span class="task">Calc homework</span><span class="time">24:10</span></div>
+        <div class="pill glass is-on"><span class="ring"><svg><use href="#r-on"/></svg></span><span class="task">Calc homework</span><span class="time">Open</span></div>
+        <div class="pill glass"><span class="ring"><svg><use href="#r-unsure"/></svg></span><span class="task">Calc homework</span><span class="time">24:40</span></div>
+        <div class="pill glass is-drift"><span class="ring"><svg><use href="#r-drift"/></svg></span><span class="task">Calc homework</span><span class="time">Off topic 0:42</span></div>
+        <div class="pill glass"><span class="ring"><svg><use href="#r-break"/></svg></span><span class="task">Break</span><span class="time">4:12</span></div>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2>Nudge card and gate</h2>
+      <p>The card leads with one filled button and tucks the two other choices underneath as quiet text buttons. It never names the distraction. The gate uses the same layout over only the distracting window.</p>
+      <div class="pair">
+        <div>
+          <div class="stage">
+            <div class="wall"></div>
+            <div class="menubar"><div class="left"><span class="app">Browser</span><span>File</span><span>Edit</span></div><div class="right"><span class="ring mb-ring"><svg><use href="#r-drift"/></svg></span><span>10:44</span></div></div>
+            <div class="win" style="left:6%;top:48px;width:70%;height:260px"><div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="title">Browser</span></div><div class="body"><div class="swatch second"></div><div class="ln w90"></div><div class="ln w60"></div></div></div>
+            <div class="card nudge glass" role="alertdialog" aria-label="Back to Calc homework?">
+              <h3>Back to Calc homework?</h3>
+              <button class="btn primary block" type="button">Back to task</button>
+              <div class="quiet-row"><button class="btn ghost" type="button">This is relevant</button><button class="btn ghost" type="button">Take a break</button></div>
+            </div>
+          </div>
+          <p class="cap">Standard: card</p>
+        </div>
+        <div>
+          <div class="stage">
+            <div class="wall"></div>
+            <div class="menubar"><div class="left"><span class="app">Browser</span><span>File</span><span>Edit</span></div><div class="right"><span class="ring mb-ring"><svg><use href="#r-drift"/></svg></span><span>10:44</span></div></div>
+            <div class="win" style="left:6%;top:48px;width:70%;height:260px"><div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="title">Browser</span></div><div class="body"><div class="swatch second"></div><div class="ln w90"></div><div class="ln w60"></div></div></div>
+            <div class="gate" style="left:6%;top:48px;width:70%;height:260px">
+              <div class="card glass" role="alertdialog" aria-label="Is this part of Calc homework?">
+                <h3>Is this part of Calc homework?</h3>
+                <button class="btn primary block" type="button">Yes, it is</button>
+                <div class="quiet-row"><button class="btn ghost" type="button">Back to my task</button><button class="btn ghost" type="button">Break</button></div>
+              </div>
+            </div>
+          </div>
+          <p class="cap">Strict: gate</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2>Starting</h2>
+      <p>A sheet, not a command bar. Returning to a project is a single large button with the next step above it. A new goal is one field; one line confirms what counts, and Start is the only filled button.</p>
+      <div class="pair">
+        <div>
+          <div class="stage tall">
+            <div class="wall"></div>
+            <div class="menubar"><div class="left"><span class="app">Notes</span><span>File</span><span>Edit</span></div><div class="right"><span class="ring mb-ring"><svg><use href="#r-pause"/></svg></span><span>9:02</span></div></div>
+            <div class="sheet-start glass" role="dialog" aria-label="Start a session">
+              <h3>Calc homework</h3>
+              <p class="next">Next: check problem 4</p>
+              <div class="stack"><button class="btn primary block" type="button">Continue</button></div>
+              <div class="chips"><button class="chip" aria-pressed="true" type="button">Open</button><button class="chip" aria-pressed="false" type="button">Timed</button></div>
+              <div class="recent"><button type="button">Essay on sleep and memory <kbd>2</kbd></button><button type="button">Something else <kbd>N</kbd></button></div>
+            </div>
+          </div>
+          <p class="cap">Level 0: returning to a project</p>
+        </div>
+        <div>
+          <div class="stage tall">
+            <div class="wall"></div>
+            <div class="menubar"><div class="left"><span class="app">Notes</span><span>File</span><span>Edit</span></div><div class="right"><span class="ring mb-ring"><svg><use href="#r-pause"/></svg></span><span>9:02</span></div></div>
+            <div class="sheet-start glass" role="dialog" aria-label="Start a session">
+              <h3>What are you working on?</h3>
+              <div class="stack">
+                <div class="field"><span>Lab report on pendulums</span><span class="caret"></span></div>
+              </div>
+              <p class="confirm">Okay. Lab report on pendulums. Your notes and physics sites count.</p>
+              <div class="chips"><button class="chip" aria-pressed="true" type="button">Open</button><button class="chip" aria-pressed="false" type="button">Timed</button><button class="chip" aria-pressed="false" type="button">Adjust</button></div>
+              <div class="stack" style="margin-top:14px"><button class="btn primary block" type="button">Start</button></div>
+            </div>
+          </div>
+          <p class="cap">Level 1: something new</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2>Quick panel</h2>
+      <p>Same function set and the same calm rule: three choices, the rest behind More. The glance carries the progress ring in green while on task.</p>
+      <div class="pair">
+        <div>
+          <div class="stage short">
+            <div class="wall"></div>
+            <div class="menubar"><div class="left"><span class="app">Notes</span><span>File</span><span>Edit</span></div><div class="right"><span class="ring mb-ring"><svg><use href="#r-on"/></svg></span><span>10:42</span></div></div><div class="notch"></div>
+            <div class="qp" role="group" aria-label="Quick functions">
+              <div class="glance"><span class="ring"><svg><use href="#r-prog"/></svg></span><span>Calc homework</span><span class="st">24:10</span></div>
+              <div class="set"><button class="btn" type="button">Pause</button><button class="btn" type="button">Break</button><button class="btn" type="button">Snooze</button></div>
+              <div class="moreline"><button class="btn ghost" type="button">More</button></div>
+            </div>
+          </div>
+          <p class="cap">Collapsed</p>
+        </div>
+        <div>
+          <div class="stage short">
+            <div class="wall"></div>
+            <div class="menubar"><div class="left"><span class="app">Notes</span><span>File</span><span>Edit</span></div><div class="right"><span class="ring mb-ring"><svg><use href="#r-on"/></svg></span><span>10:42</span></div></div><div class="notch"></div>
+            <div class="qp" role="group" aria-label="Quick functions">
+              <div class="glance"><span class="ring"><svg><use href="#r-prog"/></svg></span><span>Calc homework</span><span class="st">24:10</span></div>
+              <div class="set"><button class="btn" type="button">Pause</button><button class="btn" type="button">Break</button><button class="btn" type="button">Snooze</button></div>
+              <div class="set"><button class="btn" type="button">Jot a thought</button><button class="btn" type="button">Next step</button><button class="btn" type="button">That was fine</button></div>
+              <div class="set"><button class="btn" type="button">Back to task</button><button class="btn" type="button">Extend</button><button class="btn" type="button">End</button></div>
+            </div>
+          </div>
+          <p class="cap">More open</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2>Summary</h2>
+      <p>A sentence first. The timeline is the one graphic: green blocks for on task, dashes for unsure, a thin line for drift, so it still reads without color.</p>
+      <div class="stage tall">
+        <div class="wall"></div>
+        <div class="menubar"><div class="left"><span class="app">Focus</span><span>File</span><span>Edit</span></div><div class="right"><span class="ring mb-ring"><svg><use href="#r-pause"/></svg></span><span>10:51</span></div></div>
+        <div class="sheet glass" role="dialog" aria-label="Session summary">
+          <h3>48 minutes, 41 focused.</h3>
+          <p class="lead">Your longest stretch was 17 minutes. After a drift you were back on task in 38 seconds on average.</p>
+          <div class="timeline" role="img" aria-label="Timeline: mostly on task, two short drifts"><i class="on" style="width:34%"></i><i class="off" style="width:4%"></i><i class="on" style="width:28%"></i><i class="un" style="width:7%"></i><i class="off" style="width:3%"></i><i class="on" style="width:22%"></i></div>
+          <div class="legend"><span>Solid: on task</span><span>Dashed: unsure</span><span>Line: drifting</span></div>
+          <input class="note" type="text" placeholder="Leave a note for next time?" aria-label="Note for next time">
+          <div class="end"><button class="btn ghost" type="button">Skip</button><button class="btn primary" type="button">Done</button></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="panel os-win" id="p-win" role="tabpanel" aria-labelledby="t-win" hidden>
+    <section class="block">
+      <h2>Tray flyout and nudge on Windows</h2>
+      <p>The same ring and the same single green. Geometry and type follow Fluent: 8 px corners and Segoe UI Variable. The rounded numeral face stays Mac-only, since Windows has no equivalent system face.</p>
+      <div class="pair">
+        <div>
+          <div class="stage tall">
+            <div class="wall"></div>
+            <div class="win veilable" style="left:6%;top:18px;width:66%;height:250px"><div class="bar"><span class="title">Calc homework</span></div><div class="body"><div class="ln h"></div><div class="ln w90"></div><div class="swatch"></div><div class="ln w60"></div></div></div>
+            <div class="flyout glass" role="dialog" aria-label="Focus">
+              <h3>Calc homework</h3><p class="sub">On task</p>
+              <div class="list"><button class="li" type="button">Pause <kbd>Ctrl Alt P</kbd></button><button class="li" type="button">Take a break <kbd>Ctrl Alt B</kbd></button><button class="li" type="button">Snooze for 30 minutes</button><button class="li" type="button">End session</button></div>
+            </div>
+            <div class="taskbar"><span class="ring" style="font-size:18px"><svg><use href="#r-on"/></svg></span><span>10:42</span></div>
+          </div>
+          <p class="cap">Tray flyout</p>
+        </div>
+        <div>
+          <div class="stage tall">
+            <div class="wall"></div>
+            <div class="win" style="left:6%;top:18px;width:66%;height:250px"><div class="bar"><span class="title">Browser</span></div><div class="body"><div class="swatch second"></div><div class="ln w90"></div></div></div>
+            <div class="card win-nudge glass" role="alertdialog" aria-label="Back to Calc homework?">
+              <h3>Back to Calc homework?</h3>
+              <button class="btn primary block" type="button">Back to task</button>
+              <div class="quiet-row"><button class="btn ghost" type="button">This is relevant</button><button class="btn ghost" type="button">Take a break</button></div>
+            </div>
+            <div class="taskbar"><span class="ring" style="font-size:18px"><svg><use href="#r-drift"/></svg></span><span>10:44</span></div>
+          </div>
+          <p class="cap">Nudge card</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+<script src="board.js"></script>
+</body>
+</html>

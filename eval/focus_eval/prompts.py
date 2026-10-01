@@ -56,6 +56,16 @@ def instructions_for(version: str) -> str:
     return INSTRUCTIONS_V2 if version == "v2" else INSTRUCTIONS
 
 
+def _one_line(value: str) -> str:
+    """Screen-derived single-line fields must not be able to start new prompt lines."""
+    return " ".join(value.split())
+
+
+def _neutralize(text: str) -> str:
+    """Screen text must not be able to close or reopen the <window_text> block."""
+    return text.replace("<window_text", "< window_text").replace("</window_text", "< /window_text")
+
+
 def build_prompt(s: Scenario, include_text: bool = True, text_override: str = "") -> str:
     lines = ["Task: %s" % s.task]
     context = s.project.get("context", "") if s.project else ""
@@ -63,16 +73,16 @@ def build_prompt(s: Scenario, include_text: bool = True, text_override: str = ""
         lines.append("Project context: %s" % context)
     lines.append("")
     lines.append("Window right now:")
-    lines.append("app: %s" % s.app)
-    lines.append("title: %s" % s.window_title)
+    lines.append("app: %s" % _one_line(s.app))
+    lines.append("title: %s" % _one_line(s.window_title))
     if s.url:
-        lines.append("url: %s" % s.url)
+        lines.append("url: %s" % _one_line(s.url))
     if s.document_path:
-        lines.append("document: %s" % s.document_path)
+        lines.append("document: %s" % _one_line(s.document_path))
     text = text_override if text_override else (s.window_text if include_text else "")
     if text:
         lines.append("<window_text>")
-        lines.append(text[:MAX_TEXT_CHARS])
+        lines.append(_neutralize(text[:MAX_TEXT_CHARS]))
         lines.append("</window_text>")
     return "\n".join(lines)
 

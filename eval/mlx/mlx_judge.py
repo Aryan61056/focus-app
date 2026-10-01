@@ -4,7 +4,8 @@
 
 Request:  {"id", "instructions", "prompt", "order": "reason-first" | "label-first" | "relation"}
 Response: {"id", "label", "confidence", "reason"} | {"id", "relation", "topic", "reason"} | {"id", "error", "detail"}
-Loads weights from a local directory only. Never touches the network.
+Loads weights from a local directory and sets HF_HUB_OFFLINE=1, but this process is NOT network-isolated: it
+runs with the user's normal network access. Offline here is a convention, not a guarantee (docs/SECURITY-REVIEW.md).
 """
 import json
 import os

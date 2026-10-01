@@ -1,6 +1,7 @@
 /* Direction A: Native. System accent, hairline ring, standard control vocabulary. Identity lives in the ring and the copy. */
 :root {
   --accent: oklch(0.55 0.19 258);
+  --accent-fill: oklch(0.55 0.19 258);
   --on-accent: oklch(1 0 0);
   --ink: oklch(0.2 0 0);
   --ink-2: oklch(0.42 0 0);
@@ -15,7 +16,7 @@
   --ease: cubic-bezier(0.25, 1, 0.5, 1);
 }
 :root[data-theme="dark"] {
-  --accent: oklch(0.64 0.19 258);
+  --accent: oklch(0.64 0.19 258); --accent-fill: oklch(0.56 0.2 258);
   --ink: oklch(0.96 0 0); --ink-2: oklch(0.76 0 0);
   --glass: oklch(0.26 0 0 / 0.72); --glass-solid: oklch(0.26 0 0); --glass-line: oklch(1 0 0 / 0.16);
   --ctl: oklch(1 0 0 / 0.1); --ctl-hover: oklch(1 0 0 / 0.16); --hair: oklch(1 0 0 / 0.12);
@@ -23,7 +24,7 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --accent: oklch(0.64 0.19 258);
+    --accent: oklch(0.64 0.19 258); --accent-fill: oklch(0.56 0.2 258);
     --ink: oklch(0.96 0 0); --ink-2: oklch(0.76 0 0);
     --glass: oklch(0.26 0 0 / 0.72); --glass-solid: oklch(0.26 0 0); --glass-line: oklch(1 0 0 / 0.16);
     --ctl: oklch(1 0 0 / 0.1); --ctl-hover: oklch(1 0 0 / 0.16); --hair: oklch(1 0 0 / 0.12);
@@ -50,8 +51,8 @@
 .btn:active { transform: scale(0.98); }
 .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .btn[disabled] { opacity: 0.4; cursor: default; }
-.btn.primary { background: var(--accent); color: var(--on-accent); }
-.btn.primary:hover { background: oklch(from var(--accent) calc(l - 0.04) c h); }
+.btn.primary { background: var(--accent-fill); color: var(--on-accent); }
+.btn.primary:hover { background: oklch(from var(--accent-fill) calc(l - 0.04) c h); }
 .btn.quiet { background: transparent; color: var(--ink-2); }
 .btn.quiet:hover { background: var(--ctl); color: var(--ink); }
 kbd { font: inherit; font-size: 11px; padding: 1px 5px; border-radius: 4px; background: var(--ctl); color: var(--ink-2); }
@@ -86,9 +87,9 @@ kbd { font: inherit; font-size: 11px; padding: 1px 5px; border-radius: 4px; back
 .cmd .foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--hair); font-size: 13px; color: var(--ink-2); }
 .cmd .chips { display: flex; gap: 6px; }
 .chip { font: inherit; font-size: 12px; height: 24px; padding: 0 10px; border: 0; border-radius: var(--r-pill); background: var(--ctl); color: var(--ink); cursor: pointer; }
-.chip[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.chip[aria-pressed="true"] { background: var(--accent-fill); color: var(--on-accent); }
 .chip:hover { background: var(--ctl-hover); }
-.chip[aria-pressed="true"]:hover { background: var(--accent); }
+.chip[aria-pressed="true"]:hover { background: var(--accent-fill); }
 .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .cmd .confirm { padding: 10px 18px 12px; font-size: 13px; color: var(--ink-2); border-top: 1px solid var(--hair); }
 .cmd .confirm strong { color: var(--ink); font-weight: 500; }

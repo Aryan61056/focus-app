@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visual directions</title>
+<link rel="stylesheet" href="board.css">
+<style>
+  .compare { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 20px; }
+  .compare th, .compare td { text-align: left; vertical-align: top; padding: 12px 14px 12px 0; border-top: 1px solid var(--page-line); }
+  .compare thead th { border-top: 0; font-size: 1rem; }
+  .compare tbody th { width: 14%; font-weight: 600; color: var(--page-ink-2); }
+  .compare a { color: var(--page-ink); }
+  .scroll { overflow-x: auto; }
+  .rec { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--page-line); max-width: 72ch; }
+  .rec h2 { margin: 0 0 6px; font-size: 1.05rem; }
+  .rec p { margin: 0 0 10px; color: var(--page-ink-2); text-wrap: pretty; }
+</style>
+</head>
+<body>
+<main class="board">
+  <header class="board-head">
+    <div>
+      <h1>Visual directions for the Quiet style</h1>
+      <p>Three ways to give the same product a face. They share the behavior, the copy and the calm rules, and differ on one question: how much identity should the app carry on top of the operating system?</p>
+    </div>
+  </header>
+  <div class="controls">
+    <span class="seg" role="group" aria-label="Theme">
+      <button type="button" data-theme-btn="system" aria-pressed="true">System</button>
+      <button type="button" data-theme-btn="light" aria-pressed="false">Light</button>
+      <button type="button" data-theme-btn="dark" aria-pressed="false">Dark</button>
+    </span>
+  </div>
+  <div class="scroll">
+  <table class="compare">
+    <thead><tr><th></th><th><a href="a-native.html">A: Native</a></th><th><a href="b-lichen.html">B: Lichen</a></th><th><a href="c-graphite.html">C: Graphite</a></th></tr></thead>
+    <tbody>
+      <tr><th scope="row">Idea</th><td>Borrow the system accent and materials. The ring and the words are the identity.</td><td>One quiet green, only for on task and the primary action. Rounder, warmer.</td><td>No accent. Emphasis by inversion: a dark slab on light, a light slab on dark.</td></tr>
+      <tr><th scope="row">Color</th><td>System accent (blue by default, follows the user's choice). Neutral grays.</td><td>Hue 156, tinted neutrals. Deep green fill on light, light green on dark.</td><td>Pure neutrals. Ink is the only "color".</td></tr>
+      <tr><th scope="row">Ring</th><td>Thin circle, 1.5 stroke.</td><td>Bold circle with round caps; doubles as session progress in the pill.</td><td>Thin squircle, 1.3 stroke. Most distinct silhouette.</td></tr>
+      <tr><th scope="row">Pill</th><td>Standard 30 px capsule.</td><td>38 px capsule, larger ring, rounded numerals.</td><td>26 px plate, mono numerals, fades to a faint plate at rest.</td></tr>
+      <tr><th scope="row">Nudge</th><td>Glass card, three buttons in a row, accent primary.</td><td>Glass card, one full-width green button, two quiet text buttons below.</td><td>Inverted slab, three rows like a menu, default marked with Return.</td></tr>
+      <tr><th scope="row">Start</th><td>Spotlight-style bar, selected row, chips.</td><td>A sheet led by one large Continue button.</td><td>Docked keyboard-first bar, inverted selection, text toggles.</td></tr>
+      <tr><th scope="row">Summary</th><td>Grouped list, thin timeline.</td><td>A sentence, then a block timeline.</td><td>Typeset table, tick timeline.</td></tr>
+      <tr><th scope="row">Strength</th><td>Looks like it shipped with the OS. Respects the user's accent. Least risk.</td><td>Ownable and warm without shouting. One color means one thing.</td><td>The most discreet and professional. Easiest to carry through Windows themes and high contrast.</td></tr>
+      <tr><th scope="row">Risk</th><td>Hard to tell from system UI. Weak recognition.</td><td>Ignores the user's system accent. Green can read as "success", so it must stay off error and warning.</td><td>The inverted slab is the loudest nudge of the three, which cuts against "loudness follows state". Coldest.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <section class="rec">
+    <h2>Recommendation</h2>
+    <p>B, with the card layout softened toward A's quiet buttons if the first tests say it is too prominent, and a Settings switch to follow the system accent instead of green. B is calm and carries identity with one color, and its single filled button matches the "one primary action" rule on every surface. A is the safe fallback. C is the best fit for a "no trace" confidential mode, but as the default its inverted card is too loud for a gentle nudge.</p>
+    <p>This is a recommendation from mockups only. Real Liquid Glass and Fluent rendering, ring legibility in a real menu bar, and how the nudge feels in use are untested until a native prototype exists.</p>
+  </section>
+</main>
+<script src="board.js"></script>
+</body>
+</html>

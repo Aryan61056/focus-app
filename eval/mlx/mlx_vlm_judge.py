@@ -3,7 +3,8 @@
   uv run --project eval python eval/mlx/mlx_vlm_judge.py <model-dir>
 
 Request:  {"id", "instructions", "prompt", "order", "image": "<png path>"}
-Response: same shape as mlx_judge.py. Loads weights from a local directory only.
+Response: same shape as mlx_judge.py. Weights load from a local directory with HF_HUB_OFFLINE=1,
+but the process is NOT network-isolated (see mlx_judge.py).
 The PNGs are synthetic renders from eval/swift/shotgen; no real screen is captured.
 """
 import json
