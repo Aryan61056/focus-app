@@ -86,6 +86,7 @@ python3 eval/run_eval.py --backend mlx_text --order relation                   #
 python3 eval/run_eval.py --backend mlx_vlm --text-mode pixels                  # Qwen3-VL reading synthetic screenshots
 python3 eval/measure_resources.py --backend mlx_text                           # memory/CPU/energy proxy; needs a quiet machine
 (cd mac && swift test)                                                         # Swift judge port + brain (golden traces, scenarios, property tests)
+python3 tools/check_privacy.py                                                 # source scan: no networking, URL opening, logging or non-system model in engine modules (does not lift the claims ban)
 python3 tools/check_parity.py                                                  # Swift judge pipeline vs Python harness, all 100 scenarios
 (cd mac && swift run -q brain-trace ../core/traces)                            # golden traces against the Swift brain
 python3 eval/export_verdicts.py && (cd mac && swift build -c release && .build/release/brain-sim --verdicts ../eval/results/verdicts_two_judge.json)   # episode simulator, docs/EPISODE-SIM.md
