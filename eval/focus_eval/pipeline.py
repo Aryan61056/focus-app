@@ -20,7 +20,7 @@ def run(
     progress: Optional[Callable[[int, int, Scenario], None]] = None,
 ) -> List[dict]:
     """text_mode: 'full' (title + url + window text), 'titles' (no window text),
-    'ocr' (window text replaced by text_for(scenario), e.g. OCR of a synthetic screenshot)."""
+    'pixels' (a vision model reads a synthetic screenshot, no window text in the prompt), 'ocr' (window text replaced by text_for(scenario), e.g. OCR of a synthetic screenshot)."""
     results = []
     for i, s in enumerate(scenarios):
         if progress:
@@ -35,7 +35,7 @@ def run(
             label, rule = rules.stage1(s)
             row.update(pred=label, confidence=1.0, stage="rule", reason=rule)
         else:
-            include_text = text_mode != "titles"
+            include_text = text_mode not in ("titles", "pixels")  # pixels: the model reads the image
             override = text_for(s) if (text_mode == "ocr" and text_for) else ""
             if text_mode == "ocr" and not override:
                 include_text = False

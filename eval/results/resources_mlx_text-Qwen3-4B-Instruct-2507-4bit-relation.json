@@ -1,0 +1,86 @@
+{
+ "backend": "mlx_text:Qwen3-4B-Instruct-2507-4bit:relation",
+ "calls": 24,
+ "interval_s": 10.0,
+ "load_s": 7.8,
+ "footprint_after_load_mb": 2476,
+ "first_call_ms": 3097,
+ "footprint_loaded_idle_mb": 2593,
+ "cpu_seconds_per_call_in_process": 0.89,
+ "footprint_peak_mb": 2694,
+ "latency_ms": {
+  "p50": 3226,
+  "p95": 3430
+ },
+ "energy_impact_total_top20": {
+  "idle_baseline": 232.01875,
+  "loaded_idle": 247.96666666666664,
+  "during_calls": 243.80092165898623,
+  "loaded_idle_after": 188.62777777777782
+ },
+ "top_energy_increase_vs_idle": [
+  {
+   "process": "Claude Helper",
+   "energy_impact_delta": 12.3,
+   "mem_mb_during": 347,
+   "mem_mb_idle": 249
+  },
+  {
+   "process": "python3.14",
+   "energy_impact_delta": 8.8,
+   "mem_mb_during": 3320,
+   "mem_mb_idle": 0
+  },
+  {
+   "process": "Claude Helper (R",
+   "energy_impact_delta": 7.6,
+   "mem_mb_during": 1033,
+   "mem_mb_idle": 991
+  },
+  {
+   "process": "duetexpertd",
+   "energy_impact_delta": 6.4,
+   "mem_mb_during": 21,
+   "mem_mb_idle": 0
+  },
+  {
+   "process": "contactsd",
+   "energy_impact_delta": 6.1,
+   "mem_mb_during": 25,
+   "mem_mb_idle": 0
+  },
+  {
+   "process": "mobileassetd",
+   "energy_impact_delta": 4.8,
+   "mem_mb_during": 11,
+   "mem_mb_idle": 0
+  }
+ ],
+ "system": {
+  "before": {
+   "swap_used_mb": 2761.56,
+   "mem_free_pct": 66,
+   "compressor_mb": 3032.296875
+  },
+  "after_load": {
+   "swap_used_mb": 2761.56,
+   "mem_free_pct": 46,
+   "compressor_mb": 6072.390625
+  },
+  "after_calls": {
+   "swap_used_mb": 2545.44,
+   "mem_free_pct": 46,
+   "compressor_mb": 6133.296875
+  },
+  "after_unload": {
+   "swap_used_mb": 2545.44,
+   "mem_free_pct": 60,
+   "compressor_mb": 4085.0
+  }
+ },
+ "samples": {
+  "idle": 16,
+  "loaded": 18,
+  "calls": 217
+ }
+}

@@ -115,6 +115,9 @@ class FMSwift(Backend):
         if info.get("status") != "available":
             raise RuntimeError("system model unavailable: %s" % info)
 
+    def extra_request(self, s: Scenario) -> dict:
+        return {}
+
     def close(self) -> None:
         if self.proc:
             self.proc.stdin.close()
@@ -124,6 +127,7 @@ class FMSwift(Backend):
     def judge(self, s, instructions, prompt):
         assert self.proc is not None
         req = {"id": s.id, "instructions": instructions, "prompt": prompt, "order": self.order}
+        req.update(self.extra_request(s))
         t0 = time.time()
         self.proc.stdin.write(json.dumps(req) + "\n")
         self.proc.stdin.flush()
@@ -140,7 +144,10 @@ class FMSwift(Backend):
             if label is None:
                 return Verdict("unsure", error="unknown relation %r" % out["relation"], latency_ms=wall)
             return Verdict(label, None, out.get("reason", ""), out["relation"], out.get("topic", ""), latency_ms=wall)
-        conf = out.get("confidence")
+        try:
+            conf = None if out.get("confidence") is None else float(out["confidence"])
+        except (TypeError, ValueError):
+            conf = None
         return Verdict(
             label=out["label"],
             confidence=None if conf is None else max(0.0, min(1.0, conf / 100.0)),
@@ -149,6 +156,56 @@ class FMSwift(Backend):
             content_kind=out.get("content_kind", ""),
             latency_ms=wall,
         )
+
+
+MODELS_DIR = os.path.join(EVAL_DIR, ".cache", "models")
+MLX_TEXT_MODEL = os.path.join(MODELS_DIR, "Qwen3-4B-Instruct-2507-4bit")
+MLX_JUDGE = os.path.join(EVAL_DIR, "mlx", "mlx_judge.py")
+
+
+class MLXText(FMSwift):
+    """Local MLX text model through mlx/mlx_judge.py in the uv environment (weights loaded from disk, offline)."""
+
+    def __init__(self, order: str = "reason-first", model_dir: str = MLX_TEXT_MODEL):
+        super().__init__(order)
+        self.model_dir = model_dir
+        self.name = "mlx_text:%s:%s" % (os.path.basename(model_dir), order)
+
+    def start(self) -> None:
+        env = dict(os.environ, HF_HUB_OFFLINE="1")
+        self.proc = subprocess.Popen(
+            ["uv", "run", "--project", EVAL_DIR, "python", MLX_JUDGE, self.model_dir],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1, env=env,
+        )
+        info = json.loads(self.proc.stdout.readline())
+        if info.get("status") != "available":
+            raise RuntimeError("mlx model unavailable: %s" % info)
+
+
+MLX_VLM_MODEL = os.path.join(MODELS_DIR, "Qwen3-VL-4B-Instruct-4bit")
+MLX_VLM_JUDGE = os.path.join(EVAL_DIR, "mlx", "mlx_vlm_judge.py")
+SHOTS_DIR = os.path.join(EVAL_DIR, ".cache", "shots")
+
+
+class MLXVision(MLXText):
+    """Local MLX vision-language model reading a synthetic screenshot (render it first with focus_eval.ocr)."""
+
+    def __init__(self, order: str = "reason-first", model_dir: str = MLX_VLM_MODEL):
+        super().__init__(order, model_dir)
+        self.name = "mlx_vlm:%s:%s" % (os.path.basename(model_dir), order)
+
+    def start(self) -> None:
+        env = dict(os.environ, HF_HUB_OFFLINE="1")
+        self.proc = subprocess.Popen(
+            ["uv", "run", "--project", EVAL_DIR, "python", MLX_VLM_JUDGE, self.model_dir],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1, env=env,
+        )
+        info = json.loads(self.proc.stdout.readline())
+        if info.get("status") != "available":
+            raise RuntimeError("mlx vision model unavailable: %s" % info)
+
+    def extra_request(self, s: Scenario) -> dict:
+        return {"image": os.path.join(SHOTS_DIR, s.id + ".png")}
 
 
 def make(name: str, order: str = "reason-first") -> Backend:
@@ -160,4 +217,8 @@ def make(name: str, order: str = "reason-first") -> Backend:
         return Lexical()
     if name == "fm_swift":
         return FMSwift(order)
+    if name == "mlx_text":
+        return MLXText(order)
+    if name == "mlx_vlm":
+        return MLXVision(order)
     raise ValueError("unknown backend %r" % name)

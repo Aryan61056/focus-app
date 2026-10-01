@@ -1,0 +1,86 @@
+{
+ "backend": "fm_swift:relation",
+ "calls": 24,
+ "interval_s": 10.0,
+ "load_s": 0.2,
+ "footprint_after_load_mb": 5,
+ "first_call_ms": 7554,
+ "footprint_loaded_idle_mb": 9,
+ "cpu_seconds_per_call_in_process": 0.05,
+ "footprint_peak_mb": 10,
+ "latency_ms": {
+  "p50": 3682,
+  "p95": 4038
+ },
+ "energy_impact_total_top20": {
+  "idle_baseline": 213.51875,
+  "loaded_idle": 197.46666666666667,
+  "during_calls": -276992.8438356166,
+  "loaded_idle_after": 211.63888888888889
+ },
+ "top_energy_increase_vs_idle": [
+  {
+   "process": "aned",
+   "energy_impact_delta": 9.6,
+   "mem_mb_during": 28,
+   "mem_mb_idle": 0
+  },
+  {
+   "process": "TGOnDeviceInfere",
+   "energy_impact_delta": 6.4,
+   "mem_mb_during": 458,
+   "mem_mb_idle": 0
+  },
+  {
+   "process": "contactsd",
+   "energy_impact_delta": 5.2,
+   "mem_mb_during": 24,
+   "mem_mb_idle": 0
+  },
+  {
+   "process": "Claude Helper (R",
+   "energy_impact_delta": 3.2,
+   "mem_mb_during": 1021,
+   "mem_mb_idle": 1007
+  },
+  {
+   "process": "Claude Helper",
+   "energy_impact_delta": 3.2,
+   "mem_mb_during": 369,
+   "mem_mb_idle": 166
+  },
+  {
+   "process": "BackgroundShortc",
+   "energy_impact_delta": 2.5,
+   "mem_mb_during": 19,
+   "mem_mb_idle": 0
+  }
+ ],
+ "system": {
+  "before": {
+   "swap_used_mb": 3209.56,
+   "mem_free_pct": 63,
+   "compressor_mb": 3526.453125
+  },
+  "after_load": {
+   "swap_used_mb": 3201.56,
+   "mem_free_pct": 63,
+   "compressor_mb": 3399.0
+  },
+  "after_calls": {
+   "swap_used_mb": 2761.56,
+   "mem_free_pct": 66,
+   "compressor_mb": 3146.03125
+  },
+  "after_unload": {
+   "swap_used_mb": 2761.56,
+   "mem_free_pct": 66,
+   "compressor_mb": 3033.96875
+  }
+ },
+ "samples": {
+  "idle": 16,
+  "loaded": 18,
+  "calls": 219
+ }
+}

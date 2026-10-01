@@ -2,7 +2,7 @@
 
 Date: 2026-10-01 · Machine: M1 Pro, 16 GB, macOS 27.0 · Model: Apple on-device system model (FoundationModels, SDK 26.5, greedy decoding)
 
-**Bottom line.** The on-device system model, used as a single-pass judge, does not come close to the 97% precision target. It also has no usable confidence signal. A two-judge combination removes false nudges on genuinely on-task work, but still flags ambiguous moments and catches only about 60% of clear distractions. Nothing here is enough to certify any target, because there are only 20 off-task moments (10 in the held-out set).
+**Bottom line (updated after the MLX runs).** Apple's on-device system model is not good enough as a judge: single-pass precision matches a keyword counter and its best combination reaches about 79% strict precision. A local Qwen3-4B model, with the same prompts, does much better: **no false nudges on genuinely on-task work and 100% recall on clear distractions, on both the dev and held-out sets, but still only 75 to 78% strict precision**, because it flags neutral and personal moments (new tab, music, personal messages) as off-task. Nothing here comes near the 97% target or can certify it: there are only 20 off-task moments (10 held-out). Qwen's cost is real: about 2.5 to 2.7 GB resident and about 3 s per judgment when calls are spaced out. Energy is unmeasured (see Resources).
 
 ## What was built
 
@@ -53,6 +53,51 @@ Other measured numbers:
 - **Window text matters**: dropping it (titles only) cut lenient precision from 84% to 71%.
 - **Rules matter**: they resolved 7 of 70 scenarios deterministically. Turning them off lowers accuracy from 57% to 50%.
 - **Stage mix**: not meaningful against the 80/15/5 target. The scenario set is made of hard cases, not typical traffic.
+
+## Update: local MLX models, vision, and resources
+
+Models, all run locally from verified files in `eval/.cache/models/` (gitignored). Qwen3-4B-Instruct-2507 4-bit (2.28 GB) and Qwen3-VL-4B-Instruct 4-bit (3.11 GB), both Apache-2.0, from `mlx-community` on Hugging Face. Same prompts and scoring as the Apple model. The relation judge is the five-category framing that code maps to a verdict.
+
+Dev set (70 moments, 20 gold off-task, 15 clear):
+
+| Run | Flagged | Precision strict | Precision lenient | Recall clear | Accuracy | False nudges on gold on-task |
+|---|---|---|---|---|---|---|
+| Qwen3-4B, reason-first | 40 | 50% | 85% | 100% | 70% | 19% |
+| Qwen3-4B, label-first | 41 | 49% | 83% | 100% | 69% | 22% |
+| Qwen3-4B, relation | 23 | 78% | 100% | 100% | 77% | 0% |
+| **Qwen3-4B, reason-first AND relation not on-task** | 24 | 75% | 100% | 100% | 79% | 0% |
+| Qwen3-VL-4B reading pixels, reason-first | 38 | 53% | 87% | 100% | 71% | 16% |
+| Qwen3-VL-4B reading pixels, relation | 27 | 74% | 100% | 100% | 80% | 0% |
+
+Held-out (30 moments, 10 gold off-task, 7 clear), frozen prompts and frozen rule, run once for Qwen:
+
+| Run | Flagged | Precision strict | Precision lenient | Recall clear |
+|---|---|---|---|---|
+| Qwen3-4B, reason-first | 15 | 67% | 100% | 100% |
+| Qwen3-4B, relation | 13 | 77% | 100% | 100% |
+| Qwen3-4B, two-judge rule | 13 | 77% (10 of 13) | 100% | 100% |
+
+The held-out false nudges (all gold `unsure`): KeePassXC, a personal message, and a music player. KeePassXC is a pipeline gap, not a model error: my illustrative stage 0 list of sensitive apps doesn't include it, and a password manager should never reach the model.
+
+What this says:
+- The relation framing helps both model families. The over-flagging is mostly the task framing, and Qwen handles it better than Apple's model.
+- The vision model reading a plain synthetic screenshot is no better than the text path and 3 to 4 times slower (about 7 s per call). **That is a weak test**: the render is clean text, so it mostly checks that the model can read. It says nothing yet about thumbnails, layout or real pages. Real screenshots are needed to judge the vision stage.
+- Both Qwen results are on the same single-labeler, synthetic data with the same limits listed below.
+
+### Resources (simulated session: 24 judgments, 10 s apart, relation judge, M1 Pro 16 GB)
+
+| | Apple system model | Qwen3-4B (MLX) |
+|---|---|---|
+| Load | 0.2 s for our process; first call 7.6 s (the model loads on first use) | 7.8 s; first call 3.1 s |
+| Our process memory (footprint) | 5 to 10 MB | 2.5 GB loaded, 2.7 GB peak |
+| Memory elsewhere | about 460 MB resident in a system inference daemon during calls, absent from the process list at idle | n/a |
+| System free memory | no visible change | 66% to 46% on load, back to 60% after unload; compressor memory doubled (3.0 to 6.1 GB) |
+| Latency, calls 10 s apart | p50 3.7 s, p95 4.0 s | p50 3.2 s, p95 3.4 s |
+| CPU time in our process per call | 0.05 s | 0.89 s |
+
+- **Latency is worse than the batch numbers above.** Back-to-back calls keep the hardware warm. With realistic spacing both models take about 3.2 to 3.7 s, not 2 s. The 2 s target would be missed either way.
+- **Memory:** Apple's model costs about half a gigabyte in a system process. Qwen costs about 2.5 GB in ours, and on this Mac, already under memory pressure (about 2.7 GB of swap in use before I started), loading it pushed other apps into compression. A 4B model on an 8 GB Mac is probably too heavy. I haven't tested that.
+- **Energy: inconclusive.** `top`'s energy score was dominated by noise from unrelated processes (including this app's own helper processes), and the Apple run's totals contain a bogus negative reading from `top`, which I have since filtered in the script but not rerun. The per-process increases for the inference processes (6 to 10 points) are the same size as unrelated background processes, so no energy conclusion is supported. Real numbers need `powermetrics`, which needs `sudo`: `sudo powermetrics --samplers cpu_power,gpu_power,ane_power -i 1000 -n 120`, run in a terminal while `eval/measure_resources.py` runs.
 
 ## What I found
 

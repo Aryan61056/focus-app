@@ -68,6 +68,9 @@ python3 eval/run_eval.py --backend oracle             # harness sanity: must sco
 python3 eval/run_eval.py --backend fm_swift           # Apple system model, reports to eval/results/
 python3 eval/run_eval.py --backend fm_swift --order relation --text-mode ocr   # other judge, OCR of synthetic screenshots
 python3 eval/combine_results.py <run-a.json> <run-b.json>                      # two-judge rule from saved runs
+python3 eval/run_eval.py --backend mlx_text --order relation                   # local Qwen text model (needs `uv sync` in eval/ and models in eval/.cache/models/)
+python3 eval/run_eval.py --backend mlx_vlm --text-mode pixels                  # Qwen3-VL reading synthetic screenshots
+python3 eval/measure_resources.py --backend mlx_text                           # memory/CPU/energy proxy; needs a quiet machine
 ```
 Gotcha: Xcode's `python3` shim exports `SDKROOT` for the Command Line Tools SDK, which is newer than the compiler.
 `eval/focus_eval/backends.py` clears it before calling `swiftc`. Do the same for any new Swift helper started from Python.

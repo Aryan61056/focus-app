@@ -25,10 +25,10 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--scenarios", default=os.path.join(HERE, "scenarios"))
     ap.add_argument("--validate", action="store_true", help="validate scenario files and exit")
-    ap.add_argument("--backend", default="oracle", choices=["oracle", "always_unsure", "lexical", "fm_swift"])
+    ap.add_argument("--backend", default="oracle", choices=["oracle", "always_unsure", "lexical", "fm_swift", "mlx_text", "mlx_vlm"])
     ap.add_argument("--order", default="reason-first", choices=["reason-first", "label-first", "relation"])
-    ap.add_argument("--text-mode", default="full", choices=["full", "titles", "ocr"],
-                    help="titles: app, title, url and path only; ocr: window text replaced by OCR of a synthetic screenshot")
+    ap.add_argument("--text-mode", default="full", choices=["full", "titles", "ocr", "pixels"],
+                    help="titles: app, title, url and path only; ocr: window text replaced by OCR of a synthetic screenshot; pixels: vision model reads the screenshot")
     ap.add_argument("--no-rules", action="store_true", help="skip stage 0/1 so every scenario reaches the model")
     ap.add_argument("--only", help="comma-separated scenario ids")
     ap.add_argument("--category", help="comma-separated categories")
@@ -55,7 +55,7 @@ def main() -> int:
         keep = set(args.category.split(","))
         items = [s for s in items if s.category in keep]
 
-    ocr_map = ocr.ocr_texts(items) if args.text_mode == "ocr" else {}
+    ocr_map = ocr.ocr_texts(items) if args.text_mode in ("ocr", "pixels") else {}  # also renders the PNGs
     backend = backends.make(args.backend, args.order)
     label = "%s | text=%s | rules=%s" % (backend.name, args.text_mode, "off" if args.no_rules else "on")
     backend.start()
