@@ -7,7 +7,7 @@ struct SettingsView: View {
     @Bindable var store: DataStore
     @State private var confirmDelete = false
     var body: some View {
-        ScrollView {
+        Scroller {
             VStack(alignment: .leading, spacing: 26) {
                 Text("Settings").font(Tokens.rounded(26, .semibold))
                 group("Nudges") {

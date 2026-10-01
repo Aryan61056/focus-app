@@ -12,7 +12,7 @@ struct ProjectsView: View {
             HStack(alignment: .bottom) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Projects").font(Tokens.rounded(26, .semibold))
-                    Text("What each project counts as on task. Focus keeps this between sessions.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
+                    Text("What each project is about. Focus reads this to decide what counts, and keeps it between sessions.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
                 }
                 Spacer()
                 Button { let p = store.addProject(name: "New project"); selected = p.id } label: { Label("New project", systemImage: "plus") }
@@ -55,7 +55,7 @@ struct ProjectDetail: View {
 
     var body: some View {
         let binding = Binding(get: { store.project(project.id) ?? project }, set: { store.update($0) })
-        ScrollView {
+        Scroller {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 2) {
@@ -68,23 +68,16 @@ struct ProjectDetail: View {
                     Button { c.begin(task: project.name, projectId: project.id, autoTick: true) } label: { Label("Start session", systemImage: "play.fill") }
                         .buttonStyle(FocusButtonStyle(.primary)).disabled(c.isActive)
                 }
-                field("What this project is", help: "Focus reads this when it is unsure about a window. It stays on this Mac.") {
-                    TextEditor(text: binding.context).font(Tokens.text(13.5)).scrollContentBackground(.hidden).frame(height: 62).padding(6)
+                field("What Focus should know about this project", help: "Focus compares every window with this and your task. A sentence or two of detail helps more than any list. It stays on this Mac.") {
+                    TextEditor(text: binding.context).font(Tokens.text(13.5)).scrollContentBackground(.hidden).frame(height: 78).padding(6)
                         .background(RoundedRectangle(cornerRadius: 10).fill(Tokens.control))
                 }
                 field("Next step", help: nil) {
                     TextField("One small thing", text: binding.nextStep).textFieldStyle(.plain).padding(.horizontal, 12).frame(height: 36)
                         .background(RoundedRectangle(cornerRadius: 10).fill(Tokens.control))
                 }
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Counts as on task").font(Tokens.text(12.5, .semibold))
-                    RuleGroup(title: "Apps", symbol: "app", items: binding.profile.alwaysAllowApps, addLabel: "Add app")
-                    RuleGroup(title: "Sites", symbol: "globe", items: binding.profile.alwaysAllowDomains, addLabel: "Add site")
-                    RuleGroup(title: "Folders", symbol: "folder", items: binding.profile.linkedPaths, addLabel: "Add folder")
-                    Text("Never counts").font(Tokens.text(12.5, .semibold)).padding(.top, 8)
-                    RuleGroup(title: "Apps", symbol: "app", items: binding.profile.alwaysOffApps, addLabel: "Add app")
-                    RuleGroup(title: "Sites", symbol: "globe", items: binding.profile.alwaysOffDomains, addLabel: "Add site")
-                }
+                AskFocusBox(c: c, project: store.project(project.id) ?? project)
+                RulesDisclosure(profile: binding.profile)
                 HStack { Spacer(); Button("Delete project") { confirmDelete = true }.buttonStyle(FocusButtonStyle(.plain, small: true)) }
             }
             .padding(.trailing, 4)
@@ -158,5 +151,81 @@ struct EmptyState: View {
             VStack(alignment: .leading, spacing: 6) { Text(title).font(Tokens.rounded(17, .semibold)); Text(text).font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2) }
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+}
+
+/// Try the judge on a window you describe. Shows the call and the reason, so the AI's thinking is something you can poke at.
+struct AskFocusBox: View {
+    @Bindable var c: SessionController
+    var project: Project
+    @State private var app = ""
+    @State private var title = ""
+    @State private var result: Judgement?
+    @State private var asking = false
+    var body: some View {
+        Panel(tinted: true) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Ask Focus about a window").font(Tokens.text(12.5, .semibold))
+                    Spacer()
+                    Text("Type anything. Nothing is read from your screen.").font(Tokens.text(12)).foregroundStyle(Tokens.ink2)
+                }
+                HStack(spacing: 8) {
+                    field("App", $app).frame(width: 130)
+                    field("Window title", $title)
+                    Button(asking ? "Asking" : "Ask Focus") { ask() }.buttonStyle(FocusButtonStyle(.secondary)).disabled(asking || title.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+                if let j = result {
+                    let call = SessionController.call(j.label)
+                    HStack(alignment: .top, spacing: 10) {
+                        RingView(call == .on ? .on : (call == .off ? .drift : .unsure), color: call == .on ? Tokens.accent : Tokens.ink).frame(width: 22, height: 22)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(call == .on ? "On task" : (call == .off ? "Off topic" : "Not sure")).font(Tokens.text(13.5, .semibold))
+                            Text(SessionController.tidy(j.reason, failed: j.error != nil)).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                        }
+                    }.accessibilityElement(children: .combine)
+                }
+            }
+        }
+    }
+    func field(_ prompt: String, _ text: Binding<String>) -> some View {
+        TextField(prompt, text: text).textFieldStyle(.plain).font(Tokens.text(13)).padding(.horizontal, 10).frame(height: 32)
+            .background(RoundedRectangle(cornerRadius: 9).fill(Tokens.window))
+            .onSubmit { ask() }
+    }
+    func ask() {
+        guard !asking else { return }
+        asking = true
+        let a = app, t = title, p = project
+        Task { let j = await c.ask(app: a, title: t, project: p); result = j; asking = false }
+    }
+}
+
+/// Allow and never lists, still here but tucked away: the model decides first-class, rules only add certainty.
+struct RulesDisclosure: View {
+    @Binding var profile: ProjectProfile
+    @State private var open = false
+    var body: some View {
+        let n = profile.alwaysAllowApps.count + profile.alwaysAllowDomains.count + profile.linkedPaths.count
+        let never = profile.alwaysOffApps.count + profile.alwaysOffDomains.count
+        DisclosureGroup(isExpanded: $open) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Rules are checked first, before Focus reads anything. Most projects do not need them. Describe the project above and let Focus decide.")
+                    .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true).padding(.bottom, 6)
+                Text("Counts as on task").font(Tokens.text(12.5, .semibold))
+                RuleGroup(title: "Apps", symbol: "app", items: $profile.alwaysAllowApps, addLabel: "Add app")
+                RuleGroup(title: "Sites", symbol: "globe", items: $profile.alwaysAllowDomains, addLabel: "Add site")
+                RuleGroup(title: "Folders", symbol: "folder", items: $profile.linkedPaths, addLabel: "Add folder")
+                Text("Never counts").font(Tokens.text(12.5, .semibold)).padding(.top, 8)
+                RuleGroup(title: "Apps", symbol: "app", items: $profile.alwaysOffApps, addLabel: "Add app")
+                RuleGroup(title: "Sites", symbol: "globe", items: $profile.alwaysOffDomains, addLabel: "Add site")
+            }.padding(.top, 8)
+        } label: {
+            HStack(spacing: 10) {
+                Text("Rules you set").font(Tokens.text(13, .semibold))
+                Text(n + never == 0 ? "Optional. None set" : "Optional. \(n) that count, \(never) never").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
+            }
+        }
+        .padding(14).overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(Tokens.line) }
     }
 }

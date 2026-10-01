@@ -22,10 +22,11 @@ public enum DefaultJudge {
 
 /// Deterministic judge for demos, snapshots and tests: a window whose prompt contains a marker gets that label.
 public struct ScriptedJudge: Judge {
-    public var markers: [(String, JudgmentLabelShim)]
-    public init(markers: [(String, JudgmentLabelShim)]) { self.markers = markers }
+    public var markers: [(String, JudgmentLabelShim, String)]
+    public init(markers: [(String, JudgmentLabelShim)]) { self.markers = markers.map { ($0.0, $0.1, "scripted") } }
+    public init(readings: [(String, JudgmentLabelShim, String)]) { self.markers = readings }
     func verdict(_ prompt: String) -> Verdict {
-        for (m, l) in markers where prompt.contains(m) { return Verdict(label: l.label, reason: "scripted") }
+        for (m, l, why) in markers where prompt.contains(m) { return Verdict(label: l.label, reason: why) }
         return Verdict(label: .unsure, reason: "scripted")
     }
     public func reasonFirst(prompt: String) async -> Verdict { verdict(prompt) }

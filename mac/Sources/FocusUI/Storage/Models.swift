@@ -20,6 +20,13 @@ public struct TimelineSegment: Codable, Equatable, Sendable {
     public init(_ kind: Kind, _ seconds: Double) { self.kind = kind; self.seconds = seconds }
 }
 
+/// How many checks Focus made in a session and what it concluded. Counts only: no titles, no text.
+public struct ReadStats: Codable, Equatable, Sendable {
+    public var model = 0, rule = 0, onTask = 0, unsure = 0, offTask = 0
+    public var total: Int { onTask + unsure + offTask }
+    public init() {}
+}
+
 public struct SessionRecord: Codable, Identifiable, Equatable, Sendable {
     public var id = UUID()
     public var projectId: UUID?
@@ -36,14 +43,15 @@ public struct SessionRecord: Codable, Identifiable, Equatable, Sendable {
     public var shadowMarks: Int
     public var segments: [TimelineSegment]
     public var note = ""
+    public var reads: ReadStats?
 
     public var onTaskSeconds: Double { max(0, activeSeconds - offTopicSeconds - unsureSeconds) }
 
     public init(projectId: UUID?, task: String, timed: Bool, start: Date, end: Date, activeSeconds: Double, offTopicSeconds: Double, unsureSeconds: Double,
-                drifts: Int, interrupts: Int, refusals: Int, shadowMarks: Int, segments: [TimelineSegment]) {
+                drifts: Int, interrupts: Int, refusals: Int, shadowMarks: Int, segments: [TimelineSegment], reads: ReadStats? = nil) {
         self.projectId = projectId; self.task = task; self.timed = timed; self.start = start; self.end = end; self.activeSeconds = activeSeconds
         self.offTopicSeconds = offTopicSeconds; self.unsureSeconds = unsureSeconds; self.drifts = drifts; self.interrupts = interrupts
-        self.refusals = refusals; self.shadowMarks = shadowMarks; self.segments = segments
+        self.refusals = refusals; self.shadowMarks = shadowMarks; self.segments = segments; self.reads = reads
     }
 }
 
@@ -56,9 +64,11 @@ public struct ReviewMoment: Codable, Identifiable, Equatable, Sendable {
     public var windowKey: String
     public var siteKey: String
     public var answer: String?   // "right" or "fine"
+    /// The judge's one-line reason, kept only until the moment is answered (the store drops it then).
+    public var reason: String?
 
-    public init(sessionId: UUID?, projectId: UUID?, at: Date, windowKey: String, siteKey: String) {
-        self.sessionId = sessionId; self.projectId = projectId; self.at = at; self.windowKey = windowKey; self.siteKey = siteKey
+    public init(sessionId: UUID?, projectId: UUID?, at: Date, windowKey: String, siteKey: String, reason: String? = nil) {
+        self.sessionId = sessionId; self.projectId = projectId; self.at = at; self.windowKey = windowKey; self.siteKey = siteKey; self.reason = reason
     }
 }
 

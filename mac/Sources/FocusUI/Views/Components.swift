@@ -28,3 +28,13 @@ struct SectionTitle: View {
     var text: String
     var body: some View { Text(text).font(Tokens.text(15, .semibold)).accessibilityAddTraits(.isHeader) }
 }
+
+/// Offscreen snapshots (ImageRenderer) cannot draw ScrollView content, so the snapshot tool turns scrolling off.
+public enum SnapshotMode { @MainActor public static var on = false }
+
+struct Scroller<Content: View>: View {
+    @ViewBuilder var content: Content
+    var body: some View {
+        if SnapshotMode.on { content } else { ScrollView { content }.scrollIndicators(.hidden) }
+    }
+}

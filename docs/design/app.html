@@ -107,7 +107,36 @@
                     <div class="acts"><button class="btn" type="button">Pause</button><button class="btn" type="button">Take a break</button><button class="btn plain" type="button">End session</button></div>
                     <div class="meta">Open session, started 12:02, 24 minutes in</div>
                     <div><span class="a-state"><span class="ring"><svg><use href="#r-on"/></svg></span>On task</span></div>
-                    <div class="a-next"><span>Next step</span><b>Check problem 4</b><span class="check">Last check 12 seconds ago, reading window titles and text</span></div>
+                    <div class="a-next"><span>Next step</span><b>Check problem 4</b></div>
+                  </div>
+
+
+                  <div class="a-panel a-read" id="read" data-v="on">
+                    <div class="a-read-head">
+                      <h2>What Focus is reading</h2>
+                      <span class="seg" id="read-states" role="group" aria-label="Show a sample reading"><button type="button" data-v="on" aria-pressed="true">On task</button><button type="button" data-v="unsure" aria-pressed="false">Not sure</button><button type="button" data-v="off" aria-pressed="false">Off topic</button></span>
+                      <span class="when" id="read-when">Checked 4 seconds ago</span>
+                    </div>
+                    <div class="a-read-main">
+                      <div class="a-seen">
+                        <span class="tile" id="read-tile" aria-hidden="true">Pv</span>
+                        <div><b id="read-app">Preview</b><small id="read-title">Chapter 5 exercises.pdf, page 12</small></div>
+                      </div>
+                      <div class="a-verdict">
+                        <span class="ring"><svg><use id="read-ring" href="#r-on"/></svg></span>
+                        <div><b id="read-label">On task</b><p id="read-why">A page of calculus exercises, which is the work Calc homework is about.</p></div>
+                      </div>
+                    </div>
+                    <ol class="a-pipe" id="read-pipe" aria-label="How Focus reached this reading">
+                      <li><b>Read</b><span>The app, the title and the words in the window</span></li>
+                      <li><b>Compared</b><span>With “Calc homework” and what you wrote about it</span></li>
+                      <li class="last"><b id="pipe-3">Confident</b><span id="pipe-3s">It matches the task. Nothing to do.</span></li>
+                    </ol>
+                    <div class="a-recent">
+                      <div class="a-h3">Recent readings<small>Kept only while this session runs</small></div>
+                      <div id="read-rows"></div>
+                    </div>
+                    <p class="a-sub a-honest">Focus runs Apple’s on-device model, and it can be wrong. When it is not sure it does nothing, and it only speaks up after two checks agree and the drift lasts.</p>
                   </div>
 
                   <div>
@@ -159,7 +188,7 @@
 
             <!-- PROJECTS -->
             <div class="a-view" data-view="projects" hidden>
-              <div class="a-head"><div><h1>Projects</h1><p>What each project counts as on task. Focus keeps this between sessions.</p></div><button class="btn plain" type="button"><svg><use href="#i-plus"/></svg>New project</button></div>
+              <div class="a-head"><div><h1>Projects</h1><p>What each project is about. Focus reads this to decide what counts, and keeps it between sessions.</p></div><button class="btn plain" type="button"><svg><use href="#i-plus"/></svg>New project</button></div>
               <div class="a-split">
                 <div class="a-list" role="list" aria-label="Projects">
                   <button type="button" aria-current="true"><b>Calc homework</b><small>Today · 3 h 40 min this week</small></button>
@@ -169,17 +198,29 @@
                 </div>
                 <div>
                   <div class="a-head" style="margin-bottom:14px"><div><h1 style="font-size:22px">Calc homework</h1><p>Created 14 September · 6 sessions · 9 h 40 min in total</p></div><button class="btn primary" type="button"><svg><use href="#i-play"/></svg>Start session</button></div>
-                  <div class="a-field"><label for="ctx">What this project is</label><textarea class="a-text" id="ctx" rows="2">Calculus II, chapter 5: integration by parts. The textbook is the PDF in Documents.</textarea><span class="help">Focus reads this when it is unsure about a window. It stays on this Mac.</span></div>
+                  <div class="a-field"><label for="ctx">What Focus should know about this project</label><textarea class="a-text" id="ctx" rows="3">Calculus II, chapter 5: integration by parts. The textbook is the PDF in Documents. Graphing and checking answers on Desmos is part of the work.</textarea><span class="help">Focus compares every window with this and your task. A sentence or two of detail helps more than any list. It stays on this Mac.</span></div>
                   <div class="a-field"><label for="nxt">Next step</label><input class="a-text" id="nxt" value="Check problem 4"></div>
-                  <div class="a-field">
-                    <span class="lb">Counts as on task</span>
-                    <div>
-                      <div class="a-group"><span>Apps</span><div class="a-chipset"><span class="a-tag"><svg class="a-ico"><use href="#i-app"/></svg>Preview<button type="button" aria-label="Remove Preview"><svg><use href="#i-x"/></svg></button></span><span class="a-tag"><svg class="a-ico"><use href="#i-app"/></svg>Notes<button type="button" aria-label="Remove Notes"><svg><use href="#i-x"/></svg></button></span><span class="a-tag"><svg class="a-ico"><use href="#i-app"/></svg>Calculator<button type="button" aria-label="Remove Calculator"><svg><use href="#i-x"/></svg></button></span><button class="a-add" type="button">Add app</button></div></div>
-                      <div class="a-group"><span>Sites</span><div class="a-chipset"><span class="a-tag"><svg class="a-ico"><use href="#i-globe"/></svg>khanacademy.org<button type="button" aria-label="Remove khanacademy.org"><svg><use href="#i-x"/></svg></button></span><span class="a-tag"><svg class="a-ico"><use href="#i-globe"/></svg>desmos.com<button type="button" aria-label="Remove desmos.com"><svg><use href="#i-x"/></svg></button></span><span class="a-tag"><svg class="a-ico"><use href="#i-globe"/></svg>wolframalpha.com<button type="button" aria-label="Remove wolframalpha.com"><svg><use href="#i-x"/></svg></button></span><button class="a-add" type="button">Add site</button></div></div>
-                      <div class="a-group"><span>Folders</span><div class="a-chipset"><span class="a-tag"><svg class="a-ico"><use href="#i-folder"/></svg>~/Documents/Calc II<button type="button" aria-label="Remove folder"><svg><use href="#i-x"/></svg></button></span><button class="a-add" type="button">Add folder</button></div></div>
-                      <div class="a-group"><span>Never</span><div class="a-chipset"><span class="a-tag"><svg class="a-ico"><use href="#i-globe"/></svg>youtube.com/shorts<button type="button" aria-label="Remove youtube.com/shorts"><svg><use href="#i-x"/></svg></button></span><button class="a-add" type="button">Add</button></div></div>
+                  <div class="a-panel tint a-try" id="try">
+                    <div class="a-h3">Ask Focus about a window<small>Type anything. Nothing is read from your screen.</small></div>
+                    <div class="a-try-row">
+                      <input class="a-text" id="try-app" value="Safari" aria-label="App">
+                      <input class="a-text" id="try-title" value="Integration by parts, worked examples" aria-label="Window title">
+                      <button class="btn" type="button" id="try-go">Ask Focus</button>
                     </div>
+                    <div class="a-try-out" id="try-out" aria-live="polite"></div>
                   </div>
+                  <details class="a-rules">
+                    <summary><span>Rules you set</span><small>Optional. 3 apps, 3 sites, 1 folder, 1 never</small></summary>
+                    <p class="a-sub">Rules are checked first, before Focus reads anything. Most projects do not need them. Tell it what the project is about and let it decide.</p>
+                    <div class="a-field">
+                      <div>
+                        <div class="a-group"><span>Apps</span><div class="a-chipset"><span class="a-tag"><svg class="a-ico"><use href="#i-app"/></svg>Preview<button type="button" aria-label="Remove Preview"><svg><use href="#i-x"/></svg></button></span><span class="a-tag"><svg class="a-ico"><use href="#i-app"/></svg>Notes<button type="button" aria-label="Remove Notes"><svg><use href="#i-x"/></svg></button></span><span class="a-tag"><svg class="a-ico"><use href="#i-app"/></svg>Calculator<button type="button" aria-label="Remove Calculator"><svg><use href="#i-x"/></svg></button></span><button class="a-add" type="button">Add app</button></div></div>
+                        <div class="a-group"><span>Sites</span><div class="a-chipset"><span class="a-tag"><svg class="a-ico"><use href="#i-globe"/></svg>khanacademy.org<button type="button" aria-label="Remove khanacademy.org"><svg><use href="#i-x"/></svg></button></span><span class="a-tag"><svg class="a-ico"><use href="#i-globe"/></svg>desmos.com<button type="button" aria-label="Remove desmos.com"><svg><use href="#i-x"/></svg></button></span><span class="a-tag"><svg class="a-ico"><use href="#i-globe"/></svg>wolframalpha.com<button type="button" aria-label="Remove wolframalpha.com"><svg><use href="#i-x"/></svg></button></span><button class="a-add" type="button">Add site</button></div></div>
+                        <div class="a-group"><span>Folders</span><div class="a-chipset"><span class="a-tag"><svg class="a-ico"><use href="#i-folder"/></svg>~/Documents/Calc II<button type="button" aria-label="Remove folder"><svg><use href="#i-x"/></svg></button></span><button class="a-add" type="button">Add folder</button></div></div>
+                        <div class="a-group"><span>Never</span><div class="a-chipset"><span class="a-tag"><svg class="a-ico"><use href="#i-globe"/></svg>youtube.com/shorts<button type="button" aria-label="Remove youtube.com/shorts"><svg><use href="#i-x"/></svg></button></span><button class="a-add" type="button">Add</button></div></div>
+                      </div>
+                    </div>
+                  </details>
                   <div class="a-field">
                     <span class="lb">Recent sessions</span>
                     <div class="a-rows" style="margin-top:2px">
@@ -225,6 +266,20 @@
                   </div>
                 </div>
                 <div class="a-stack">
+                  <div class="a-panel a-acc">
+                    <div class="a-h2">How well Focus is reading you<small>this month</small></div>
+                    <p class="a-quote" style="font-size:19px;margin-bottom:12px">You agreed with <b>9 of 11</b> calls. Both corrections became rules.</p>
+                    <div class="a-split-bar" role="img" aria-label="1,284 readings: 1,096 on task, 131 not sure, 57 off topic"><i class="on" style="flex:1096"></i><i class="un" style="flex:131"></i><i class="off" style="flex:57"></i></div>
+                    <div class="a-legend"><span><i class="on"></i>On task 1,096</span><span><i class="un"></i>Not sure 131</span><span><i class="off"></i>Off topic 57</span></div>
+                    <div class="a-facts" style="margin-top:12px">
+                      <div><span>Readings</span><b class="a-num">1,284</b></div>
+                      <div><span>Read by the model</span><b class="a-num">1,187</b></div>
+                      <div><span>Settled by your rules</span><b class="a-num">97</b></div>
+                      <div><span>Nudges you got</span><b class="a-num">9</b></div>
+                      <div><span>Typical time to get back</span><b class="a-num">1 min 20 s</b></div>
+                    </div>
+                    <p class="a-sub" style="margin-top:8px">The agreement figure counts only the 11 answers you gave in Review. It is a small sample, so read it loosely.</p>
+                  </div>
                   <div class="a-panel">
                     <div class="a-h2">Where focus slips<small>share of off-topic time</small></div>
                     <div class="a-hbar"><span>Video</span><span class="tr"><i style="width:46%"></i></span><span>46%</span></div>
@@ -234,22 +289,14 @@
                     <div class="a-hbar"><span>Shopping</span><span class="tr"><i style="width:5%"></i></span><span>5%</span></div>
                     <p class="a-sub" style="margin-top:8px">Categories only. Focus does not keep a list of the pages you visited.</p>
                   </div>
-                  <div class="a-panel">
-                    <div class="a-h2">How well Focus is reading you</div>
-                    <div class="a-facts">
-                      <div><span>Nudges you got</span><b class="a-num">9</b></div>
-                      <div><span>Marked “That was fine”</span><b class="a-num">2</b></div>
-                      <div><span>Typical time to get back</span><b class="a-num">1 min 20 s</b></div>
-                    </div>
-                    <p class="a-sub" style="margin-top:8px">Both corrections became rules, so the same thing will not nudge you again.</p>
+
                   </div>
-                </div>
               </div>
             </div>
 
             <!-- REVIEW -->
             <div class="a-view" data-view="review" hidden>
-              <div class="a-head"><div><h1>Review</h1><p>Moments Focus would have nudged you about. Your answers teach it what counts.</p></div></div>
+              <div class="a-head"><div><h1>Review</h1><p>Moments Focus would have nudged you about, and why. Your answers teach it what counts.</p></div><span class="a-agree">Agreed with you on <b>9 of 11</b></span></div>
               <div class="a-panel tint a-banner">
                 <span class="ring"><svg><use href="#r-unsure"/></svg></span>
                 <div><b>Practice mode</b><div class="a-sub" style="margin-top:2px">Focus is watching but will not interrupt you yet. Two more sessions.</div><div class="a-steps" aria-label="Practice progress: 1 of 3 sessions"><i class="done"></i><i></i><i></i></div></div>
@@ -371,7 +418,7 @@
         <div class="wall"></div>
         <div class="menubar"><div class="left"><span class="app">Notes</span><span>File</span><span>Edit</span><span>View</span></div><div class="right"><span class="ring mb-ring" style="background:var(--sel);border-radius:6px;padding:2px;font-size:22px"><svg><use href="#r-on"/></svg></span><span>12:26</span></div></div>
         <div class="mpop glass" role="menu" aria-label="Focus menu">
-          <div class="head"><span class="ring"><svg><use href="#r-prog"/></svg></span><b>Calc homework</b><span class="t">24:10</span><span>On task · Open session</span></div>
+          <div class="head"><span class="ring"><svg><use href="#r-prog"/></svg></span><b>Calc homework</b><span class="t">24:10</span><span>On task · Open session</span><span class="read">Reading Notes: matches the task</span></div>
           <hr>
           <button class="mi" role="menuitem" type="button">Pause<kbd>⌥P</kbd></button>
           <button class="mi" role="menuitem" type="button">Take a break<span class="go">5, 10, 15 min</span></button>

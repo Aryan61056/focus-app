@@ -8,7 +8,12 @@ struct ReviewView: View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Review").font(Tokens.rounded(26, .semibold))
-                Text("Moments Focus would have nudged you about. Your answers teach it what counts.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Moments Focus would have nudged you about, and why. Your answers teach it what counts.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
+                    Spacer()
+                    let a = store.agreement
+                    if a.answered > 0 { Text("Agreed with you on \(a.agreed) of \(a.answered)").font(Tokens.text(13)).foregroundStyle(Tokens.ink2) }
+                }
             }
             if c.prefs.practiceActive {
                 Panel(tinted: true) {
@@ -28,7 +33,7 @@ struct ReviewView: View {
             if open.isEmpty {
                 EmptyState(title: "Nothing to review", text: "When practice mode sees something it would have nudged about, it lands here. Nothing is shown or sent while you work.")
             } else {
-                ScrollView { VStack(spacing: 0) { ForEach(open) { m in moment(m); Divider().overlay(Tokens.line) } } }
+                Scroller { VStack(spacing: 0) { ForEach(open) { m in moment(m); Divider().overlay(Tokens.line) } } }
             }
             Spacer(minLength: 0)
         }
@@ -42,6 +47,7 @@ struct ReviewView: View {
                 Text(m.siteKey.replacingOccurrences(of: "|", with: ", ")).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
                 HStack(spacing: 6) { RingView(.drift, color: Tokens.ink).frame(width: 13, height: 13); Text("Would have nudged").font(Tokens.text(12)) }
                     .padding(.horizontal, 9).frame(height: 22).background(Capsule().fill(Tokens.control))
+                if let why = m.reason { (Text("Why Focus flagged it: ").foregroundStyle(Tokens.ink2) + Text(why)).font(Tokens.text(13)).fixedSize(horizontal: false, vertical: true).frame(maxWidth: 440, alignment: .leading).padding(.top, 3) }
             }
             Spacer()
             Button("Right call") { store.answerReview(m.id, "right") }.buttonStyle(FocusButtonStyle(.secondary, small: true))

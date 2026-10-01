@@ -20,6 +20,7 @@ Design context (register, personality, anti-references, principles) is in `PRODU
 - Mechanism and look are separate: the brain emits abstract effects, a style renders them (PLAN 7.1b).
 - **Visual direction (owner, 2026-10-01): B "Lichen"** (`docs/design/b-lichen.*`). The product is a proper app window (sidebar, projects, history, insights, review, rules, settings) plus a light menu bar and notch presence. The owner wants it to convey the app's capability, even if it reads as a SaaS-style app.
 - **The notch is aesthetic, not functional (owner, 2026-10-01, replaces PLAN 4.6's nine functions).** It shows the ring, the task and the time, and expands only to a nudge or two buttons (Pause, Open app). Every function lives in the app window and the menu bar popover; none lives only in the notch.
+- **The AI's decision is the hero (owner, 2026-10-01).** Today leads with "What Focus is reading" (window, call, one-line reason, how it decided), Review shows why each moment was flagged, Projects leads with a plain-language description plus an "Ask Focus about a window" box, and allow/never lists stay but sit in a collapsed, optional "Rules you set" section. Show the AI's work, but never overstate it: say it can be wrong and that not sure does nothing. Reasons are in memory only; Review keeps one until answered; sessions save counts, never text.
 - The no-timer session mode is named **Open**. Time budgets for messaging are optional and off by default.
 - **Never overwhelm** (PLAN 4.8 calm rules and start flow) is a hard requirement for anything user-facing.
 

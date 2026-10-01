@@ -6,12 +6,16 @@ struct TodayView: View {
     @Binding var showStart: Bool
 
     var body: some View {
+        Scroller { content }
+    }
+
+    var content: some View {
         VStack(alignment: .leading, spacing: 22) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Today").font(Tokens.rounded(26, .semibold))
                 Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide))).font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
             }
-            if c.isActive { SessionPanel(c: c) } else { IdlePanel(c: c, showStart: $showStart) }
+            if c.isActive { SessionPanel(c: c); ReadingPanel(c: c) } else { IdlePanel(c: c, showStart: $showStart); HowFocusDecides() }
             if let a = c.askResume { AwayBanner(c: c, reason: a) }
             if c.wrapUp && c.isActive { Panel(tinted: true) { Text("Two minutes left. Extend, or wrap up when you are ready.").font(Tokens.text(13.5)) } }
             Spacer(minLength: 0)
@@ -52,7 +56,7 @@ struct SessionPanel: View {
                         Text(c.shadowMarks == 0 ? "Practice mode: Focus is watching but will not interrupt you."
                              : "Practice mode: \(c.shadowMarks) moment\(c.shadowMarks == 1 ? "" : "s") to review later.")
                     } else {
-                        Text("Focus is watching window titles and text on this Mac.")
+                        Text("Focus reads window titles and text on this Mac.")
                     }
                 }
                 .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).padding(.top, 12)

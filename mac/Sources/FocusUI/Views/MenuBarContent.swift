@@ -19,6 +19,12 @@ public struct MenuBarContent: View {
                     Spacer()
                     TimelineView(.periodic(from: .now, by: 1)) { _ in Text(c.clockText()).font(Tokens.rounded(15)).monospacedDigit() }
                 }.padding(10)
+                if let r = c.latest, !c.isPaused {
+                    HStack(spacing: 8) {
+                        RingView(r.ring, color: r.tint).frame(width: 14, height: 14)
+                        Text("Reading \(r.appText): \(r.call == .on ? "matches the task" : (r.call == .off ? "looks off topic" : "not sure"))").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).lineLimit(1)
+                    }.padding(.horizontal, 10).padding(.bottom, 6)
+                }
                 Divider().padding(.vertical, 4)
                 item(c.isPaused ? "Resume" : "Pause") { c.act(c.isPaused ? .resume : .pause) }
                 Menu("Take a break") { ForEach([5, 10, 15], id: \.self) { m in Button("\(m) minutes") { c.act(.breakTime, minutes: m) } } }.menuStyle(.borderlessButton).padding(.horizontal, 10).frame(height: 30)

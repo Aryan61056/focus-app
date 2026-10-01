@@ -9,6 +9,19 @@ public struct Surface: Equatable, Sendable { public var kind: String; public var
 public struct TimerState: Equatable, Sendable { public var seconds = 0.0, running = false, visible = false, at = 0.0 }
 public struct ClockState: Equatable, Sendable { public var seconds = 0.0, running = false, at = 0.0 }
 public struct LearnedRule: Equatable, Sendable { public var scope: String, kind: String, keyType: String, key: String }
+/// One thing Focus read and concluded. Lives in memory for the running session only; titles are never saved.
+public struct Reading: Identifiable, Equatable, Sendable {
+    public enum Call: Sendable { case on, unsure, off }
+    public enum Source: Sendable { case model, rule, sensitive }
+    public let id = UUID()
+    public var at: Double, date: Date
+    public var key: String, app: String, title: String
+    public var call: Call, source: Source
+    public var reason: String
+    /// The model refused or errored; Focus treated it as unsure (CLAUDE.md principle 7).
+    public var failed = false
+}
+
 public struct SessionSummary: Equatable, Sendable {
     public var activeSeconds: Double, offTopicSeconds: Double, unsureSeconds: Double
     public var drifts: Int, interrupts: Int, refusals: Int
@@ -37,6 +50,8 @@ public final class SessionController {
     public private(set) var currentWindow: WindowSnapshot?
     public private(set) var checkedAt: Double?
     public private(set) var shadow = true
+    public private(set) var readings: [Reading] = []
+    public private(set) var stats = ReadStats()
 
     @ObservationIgnored public var onBringBack: ((String?) -> Void)?
     @ObservationIgnored public var onCue: (() -> Void)?
@@ -73,12 +88,13 @@ public final class SessionController {
         if let store {
             let p = pid.flatMap { store.project($0) } ?? store.projectNamed(task)
             pid = p.id; profile = p.profile
+            if !p.context.isEmpty { profile.context = p.context }   // the judge reads profile.context; Projects edits Project.context
         }
         let shadow = shadow ?? prefs.practiceActive
         self.project = profile; self.projectId = pid; self.shadow = shadow
         sessionId = UUID(); startedAt = date(); segments = []; segKind = nil; segStart = now()
         taskName = task; self.mode = mode; totalSeconds = duration ?? 0
-        summary = nil; shadowMarks = 0; learnedRules = []; wrapUp = false; askResume = nil
+        summary = nil; shadowMarks = 0; learnedRules = []; wrapUp = false; askResume = nil; readings = []; stats = ReadStats()
         var c = SessionConfig(); c.taskId = task; c.mode = mode; c.durationSeconds = duration; c.preset = preset ?? prefs.preset; c.shadow = shadow
         isActive = true
         send(.sessionStart(c))
@@ -106,12 +122,38 @@ public final class SessionController {
         guard isActive else { return }
         let m = moment(w)
         if Rules.isSensitive(m) {
-            if !sensitiveUp { sensitiveUp = true; send(.sensitiveEntered) }
+            if !sensitiveUp { sensitiveUp = true; send(.sensitiveEntered); record(Reading(at: now(), date: date(), key: "sensitive", app: "", title: "", call: .unsure, source: .sensitive, reason: "A private window. Focus did not read it.")) }
             return
         }
         if sensitiveUp { sensitiveUp = false; send(.sensitiveLeft) }
-        send(.windowChange(WindowChangeInput(windowKey: Keys.window(w), siteKey: Keys.site(w), ruleLabel: Rules.stage1(m).map { Self.brainLabel($0.label) })))
+        let hit = Rules.stage1(m)
+        if let hit { record(Reading(at: now(), date: date(), key: Keys.window(w), app: w.app, title: w.title, call: Self.call(hit.label), source: .rule, reason: Self.ruleReason(hit.rule))) }
+        send(.windowChange(WindowChangeInput(windowKey: Keys.window(w), siteKey: Keys.site(w), ruleLabel: hit.map { Self.brainLabel($0.label) })))
     }
+
+    static func call(_ l: FocusJudge.Label) -> Reading.Call { switch l { case .onTask: return .on; case .unsure: return .unsure; case .offTask: return .off } }
+
+    static func ruleReason(_ rule: String) -> String {
+        switch rule {
+        case "always_allow_app": return "You told Focus this app counts for the project."
+        case "always_allow_domain": return "You told Focus this site counts for the project."
+        case "always_off_app": return "You told Focus this app never counts for the project."
+        case "always_off_domain": return "You told Focus this site never counts for the project."
+        default: return "It is linked to this project."
+        }
+    }
+
+    /// Newest first, and a window that is read again replaces its own latest line instead of repeating it.
+    func record(_ r: Reading) {
+        switch r.source { case .model: stats.model += 1; case .rule: stats.rule += 1; case .sensitive: break }
+        if r.source != .sensitive { switch r.call { case .on: stats.onTask += 1; case .unsure: stats.unsure += 1; case .off: stats.offTask += 1 } }
+        if let first = readings.first, first.key == r.key, first.call == r.call, first.source == r.source { readings[0].at = r.at; readings[0].date = r.date; readings[0].reason = r.reason; return }
+        readings.insert(r, at: 0)
+        if readings.count > 12 { readings.removeLast() }
+    }
+
+    /// The latest reading, shown as the headline on Today.
+    public var latest: Reading? { readings.first }
 
     static func brainLabel(_ l: FocusJudge.Label) -> JudgmentLabel {
         switch l { case .onTask: return .onTask; case .unsure: return .unsure; case .offTask: return .offTask }
@@ -124,6 +166,14 @@ public final class SessionController {
     // MARK: actions from the UI
     public func act(_ a: UserAction, minutes: Int? = nil) { send(.userAction(a, minutes: minutes)) }
     public func end() { send(.sessionEnd) }
+
+    /// "Ask Focus about a window": runs the same judge on text the user typed. Nothing is read from the screen.
+    public func ask(app: String, title: String, project p: Project) async -> Judgement {
+        var profile = p.profile
+        if !p.context.isEmpty { profile.context = p.context }
+        let m = Moment(task: p.name, app: app, windowTitle: title, url: "", documentPath: "", windowText: "", project: profile)
+        return await Pipeline.judge(m, with: judge, useRules: true)
+    }
 
     /// Wait for in-flight judge calls (tests, and orderly shutdown).
     public func waitForJudgments() async {
@@ -151,7 +201,8 @@ public final class SessionController {
             case .askResume(let r): askResume = r
             case .shadowMark(_, _, let wk):
                 shadowMarks += 1
-                store?.addReview(ReviewMoment(sessionId: sessionId, projectId: projectId, at: date(), windowKey: wk, siteKey: currentWindow.map(Keys.site) ?? wk))
+                store?.addReview(ReviewMoment(sessionId: sessionId, projectId: projectId, at: date(), windowKey: wk, siteKey: currentWindow.map(Keys.site) ?? wk,
+                                              reason: readings.first(where: { $0.key == wk && $0.call == .off })?.reason))
             case .learnRule(let s, let k, let kt, let key):
                 let rule = LearnedRule(scope: s, kind: k, keyType: kt, key: key)
                 learnedRules.append(rule)
@@ -164,7 +215,7 @@ public final class SessionController {
                 markSegment("off", t)
                 store?.record(SessionRecord(projectId: projectId, task: taskName, timed: mode == .timed, start: startedAt, end: date(), activeSeconds: a,
                                             offTopicSeconds: o, unsureSeconds: u, drifts: d, interrupts: i, refusals: r, shadowMarks: shadowMarks,
-                                            segments: segments.filter { $0.seconds >= 1 }))
+                                            segments: segments.filter { $0.seconds >= 1 }, reads: stats))
                 prefs.sessionFinished(wasPractice: shadow)
                 isActive = false; surface = nil; reentryOpen = false; askResume = nil; wrapUp = false
                 timer?.invalidate(); timer = nil
@@ -200,6 +251,12 @@ public final class SessionController {
     }
 
     func deliver(_ j: Judgement, id: Int, observedAt: Double, windowKey: String, contentKey: String) {
+        if let w = currentWindow, Keys.window(w) == windowKey {
+            var r = Reading(at: observedAt, date: date(), key: windowKey, app: w.app, title: w.title, call: Self.call(j.label), source: .model,
+                            reason: Self.tidy(j.reason, failed: j.error != nil))
+            r.failed = j.error != nil
+            record(r)
+        }
         var input = JudgmentInput(requestId: id, observedAt: observedAt, windowKey: windowKey, contentKey: contentKey, label: Self.brainLabel(j.label))
         input.strong = j.label == FocusJudge.Label.offTask          // the two-judge rule already confirmed it (docs/BRAIN-SPEC.md 2.2)
         if j.error != nil { input.flag = .refusal }
@@ -208,6 +265,14 @@ public final class SessionController {
 }
 
 extension SessionController {
+    /// The judge's own words, trimmed to one short line. A refusal never shows its raw text.
+    static func tidy(_ reason: String, failed: Bool) -> String {
+        if failed { return "Focus could not read this one, so it did nothing." }
+        let t = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+        if t.isEmpty { return "No reason given." }
+        return t.count > 160 ? String(t.prefix(157)) + "..." : t
+    }
+
     /// Seconds shown on the clock right now: elapsed for Open, remaining for Timed.
     public func clockSeconds() -> Double {
         let c = clock

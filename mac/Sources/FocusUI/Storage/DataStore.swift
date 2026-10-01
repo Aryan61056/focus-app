@@ -49,8 +49,19 @@ public final class DataStore {
 
     // MARK: review queue
     public func addReview(_ m: ReviewMoment) { review.insert(m, at: 0); if review.count > 200 { review.removeLast() }; save() }
-    public func answerReview(_ id: UUID, _ answer: String) { if let i = review.firstIndex(where: { $0.id == id }) { review[i].answer = answer; save() } }
+    public func answerReview(_ id: UUID, _ answer: String) { if let i = review.firstIndex(where: { $0.id == id }) { review[i].answer = answer; review[i].reason = nil; save() } }
     public var openReviewCount: Int { review.filter { $0.answer == nil }.count }
+    /// Of the moments you answered, how many you said Focus got right. Small samples are common; callers should say so.
+    public var agreement: (agreed: Int, answered: Int) {
+        let a = review.filter { $0.answer != nil }
+        return (a.filter { $0.answer == "right" }.count, a.count)
+    }
+    /// Totals over every saved session that recorded reads.
+    public var readTotals: ReadStats {
+        var t = ReadStats()
+        for r in sessions.compactMap(\.reads) { t.model += r.model; t.rule += r.rule; t.onTask += r.onTask; t.unsure += r.unsure; t.offTask += r.offTask }
+        return t
+    }
 
     // MARK: learned rules -> project profile
     /// "That was fine" and friends become rules the next session honours. Only rules that map onto a site or an app can be stored;

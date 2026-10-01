@@ -13,7 +13,7 @@ struct HistoryView: View {
                 EmptyState(title: "No sessions yet", text: "Finished sessions show up here with a timeline you can read at a glance.")
             } else {
                 HStack(alignment: .top, spacing: 20) {
-                    ScrollView {
+                    Scroller {
                         VStack(spacing: 0) {
                             ForEach(store.sessions) { s in
                                 let on = (selected ?? store.sessions.first?.id) == s.id
@@ -52,6 +52,14 @@ struct SessionDrawer: View {
                     .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
                 Text(sessionSentence(session)).font(Tokens.text(14))
                 MiniTimeline(segments: session.segments, height: 22)
+                if let r = session.reads, r.total > 0 {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("What Focus read").font(Tokens.text(12.5, .semibold))
+                        ReadingSplit(stats: r)
+                        Text("\(r.total) checks: \(r.onTask) on task, \(r.unsure) not sure, \(r.offTask) off topic. \(r.rule) were settled by your rules.")
+                            .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                    }
+                }
                 HStack(spacing: 14) { legend("On task", .on); legend("Unsure", .unsure); legend("Off topic", .off) }.font(Tokens.text(12)).foregroundStyle(Tokens.ink2)
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Note").font(Tokens.text(12.5, .semibold))
