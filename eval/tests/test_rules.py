@@ -24,6 +24,13 @@ class SensitiveTests(unittest.TestCase):
     def test_bank_subdomain(self):
         self.assertTrue(rules.is_sensitive(sc(url="https://secure.chase.com/web/auth")))
 
+    def test_other_password_managers(self):
+        for app in ("KeePassXC", "Proton Pass", "Enpass", "Passwords"):
+            self.assertTrue(rules.is_sensitive(sc(app=app)), app)
+
+    def test_sensitive_match_ignores_case(self):
+        self.assertTrue(rules.is_sensitive(sc(app="KEEPASSXC")))
+
     def test_lookalike_domain_is_not_sensitive(self):
         self.assertFalse(rules.is_sensitive(sc(url="https://notchase.com/")))
 

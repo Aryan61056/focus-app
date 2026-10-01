@@ -10,9 +10,17 @@ from urllib.parse import urlparse
 
 from .scenarios import Scenario
 
-SENSITIVE_APPS = {"1password", "bitwarden", "keychain access", "dashlane", "lastpass"}
-SENSITIVE_DOMAINS = {"chase.com", "bankofamerica.com", "wellsfargo.com", "paypal.com"}
-PRIVATE_TITLE_MARKERS = ("private browsing", "incognito", "inprivate")
+SENSITIVE_APPS = {
+    "1password", "1password 7", "bitwarden", "keychain access", "passwords", "dashlane", "lastpass",
+    "keepassxc", "keepass", "keepassium", "enpass", "nordpass", "proton pass", "roboform", "keeper",
+    "secrets", "authy", "microsoft authenticator", "yubico authenticator",
+}
+SENSITIVE_DOMAINS = {
+    "chase.com", "bankofamerica.com", "wellsfargo.com", "paypal.com", "citi.com", "capitalone.com",
+    "usbank.com", "schwab.com", "fidelity.com", "vanguard.com", "coinbase.com", "venmo.com",
+    "wise.com", "revolut.com", "1password.com", "bitwarden.com", "lastpass.com", "proton.me",
+}
+PRIVATE_TITLE_MARKERS = ("private browsing", "incognito", "inprivate", "private window", "(private)")
 
 
 def _host_and_path(url: str) -> Tuple[str, str]:

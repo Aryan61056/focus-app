@@ -77,7 +77,7 @@ Held-out (30 moments, 10 gold off-task, 7 clear), frozen prompts and frozen rule
 | Qwen3-4B, relation | 13 | 77% | 100% | 100% |
 | Qwen3-4B, two-judge rule | 13 | 77% (10 of 13) | 100% | 100% |
 
-The held-out false nudges (all gold `unsure`): KeePassXC, a personal message, and a music player. KeePassXC is a pipeline gap, not a model error: my illustrative stage 0 list of sensitive apps doesn't include it, and a password manager should never reach the model.
+The held-out false nudges (all gold `unsure`): KeePassXC, a personal message, and a music player. KeePassXC is a pipeline gap, not a model error: my illustrative stage 0 list of sensitive apps didn't include it, and a password manager should never reach the model. The list is now extended (more password managers, banks, brokerages, private-window markers) with tests. That fix was prompted by the held-out result, so rerunning held-out with it would no longer be a clean estimate; the numbers in this report are from before the fix.
 
 What this says:
 - The relation framing helps both model families. The over-flagging is mostly the task framing, and Qwen handles it better than Apple's model.
