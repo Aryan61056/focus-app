@@ -12,6 +12,9 @@ let package = Package(
         .executable(name: "focus-judge", targets: ["focus-judge"]),
         .executable(name: "brain-trace", targets: ["brain-trace"]),
         .executable(name: "brain-sim", targets: ["brain-sim"]),
+        .library(name: "FocusUI", targets: ["FocusUI"]),
+        .executable(name: "focus-app", targets: ["focus-app"]),
+        .executable(name: "focus-snapshot", targets: ["focus-snapshot"]),
     ],
     targets: [
         .target(name: "FocusJudge", swiftSettings: [.swiftLanguageMode(.v5)]),
@@ -21,6 +24,10 @@ let package = Package(
         .executableTarget(name: "brain-trace", dependencies: ["BrainTraces"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .target(name: "BrainSim", dependencies: ["FocusBrain"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .executableTarget(name: "brain-sim", dependencies: ["BrainSim"], swiftSettings: [.swiftLanguageMode(.v5)]),
+        .target(name: "FocusUI", dependencies: ["FocusBrain", "FocusJudge"], swiftSettings: [.swiftLanguageMode(.v5)]),
+        .executableTarget(name: "focus-app", dependencies: ["FocusUI"], swiftSettings: [.swiftLanguageMode(.v5)]),
+        .executableTarget(name: "focus-snapshot", dependencies: ["FocusUI"], swiftSettings: [.swiftLanguageMode(.v5)]),
+        .testTarget(name: "FocusUITests", dependencies: ["FocusUI", "FocusBrain", "FocusJudge"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .testTarget(name: "FocusBrainTests", dependencies: ["FocusBrain", "BrainTraces", "BrainSim"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .testTarget(name: "FocusJudgeTests", dependencies: ["FocusJudge"], swiftSettings: [.swiftLanguageMode(.v5)]),
     ]
