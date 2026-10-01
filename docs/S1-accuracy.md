@@ -119,6 +119,13 @@ Cosine distance between the task and "app, title, url, window text", on the 63 d
 - **Caveat:** my scenarios are hard cases by design. Real traffic is mostly on-task and repetitive, so this understates what a shortcut would save. It can't be tested without real usage data.
 - **Where the savings more plausibly come from** is not a model: project rules and linked resources, a cache so each distinct page is judged once per task, change-triggered checks, and adaptive cadence. Those need an episode-level simulation to size.
 
+## Update 2: Swift port, and a guardrail rule fix
+
+- The Swift pipeline (`mac/`, `focus-judge --run`) reproduces the saved Python two-judge verdicts on all 70 dev scenarios (`eval/results/swift_two_judge_dev.json`). Prompts and rule decisions match on all 100 scenarios (`tools/check_parity.py`).
+- Found: the old combine rule treated a refusal ("May contain sensitive content", a guardrail error) from the second judge as "not on_task", so it could confirm `off_task`. That breaks principle 7. A refusal on either judge now gives `unsure` plus a flag, in both Swift and `combine_results.py`.
+- Effect, rescored from the saved runs: dev strict precision 79% (11 of 14) became 85% (11 of 13), recall on clear distractions unchanged at 67%. Held-out: flagged 7 became 4, true 5 became 3, strict precision 71% became 75%, recall on clear distractions fell to 29% (2 of 7). The held-out recall drop is real: the guardrail fires on gossip and similar content, the same content that is often a true distraction (h-adv-01, h-yt-02 were true off_task; h-nav-03 was gold unsure).
+- Not a prompt change, so the held-out set is not newly spent, but these held-out numbers now include a rule decided after seeing them. Treat them as indicative. The refusal rate itself (3 of about 30 held-out moments) is worth tracking in the app.
+
 ## What I found
 
 1. **The model over-flags.** It answers `off_task` for almost anything that doesn't mention the task. It turns "neutral" moments (new tab, music, personal message, empty chat, mixed feed) into off-task calls about 70% of the time, despite explicit rules and a "when in doubt, unsure" instruction.

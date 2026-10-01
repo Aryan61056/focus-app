@@ -33,12 +33,14 @@ public enum Pipeline {
         let prompt = Prompts.prompt(for: m)
         let first = await judge.reasonFirst(prompt: prompt)
         // Only a possible off_task needs the second opinion; skipping it otherwise halves the model calls.
-        if first.label != .offTask {
+        if first.label != .offTask || first.error != nil {
             return Judgement(label: combine(first: first.label, second: .unsure), stage: .model, reason: first.reason,
                              firstLabel: first.label, latencyMs: first.latencyMs, error: first.error)
         }
         let second = await judge.relation(prompt: prompt)
-        return Judgement(label: combine(first: first.label, second: second.label), stage: .model, reason: first.reason,
+        // A refusal or guardrail error on either judge is "unsure plus a flag", never a confirmed off_task.
+        let errored = first.error != nil || second.error != nil
+        return Judgement(label: errored ? .unsure : combine(first: first.label, second: second.label), stage: .model, reason: first.reason,
                          firstLabel: first.label, secondLabel: second.label,
                          latencyMs: first.latencyMs + second.latencyMs, error: first.error ?? second.error)
     }

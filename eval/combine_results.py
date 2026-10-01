@@ -21,7 +21,9 @@ def combine(first: dict, second: dict) -> list:
     rows = []
     for sid, r in first.items():
         row = dict(r, confidence=None)
-        if r["pred"] == "off_task" and second[sid]["pred"] != "on_task":
+        if r.get("error") or second[sid].get("error"):
+            row["pred"] = "unsure"  # a refusal on either judge never confirms a distraction
+        elif r["pred"] == "off_task" and second[sid]["pred"] != "on_task":
             row["pred"] = "off_task"
         elif r["pred"] == "on_task":
             row["pred"] = "on_task"

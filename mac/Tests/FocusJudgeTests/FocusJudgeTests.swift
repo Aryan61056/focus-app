@@ -73,6 +73,17 @@ final class PipelineTests: XCTestCase {
         XCTAssertEqual(j.label, .unsure)
     }
 
+    struct Refusing: Judge {
+        func reasonFirst(prompt: String) async -> Verdict { Verdict(label: .offTask) }
+        func relation(prompt: String) async -> Verdict { Verdict(label: .unsure, error: "guardrail") }
+    }
+
+    func testGuardrailErrorOnSecondJudgeNeverConfirmsOffTask() async {
+        let j = await Pipeline.judge(Moment(task: "t", app: "Safari", windowTitle: "news"), with: Refusing())
+        XCTAssertEqual(j.label, .unsure)
+        XCTAssertEqual(j.error, "guardrail")
+    }
+
     func testRelationMapping() {
         XCTAssertEqual(Relation.supporting.label, .onTask)
         XCTAssertEqual(Relation.neutral.label, .unsure)
