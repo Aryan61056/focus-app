@@ -8,12 +8,14 @@ public final class SenseCoordinator {
     private let source: WindowSource
     private let watcher: WindowWatcher
     private var accessTimer: Timer?
+    private let system: SystemWatcher
     private let controller: SessionController
     private var bound = false
 
     public init(source: WindowSource, controller: SessionController) {
         self.controller = controller; self.source = source
         watcher = WindowWatcher(source: source, controller: controller)
+        system = SystemWatcher(controller: controller)
     }
 
     public func bind() {
@@ -33,5 +35,5 @@ public final class SenseCoordinator {
         sync()
     }
 
-    func sync() { if controller.isActive { watcher.start() } else { watcher.stop() } }
+    func sync() { if controller.isActive { watcher.start(); system.start() } else { watcher.stop(); system.stop() } }
 }
