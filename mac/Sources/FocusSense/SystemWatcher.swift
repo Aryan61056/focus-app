@@ -3,7 +3,7 @@ import CoreGraphics
 import FocusBrain
 import FocusUI
 
-/// While a session runs, tells the brain about the computer itself: no keyboard or mouse for a while (Idle and Active), the lid closing or
+/// While a session runs, tells the brain about the computer itself: a call (camera or microphone in use), no keyboard or mouse for a while (Idle and Active), the lid closing or
 /// the screen locking (Sleep and Wake), and Low Power Mode or heat (PowerChange, which makes the brain check less often).
 /// None of it needs a permission, and none of it reads a window. The brain decides what to do (pause the clock, ask to resume).
 @MainActor
@@ -12,6 +12,9 @@ public final class SystemWatcher {
     private let idleSeconds: () -> Double
     private let powerState: () -> (constrained: Bool, critical: Bool)
     private let threshold: Double
+    private let inCall: () -> Bool
+    private var callPolls = 0
+    private var inMeeting = false
     private var timer: Timer?
     private var observers: [(NotificationCenter, NSObjectProtocol)] = []
     private var idle = false
@@ -20,18 +23,19 @@ public final class SystemWatcher {
 
     public init(controller: SessionController, idleThreshold: Double = 240,
                 idleSeconds: @escaping () -> Double = { CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: CGEventType(rawValue: ~0)!) },
+                inCall: @escaping () -> Bool = { CallDetector.inCall() },
                 powerState: @escaping () -> (constrained: Bool, critical: Bool) = {
                     let p = ProcessInfo.processInfo
                     return (p.isLowPowerModeEnabled || p.thermalState == .serious || p.thermalState == .critical, p.thermalState == .critical)
                 }) {
-        self.controller = controller; self.idleSeconds = idleSeconds; self.powerState = powerState; self.threshold = idleThreshold
+        self.controller = controller; self.idleSeconds = idleSeconds; self.powerState = powerState; self.threshold = idleThreshold; self.inCall = inCall
     }
 
     public var isRunning: Bool { timer != nil }
 
     public func start(interval: TimeInterval = 5) {
         guard timer == nil else { return }
-        idle = false; asleep = false; lastPower = (false, false)
+        idle = false; asleep = false; lastPower = (false, false); callPolls = 0; inMeeting = false
         poll()
         timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in MainActor.assumeIsolated { self?.poll() } }
         let ws = NSWorkspace.shared.notificationCenter, dc = DistributedNotificationCenter.default()
@@ -59,6 +63,10 @@ public final class SystemWatcher {
         let p = powerState()
         if (p.constrained, p.critical) != lastPower { lastPower = (p.constrained, p.critical); controller.send(.powerChange(constrained: p.constrained, critical: p.critical)) }
         guard !asleep else { return }
+        // A call needs two polls in a row (about 10 s) so a notification sound or a quick voice memo does not pause the session.
+        callPolls = inCall() ? callPolls + 1 : 0
+        if !inMeeting && callPolls >= 2 { inMeeting = true; controller.send(.meetingStart) }
+        else if inMeeting && callPolls == 0 { inMeeting = false; controller.send(.meetingEnd) }
         let isIdle = idleSeconds() >= threshold
         if isIdle != idle { idle = isIdle; controller.send(isIdle ? .idle : .active) }
     }
