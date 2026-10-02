@@ -18,6 +18,9 @@ public final class Preferences {
     public var showNotch: Bool { didSet { defaults.set(showNotch, forKey: "showNotch") } }
     /// A live picture of the window Focus is reading, shown in the app only. Off until the user asks for it (it needs Screen Recording).
     public var readScreen: Bool { didSet { defaults.set(readScreen, forKey: "readScreen") } }
+    /// First-run intro shown once; and the one "too quiet, about right, too loud" question, asked once after the first session that actually nudged.
+    public var introSeen: Bool { didSet { defaults.set(introSeen, forKey: "introSeen") } }
+    public var loudnessAsked: Bool { didSet { defaults.set(loudnessAsked, forKey: "loudnessAsked") } }
     public var practiceActive: Bool { practiceSessionsLeft > 0 }
 
     public init(defaults: UserDefaults = .standard) {
@@ -27,7 +30,22 @@ public final class Preferences {
         neverJudgedApps = defaults.stringArray(forKey: "neverJudgedApps") ?? Rules.defaultNeverJudgedApps
         showNotch = defaults.object(forKey: "showNotch") as? Bool ?? true
         readScreen = defaults.object(forKey: "readScreen") as? Bool ?? false
+        introSeen = defaults.object(forKey: "introSeen") as? Bool ?? false
+        loudnessAsked = defaults.object(forKey: "loudnessAsked") as? Bool ?? false
         practiceSessionsLeft = defaults.object(forKey: "practiceLeft") as? Int ?? Preferences.practiceSessions
+    }
+
+    public enum Loudness: Sendable { case tooQuiet, aboutRight, tooLoud }
+    /// One step up or down the presets, never past the ends. Asked once.
+    public func answerLoudness(_ a: Loudness) {
+        loudnessAsked = true
+        switch (a, preset) {
+        case (.tooQuiet, .gentle): preset = .standard
+        case (.tooQuiet, .standard): preset = .strict
+        case (.tooLoud, .strict): preset = .standard
+        case (.tooLoud, .standard): preset = .gentle
+        default: break
+        }
     }
 
     public func sessionFinished(wasPractice: Bool) { if wasPractice && practiceSessionsLeft > 0 { practiceSessionsLeft -= 1 } }

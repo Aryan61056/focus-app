@@ -150,6 +150,9 @@ public final class SessionController {
     }
 
     // MARK: senses
+    /// Ask "too quiet, about right, too loud" once, after the first finished session in which Focus actually spoke up (not practice).
+    public var askLoudness: Bool { !prefs.loudnessAsked && !shadow && (summary?.interrupts ?? 0) > 0 }
+
     public func setWindowAccess(_ a: WindowAccess) { if windowAccess != a { windowAccess = a } }
     /// Counts down so the user can switch to another window, then reports what Focus can see there.
     public func runProbe(seconds: Int = 5, tick: UInt64 = 1_000_000_000) {

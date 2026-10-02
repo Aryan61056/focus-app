@@ -119,3 +119,39 @@ final class ProbeTests: XCTestCase {
         XCTAssertEqual(c.probe, .nothing)
     }
 }
+
+@MainActor
+final class FirstRunTests: XCTestCase {
+    func prefs() -> Preferences { Preferences(defaults: UserDefaults(suiteName: "focus.tests.\(UUID().uuidString)")!) }
+
+    func testLoudnessStepsOnePresetAndNeverPastTheEnds() {
+        let p = prefs(); p.preset = .gentle
+        p.answerLoudness(.tooLoud); XCTAssertEqual(p.preset, .gentle)
+        p.answerLoudness(.tooQuiet); XCTAssertEqual(p.preset, .standard)
+        p.answerLoudness(.tooQuiet); XCTAssertEqual(p.preset, .strict)
+        p.answerLoudness(.tooQuiet); XCTAssertEqual(p.preset, .strict)
+        p.answerLoudness(.tooLoud); XCTAssertEqual(p.preset, .standard)
+        p.answerLoudness(.aboutRight); XCTAssertEqual(p.preset, .standard)
+        XCTAssertTrue(p.loudnessAsked)
+    }
+
+    func testIntroAndLoudnessStartUnseenAndStaySeen() {
+        let suite = "focus.tests.\(UUID().uuidString)"
+        let a = Preferences(defaults: UserDefaults(suiteName: suite)!)
+        XCTAssertFalse(a.introSeen); XCTAssertFalse(a.loudnessAsked)
+        a.introSeen = true; a.loudnessAsked = true
+        let b = Preferences(defaults: UserDefaults(suiteName: suite)!)
+        XCTAssertTrue(b.introSeen); XCTAssertTrue(b.loudnessAsked)
+    }
+
+    func testTheQuestionIsNotAskedForPracticeSessionsOrQuietOnes() async {
+        var t = 0.0
+        let c = SessionController(judge: ScriptedJudge(markers: [("youtube", .off), ("Notes", .on)]), now: { t })
+        c.windowChanged(WindowSnapshot(app: "Notes", title: "Calc homework"))
+        c.begin(task: "Calc homework", preset: .standard, shadow: true)
+        c.windowChanged(WindowSnapshot(app: "Browser", title: "youtube clip", url: "https://youtube.com/watch?v=1"))
+        for _ in 0..<200 { t += 1; c.tick(); await c.waitForJudgments() }
+        c.end()
+        XCTAssertFalse(c.askLoudness, "practice sessions never nudged")
+    }
+}
