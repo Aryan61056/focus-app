@@ -16,6 +16,17 @@ struct TodayView: View {
                 Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide))).font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
             }
             if c.isActive { SessionPanel(c: c); ReadingPanel(c: c) } else if !c.prefs.introSeen && c.summary == nil && (c.store?.sessions.isEmpty ?? true) { IntroPanel(c: c, showStart: $showStart) } else { IdlePanel(c: c, showStart: $showStart); HowFocusDecides() }
+            if case .unavailable(let why) = c.judgeStatus {
+                Panel(tinted: true) {
+                    HStack(spacing: 14) {
+                        Image(systemName: "exclamationmark.circle").foregroundStyle(Tokens.ink2)
+                        Text("\(why) Until then Focus cannot judge windows, so it will not nudge you.")
+                            .font(Tokens.text(13.5)).fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 12)
+                        Button("Open settings") { c.onOpenModelSettings?() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+                    }
+                }
+            }
             if c.windowAccess == .appNamesOnly {
                 Panel(tinted: true) {
                     HStack(spacing: 14) {

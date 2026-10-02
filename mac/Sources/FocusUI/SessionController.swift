@@ -79,6 +79,9 @@ public final class SessionController {
     public private(set) var sectionRequest: (section: AppSection, serial: Int)?
     public func requestSection(_ s: AppSection) { sectionRequest = (s, (sectionRequest?.serial ?? 0) + 1) }
     public func requestStart() { startRequests += 1 }
+    public private(set) var judgeStatus = JudgeStatus.unknown
+    public func setJudgeStatus(_ s: JudgeStatus) { if judgeStatus != s { judgeStatus = s } }
+    @ObservationIgnored public var onOpenModelSettings: (() -> Void)?
     public private(set) var probe = ProbeState.idle
     /// One read of the window in front (set by the app). Nil when Focus itself is in front.
     @ObservationIgnored public var senseNow: (() -> WindowSnapshot?)?

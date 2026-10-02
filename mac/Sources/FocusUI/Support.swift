@@ -11,13 +11,48 @@ public struct UnsureJudge: Judge {
     public func relation(prompt: String) async -> Verdict { Verdict(label: .unsure, reason: "judge unavailable") }
 }
 
+/// Whether the judge can run. Shown on Today so a Mac without Apple Intelligence does not just look broken.
+public enum JudgeStatus: Equatable, Sendable {
+    case unknown, ready
+    case unavailable(String)
+
+    /// Plain words for the reason macOS gives ("appleIntelligenceNotEnabled", "modelNotReady", ...).
+    static func friendly(_ reason: String) -> String {
+        let r = reason.lowercased()
+        if r.contains("notenabled") { return "Apple Intelligence is turned off. Turn it on in System Settings, under Apple Intelligence and Siri." }
+        if r.contains("noteligible") || r.contains("ineligible") { return "This Mac cannot run Apple's on-device model." }
+        if r.contains("notready") { return "Apple's on-device model is still downloading or preparing. This can take a while after turning Apple Intelligence on." }
+        return "Apple's on-device model is not available right now."
+    }
+}
+
 public enum DefaultJudge {
-    public static func make() -> any Judge {
+    public static func status() -> JudgeStatus {
+        #if canImport(FoundationModels)
+        if #available(macOS 26.0, *) {
+            switch AppleJudge.availability {
+            case .available: return .ready
+            case .unavailable(let why): return .unavailable(JudgeStatus.friendly(why))
+            }
+        }
+        #endif
+        return .unavailable("Apple's on-device model needs macOS 26 or later.")
+    }
+
+    /// Checks on every call, so turning Apple Intelligence on (or the model finishing its download) takes effect without relaunching.
+    public static func make() -> any Judge { AdaptiveJudge() }
+}
+
+public struct AdaptiveJudge: Judge {
+    public init() {}
+    private func current() -> any Judge {
         #if canImport(FoundationModels)
         if #available(macOS 26.0, *), case .available = AppleJudge.availability { return AppleJudge() }
         #endif
         return UnsureJudge()
     }
+    public func reasonFirst(prompt: String) async -> Verdict { await current().reasonFirst(prompt: prompt) }
+    public func relation(prompt: String) async -> Verdict { await current().relation(prompt: prompt) }
 }
 
 /// Deterministic judge for demos, snapshots and tests: a window whose prompt contains a marker gets that label.

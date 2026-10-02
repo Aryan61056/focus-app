@@ -45,6 +45,11 @@ struct FocusApp: App {
                     NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { _ in
                         MainActor.assumeIsolated { if controller.isActive { controller.end() } }
                     }
+                    controller.onOpenModelSettings = {
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.Siri-Settings.extension") { NSWorkspace.shared.open(url) }
+                    }
+                    controller.setJudgeStatus(DefaultJudge.status())
+                    Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in MainActor.assumeIsolated { controller.setJudgeStatus(DefaultJudge.status()) } }
                     hotKey.register {
                         if controller.isActive { controller.act(controller.isPaused ? .resume : .pause) }
                         else { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); controller.requestStart() }

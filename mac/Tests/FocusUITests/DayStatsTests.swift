@@ -226,3 +226,12 @@ final class NextStepTests: XCTestCase {
         XCTAssertEqual(store.projectNamed("Calc homework").nextStep, "Check problem 4")
     }
 }
+
+final class JudgeStatusTests: XCTestCase {
+    func testReasonsBecomePlainWords() {
+        XCTAssertTrue(JudgeStatus.friendly("appleIntelligenceNotEnabled").contains("turned off"))
+        XCTAssertTrue(JudgeStatus.friendly("deviceNotEligible").contains("cannot run"))
+        XCTAssertTrue(JudgeStatus.friendly("modelNotReady").contains("downloading"))
+        XCTAssertFalse(JudgeStatus.friendly("somethingNew").isEmpty)
+    }
+}
