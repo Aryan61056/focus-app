@@ -2,6 +2,10 @@
 //! Port of mac/Sources/FocusBrain (which implements docs/BRAIN-SPEC.md draft 0.1). Spike S5: does a shared Rust core hold up?
 //! No dependencies, no I/O, no clock, no randomness: the same events give the same effects everywhere.
 
+pub mod ffi;
+pub mod json;
+pub mod wire;
+
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Mode { Timed, Open }
 #[derive(Clone, Copy, PartialEq, Debug)]

@@ -5,3 +5,6 @@ edition = "2021"
 description = "Spike S5: the focus brain in Rust, checked against the same golden traces as the Swift brain. No dependencies, no I/O, no clock."
 
 [dependencies]
+
+[lib]
+crate-type = ["rlib", "staticlib", "cdylib"]

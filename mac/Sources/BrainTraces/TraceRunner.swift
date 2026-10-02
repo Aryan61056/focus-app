@@ -11,7 +11,7 @@ public struct TraceResult {
 public enum TraceRunner {
     typealias Dict = [String: Any]
 
-    struct Item { var t: Double; var order: Int; var index: Int; var event: Event; var expected: [Dict]; var label: String }
+    struct Item { var t: Double; var order: Int; var index: Int; var event: Event; var expected: [Dict]; var label: String; var raw: Any = "Tick" }
 
     /// One canonical line per event, for differential testing against other implementations: index, time, then each effect with sorted
     /// fields and numbers printed to 6 decimals. Expected effects in the file are ignored.
@@ -19,17 +19,36 @@ public enum TraceRunner {
         let items = try buildItems(file: file).items
         var brain = Brain()
         return items.map { it in
-            let fx = brain.step(it.t, it.event).map(encode).map { e -> String in
-                let f = e.1.keys.sorted().map { k -> String in
-                    let v = e.1[k]!
-                    if isBool(v) { return "\(k)=\((v as! NSNumber).boolValue)" }
-                    if let n = v as? NSNumber { return "\(k)=\(String(format: "%.6f", n.doubleValue))" }
-                    return "\(k)=\(v)"
-                }.joined(separator: ",")
-                return "\(e.0){\(f)}"
-            }
+            let fx = brain.step(it.t, it.event).map(encode).map(canonical)
             return "\(it.index) \(String(format: "%.3f", it.t)) \(fx.joined(separator: ";"))"
         }
+    }
+
+    static func canonical(_ e: (String, Dict)) -> String {
+        let f = e.1.keys.sorted().map { k -> String in
+            let v = e.1[k]!
+            if isBool(v) { return "\(k)=\((v as! NSNumber).boolValue)" }
+            if let n = v as? NSNumber { return "\(k)=\(String(format: "%.6f", n.doubleValue))" }
+            return "\(k)=\(v)"
+        }.joined(separator: ",")
+        return "\(e.0){\(f)}"
+    }
+
+    /// Runs every event of a trace through the Swift brain and through another implementation reached by `other` (the Rust brain over its
+    /// C ABI), comparing the effects. `other` gets the time and the event as JSON and returns the effects as a JSON array, or nil on failure.
+    public static func crossCheck(file: URL, other: (Double, String) -> String?) throws -> (events: Int, mismatches: [String]) {
+        let items = try buildItems(file: file).items
+        var brain = Brain()
+        var bad: [String] = []
+        for it in items {
+            let mine = brain.step(it.t, it.event).map(encode).map(canonical).joined(separator: ";")
+            let json: String
+            if let d = it.raw as? Dict, let data = try? JSONSerialization.data(withJSONObject: d), let str = String(data: data, encoding: .utf8) { json = str } else { json = "\"Tick\"" }
+            guard let out = other(it.t, json), let arr = (try? JSONSerialization.jsonObject(with: Data(out.utf8))) as? [Dict] else { bad.append("\(it.label): other implementation failed"); continue }
+            let theirs = arr.map { e -> String in let (k, v) = e.first!; return canonical((k, (v as? Dict) ?? [:])) }.joined(separator: ";")
+            if mine != theirs { bad.append("\(it.label)\n    swift: \(mine)\n    other: \(theirs)") }
+        }
+        return (items.count, bad)
     }
 
     public static func run(file: URL) throws -> TraceResult {
@@ -61,14 +80,14 @@ public enum TraceRunner {
             let fx = (s["fx"] as? [Dict]) ?? []
             if let str = s["ev"] as? String, str == "Tick" { tickExpect[t] = fx; continue }
             let ev = s["ev"] as! Dict
-            items.append(Item(t: t, order: 0, index: index, event: try decode(ev), expected: fx, label: "t=\(fmt(t)) \(ev.keys.first ?? "")")); index += 1
+            items.append(Item(t: t, order: 0, index: index, event: try decode(ev), expected: fx, label: "t=\(fmt(t)) \(ev.keys.first ?? "")", raw: ev)); index += 1
             if let rep = s["repeat"] as? Dict {
                 let every = num(rep["every"]), until = num(rep["until"])
                 var k = 1.0
                 while t + k * every <= until {
                     var copy = ev
                     if var j = (copy["Judgment"] as? Dict) { j["observedAt"] = num(j["observedAt"]) + k * every; copy["Judgment"] = j }
-                    items.append(Item(t: t + k * every, order: 0, index: index, event: try decode(copy), expected: [], label: "t=\(fmt(t + k * every)) repeat of \(ev.keys.first ?? "")")); index += 1
+                    items.append(Item(t: t + k * every, order: 0, index: index, event: try decode(copy), expected: [], label: "t=\(fmt(t + k * every)) repeat of \(ev.keys.first ?? "")", raw: copy)); index += 1
                     k += 1
                 }
             }

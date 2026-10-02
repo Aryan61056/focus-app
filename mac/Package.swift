@@ -1,8 +1,12 @@
 // swift-tools-version: 6.0
+import Foundation
 import PackageDescription
 
 // FocusJudge: the Mac port of the S1 detection pipeline (stage 0 sensitive windows, stage 1 project rules,
 // stage 3 two-judge text verdict on Apple's on-device model). No UI, no capture, no network.
+// The Rust brain (core/brain-rs) is linked only into brain-ffi-check, as a check that Swift can call it over a C ABI.
+let rustLib = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("core/brain-rs/target/release").path
+
 let package = Package(
     name: "FocusKit",
     platforms: [.macOS(.v14)],
@@ -12,6 +16,7 @@ let package = Package(
         .executable(name: "focus-judge", targets: ["focus-judge"]),
         .executable(name: "brain-trace", targets: ["brain-trace"]),
         .executable(name: "brain-sim", targets: ["brain-sim"]),
+        .executable(name: "brain-ffi-check", targets: ["brain-ffi-check"]),
         .library(name: "FocusUI", targets: ["FocusUI"]),
         .library(name: "FocusSense", targets: ["FocusSense"]),
         .executable(name: "focus-sense-check", targets: ["focus-sense-check"]),
@@ -24,6 +29,9 @@ let package = Package(
         .target(name: "FocusBrain", swiftSettings: [.swiftLanguageMode(.v5)]),
         .target(name: "BrainTraces", dependencies: ["FocusBrain"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .executableTarget(name: "brain-trace", dependencies: ["BrainTraces"], swiftSettings: [.swiftLanguageMode(.v5)]),
+        .target(name: "CFocusBrain"),
+        .executableTarget(name: "brain-ffi-check", dependencies: ["BrainTraces", "CFocusBrain"],
+                          swiftSettings: [.swiftLanguageMode(.v5)], linkerSettings: [.unsafeFlags(["-L", rustLib, "-lfocus_brain"])]),
         .target(name: "BrainSim", dependencies: ["FocusBrain"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .executableTarget(name: "brain-sim", dependencies: ["BrainSim"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .target(name: "FocusUI", dependencies: ["FocusBrain", "FocusJudge"], swiftSettings: [.swiftLanguageMode(.v5)]),
