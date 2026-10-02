@@ -73,6 +73,9 @@ public final class SessionController {
     @ObservationIgnored public var onOpenAccessSettings: (() -> Void)?
     /// Bumped by the global hotkey: the window opens the start sheet (or pauses/resumes a running session).
     public private(set) var startRequests = 0
+    /// Menu commands (View > Today, Projects, ...) ask the window to switch section. The serial makes repeated requests distinct.
+    public private(set) var sectionRequest: (section: AppSection, serial: Int)?
+    public func requestSection(_ s: AppSection) { sectionRequest = (s, (sectionRequest?.serial ?? 0) + 1) }
     public func requestStart() { startRequests += 1 }
     public private(set) var probe = ProbeState.idle
     /// One read of the window in front (set by the app). Nil when Focus itself is in front.

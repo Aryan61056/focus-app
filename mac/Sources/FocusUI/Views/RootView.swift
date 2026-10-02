@@ -51,6 +51,7 @@ public struct RootView: View {
         .frame(minWidth: 960, minHeight: 600)
         .background(Tokens.window)
         .foregroundStyle(Tokens.ink)
+        .onChange(of: c.sectionRequest?.serial) { _, _ in if let r = c.sectionRequest { selection = r.section } }
         .onChange(of: c.startRequests) { _, _ in if !c.isActive { selection = .today; showStart = true } }
         .sheet(isPresented: $showStart) { StartSheet(controller: c, isPresented: $showStart) }
     }

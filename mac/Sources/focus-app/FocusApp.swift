@@ -58,6 +58,21 @@ struct FocusApp: App {
                 }
         }
         .defaultSize(width: 1240, height: 800)
+        .commands {
+            CommandMenu("Session") {
+                Button("Start session\u{2026}") { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); controller.requestStart() }
+                    .keyboardShortcut("n").disabled(controller.isActive)
+                Button(controller.isPaused ? "Resume" : "Pause") { controller.act(controller.isPaused ? .resume : .pause) }
+                    .keyboardShortcut("p", modifiers: [.command, .shift]).disabled(!controller.isActive)
+                Button("End session") { controller.end() }
+                    .keyboardShortcut("e", modifiers: [.command, .shift]).disabled(!controller.isActive)
+            }
+            CommandGroup(after: .sidebar) {
+                ForEach(Array(AppSection.allCases.enumerated()), id: \.element) { i, s in
+                    Button(s.rawValue) { controller.requestSection(s) }.keyboardShortcut(KeyEquivalent(Character("\(i + 1)")), modifiers: .command)
+                }
+            }
+        }
 
         MenuBarExtra {
             MenuBarContent(controller: controller) { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main") }

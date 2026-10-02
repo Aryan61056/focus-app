@@ -187,3 +187,14 @@ final class BringBackTests: XCTestCase {
         XCTAssertEqual(brought.last, "Notes")
     }
 }
+
+@MainActor
+final class MenuRequestTests: XCTestCase {
+    func testRepeatedSectionRequestsAreDistinct() {
+        let c = SessionController(judge: ScriptedJudge(markers: []), now: { 0 })
+        c.requestSection(.history); let a = c.sectionRequest!
+        c.requestSection(.history); let b = c.sectionRequest!
+        XCTAssertEqual(a.section, .history); XCTAssertNotEqual(a.serial, b.serial)
+        c.requestStart(); XCTAssertEqual(c.startRequests, 1)
+    }
+}
