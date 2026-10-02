@@ -41,6 +41,10 @@ struct FocusApp: App {
                     controller.onBringBackToApp = { name in
                         NSWorkspace.shared.runningApplications.first { $0.localizedName == name && $0.activationPolicy == .regular }?.activate()
                     }
+                    // Quitting during a session ends it, so the session is saved instead of vanishing.
+                    NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { _ in
+                        MainActor.assumeIsolated { if controller.isActive { controller.end() } }
+                    }
                     hotKey.register {
                         if controller.isActive { controller.act(controller.isPaused ? .resume : .pause) }
                         else { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); controller.requestStart() }
