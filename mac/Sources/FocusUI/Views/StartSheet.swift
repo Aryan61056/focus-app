@@ -18,6 +18,14 @@ public struct StartSheet: View {
                 .textFieldStyle(.plain).font(Tokens.text(16)).padding(.horizontal, 14).frame(height: 44)
                 .background(RoundedRectangle(cornerRadius: 12).fill(Tokens.control))
                 .focused($focused).onSubmit(start)
+            if let line = Self.confirmLine(task: trimmed, project: c.store?.projects.first { $0.name.caseInsensitiveCompare(trimmed) == .orderedSame }) {
+                Text(line).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+            } else if let recent = c.store?.projects.prefix(3), !recent.isEmpty {
+                HStack(spacing: 6) {
+                    Text("Continue").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
+                    ForEach(Array(recent)) { p in chip(p.name, on: false) { task = p.name } }
+                }.lineLimit(1)
+            }
             HStack(spacing: 6) {
                 chip("Open", on: !timed) { timed = false }
                 chip("Timed", on: timed) { timed = true }
@@ -25,6 +33,10 @@ public struct StartSheet: View {
                     Picker("Length", selection: $minutes) { ForEach([25, 50, 90], id: \.self) { Text("\($0) min").tag($0) } }
                         .pickerStyle(.menu).labelsHidden().frame(width: 100)
                 }
+            }
+            if c.prefs.practiceActive {
+                Label("Practice mode: Focus watches but will not interrupt you. \(c.prefs.practiceSessionsLeft) practice session\(c.prefs.practiceSessionsLeft == 1 ? "" : "s") left.", systemImage: "eye")
+                    .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
             }
             HStack {
                 Button("Start") { start() }.buttonStyle(FocusButtonStyle(.primary, expand: true)).disabled(trimmed.isEmpty)
@@ -34,6 +46,16 @@ public struct StartSheet: View {
         }
         .padding(24).frame(width: 480)
         .onAppear { focused = true }
+    }
+
+    /// One calm line under the task: what Focus will compare windows with. Nil until something is typed.
+    static func confirmLine(task: String, project: Project?) -> String? {
+        guard !task.isEmpty else { return nil }
+        guard let p = project else { return "New project. Focus compares each window with this task. You can describe it later under Projects." }
+        let ctx = p.context.trimmingCharacters(in: .whitespacesAndNewlines)
+        if ctx.isEmpty { return "Focus knows this project. A line about it under Projects helps it decide." }
+        let short = ctx.count > 70 ? String(ctx.prefix(67)) + "..." : ctx
+        return "Focus will use what you wrote: \u{201C}\(short)\u{201D}"
     }
 
     var trimmed: String { task.trimmingCharacters(in: .whitespacesAndNewlines) }

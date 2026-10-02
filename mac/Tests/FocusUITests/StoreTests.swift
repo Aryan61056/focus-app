@@ -57,3 +57,18 @@ final class StoreTests: XCTestCase {
         XCTAssertTrue(DataStore(url: u).projects.isEmpty)
     }
 }
+
+final class StartLineTests: XCTestCase {
+    func testNothingTypedSaysNothing() { XCTAssertNil(StartSheet.confirmLine(task: "", project: nil)) }
+    func testNewTaskExplainsWhatItIsComparedWith() {
+        XCTAssertTrue(StartSheet.confirmLine(task: "Essay", project: nil)!.hasPrefix("New project."))
+    }
+    func testKnownProjectQuotesItsContextShortened() {
+        var p = Project(name: "Calc"); p.context = String(repeating: "integration ", count: 12)
+        let line = StartSheet.confirmLine(task: "Calc", project: p)!
+        XCTAssertTrue(line.contains("..."))
+        XCTAssertLessThan(line.count, 120)
+        p.context = ""
+        XCTAssertTrue(StartSheet.confirmLine(task: "Calc", project: p)!.hasPrefix("Focus knows this project."))
+    }
+}
