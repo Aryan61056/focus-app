@@ -123,7 +123,11 @@ public final class SessionController {
     @ObservationIgnored private var timer: Timer?
     @ObservationIgnored var totalSeconds = 0.0
 
-    public init(judge: any Judge, store: DataStore? = nil, prefs: Preferences? = nil, now: @escaping () -> Double = { ProcessInfo.processInfo.systemUptime }, date: @escaping () -> Date = Date.init) {
+    /// Seconds on a clock that keeps counting while the Mac sleeps. ProcessInfo.systemUptime stops during sleep (on the dev Mac it was 92,000 s
+    /// behind), which made a night's sleep look like a second, so "ask to resume after a long sleep" never fired.
+    public nonisolated static let clock: @Sendable () -> Double = { Double(clock_gettime_nsec_np(CLOCK_MONOTONIC)) / 1e9 }
+
+    public init(judge: any Judge, store: DataStore? = nil, prefs: Preferences? = nil, now: @escaping () -> Double = SessionController.clock, date: @escaping () -> Date = Date.init) {
         self.judge = judge; self.store = store; self.now = now; self.date = date
         self.prefs = prefs ?? Preferences(defaults: UserDefaults(suiteName: "focus.tests.\(UUID().uuidString)")!)
     }

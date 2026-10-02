@@ -290,3 +290,12 @@ final class MatchingWordsTests: XCTestCase {
 @MainActor func noWords() -> Preferences {
     let p = Preferences(defaults: UserDefaults(suiteName: "focus.tests.\(UUID().uuidString)")!); p.matchTaskWords = false; return p
 }
+
+final class ClockTests: XCTestCase {
+    func testTheClockCountsSleepSoALongSleepLooksLong() {
+        let a = SessionController.clock(), b = SessionController.clock()
+        XCTAssertGreaterThanOrEqual(b, a)
+        // It is never behind systemUptime, which excludes sleep; on a Mac that has slept since boot it is ahead.
+        XCTAssertGreaterThanOrEqual(SessionController.clock() + 1, ProcessInfo.processInfo.systemUptime)
+    }
+}
