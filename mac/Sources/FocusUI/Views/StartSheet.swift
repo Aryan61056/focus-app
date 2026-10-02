@@ -9,6 +9,12 @@ public struct StartSheet: View {
     @State private var minutes = 50
     @FocusState private var focused: Bool
 
+    /// Level 0 start (PLAN 4.8): the project worked on last, so a returning user only presses Enter.
+    static func lastProject(_ store: DataStore?) -> Project? {
+        guard let store, let r = store.sessions.max(by: { $0.start < $1.start }) else { return nil }
+        return store.project(r.projectId)
+    }
+
     public init(controller: SessionController, isPresented: Binding<Bool>) { self.c = controller; self._isPresented = isPresented }
 
     public var body: some View {
@@ -18,6 +24,9 @@ public struct StartSheet: View {
                 .textFieldStyle(.plain).font(Tokens.text(16)).padding(.horizontal, 14).frame(height: 44)
                 .background(RoundedRectangle(cornerRadius: 12).fill(Tokens.control))
                 .focused($focused).onSubmit(start)
+            if let p = Self.lastProject(c.store), p.name == task, !p.nextStep.isEmpty {
+                Label("Next step: \(p.nextStep)", systemImage: "arrow.turn.down.right").font(Tokens.text(13)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+            }
             if let line = Self.confirmLine(task: trimmed, project: c.store?.projects.first { $0.name.caseInsensitiveCompare(trimmed) == .orderedSame }) {
                 Text(line).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
             } else if let recent = c.store?.projects.prefix(3), !recent.isEmpty {
@@ -45,7 +54,10 @@ public struct StartSheet: View {
             }
         }
         .padding(24).frame(width: 480)
-        .onAppear { focused = true }
+        .onAppear {
+            focused = true
+            if task.isEmpty, let p = Self.lastProject(c.store) { task = p.name }
+        }
     }
 
     /// One calm line under the task: what Focus will compare windows with. Nil until something is typed.

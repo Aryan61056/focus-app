@@ -155,3 +155,18 @@ final class FirstRunTests: XCTestCase {
         XCTAssertFalse(c.askLoudness, "practice sessions never nudged")
     }
 }
+
+@MainActor
+final class LevelZeroStartTests: XCTestCase {
+    func testStartSheetOffersTheProjectWorkedOnLast() {
+        let store = DataStore()
+        var a = store.addProject(name: "Essay"); a.nextStep = "Add citations"; store.update(a)
+        let b = store.addProject(name: "Calc homework")
+        let t = Date()
+        store.record(SessionRecord(projectId: a.id, task: a.name, timed: false, start: t.addingTimeInterval(-7200), end: t.addingTimeInterval(-3600), activeSeconds: 3600, offTopicSeconds: 0, unsureSeconds: 0, drifts: 0, interrupts: 0, refusals: 0, shadowMarks: 0, segments: []))
+        store.record(SessionRecord(projectId: b.id, task: b.name, timed: false, start: t.addingTimeInterval(-1800), end: t, activeSeconds: 1800, offTopicSeconds: 0, unsureSeconds: 0, drifts: 0, interrupts: 0, refusals: 0, shadowMarks: 0, segments: []))
+        XCTAssertEqual(StartSheet.lastProject(store)?.name, "Calc homework")
+        XCTAssertNil(StartSheet.lastProject(DataStore()))
+        XCTAssertNil(StartSheet.lastProject(nil))
+    }
+}

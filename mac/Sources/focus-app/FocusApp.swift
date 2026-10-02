@@ -14,6 +14,7 @@ struct FocusApp: App {
     @State private var notch: NotchPanelController?
     @State private var sense: SenseCoordinator?
     @State private var previewWatcher: PreviewWatcher?
+    @State private var hotKey = GlobalHotKey()
     @Environment(\.openWindow) private var openWindow
 
     var body: some Scene {
@@ -32,6 +33,10 @@ struct FocusApp: App {
                             if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") { NSWorkspace.shared.open(url) }
                         }
                         previewWatcher = pw; pw.bind()
+                    }
+                    hotKey.register {
+                        if controller.isActive { controller.act(controller.isPaused ? .resume : .pause) }
+                        else { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); controller.requestStart() }
                     }
                     if notch == nil { let n = NotchPanelController(controller: controller) { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main") }; notch = n; n.start() }
                     guard ProcessInfo.processInfo.environment["FOCUS_DEMO"] == "1", demo == nil else { return }

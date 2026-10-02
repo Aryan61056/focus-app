@@ -71,6 +71,9 @@ public final class SessionController {
     public private(set) var shadow = true
     public private(set) var windowAccess = WindowAccess.unknown
     @ObservationIgnored public var onOpenAccessSettings: (() -> Void)?
+    /// Bumped by the global hotkey: the window opens the start sheet (or pauses/resumes a running session).
+    public private(set) var startRequests = 0
+    public func requestStart() { startRequests += 1 }
     public private(set) var probe = ProbeState.idle
     /// One read of the window in front (set by the app). Nil when Focus itself is in front.
     @ObservationIgnored public var senseNow: (() -> WindowSnapshot?)?
