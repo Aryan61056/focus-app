@@ -37,6 +37,8 @@ public struct Reading: Identifiable, Equatable, Sendable {
     public var reason: String
     /// The model refused or errored; Focus treated it as unsure (CLAUDE.md principle 7).
     public var failed = false
+    /// Settled by words the window shares with the task, not by the model.
+    public var byWords = false
     /// The judge also got the words read from the screen picture, not only the title and address.
     public var sawScreen = false
 }
@@ -233,6 +235,14 @@ public final class SessionController {
             previewHeld = "On your never-judged list. Not captured."; previewFrame = nil
             record(Reading(at: now(), date: date(), key: Keys.window(w), app: w.app, title: "", call: .unsure, source: .skipped, reason: "Personal messages, music and blank pages are not judged."))
             send(.windowChange(WindowChangeInput(windowKey: Keys.window(w), siteKey: Keys.site(w), ruleLabel: .unsure)))
+            return
+        }
+        if hit == nil, prefs.matchTaskWords, case let shared = Rules.sharedTaskWords(m), !shared.isEmpty {
+            var r = Reading(at: now(), date: date(), key: Keys.window(w), app: w.app, title: w.title, call: .on, source: .rule,
+                            reason: "Its title or address shares words with your task: \(shared.prefix(3).joined(separator: ", ")).")
+            r.byWords = true
+            record(r)
+            send(.windowChange(WindowChangeInput(windowKey: Keys.window(w), siteKey: Keys.site(w), ruleLabel: .onTask)))
             return
         }
         if let hit { record(Reading(at: now(), date: date(), key: Keys.window(w), app: w.app, title: w.title, call: Self.call(hit.label), source: .rule, reason: Self.ruleReason(hit.rule))) }

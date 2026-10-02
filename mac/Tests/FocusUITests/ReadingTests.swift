@@ -13,7 +13,7 @@ final class ReadingTests: XCTestCase {
     let editor = WindowSnapshot(app: "Notes", title: "Calc homework")
     let video = WindowSnapshot(app: "Browser", title: "youtube clip", url: "https://youtube.com/watch?v=1")
 
-    func make(store: DataStore? = nil) -> SessionController { SessionController(judge: judge, store: store, now: { [unowned self] in self.t }) }
+    func make(store: DataStore? = nil) -> SessionController { SessionController(judge: judge, store: store, prefs: noWords(), now: { [unowned self] in self.t }) }
     func advance(_ c: SessionController, to target: Double) async { while t < target { t += 1; c.tick(); await c.waitForJudgments() } }
 
     func testLatestReadingCarriesTheModelsReasonAndCall() async {
@@ -64,7 +64,7 @@ final class ReadingTests: XCTestCase {
 
     func testRefusalShowsAPlainLineNotTheRawError() async {
         let refusing = CountingJudge { _ in Verdict(label: .unsure, reason: "I can't help with that request", error: "guardrail") }
-        let c = SessionController(judge: refusing, now: { [unowned self] in self.t })
+        let c = SessionController(judge: refusing, prefs: noWords(), now: { [unowned self] in self.t })
         c.windowChanged(editor)
         c.begin(task: "Calc homework", preset: .standard, shadow: false)
         await advance(c, to: 5)
@@ -108,7 +108,7 @@ final class ReadingTests: XCTestCase {
         var p = store.addProject(name: "Calc homework")
         p.context = "Integration by parts, chapter 5."
         store.update(p)
-        let c = SessionController(judge: spy, store: store, now: { [unowned self] in self.t })
+        let c = SessionController(judge: spy, store: store, prefs: noWords(), now: { [unowned self] in self.t })
         c.windowChanged(editor)
         c.begin(task: "Calc homework", preset: .standard, shadow: false)
         await advance(c, to: 3)
@@ -134,7 +134,7 @@ final class PromptBox: @unchecked Sendable {
 final class NeverJudgedTests: XCTestCase {
     var t = 0.0
     let spy = CountingJudge { _ in Verdict(label: .offTask, reason: "would be off topic") }
-    func make() -> SessionController { SessionController(judge: spy, now: { [unowned self] in self.t }) }
+    func make() -> SessionController { SessionController(judge: spy, prefs: noWords(), now: { [unowned self] in self.t }) }
     func advance(_ c: SessionController, to target: Double) async { while t < target { t += 1; c.tick(); await c.waitForJudgments() } }
     let editor = WindowSnapshot(app: "Notes", title: "Calc homework")
 
@@ -172,7 +172,7 @@ final class NeverJudgedTests: XCTestCase {
     func testAProjectAllowRuleBeatsTheNeverJudgedList() async {
         let store = DataStore()
         var p = store.addProject(name: "Calc homework"); p.profile.alwaysAllowApps = ["Spotify"]; store.update(p)
-        let c = SessionController(judge: spy, store: store, now: { [unowned self] in self.t })
+        let c = SessionController(judge: spy, store: store, prefs: noWords(), now: { [unowned self] in self.t })
         c.windowChanged(WindowSnapshot(app: "Spotify", title: "Focus playlist"))
         c.begin(task: "Calc homework", preset: .standard, shadow: false)
         XCTAssertEqual(c.latest?.source, .rule)

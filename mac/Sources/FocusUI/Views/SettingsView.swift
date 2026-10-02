@@ -40,6 +40,9 @@ struct SettingsView: View {
                     row("Try it", probeText) {
                         Button(probeBusy ? "Switch windows now" : "Check in 5 seconds") { c.runProbe() }.buttonStyle(FocusButtonStyle(.secondary, small: true)).disabled(probeBusy)
                     }
+                    row("Count matching words as on task", "A window whose title or address shares words with your task counts as on task without asking the model. It never applies on feeds, video or news sites, and it can only make Focus quieter.") {
+                        Toggle("", isOn: Binding(get: { c.prefs.matchTaskWords }, set: { c.prefs.matchTaskWords = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
+                    }
                     row("Skip personal messages, music and blank pages", "Focus leaves these alone: it does not read them and does not count them as off topic.") {
                         Toggle("", isOn: Binding(get: { c.prefs.skipPersonal }, set: { c.prefs.skipPersonal = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }

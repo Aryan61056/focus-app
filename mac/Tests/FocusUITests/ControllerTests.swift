@@ -16,7 +16,7 @@ final class CountingJudge: Judge, @unchecked Sendable {
 @MainActor
 final class ControllerTests: XCTestCase {
     var t = 0.0
-    func make(_ judge: any Judge) -> SessionController { SessionController(judge: judge, now: { [unowned self] in self.t }) }
+    func make(_ judge: any Judge) -> SessionController { SessionController(judge: judge, prefs: noWords(), now: { [unowned self] in self.t }) }
     func advance(_ c: SessionController, to target: Double) async { while t < target { t += 1; c.tick(); await c.waitForJudgments() } }
     let off = CountingJudge { p in Verdict(label: p.contains("youtube") ? .offTask : .onTask) }
     let editor = WindowSnapshot(app: "Notes", title: "Calc homework")
@@ -122,7 +122,7 @@ final class ControllerStoreTests: XCTestCase {
 
     func testSessionIsRecordedWithTimelineThatAddsUp() async {
         let store = DataStore()
-        let c = SessionController(judge: judge, store: store, now: { [unowned self] in self.t })
+        let c = SessionController(judge: judge, store: store, prefs: noWords(), now: { [unowned self] in self.t })
         c.windowChanged(editor)
         c.begin(task: "Calc homework", preset: .standard, shadow: false)
         await advance(c, to: 40)
@@ -139,7 +139,7 @@ final class ControllerStoreTests: XCTestCase {
 
     func testThatWasFinePersistsASiteRuleForTheProjectAndTheNextSessionUsesIt() async {
         let store = DataStore()
-        let c = SessionController(judge: judge, store: store, now: { [unowned self] in self.t })
+        let c = SessionController(judge: judge, store: store, prefs: noWords(), now: { [unowned self] in self.t })
         c.windowChanged(editor)
         c.begin(task: "Calc homework", preset: .standard, shadow: false)
         await advance(c, to: 10)
@@ -151,7 +151,7 @@ final class ControllerStoreTests: XCTestCase {
         // next session: the same site is on task by rule, with no judge call
         let before = judge.calls
         t = 0
-        let c2 = SessionController(judge: judge, store: store, now: { [unowned self] in self.t })
+        let c2 = SessionController(judge: judge, store: store, prefs: noWords(), now: { [unowned self] in self.t })
         c2.windowChanged(video)
         c2.begin(task: "Calc homework", preset: .standard, shadow: false)
         await advance(c2, to: 200)
@@ -161,7 +161,7 @@ final class ControllerStoreTests: XCTestCase {
 
     func testPracticeModeQueuesMomentsForReview() async {
         let store = DataStore()
-        let c = SessionController(judge: judge, store: store, now: { [unowned self] in self.t })
+        let c = SessionController(judge: judge, store: store, prefs: noWords(), now: { [unowned self] in self.t })
         c.windowChanged(editor)
         c.begin(task: "Calc homework", preset: .standard, shadow: true)
         await advance(c, to: 20); c.windowChanged(video); await advance(c, to: 200)

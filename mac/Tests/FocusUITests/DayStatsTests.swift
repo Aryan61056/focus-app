@@ -1,5 +1,7 @@
 import XCTest
 @testable import FocusUI
+@testable import FocusJudge
+@testable import FocusBrain
 
 final class DayStatsTests: XCTestCase {
     var cal: Calendar { var c = Calendar(identifier: .gregorian); c.timeZone = TimeZone(identifier: "UTC")!; return c }
@@ -253,4 +255,38 @@ final class ContextTipTests: XCTestCase {
         c.prefs.contextTipDismissed = true
         XCTAssertFalse(c.showContextTip)
     }
+}
+
+@MainActor
+final class MatchingWordsTests: XCTestCase {
+    struct NeverCalled: Judge {
+        func reasonFirst(prompt: String) async -> Verdict { XCTFail("the model should not be asked"); return Verdict(label: .unsure) }
+        func relation(prompt: String) async -> Verdict { XCTFail("the model should not be asked"); return Verdict(label: .unsure) }
+    }
+
+    func testAWindowSharingTaskWordsIsSettledWithoutTheModelAndCanBeTurnedOff() async {
+        var t = 0.0
+        let c = SessionController(judge: NeverCalled(), now: { t })
+        c.windowChanged(WindowSnapshot(app: "Code", title: "orders_api.py - orders-service"))
+        c.begin(task: "Fix the pagination bug in the orders API", preset: .standard, shadow: false)
+        for _ in 0..<30 { t += 1; c.tick(); await c.waitForJudgments() }
+        XCTAssertEqual(c.latest?.call, .on); XCTAssertEqual(c.latest?.byWords, true)
+        XCTAssertTrue(c.latest?.reason.contains("orders") ?? false)
+        XCTAssertEqual(c.stats.model, 0); XCTAssertGreaterThan(c.stats.rule, 0)
+    }
+
+    func testTurnedOffTheModelDecidesAgain() async {
+        var t = 0.0
+        let c = SessionController(judge: ScriptedJudge(markers: [("orders", .on)]), now: { t })
+        c.prefs.matchTaskWords = false
+        c.windowChanged(WindowSnapshot(app: "Code", title: "orders_api.py - orders-service"))
+        c.begin(task: "Fix the pagination bug in the orders API", preset: .standard, shadow: false)
+        for _ in 0..<5 { t += 1; c.tick(); await c.waitForJudgments() }
+        XCTAssertEqual(c.latest?.byWords, false); XCTAssertGreaterThan(c.stats.model, 0)
+    }
+}
+
+/// Most tests use windows titled like the task. The matching-words rule would settle those without the model, so they opt out.
+@MainActor func noWords() -> Preferences {
+    let p = Preferences(defaults: UserDefaults(suiteName: "focus.tests.\(UUID().uuidString)")!); p.matchTaskWords = false; return p
 }

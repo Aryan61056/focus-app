@@ -72,6 +72,31 @@ public enum Rules {
         return privateTextMarkers.contains { s.contains($0) }
     }
 
+    static let wordStop: Set<String> = Set("the and for with from about into your this that these those how what why when where which who whom are was were been being does did doing have has had having not yes its you they them his her their than then also just more most some any all can could should would will may might must down out over under again further once here there very too fix write study prepare review make build work project task homework notes note page new chapter part week day".split(separator: " ").map(String.init))
+    /// Pages where a shared word proves nothing: feeds, video, news. A title there is whatever someone posted.
+    static let wordMatchExcludedHosts = ["youtube.com", "youtu.be", "reddit.com", "twitter.com", "x.com", "facebook.com", "instagram.com", "tiktok.com", "netflix.com",
+                                         "twitch.tv", "techcrunch.com", "medium.com", "linkedin.com", "news.ycombinator.com", "pinterest.com", "9gag.com"]
+
+    static func words(_ s: String) -> Set<String> {
+        var out = Set<String>(), cur = ""
+        for ch in normalizedForScan(s).lowercased() {
+            if ch.isLetter && ch.isASCII || (!cur.isEmpty && ch.isNumber) { cur.append(ch) } else { if cur.count >= 4, !wordStop.contains(cur) { out.insert(cur) }; cur = "" }
+        }
+        if cur.count >= 4, !wordStop.contains(cur) { out.insert(cur) }
+        return out
+    }
+
+    /// Words from the task, project name and project description that also appear in the window title, the page path or the file path.
+    /// A hit counts as on task without asking the model. It can only make Focus quieter: a distraction that happens to share a word
+    /// goes unnoticed (measured on the dev, held-out and fresh sets: 1 or 2 of 45 off-task moments). Not applied on feeds, video or news.
+    public static func sharedTaskWords(_ m: Moment) -> [String] {
+        let (host, path) = hostAndPath(m.url)
+        if wordMatchExcludedHosts.contains(where: { hostMatches(host, $0) }) { return [] }
+        let task = words([m.task, m.project.context].joined(separator: " "))
+        let there = words([m.windowTitle, path, m.documentPath].joined(separator: " "))
+        return task.intersection(there).sorted()
+    }
+
     /// Apps Focus does not judge by default: personal messaging and music. Neither is read nor counted as off task.
     /// Slack, Mail and similar can be work, so they are not here. The owner approved a default list on 2026-10-01; this exact
     /// list is a starting point the user can edit in Settings.

@@ -13,7 +13,7 @@ extension Reading {
         switch (source, call) {
         case (.sensitive, _): return "Skipped"
         case (.skipped, _): return "Not judged"
-        case (.rule, _): return "Your rule decided"
+        case (.rule, _): return byWords ? "Words matched" : "Your rule decided"
         case (_, .on): return "Confident"
         case (_, .unsure): return "Not sure"
         case (_, .off): return "Two checks agree"
@@ -24,7 +24,7 @@ extension Reading {
         switch (source, call) {
         case (.sensitive, _): return "Private windows are never read."
         case (.skipped, _): return "It is on your never-judged list, so Focus did not read it."
-        case (.rule, _): return "A rule you set applies, so the model was not needed."
+        case (.rule, _): return byWords ? "The model was not needed. This is quiet by design: a match can only make Focus say less." : "A rule you set applies, so the model was not needed."
         case (_, .on): return "It matches the task. Nothing to do."
         case (_, .unsure): return "Focus waits and does nothing."
         case (_, .off): return "Focus keeps watching. It speaks up only if this lasts."
