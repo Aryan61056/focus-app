@@ -167,6 +167,12 @@ public final class SessionController {
     /// Ask "too quiet, about right, too loud" once, after the first finished session in which Focus actually spoke up (not practice).
     public var askLoudness: Bool { !prefs.loudnessAsked && !shadow && (summary?.interrupts ?? 0) > 0 }
 
+    /// One hint, once: during a session where the model is mostly unsure and the project has no description, say what helps.
+    public var showContextTip: Bool {
+        guard isActive, !prefs.contextTipDismissed, stats.model >= 5, stats.unsure * 10 >= stats.model * 6 else { return false }
+        return (projectForNote?.context ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     public func setWindowAccess(_ a: WindowAccess) { if windowAccess != a { windowAccess = a } }
     /// Counts down so the user can switch to another window, then reports what Focus can see there.
     public func runProbe(seconds: Int = 5, tick: UInt64 = 1_000_000_000) {

@@ -235,3 +235,22 @@ final class JudgeStatusTests: XCTestCase {
         XCTAssertFalse(JudgeStatus.friendly("somethingNew").isEmpty)
     }
 }
+
+@MainActor
+final class ContextTipTests: XCTestCase {
+    func testTipAppearsOnlyWhenMostlyUnsureAndUndescribedAndOnlyOnce() async {
+        var t = 0.0
+        let store = DataStore()
+        let c = SessionController(judge: ScriptedJudge(markers: []), store: store, now: { t })   // everything "unsure"
+        c.windowChanged(WindowSnapshot(app: "Notes", title: "Calc homework"))
+        c.begin(task: "Calc homework", preset: .standard, shadow: false)
+        XCTAssertFalse(c.showContextTip, "too early")
+        for i in 0..<8 {
+            c.windowChanged(WindowSnapshot(app: "App\(i)", title: "Window \(i)"))
+            for _ in 0..<15 { t += 1; c.tick(); await c.waitForJudgments() }
+        }
+        XCTAssertTrue(c.showContextTip)
+        c.prefs.contextTipDismissed = true
+        XCTAssertFalse(c.showContextTip)
+    }
+}

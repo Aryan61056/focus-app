@@ -21,6 +21,7 @@ public final class Preferences {
     /// First-run intro shown once; and the one "too quiet, about right, too loud" question, asked once after the first session that actually nudged.
     public var introSeen: Bool { didSet { defaults.set(introSeen, forKey: "introSeen") } }
     public var loudnessAsked: Bool { didSet { defaults.set(loudnessAsked, forKey: "loudnessAsked") } }
+    public var contextTipDismissed: Bool { didSet { defaults.set(contextTipDismissed, forKey: "contextTipDismissed") } }
     public var practiceActive: Bool { practiceSessionsLeft > 0 }
 
     public init(defaults: UserDefaults = .standard) {
@@ -32,6 +33,7 @@ public final class Preferences {
         readScreen = defaults.object(forKey: "readScreen") as? Bool ?? false
         introSeen = defaults.object(forKey: "introSeen") as? Bool ?? false
         loudnessAsked = defaults.object(forKey: "loudnessAsked") as? Bool ?? false
+        contextTipDismissed = defaults.object(forKey: "contextTipDismissed") as? Bool ?? false
         practiceSessionsLeft = defaults.object(forKey: "practiceLeft") as? Int ?? Preferences.practiceSessions
     }
 

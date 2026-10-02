@@ -27,6 +27,18 @@ struct TodayView: View {
                     }
                 }
             }
+            if c.showContextTip {
+                Panel(tinted: true) {
+                    HStack(spacing: 14) {
+                        Image(systemName: "lightbulb").foregroundStyle(Tokens.ink2)
+                        Text("Focus is often not sure about this project. A line about what counts, under Projects, can help. It still prefers to do nothing when a window is unclear.")
+                            .font(Tokens.text(13.5)).fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 12)
+                        Button("Describe project") { c.prefs.contextTipDismissed = true; c.requestSection(.projects) }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+                        Button("Dismiss") { c.prefs.contextTipDismissed = true }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                    }
+                }
+            }
             if c.windowAccess == .appNamesOnly {
                 Panel(tinted: true) {
                     HStack(spacing: 14) {
