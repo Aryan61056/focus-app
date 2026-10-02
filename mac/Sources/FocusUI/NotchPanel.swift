@@ -2,6 +2,21 @@ import AppKit
 import SwiftUI
 import Observation
 
+/// Content view that reports the pointer entering and leaving, even while Focus is not the active app. SwiftUI's own hover does not fire
+/// for a panel of a background app, and a notch that only reacts when Focus is in front would never open.
+final class HoverBox: NSView {
+    var onHover: ((Bool) -> Void)?
+    private var area: NSTrackingArea?
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let area { removeTrackingArea(area) }
+        let a = NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self, userInfo: nil)
+        addTrackingArea(a); area = a
+    }
+    override func mouseEntered(with event: NSEvent) { onHover?(true) }
+    override func mouseExited(with event: NSEvent) { onHover?(false) }
+}
+
 /// Hosts NotchView in a borderless panel at the top centre of a screen, visible only while a session runs.
 /// The controller, not SwiftUI, decides the panel's frame (from NotchLayout), and it re-places the panel when displays change.
 /// Two crashes found on a real notched Mac on 2026-10-01 (hover, and unplugging a monitor) came from SwiftUI sizing this window;
@@ -78,7 +93,8 @@ public final class NotchPanelController {
             let host = NSHostingView(rootView: view)
             host.sizingOptions = []
             host.safeAreaRegions = []
-            let box = NSView(frame: NSRect(origin: .zero, size: frame.size))
+            let box = HoverBox(frame: NSRect(origin: .zero, size: frame.size))
+            box.onHover = { [weak self] on in self?.model.hover = on }
             host.frame = box.bounds; host.autoresizingMask = [.width, .height]
             box.addSubview(host)
             p.contentView = box

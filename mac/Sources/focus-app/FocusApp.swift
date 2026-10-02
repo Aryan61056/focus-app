@@ -62,6 +62,7 @@ struct FocusApp: App {
                         .init(after: 150, window: WindowSnapshot(app: "Notes", title: "Calc homework")),
                     ])
                     demo = d
+                    SelfShot.scheduleIfRequested()
                     controller.begin(task: "Calc homework", preset: .standard, shadow: false, autoTick: true)
                     d.start()
                 }

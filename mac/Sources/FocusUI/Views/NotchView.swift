@@ -79,7 +79,6 @@ public struct NotchView: View {
         .frame(width: size.width, height: size.height)
         .ignoresSafeArea()
         .foregroundStyle(Self.ink)
-        .onHover { model.hover = $0 }
         .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: mode)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Focus, \(c.presenceLabel), \(c.taskName)")

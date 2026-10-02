@@ -3,7 +3,7 @@
 Everything here is on this Mac only. Nothing was pushed or published. Windows code cannot be run here, so nothing about Windows is verified.
 
 ## Fixed since you last used it
-- **Hover crash on the notch/pill.** Reproduced with synthetic pointer moves, fixed (the SwiftUI view is no longer the window's content view). `tools/check_notch_hover.sh` re-runs the check.
+- **Hover crash on the notch/pill.** Reproduced with synthetic pointer moves, fixed (the SwiftUI view is no longer the window's content view). Also fixed: hover never opened the panel while Focus was in the background and flickered when it did (SwiftUI hover reported "left" a few milliseconds after "entered"); an AppKit tracking area now owns hover. `tools/check_notch_hover.sh` moves the real pointer onto the panel and checks it survives and grows from 32 to 120 points (measured). The pill now sits under the menu bar on screens without a notch.
 - **Monitor unplug crash.** The panel now re-places itself on display changes (`didChangeScreenParameters`) and hides when no screen exists. Not verified against a real unplug.
 - **Permissions kept getting lost.** Each rebuild changed the app's signature, so macOS dropped Accessibility and Screen Recording. The bundle is now signed with a stable requirement. You must remove and re-add Focus once in Privacy & Security (Accessibility, and Screen Recording if you use screen reading).
 - Permission card on Today appears between sessions and disappears once allowed; the system dialog is raised once per launch.
