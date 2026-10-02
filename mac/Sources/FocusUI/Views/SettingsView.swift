@@ -33,7 +33,7 @@ struct SettingsView: View {
                 }
                 group("What Focus looks at") {
                     row("Window titles", "The app name, the window title and the page or file address, from the window in front.") { Text("On").foregroundStyle(Tokens.ink2) }
-                    row("Window access", c.windowAccess == .allowed ? "Accessibility is allowed, so Focus can read window titles." : "Without Accessibility, Focus can only see which app is in front. Allow it in System Settings, then come back.") {
+                    row("Window access", c.windowAccess == .allowed ? "Focus can read window titles. Page addresses need Accessibility; titles alone also work with Screen Recording." : "Without Accessibility, Focus can only see which app is in front. Allow it in System Settings, then come back.") {
                         if c.windowAccess == .allowed { Label("Allowed", systemImage: "checkmark").foregroundStyle(Tokens.ink2) }
                         else { Button("Open Accessibility settings") { c.onOpenAccessSettings?() }.buttonStyle(FocusButtonStyle(.secondary, small: true)) }
                     }
