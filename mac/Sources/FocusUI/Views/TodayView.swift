@@ -98,7 +98,7 @@ struct IntroPanel: View {
                 Text("Stay on what you meant to do").font(Tokens.rounded(24, .semibold))
                 Text("Tell Focus what you are working on. It compares the window in front with that task, on this Mac, and nudges gently when you drift. When it is not sure, it does nothing.")
                     .font(Tokens.text(14.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true).frame(maxWidth: 520, alignment: .leading)
-                Text("Your first sessions are practice: Focus watches and learns, and does not interrupt.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
+                Text("Your first sessions are practice: Focus watches and learns, and does not interrupt. You can turn nudges on from the start screen or in Settings.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true).frame(maxWidth: 520, alignment: .leading)
                 HStack(spacing: 10) {
                     Button("Start a session") { c.prefs.introSeen = true; showStart = true }.buttonStyle(FocusButtonStyle(.primary)).keyboardShortcut("n")
                     Button("Skip intro") { c.prefs.introSeen = true }.buttonStyle(FocusButtonStyle(.plain))
