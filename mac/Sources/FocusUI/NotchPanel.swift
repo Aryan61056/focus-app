@@ -68,11 +68,16 @@ public final class NotchPanelController {
         let p = panel ?? makePanel()
         // A fresh hosting view each time the geometry changes (a display was added or removed); the same one otherwise.
         let view = NotchView(controller: c, notchWidth: g.width, notchHeight: g.height, model: model, openApp: openApp)
-        if let host = p.contentView as? NSHostingView<NotchView> { host.rootView = view } else {
+        if let host = p.contentView?.subviews.first as? NSHostingView<NotchView> { host.rootView = view } else {
+            // The hosting view is NOT the window's content view. As the content view it resizes the window from inside AppKit's
+            // constraint pass and throws when its own state changes there (the hover crash, reproduced with synthetic mouse moves).
             let host = NSHostingView(rootView: view)
-            host.sizingOptions = []              // SwiftUI must not size the window
-            host.safeAreaRegions = []            // the window touches the top of a notched screen; ignore that safe area
-            p.contentView = host
+            host.sizingOptions = []
+            host.safeAreaRegions = []
+            let box = NSView(frame: NSRect(origin: .zero, size: frame.size))
+            host.frame = box.bounds; host.autoresizingMask = [.width, .height]
+            box.addSubview(host)
+            p.contentView = box
         }
         if p.frame != frame { p.setFrame(frame, display: true, animate: false) }
         p.orderFrontRegardless()
