@@ -30,3 +30,4 @@ eval/.cache/
 *.pyc
 .venv/
 .uv-cache/
+core/brain-rs/target/

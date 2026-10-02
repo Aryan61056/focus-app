@@ -71,6 +71,7 @@ Apple on-device model is reachable through the FoundationModels framework (Swift
 - `eval/` S1 accuracy harness (scenarios, runner, Swift model helper, tests, results). See `eval/README.md`.
 - `mac/` Swift package: `FocusJudge` (judge pipeline port), `FocusBrain` (state machine), `BrainTraces` and `brain-trace` (golden trace runner), `BrainSim` and `brain-sim` (episode simulator).
 - `mac/Sources/FocusUI` the SwiftUI app views, controller and store; `FocusSense` real window sensing (Accessibility: app, title, page or file address; no window text yet; runs only during a session); `focus-sense-check` prints the Accessibility flag and the front app's name only.
+- `core/brain-rs/` spike S5 part 1: the brain in Rust (no dependencies), same traces, differential-fuzzed against Swift. See `docs/S5-rust-brain.md`. The Swift brain stays the reference.
 - `core/` shared across platforms: `prompts/` (single source of judge instructions), `traces/` (golden traces extracted from `docs/BRAIN-SPEC.md`). `tools/` generators and checks.
 - `docs/BRAIN-SPEC.md` the brain spec (draft 0.1, written by a subagent, reviewed and implemented). `docs/EPISODE-SIM.md` simulated false nudges per session.
 - `spikes/` the other spikes, one folder each (`spikes/s2-mac-capture/`, ...). Empty for now.
@@ -86,6 +87,8 @@ python3 eval/combine_results.py <run-a.json> <run-b.json>                      #
 python3 eval/run_eval.py --backend mlx_text --order relation                   # local Qwen text model (needs `uv sync` in eval/ and models in eval/.cache/models/)
 python3 eval/run_eval.py --backend mlx_vlm --text-mode pixels                  # Qwen3-VL reading synthetic screenshots
 python3 eval/measure_resources.py --backend mlx_text                           # memory/CPU/energy proxy; needs a quiet machine
+(cd core/brain-rs && cargo run --offline -q --bin trace -- ../traces)          # golden traces against the Rust brain (PATH needs rustup, see Machine)
+python3 tools/diff_brains.py --runs 400                                        # Swift vs Rust brain on random sessions
 python3 tools/check_contrast.py                                                # WCAG contrast of the native color tokens, light and dark
 ./tools/build_app.sh                                                            # local ad-hoc-signed mac/.build/Focus.app (dev only, not for distribution)
 (cd mac && swift run -q focus-sense-check)                                     # Accessibility allowed? and the front app's name (never a title)

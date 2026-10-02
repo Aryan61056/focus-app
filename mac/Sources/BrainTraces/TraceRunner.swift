@@ -13,7 +13,40 @@ public enum TraceRunner {
 
     struct Item { var t: Double; var order: Int; var index: Int; var event: Event; var expected: [Dict]; var label: String }
 
+    /// One canonical line per event, for differential testing against other implementations: index, time, then each effect with sorted
+    /// fields and numbers printed to 6 decimals. Expected effects in the file are ignored.
+    public static func dump(file: URL) throws -> [String] {
+        let items = try buildItems(file: file).items
+        var brain = Brain()
+        return items.map { it in
+            let fx = brain.step(it.t, it.event).map(encode).map { e -> String in
+                let f = e.1.keys.sorted().map { k -> String in
+                    let v = e.1[k]!
+                    if isBool(v) { return "\(k)=\((v as! NSNumber).boolValue)" }
+                    if let n = v as? NSNumber { return "\(k)=\(String(format: "%.6f", n.doubleValue))" }
+                    return "\(k)=\(v)"
+                }.joined(separator: ",")
+                return "\(e.0){\(f)}"
+            }
+            return "\(it.index) \(String(format: "%.3f", it.t)) \(fx.joined(separator: ";"))"
+        }
+    }
+
     public static func run(file: URL) throws -> TraceResult {
+        let (items, ignore, name) = try buildItems(file: file)
+        var brain = Brain()
+        var failures: [String] = []
+        for it in items {
+            let actual = brain.step(it.t, it.event).map(encode).filter { !ignore.contains($0.0) }
+            let expected = it.expected.map(normalizeExpected).filter { !ignore.contains($0.0) }
+            if !same(actual, expected) {
+                failures.append("\(it.label)\n    expected: \(expected.map(show))\n    actual:   \(actual.map(show))")
+            }
+        }
+        return TraceResult(name: name, failures: failures, stepsChecked: items.count)
+    }
+
+    static func buildItems(file: URL) throws -> (items: [Item], ignore: Set<String>, name: String) {
         let obj = try JSONSerialization.jsonObject(with: Data(contentsOf: file)) as! Dict
         let name = obj["trace"] as! String
         let ignore = Set(obj["ignore"] as? [String] ?? [])
@@ -49,16 +82,7 @@ public enum TraceRunner {
         }
         items.sort { ($0.t, $0.order, $0.index) < ($1.t, $1.order, $1.index) }
 
-        var brain = Brain()
-        var failures: [String] = []
-        for it in items {
-            let actual = brain.step(it.t, it.event).map(encode).filter { !ignore.contains($0.0) }
-            let expected = it.expected.map(normalizeExpected).filter { !ignore.contains($0.0) }
-            if !same(actual, expected) {
-                failures.append("\(it.label)\n    expected: \(expected.map(show))\n    actual:   \(actual.map(show))")
-            }
-        }
-        return TraceResult(name: name, failures: failures, stepsChecked: items.count)
+        return (items, ignore, name)
     }
 
     // MARK: input

@@ -1,0 +1,7 @@
+[package]
+name = "focus-brain"
+version = "0.1.0"
+edition = "2021"
+description = "Spike S5: the focus brain in Rust, checked against the same golden traces as the Swift brain. No dependencies, no I/O, no clock."
+
+[dependencies]
