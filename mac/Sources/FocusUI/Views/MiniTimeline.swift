@@ -43,5 +43,5 @@ func durationText(_ seconds: Double) -> String {
 func sessionSentence(_ r: SessionRecord) -> String {
     let on = Int((r.onTaskSeconds / 60).rounded())
     let slips = r.drifts == 0 ? "No slips." : (r.drifts == 1 ? "One slip." : "\(r.drifts) slips.")
-    return "\(on) minutes on task. \(slips)"
+    return "\(on) minute\(on == 1 ? "" : "s") on task. \(slips)"
 }

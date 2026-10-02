@@ -28,6 +28,14 @@ The model said "Not sure" for most real work windows, so a window whose title, p
 
 **Update:** the rule now also counts the app's name when the task names it ("notes in TextEdit"), except for browsers. Found by driving the real app: a README in TextEdit under that task read "Not sure". Cost on the scenario sets: off-task waved through 3 of 45 (was 2): two Figma/Android Studio gray cases where the task names the app but the window is another project. Still only quieter, never louder.
 
+## Two displays and the notch (owner asked 2026-10-02; verified on this Mac: external LF24T35 as primary, notched built-in on its right)
+- **Cause found:** the pill followed `NSScreen.main`, which follows the key window. With the external monitor as main, the ring sat under the external menu bar instead of in the notch, and would jump between displays as focus moved.
+- **Now:** the resting ring stays on a home screen: the notched built-in if there is one, else the primary screen. Measured: panel centred on the hardware notch, flush with the top (32 pt tall at rest, 120 on hover). A nudge also shows a pill on the screen the pointer is on, if that is a different screen (measured on the external: a second panel appeared at nudge time). The pointer is read when the nudge appears, not followed afterwards.
+- The Strict pause screen moves the Focus window to the pointer's screen before coming forward (measured: window moved from the external to the built-in).
+- Each panel has its own hover state; 120 pointer moves across both displays and the notch did not crash the app. Real unplug of a display is still untested; the code drops panels for screens that no longer exist.
+- Also fixed on the way: "Start a session" in the menu bar menu (it only had Open Focus), the popover now closes after a click, project name clipped, chips vs typed length, paused footer, "1 minutes".
+- Tooling note: the computer-use click lands about 98 px too high on this two-display setup (external is 1080 high, built-in 982); mouse moves are exact. Escape sent by that tool does not reach the app; Command-period does.
+
 ## Decisions I made without asking (change any of them)
 - OCR level `.fast` (accurate stalled about 66 s on first use).
 - Idle threshold 240 s; call needs two polls in a row (about 10 s).

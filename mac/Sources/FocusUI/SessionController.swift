@@ -243,7 +243,7 @@ public final class SessionController {
         }
         if hit == nil, prefs.matchTaskWords, case let shared = Rules.sharedTaskWords(m), !shared.isEmpty {
             var r = Reading(at: now(), date: date(), key: Keys.window(w), app: w.app, title: w.title, call: .on, source: .rule,
-                            reason: "Its title or address shares words with your task: \(shared.prefix(3).joined(separator: ", ")).")
+                            reason: "Its app name, title or address shares words with your task: \(shared.prefix(3).joined(separator: ", ")).")
             r.byWords = true
             record(r)
             send(.windowChange(WindowChangeInput(windowKey: Keys.window(w), siteKey: Keys.site(w), ruleLabel: .onTask)))

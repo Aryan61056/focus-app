@@ -24,6 +24,7 @@ public struct StartSheet: View {
                 .textFieldStyle(.plain).font(Tokens.text(16)).padding(.horizontal, 14).frame(height: 44)
                 .background(RoundedRectangle(cornerRadius: 12).fill(Tokens.control))
                 .focused($focused).onSubmit(start)
+                .onExitCommand { isPresented = false }
             if let m = parsed.minutes { Text("Timed session, \(m) minutes, on \u{201C}\(parsed.task)\u{201D}.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
             if let p = Self.lastProject(c.store), p.name == task, !p.nextStep.isEmpty {
                 Label("Next step: \(p.nextStep)", systemImage: "arrow.turn.down.right").font(Tokens.text(13)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)

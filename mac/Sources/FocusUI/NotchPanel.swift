@@ -17,26 +17,32 @@ final class HoverBox: NSView {
     override func mouseExited(with event: NSEvent) { onHover?(false) }
 }
 
-/// Hosts NotchView in a borderless panel at the top centre of a screen, visible only while a session runs.
-/// The controller, not SwiftUI, decides the panel's frame (from NotchLayout), and it re-places the panel when displays change.
+/// Hosts NotchView in borderless panels, visible only while a session runs.
+/// The controller, not SwiftUI, decides each panel's frame (from NotchLayout), and it re-places panels when displays change.
 /// Two crashes found on a real notched Mac on 2026-10-01 (hover, and unplugging a monitor) came from SwiftUI sizing this window;
-/// both are the same AppKit layout loop, and tests now drive hover and screen changes. Placement and hover on a real display
-/// are still only checked by those tests, not by eye.
+/// both are the same AppKit layout loop, and tests now drive hover and screen changes.
+///
+/// With more than one display the resting ring stays on one "home" screen: the notched built-in display if there is one (so it
+/// sits in the hardware notch), else the primary screen. NSScreen.main is not used: it follows the key window and would make
+/// the ring jump between displays. A nudge also shows on the screen the pointer is on, so it reaches you where you are working.
 @MainActor
 public final class NotchPanelController {
+    private struct Slot { let panel: NSPanel; let model: NotchModel }
+
     private let c: SessionController
     private let openApp: () -> Void
-    private let model = NotchModel()
-    private var panel: NSPanel?
+    private var slots: [CGDirectDisplayID: Slot] = [:]
+    private var homeID: CGDirectDisplayID?
     private var running = false
     private var screenObserver: NSObjectProtocol?
 
     public init(controller: SessionController, openApp: @escaping () -> Void) { self.c = controller; self.openApp = openApp }
 
-    public var isShowing: Bool { panel?.isVisible ?? false }
-    var frameForTesting: NSRect? { panel?.frame }
-    /// For tests: pretend the pointer moved onto or off the notch.
-    public func setHoverForTesting(_ on: Bool) { model.hover = on }
+    public var isShowing: Bool { slots.values.contains { $0.panel.isVisible } }
+    var frameForTesting: NSRect? { homeID.flatMap { slots[$0] }?.panel.frame }
+    var framesForTesting: [NSRect] { slots.values.filter { $0.panel.isVisible }.map { $0.panel.frame } }
+    /// For tests: pretend the pointer moved onto or off the notch of the home screen.
+    public func setHoverForTesting(_ on: Bool) { homeID.flatMap { slots[$0] }?.model.hover = on }
 
     public func start() {
         guard !running else { return }
@@ -50,14 +56,15 @@ public final class NotchPanelController {
     public func stop() {
         running = false
         if let o = screenObserver { NotificationCenter.default.removeObserver(o); screenObserver = nil }
-        panel?.orderOut(nil)
+        slots.values.forEach { $0.panel.orderOut(nil) }
     }
 
-    /// Re-run whenever what the notch shows changes: session on or off, the preference, the nudge surface, or hover.
+    /// Re-run whenever what the notch shows changes: session on or off, the preference, the nudge surface, or hover on any panel.
     private func track() {
         guard running else { return }
         withObservationTracking {
-            _ = c.isActive; _ = c.prefs.showNotch; _ = c.surface; _ = model.hover
+            _ = c.isActive; _ = c.prefs.showNotch; _ = c.surface
+            for slot in slots.values { _ = slot.model.hover }
         } onChange: { [weak self] in
             // Hop off the observation callback, then apply on the next turn of the run loop, never inside a layout pass.
             Task { @MainActor in self?.refresh(); self?.track() }
@@ -72,21 +79,48 @@ public final class NotchPanelController {
         return w > 0 ? (w, top) : (0, 0)
     }
 
+    /// Which screen keeps the resting ring: the first one with a hardware notch, else the first (the primary screen, which has the menu bar).
+    static func homeIndex(notchWidths: [CGFloat]) -> Int? {
+        notchWidths.isEmpty ? nil : (notchWidths.firstIndex { $0 > 0 } ?? 0)
+    }
+
+    private static func id(_ screen: NSScreen) -> CGDirectDisplayID {
+        (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? 0
+    }
+
     func refresh() {
         // The notch preference is about the resting ring. A nudge always shows here, so it reaches you when Focus is in the background.
         let nudging = c.surface.map { $0.kind != "gate" } ?? false
-        guard running, c.isActive, c.prefs.showNotch || nudging, let screen = NSScreen.main ?? NSScreen.screens.first else { panel?.orderOut(nil); return }
+        let screens = NSScreen.screens
+        guard running, c.isActive, c.prefs.showNotch || nudging,
+              let hi = Self.homeIndex(notchWidths: screens.map { Self.geometry($0).width }) else { hideAll(); return }
+        let home = screens[hi]
+        var targets = [home]
+        if nudging, let here = screens.first(where: { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) }), Self.id(here) != Self.id(home) { targets.append(here) }
+        homeID = Self.id(home)
+
+        let wanted = Set(targets.map(Self.id))
+        for (key, slot) in slots where !wanted.contains(key) { slot.panel.orderOut(nil); if key != homeID { slots[key] = nil } }
+        for screen in targets { place(on: screen) }
+    }
+
+    private func hideAll() { slots.values.forEach { $0.panel.orderOut(nil) } }
+
+    private func place(on screen: NSScreen) {
+        let key = Self.id(screen)
+        let slot = slots[key] ?? Slot(panel: makePanel(), model: NotchModel())
+        slots[key] = slot
+        let p = slot.panel
         let g = Self.geometry(screen)
-        let mode = NotchView.mode(for: c, hover: model.hover)
+        let mode = NotchView.mode(for: c, hover: slot.model.hover)
         let size = NotchLayout.size(mode, notchWidth: g.width, notchHeight: g.height)
         // A notched screen: flush with the top edge, around the hardware notch. Any other screen: a pill a few points under the menu bar
         // (visibleFrame starts below it), never on top of the menu bar's items.
         let top = g.width == 0 ? screen.visibleFrame.maxY - 6 : screen.frame.maxY
         let frame = NSRect(x: screen.frame.midX - size.width / 2, y: top - size.height, width: size.width, height: size.height)
 
-        let p = panel ?? makePanel()
-        // A fresh hosting view each time the geometry changes (a display was added or removed); the same one otherwise.
-        let view = NotchView(controller: c, notchWidth: g.width, notchHeight: g.height, model: model, openApp: openApp)
+        // A fresh root view each time the geometry changes (a display was added or removed); the same hosting view otherwise.
+        let view = NotchView(controller: c, notchWidth: g.width, notchHeight: g.height, model: slot.model, openApp: openApp)
         if let host = p.contentView?.subviews.first as? NSHostingView<NotchView> { host.rootView = view } else {
             // The hosting view is NOT the window's content view. As the content view it resizes the window from inside AppKit's
             // constraint pass and throws when its own state changes there (the hover crash, reproduced with synthetic mouse moves).
@@ -94,14 +128,14 @@ public final class NotchPanelController {
             host.sizingOptions = []
             host.safeAreaRegions = []
             let box = HoverBox(frame: NSRect(origin: .zero, size: frame.size))
-            box.onHover = { [weak self] on in self?.model.hover = on }
+            let model = slot.model
+            box.onHover = { on in model.hover = on }
             host.frame = box.bounds; host.autoresizingMask = [.width, .height]
             box.addSubview(host)
             p.contentView = box
         }
         if p.frame != frame { p.setFrame(frame, display: true, animate: false) }
         p.orderFrontRegardless()
-        panel = p
     }
 
     func makePanel() -> NSPanel {

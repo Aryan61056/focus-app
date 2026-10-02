@@ -9,6 +9,14 @@ import AppKit
 final class NotchPanelTests: XCTestCase {
     private func spin(_ s: Double = 0.05) async { try? await Task.sleep(nanoseconds: UInt64(s * 1_000_000_000)) }
 
+    func testTheRingStaysOnTheNotchedScreenNotOnWhicheverIsMain() {
+        XCTAssertEqual(NotchPanelController.homeIndex(notchWidths: [0, 200]), 1, "external primary, notched built-in second")
+        XCTAssertEqual(NotchPanelController.homeIndex(notchWidths: [200, 0]), 0)
+        XCTAssertEqual(NotchPanelController.homeIndex(notchWidths: [0, 0]), 0, "no notch anywhere: the primary screen")
+        XCTAssertEqual(NotchPanelController.homeIndex(notchWidths: [0]), 0)
+        XCTAssertNil(NotchPanelController.homeIndex(notchWidths: []), "no screen: nothing to show")
+    }
+
     func testHoverAndScreenChangesDoNotCrashAndTheFrameFollowsTheMode() async throws {
         _ = NSApplication.shared
         guard NSScreen.main != nil else { throw XCTSkip("no screen") }
@@ -25,9 +33,11 @@ final class NotchPanelTests: XCTestCase {
         await spin()
         XCTAssertTrue(panel.isShowing)
         let restH = try XCTUnwrap(panel.frameForTesting).height
-        if let screen = NSScreen.main, NotchPanelController.geometry(screen).width == 0 {
-            XCTAssertLessThanOrEqual(try XCTUnwrap(panel.frameForTesting).maxY, screen.visibleFrame.maxY, "the pill sits under the menu bar, not over it")
+        let screens = NSScreen.screens
+        if let hi = NotchPanelController.homeIndex(notchWidths: screens.map { NotchPanelController.geometry($0).width }), NotchPanelController.geometry(screens[hi]).width == 0 {
+            XCTAssertLessThanOrEqual(try XCTUnwrap(panel.frameForTesting).maxY, screens[hi].visibleFrame.maxY, "the pill sits under the menu bar, not over it")
         }
+        XCTAssertEqual(panel.framesForTesting.count, 1, "one panel at rest, however many displays")
 
         for _ in 0..<50 { panel.setHoverForTesting(true); await spin(0.01); panel.setHoverForTesting(false); await spin(0.01) }
         panel.setHoverForTesting(true); await spin()

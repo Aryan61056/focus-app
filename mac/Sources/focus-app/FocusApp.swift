@@ -21,6 +21,15 @@ struct FocusApp: App {
         }
         return SessionController(judge: DefaultJudge.make(), store: DataStore(url: DataStore.defaultURL), prefs: Preferences())
     }
+    /// With two displays the pause screen would otherwise appear on whichever one the window was last on, not where you are looking.
+    static func bringToPointerScreen() {
+        guard let here = NSScreen.screens.first(where: { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) }),
+              let w = NSApp.windows.first(where: { $0.title == "Focus" && $0.canBecomeMain && $0.isVisible }),
+              let now = w.screen, now != here else { return }
+        var f = w.frame
+        f.origin = NSPoint(x: here.visibleFrame.midX - f.width / 2, y: here.visibleFrame.midY - f.height / 2)
+        w.setFrame(f, display: true)
+    }
     @State private var demo: DemoSenses?
     @State private var notch: NotchPanelController?
     @State private var sense: SenseCoordinator?
@@ -33,7 +42,7 @@ struct FocusApp: App {
             RootView(controller: controller)
                 .onChange(of: controller.surface) { _, s in
                     // The strict pause screen lives in this window, so it has to come forward to be seen.
-                    if s?.kind == "gate" { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main") }
+                    if s?.kind == "gate" { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); Self.bringToPointerScreen() }
                 }
                 .task {
                     // Real window sensing, except in the scripted demo. It only runs while a session is active.
@@ -76,7 +85,7 @@ struct FocusApp: App {
                     SelfShot.scheduleIfRequested(); SelfShot.runActions(controller)
                     // FOCUS_DEMO_NOSESSION=1 leaves the app idle so the start flow can be driven (tools and screenshots).
                     if ProcessInfo.processInfo.environment["FOCUS_DEMO_NOSESSION"] == "1" { return }
-                    controller.begin(task: "Calc homework", preset: .standard, shadow: false, autoTick: true)
+                    controller.begin(task: "Calc homework", preset: ProcessInfo.processInfo.environment["FOCUS_DEMO_STRICT"] == "1" ? .strict : .standard, shadow: false, autoTick: true)
                     d.start()
                 }
         }
@@ -98,7 +107,11 @@ struct FocusApp: App {
         }
 
         MenuBarExtra {
-            MenuBarContent(controller: controller) { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main") }
+            MenuBarContent(controller: controller) {
+                // The window-style popover stays open after a click, so close it before showing the app.
+                NSApp.windows.filter { String(describing: type(of: $0)).contains("MenuBarExtra") }.forEach { $0.orderOut(nil) }
+                NSApp.activate(ignoringOtherApps: true); openWindow(id: "main")
+            }
         } label: {
             Image(nsImage: RingImage.make(controller.ringState))
         }
