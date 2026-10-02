@@ -25,6 +25,9 @@ final class NotchPanelTests: XCTestCase {
         await spin()
         XCTAssertTrue(panel.isShowing)
         let restH = try XCTUnwrap(panel.frameForTesting).height
+        if let screen = NSScreen.main, NotchPanelController.geometry(screen).width == 0 {
+            XCTAssertLessThanOrEqual(try XCTUnwrap(panel.frameForTesting).maxY, screen.visibleFrame.maxY, "the pill sits under the menu bar, not over it")
+        }
 
         for _ in 0..<50 { panel.setHoverForTesting(true); await spin(0.01); panel.setHoverForTesting(false); await spin(0.01) }
         panel.setHoverForTesting(true); await spin()

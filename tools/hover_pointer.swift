@@ -1,7 +1,9 @@
 import AppKit
 let scr = NSScreen.screens.first!
 
-let x = scr.frame.midX, yTop = 10.0   // CG coords: origin top-left
+// CG coordinates have their origin at the top left. A notched screen has its notch at y 0; any other screen has the pill under the menu bar.
+let x = scr.frame.midX
+let yTop = scr.safeAreaInsets.top > 0 ? 10.0 : Double(scr.frame.maxY - scr.visibleFrame.maxY) + 6 + 18
 func move(_ x: Double, _ y: Double) {
     CGWarpMouseCursorPosition(CGPoint(x: x, y: y))
     let e = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: CGPoint(x: x, y: y), mouseButton: .left)

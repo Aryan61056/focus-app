@@ -64,8 +64,10 @@ public final class NotchPanelController {
         let g = Self.geometry(screen)
         let mode = NotchView.mode(for: c, hover: model.hover)
         let size = NotchLayout.size(mode, notchWidth: g.width, notchHeight: g.height)
-        let gap: CGFloat = g.width == 0 ? 6 : 0
-        let frame = NSRect(x: screen.frame.midX - size.width / 2, y: screen.frame.maxY - size.height - gap, width: size.width, height: size.height)
+        // A notched screen: flush with the top edge, around the hardware notch. Any other screen: a pill a few points under the menu bar
+        // (visibleFrame starts below it), never on top of the menu bar's items.
+        let top = g.width == 0 ? screen.visibleFrame.maxY - 6 : screen.frame.maxY
+        let frame = NSRect(x: screen.frame.midX - size.width / 2, y: top - size.height, width: size.width, height: size.height)
 
         let p = panel ?? makePanel()
         // A fresh hosting view each time the geometry changes (a display was added or removed); the same one otherwise.
