@@ -7,7 +7,7 @@ enum SelfShot {
     static func scheduleIfRequested(after seconds: Double = 12) {
         let env = ProcessInfo.processInfo.environment
         guard env["FOCUS_DEMO"] == "1", let dir = env["FOCUS_SELFSHOT"] else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + seconds) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + (Double(env["FOCUS_SELFSHOT_AFTER"] ?? "") ?? seconds)) {
             try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
             for (i, w) in NSApp.windows.enumerated() where w.isVisible {
                 guard let v = w.contentView, let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds) else { continue }

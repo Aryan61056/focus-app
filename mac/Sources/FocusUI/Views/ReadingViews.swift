@@ -146,7 +146,7 @@ struct ReadingPanel: View {
                     HStack(spacing: 6) { RingView(r.ring, color: r.tint).frame(width: 14, height: 14); Text(r.label).font(Tokens.text(12.5, .semibold)) }.frame(width: 104, alignment: .leading)
                     Text(r.reason).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).lineLimit(1)
                     Spacer(minLength: 6)
-                    if r.source == .rule { Text("Your rule").font(Tokens.text(11.5)).foregroundStyle(Tokens.ink2).padding(.horizontal, 8).padding(.vertical, 1).overlay { Capsule().strokeBorder(Tokens.line) } }
+                    if r.source == .rule { Text(r.byWords ? "Matching words" : "Your rule").font(Tokens.text(11.5)).foregroundStyle(Tokens.ink2).padding(.horizontal, 8).padding(.vertical, 1).overlay { Capsule().strokeBorder(Tokens.line) } }
                 }
                 .padding(.vertical, 6)
                 Divider().overlay(Tokens.line)
