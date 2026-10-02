@@ -49,12 +49,19 @@ struct ReadingPanel: View {
                     }
                 }
                 if let r = c.latest {
-                    HStack(alignment: .top, spacing: 14) {
-                        VStack(alignment: .leading, spacing: 12) { seen(r); PreviewCard(c: c) }.frame(width: 290)
-                        verdict(r)
+                    if c.prefs.readScreen {
+                        HStack(alignment: .top, spacing: 18) {
+                            PreviewCard(c: c).frame(width: 290)
+                            VStack(alignment: .leading, spacing: 12) { seen(r); verdict(r); steps(r, vertical: true) }
+                        }
+                    } else {
+                        HStack(alignment: .top, spacing: 14) {
+                            VStack(alignment: .leading, spacing: 12) { seen(r); PreviewCard(c: c) }.frame(width: 290)
+                            verdict(r)
+                        }
+                        .fixedSize(horizontal: false, vertical: true)
+                        steps(r, vertical: false)
                     }
-                    .fixedSize(horizontal: false, vertical: true)
-                    steps(r)
                     if c.readings.count > 1 { recent }
                 } else {
                     HStack(spacing: 12) {
@@ -98,12 +105,14 @@ struct ReadingPanel: View {
         .accessibilityElement(children: .combine)
     }
 
-    func steps(_ r: Reading) -> some View {
-        HStack(alignment: .top, spacing: 0) {
-            step("Read", r.sawScreen ? "The app, window title, address and the words on screen" : "The app, the window title and the page or file it shows", filled: false, r)
-            step("Compared", "With \u{201C}\(c.taskName)\u{201D} and what you wrote about it", filled: false, r)
-            step(r.outcomeTitle, r.outcomeText, filled: true, r)
-        }
+    @ViewBuilder func steps(_ r: Reading, vertical: Bool) -> some View {
+        if vertical { VStack(alignment: .leading, spacing: 8) { stepRows(r) } } else { HStack(alignment: .top, spacing: 0) { stepRows(r) } }
+    }
+
+    @ViewBuilder func stepRows(_ r: Reading) -> some View {
+        step("Read", r.sawScreen ? "The app, window title, address and the words on screen" : "The app, the window title and the page or file it shows", filled: false, r)
+        step("Compared", "With \u{201C}\(c.taskName)\u{201D} and what you wrote about it", filled: false, r)
+        step(r.outcomeTitle, r.outcomeText, filled: true, r)
     }
 
     func step(_ title: String, _ text: String, filled: Bool, _ r: Reading) -> some View {
