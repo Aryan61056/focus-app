@@ -59,7 +59,7 @@ struct ProjectDetail: View {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 2) {
-                        TextField("Name", text: binding.name).textFieldStyle(.plain).font(Tokens.rounded(22, .semibold))
+                        TextField("Name", text: binding.name).textFieldStyle(.plain).font(Tokens.rounded(22, .semibold)).frame(minHeight: 30)
                         let n = store.sessions(for: project.id)
                         Text("\(n.count) session\(n.count == 1 ? "" : "s") · \(durationText(n.reduce(0) { $0 + $1.onTaskSeconds })) on task")
                             .font(Tokens.text(13)).foregroundStyle(Tokens.ink2)

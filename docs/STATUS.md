@@ -33,8 +33,8 @@ The model said "Not sure" for most real work windows, so a window whose title, p
 - Global shortcut is Control-Option-F.
 - Screen reading is off until you switch it on; the picture refreshes every 3 s, words every 8 s.
 
-## How I debugged without driving your screen
-You declined computer control, so I did not click or type in the app. Synthetic key and mouse events sent to the app's process did nothing, and I did not send global ones that could land on your other windows. Instead: the demo build renders its own windows to PNG (`FOCUS_SELFSHOT`), runs a few controller actions on a timer (`FOCUS_DEMO_ACTIONS=section:settings,start`), and the real pointer was moved onto the notch panel only for the hover check. Rendered and looked at: Today (idle, intro, in session, drifting), Settings, the start sheet, the notch at rest and open. Not exercised through real clicks or typing: the start sheet's text field and buttons, Review and Projects forms.
+## How I debugged
+Early on I did not drive your screen (synthetic events sent to the process do nothing, and global ones could land on your windows). Computer control was later granted, so I drove a **demo copy** (`FOCUS_DEMO=1`, in-memory store, so your real data was never touched) with real accessibility clicks and typing: start sheet (typed "calc homework 50", started a timed session), Pause, End session, Projects (new project, typed description, "Ask Focus about a window"), and Settings "Try it" on your real instance (it correctly reported the front app only, because Accessibility is not granted for this build). Bugs found that way and fixed: project name clipped under its subtitle; Open/Timed chips disagreed with a typed length; the "Focus is watching" footer stayed while paused. The self-render (`FOCUS_SELFSHOT`) is still used for screenshots.
 
 ## Still unverified or not built
 - Real unplug of a monitor; global shortcut key delivery (registration returned success, a synthetic key press did not trigger it); Screen Recording capture; Accessibility title reading (this shell is not trusted, so I could not run it).

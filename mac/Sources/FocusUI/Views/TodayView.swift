@@ -86,7 +86,10 @@ struct SessionPanel: View {
                 }
                 Divider().overlay(Tokens.line).padding(.top, 14)
                 HStack(spacing: 8) {
-                    if c.shadow {
+                    if c.isPaused {
+                        Image(systemName: "pause").foregroundStyle(Tokens.ink2)
+                        Text("Paused. Focus will not nudge you until you resume.")
+                    } else if c.shadow {
                         Image(systemName: "eye").foregroundStyle(Tokens.ink2)
                         Text(c.shadowMarks == 0 ? "Practice mode: Focus is watching but will not interrupt you."
                              : "Practice mode: \(c.shadowMarks) moment\(c.shadowMarks == 1 ? "" : "s") to review later.")

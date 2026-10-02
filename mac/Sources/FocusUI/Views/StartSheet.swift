@@ -37,9 +37,11 @@ public struct StartSheet: View {
                 }.lineLimit(1)
             }
             HStack(spacing: 6) {
-                chip("Open", on: !timed) { timed = false }
-                chip("Timed", on: timed) { timed = true }
-                if timed {
+                // A typed length ("essay 25") wins, so the chips show what will actually start.
+                let typed = parsed.minutes != nil
+                chip("Open", on: !timed && !typed) { timed = false }
+                chip("Timed", on: timed || typed) { timed = true }
+                if timed && !typed {
                     Picker("Length", selection: $minutes) { ForEach([25, 50, 90], id: \.self) { Text("\($0) min").tag($0) } }
                         .pickerStyle(.menu).labelsHidden().frame(width: 100)
                 }
