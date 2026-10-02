@@ -1,9 +1,24 @@
 import AppKit
+import FocusUI
 
 /// Developer tool, only with FOCUS_DEMO=1 and FOCUS_SELFSHOT=<folder>: after a few seconds, draws this app's own windows (the main window
 /// and the notch panel, with scripted demo data) to PNG files and quits. It renders views, it does not capture the screen, so it needs no permission.
 @MainActor
 enum SelfShot {
+    /// FOCUS_DEMO_ACTIONS="section:settings,start" runs these on the controller after 3 s (demo only), in place of clicks and keys I cannot send:
+    /// section:<today|projects|history|insights|review|settings>, start (opens the start sheet), readscreen (turns screen reading on).
+    static func runActions(_ controller: SessionController) {
+        let env = ProcessInfo.processInfo.environment
+        guard env["FOCUS_DEMO"] == "1", let list = env["FOCUS_DEMO_ACTIONS"] else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            for a in list.split(separator: ",").map(String.init) {
+                if a.hasPrefix("section:"), let s = AppSection.allCases.first(where: { $0.rawValue.lowercased() == a.dropFirst(8).lowercased() }) { controller.requestSection(s) }
+                else if a == "start" { controller.requestStart() }
+                else if a == "readscreen" { controller.prefs.readScreen = true }
+            }
+        }
+    }
+
     static func scheduleIfRequested(after seconds: Double = 12) {
         let env = ProcessInfo.processInfo.environment
         guard env["FOCUS_DEMO"] == "1", let dir = env["FOCUS_SELFSHOT"] else { return }
