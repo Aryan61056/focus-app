@@ -90,6 +90,9 @@ public final class SessionController {
     @ObservationIgnored public var onRequestPreviewAccess: (() -> Void)?
 
     @ObservationIgnored public var onBringBack: ((String?) -> Void)?
+    /// "Back to task": the app name of the window the user was last on task in, so the app can bring it forward. Names only, session only.
+    @ObservationIgnored public var onBringBackToApp: ((String) -> Void)?
+    @ObservationIgnored var appByWindowKey: [String: String] = [:]
     @ObservationIgnored public var onCue: (() -> Void)?
 
     @ObservationIgnored private var brain = Brain()
@@ -130,7 +133,7 @@ public final class SessionController {
         self.project = profile; self.projectId = pid; self.shadow = shadow
         sessionId = UUID(); startedAt = date(); segments = []; segKind = nil; segStart = now()
         taskName = task; self.mode = mode; totalSeconds = duration ?? 0
-        summary = nil; shadowMarks = 0; learnedRules = []; wrapUp = false; askResume = nil; readings = []; stats = ReadStats(); previewFrame = nil; previewHeld = nil; screenText = ""
+        summary = nil; shadowMarks = 0; learnedRules = []; wrapUp = false; askResume = nil; readings = []; appByWindowKey = [:]; stats = ReadStats(); previewFrame = nil; previewHeld = nil; screenText = ""
         var c = SessionConfig(); c.taskId = task; c.mode = mode; c.durationSeconds = duration; c.preset = preset ?? prefs.preset; c.shadow = shadow
         isActive = true
         send(.sessionStart(c))
@@ -200,6 +203,7 @@ public final class SessionController {
 
     public func windowChanged(_ w: WindowSnapshot) {
         currentWindow = w; screenText = ""
+        if isActive { appByWindowKey[Keys.window(w)] = w.app }
         guard isActive else { return }
         let m = moment(w)
         previewHeld = nil
@@ -297,7 +301,9 @@ public final class SessionController {
                 let rule = LearnedRule(scope: s, kind: k, keyType: kt, key: key)
                 learnedRules.append(rule)
                 if let store, let pid = projectId { store.apply(rule, to: pid); if let p = store.project(pid) { project = p.profile } }
-            case .bringBack(let w): onBringBack?(w)
+            case .bringBack(let w):
+                onBringBack?(w)
+                if let w, let app = appByWindowKey[w], !app.isEmpty { onBringBackToApp?(app) }
             case .cue: onCue?()
             case .requestJudgment(let id, _, _, let wk, _): requestJudgment(id: id, windowKey: wk, observedAt: t)
             case .summary(let a, let o, let u, let d, let i, let r):

@@ -170,3 +170,20 @@ final class LevelZeroStartTests: XCTestCase {
         XCTAssertNil(StartSheet.lastProject(nil))
     }
 }
+
+@MainActor
+final class BringBackTests: XCTestCase {
+    func testBackToTaskNamesTheAppTheUserWasOnTaskIn() async {
+        var t = 0.0
+        let c = SessionController(judge: ScriptedJudge(markers: [("youtube", .off), ("Notes", .on)]), now: { t })
+        var brought: [String] = []
+        c.onBringBackToApp = { brought.append($0) }
+        c.windowChanged(WindowSnapshot(app: "Notes", title: "Calc homework"))
+        c.begin(task: "Calc homework", preset: .standard, shadow: false)
+        for _ in 0..<5 { t += 1; c.tick(); await c.waitForJudgments() }
+        c.windowChanged(WindowSnapshot(app: "Browser", title: "youtube clip", url: "https://youtube.com/watch?v=1"))
+        while c.surface == nil && t < 300 { t += 1; c.tick(); await c.waitForJudgments() }
+        c.act(.backToTask)
+        XCTAssertEqual(brought.last, "Notes")
+    }
+}

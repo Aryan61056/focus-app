@@ -58,7 +58,9 @@ public final class NotchPanelController {
     }
 
     func refresh() {
-        guard running, c.isActive, c.prefs.showNotch, let screen = NSScreen.main ?? NSScreen.screens.first else { panel?.orderOut(nil); return }
+        // The notch preference is about the resting ring. A nudge always shows here, so it reaches you when Focus is in the background.
+        let nudging = c.surface.map { $0.kind != "gate" } ?? false
+        guard running, c.isActive, c.prefs.showNotch || nudging, let screen = NSScreen.main ?? NSScreen.screens.first else { panel?.orderOut(nil); return }
         let g = Self.geometry(screen)
         let mode = NotchView.mode(for: c, hover: model.hover)
         let size = NotchLayout.size(mode, notchWidth: g.width, notchHeight: g.height)

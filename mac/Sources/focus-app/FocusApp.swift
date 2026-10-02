@@ -20,6 +20,10 @@ struct FocusApp: App {
     var body: some Scene {
         Window("Focus", id: "main") {
             RootView(controller: controller)
+                .onChange(of: controller.surface) { _, s in
+                    // The strict pause screen lives in this window, so it has to come forward to be seen.
+                    if s?.kind == "gate" { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main") }
+                }
                 .task {
                     // Real window sensing, except in the scripted demo. It only runs while a session is active.
                     if sense == nil, ProcessInfo.processInfo.environment["FOCUS_DEMO"] != "1" {
@@ -33,6 +37,9 @@ struct FocusApp: App {
                             if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") { NSWorkspace.shared.open(url) }
                         }
                         previewWatcher = pw; pw.bind()
+                    }
+                    controller.onBringBackToApp = { name in
+                        NSWorkspace.shared.runningApplications.first { $0.localizedName == name && $0.activationPolicy == .regular }?.activate()
                     }
                     hotKey.register {
                         if controller.isActive { controller.act(controller.isPaused ? .resume : .pause) }
