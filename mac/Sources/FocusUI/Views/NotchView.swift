@@ -34,6 +34,14 @@ struct NotchShape: Shape {
     }
 }
 
+/// Shared hover state, owned by the panel controller so it can resize the window itself. The window is never sized by SwiftUI:
+/// letting a hosting view size a window that touches the top of a notched screen loops (the safe area changes with the size).
+@MainActor @Observable
+public final class NotchModel {
+    public var hover = false
+    public init() {}
+}
+
 /// The notch presence. Aesthetic, not functional (owner, 2026-10-01): a ring and the time at rest, and when opened only the
 /// task and two buttons. A nudge opens it once with one action. It always draws dark so it melts into the hardware notch.
 public struct NotchView: View {
@@ -42,19 +50,23 @@ public struct NotchView: View {
     var notchHeight: CGFloat
     var forced: NotchMode?
     var openApp: () -> Void
-    @State private var hover = false
+    @Bindable var model: NotchModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    public init(controller: SessionController, notchWidth: CGFloat, notchHeight: CGFloat, forced: NotchMode? = nil, openApp: @escaping () -> Void) {
-        self.c = controller; self.notchWidth = notchWidth; self.notchHeight = notchHeight; self.forced = forced; self.openApp = openApp
+    public init(controller: SessionController, notchWidth: CGFloat, notchHeight: CGFloat, forced: NotchMode? = nil, model: NotchModel? = nil, openApp: @escaping () -> Void) {
+        self.c = controller; self.notchWidth = notchWidth; self.notchHeight = notchHeight; self.forced = forced; self.model = model ?? NotchModel(); self.openApp = openApp
     }
 
     static let ink = Color(red: 0.93, green: 0.95, blue: 0.94)
     static let ink2 = Color(red: 0.70, green: 0.73, blue: 0.71)
     static let accent = Color(red: 0.47, green: 0.84, blue: 0.62)
 
-    var nudging: Bool { if let s = c.surface, s.kind != "gate" { return true }; return false }
-    public var mode: NotchMode { forced ?? (nudging ? .nudge : (hover ? .open : .rest)) }
+    /// A nudge opens the notch once; otherwise hover decides. The gate (strict pause screen) is not shown here.
+    public static func mode(for c: SessionController, hover: Bool) -> NotchMode {
+        if let s = c.surface, s.kind != "gate" { return .nudge }
+        return hover ? .open : .rest
+    }
+    public var mode: NotchMode { forced ?? Self.mode(for: c, hover: model.hover) }
     var tint: Color { c.ringColor == Tokens.accent ? Self.accent : Self.ink }
     var hasNotch: Bool { notchWidth > 0 }
 
@@ -65,8 +77,9 @@ public struct NotchView: View {
             content.padding(.horizontal, hasNotch ? 0 : 14)
         }
         .frame(width: size.width, height: size.height)
+        .ignoresSafeArea()
         .foregroundStyle(Self.ink)
-        .onHover { hover = $0 }
+        .onHover { model.hover = $0 }
         .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: mode)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Focus, \(c.presenceLabel), \(c.taskName)")

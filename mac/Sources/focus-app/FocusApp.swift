@@ -13,6 +13,7 @@ struct FocusApp: App {
     @State private var demo: DemoSenses?
     @State private var notch: NotchPanelController?
     @State private var sense: SenseCoordinator?
+    @State private var previewWatcher: PreviewWatcher?
     @Environment(\.openWindow) private var openWindow
 
     var body: some Scene {
@@ -26,6 +27,10 @@ struct FocusApp: App {
                             if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") { NSWorkspace.shared.open(url) }
                         }
                         let sc = SenseCoordinator(source: AXWindowSource(), controller: controller); sense = sc; sc.bind()
+                        let pw = PreviewWatcher(grabber: SCKScreenGrabber(), controller: controller) {
+                            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") { NSWorkspace.shared.open(url) }
+                        }
+                        previewWatcher = pw; pw.bind()
                     }
                     if notch == nil { let n = NotchPanelController(controller: controller) { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main") }; notch = n; n.start() }
                     guard ProcessInfo.processInfo.environment["FOCUS_DEMO"] == "1", demo == nil else { return }

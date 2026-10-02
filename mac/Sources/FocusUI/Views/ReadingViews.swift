@@ -50,7 +50,7 @@ struct ReadingPanel: View {
                 }
                 if let r = c.latest {
                     HStack(alignment: .top, spacing: 14) {
-                        seen(r).frame(maxWidth: 250)
+                        VStack(alignment: .leading, spacing: 12) { seen(r); PreviewCard(c: c) }.frame(width: 290)
                         verdict(r)
                     }
                     .fixedSize(horizontal: false, vertical: true)
@@ -80,7 +80,7 @@ struct ReadingPanel: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(14).frame(maxHeight: .infinity)
+        .padding(14)
         .background(RoundedRectangle(cornerRadius: 12).fill(Tokens.window2))
     }
 
@@ -100,7 +100,7 @@ struct ReadingPanel: View {
 
     func steps(_ r: Reading) -> some View {
         HStack(alignment: .top, spacing: 0) {
-            step("Read", "The app, the window title and the page or file it shows", filled: false, r)
+            step("Read", r.sawScreen ? "The app, window title, address and the words on screen" : "The app, the window title and the page or file it shows", filled: false, r)
             step("Compared", "With \u{201C}\(c.taskName)\u{201D} and what you wrote about it", filled: false, r)
             step(r.outcomeTitle, r.outcomeText, filled: true, r)
         }
@@ -185,5 +185,52 @@ struct ReadingSplit: View {
     }
     @ViewBuilder func bar(_ color: Color, _ n: Int, _ t: Int, _ w: CGFloat) -> some View {
         if n > 0 { RoundedRectangle(cornerRadius: 4).fill(color).frame(width: max(4, w * CGFloat(n) / CGFloat(t) - 3)) }
+    }
+}
+
+
+/// The picture Focus took of the window it is reading, with plain words about what it is for.
+/// The model never sees this picture: it reads the app, the window title and the page or file address.
+struct PreviewCard: View {
+    @Bindable var c: SessionController
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if !c.prefs.readScreen {
+                Text("Let Focus look at the window. It reads the words on screen to judge, and shows you the picture here. Nothing is saved.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                Button("Turn on screen reading") { c.prefs.readScreen = true; c.onRequestPreviewAccess?() }.buttonStyle(FocusButtonStyle(.plain, small: true))
+            } else if let held = c.previewHeld {
+                note("eye.slash", held)
+            } else if c.previewAccess == .denied {
+                note("lock", "Allow Screen Recording for Focus in System Settings so it can look at the window.")
+                Button("Open System Settings") { c.onRequestPreviewAccess?() }.buttonStyle(FocusButtonStyle(.plain, small: true))
+            } else if let f = c.previewFrame {
+                Image(decorative: f.image, scale: 2).resizable().aspectRatio(CGFloat(f.image.width) / CGFloat(max(1, f.image.height)), contentMode: .fit)
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 8)).overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Tokens.line))
+                    .accessibilityLabel("Picture of the \(f.app) window")
+                Text(c.screenText.isEmpty ? "Focus is reading the words in this picture on your Mac."
+                     : "Focus read \(c.screenWordCount) words from this picture on your Mac and compares them with the task. The model sees the words, not the picture. Nothing is saved or sent anywhere, and it is gone when the session ends.")
+                    .font(Tokens.text(11.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                if !c.screenText.isEmpty {
+                    DisclosureGroup("Words Focus read") {
+                        Text(String(c.screenText.prefix(600)).replacingOccurrences(of: "\n", with: " "))
+                            .font(Tokens.text(11.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading).textSelection(.enabled)
+                    }.font(Tokens.text(12))
+                }
+            } else {
+                note("photo", "Waiting for a picture. Switch to a window and it appears here.")
+            }
+            if c.prefs.readScreen { Button("Turn screen reading off") { c.prefs.readScreen = false }.buttonStyle(FocusButtonStyle(.plain, small: true)) }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    func note(_ symbol: String, _ text: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: symbol).foregroundStyle(Tokens.ink2)
+            Text(text).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+        }
     }
 }

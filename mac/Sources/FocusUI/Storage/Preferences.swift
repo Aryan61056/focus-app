@@ -16,6 +16,8 @@ public final class Preferences {
     public var neverJudgedApps: [String] { didSet { defaults.set(neverJudgedApps, forKey: "neverJudgedApps") } }
     /// The notch (or floating pill) while a session runs. Aesthetic only; everything it does is also in the app and the menu bar.
     public var showNotch: Bool { didSet { defaults.set(showNotch, forKey: "showNotch") } }
+    /// A live picture of the window Focus is reading, shown in the app only. Off until the user asks for it (it needs Screen Recording).
+    public var readScreen: Bool { didSet { defaults.set(readScreen, forKey: "readScreen") } }
     public var practiceActive: Bool { practiceSessionsLeft > 0 }
 
     public init(defaults: UserDefaults = .standard) {
@@ -24,6 +26,7 @@ public final class Preferences {
         skipPersonal = defaults.object(forKey: "skipPersonal") as? Bool ?? true
         neverJudgedApps = defaults.stringArray(forKey: "neverJudgedApps") ?? Rules.defaultNeverJudgedApps
         showNotch = defaults.object(forKey: "showNotch") as? Bool ?? true
+        readScreen = defaults.object(forKey: "readScreen") as? Bool ?? false
         practiceSessionsLeft = defaults.object(forKey: "practiceLeft") as? Int ?? Preferences.practiceSessions
     }
 

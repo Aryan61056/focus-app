@@ -1,6 +1,6 @@
 import Foundation
 
-public enum Stage: String, Codable, Sendable { case sensitive, rule, model }
+public enum Stage: String, Codable, Sendable { case sensitive, rule, guarded, model }
 
 /// The outcome for one moment. `label == .offTask` is a candidate for a nudge, never a nudge by itself:
 /// the brain still requires sustained agreement over time.
@@ -23,12 +23,16 @@ public enum Pipeline {
         return .unsure
     }
 
-    public static func judge(_ m: Moment, with judge: Judge, useRules: Bool = true) async -> Judgement {
+    public static func judge(_ m: Moment, with judge: Judge, useRules: Bool = true, useGuard: Bool = true) async -> Judgement {
         if useRules && Rules.isSensitive(m) {
             return Judgement(label: .unsure, stage: .sensitive, reason: "sensitive window, not read", latencyMs: 0)
         }
         if useRules, let hit = Rules.stage1(m) {
             return Judgement(label: hit.label, stage: .rule, reason: hit.rule, latencyMs: 0)
+        }
+        // On-screen text that talks to the AI is not judged: unsure, so it can never lead to a nudge (docs/T7-injection.md).
+        if useGuard && Rules.looksInjected(m) {
+            return Judgement(label: .unsure, stage: .guarded, reason: "This window's text contains instructions aimed at the AI. Focus ignored it.", latencyMs: 0)
         }
         let prompt = Prompts.prompt(for: m)
         let first = await judge.reasonFirst(prompt: prompt)

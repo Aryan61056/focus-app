@@ -15,6 +15,7 @@ def run(
     scenarios: List[Scenario],
     backend: Backend,
     use_rules: bool = True,
+    use_guard: bool = True,
     text_mode: str = "full",
     text_for: Optional[Callable[[Scenario], str]] = None,
     progress: Optional[Callable[[int, int, Scenario], None]] = None,
@@ -34,6 +35,8 @@ def run(
         elif use_rules and rules.stage1(s):
             label, rule = rules.stage1(s)
             row.update(pred=label, confidence=1.0, stage="rule", reason=rule)
+        elif use_guard and rules.looks_injected(s):
+            row.update(pred="unsure", confidence=None, stage="guarded", reason="text addressed to the AI, not judged")
         else:
             include_text = text_mode not in ("titles", "pixels")  # pixels: the model reads the image
             override = text_for(s) if (text_mode == "ocr" and text_for) else ""

@@ -7,6 +7,17 @@ import SwiftUI
 /// Whether Focus can read window titles. Without Accessibility it can only see which app is in front.
 public enum WindowAccess: Equatable, Sendable { case unknown, allowed, appNamesOnly }
 
+/// Whether the live preview can run. It needs Screen Recording, which only the user can grant.
+public enum PreviewAccess: Equatable, Sendable { case unknown, allowed, denied }
+
+/// One picture of the window Focus is reading. Held in memory for the running session; never written to disk, never sent to the model.
+public struct PreviewFrame: Identifiable, @unchecked Sendable {
+    public let id = UUID()
+    public let image: CGImage
+    public let app: String
+    public let at: Double
+}
+
 public struct Presence: Equatable, Sendable { public var state: String; public var reason: String? }
 public struct Surface: Equatable, Sendable { public var kind: String; public var severity: Int; public var at: Double }
 public struct TimerState: Equatable, Sendable { public var seconds = 0.0, running = false, visible = false, at = 0.0 }
@@ -23,6 +34,8 @@ public struct Reading: Identifiable, Equatable, Sendable {
     public var reason: String
     /// The model refused or errored; Focus treated it as unsure (CLAUDE.md principle 7).
     public var failed = false
+    /// The judge also got the words read from the screen picture, not only the title and address.
+    public var sawScreen = false
 }
 
 public struct SessionSummary: Equatable, Sendable {
@@ -57,6 +70,14 @@ public final class SessionController {
     @ObservationIgnored public var onOpenAccessSettings: (() -> Void)?
     public private(set) var readings: [Reading] = []
     public private(set) var stats = ReadStats()
+    public private(set) var previewFrame: PreviewFrame?
+    /// Words read from the latest picture (Apple Vision, on this Mac). Memory only, dropped when the window changes or the session ends.
+    public private(set) var screenText = ""
+    public var screenWordCount: Int { screenText.split(whereSeparator: { $0.isWhitespace }).count }
+    public private(set) var previewAccess = PreviewAccess.unknown
+    /// Set while the front window is private or on the never-judged list: nothing is captured then.
+    public private(set) var previewHeld: String?
+    @ObservationIgnored public var onRequestPreviewAccess: (() -> Void)?
 
     @ObservationIgnored public var onBringBack: ((String?) -> Void)?
     @ObservationIgnored public var onCue: (() -> Void)?
@@ -99,7 +120,7 @@ public final class SessionController {
         self.project = profile; self.projectId = pid; self.shadow = shadow
         sessionId = UUID(); startedAt = date(); segments = []; segKind = nil; segStart = now()
         taskName = task; self.mode = mode; totalSeconds = duration ?? 0
-        summary = nil; shadowMarks = 0; learnedRules = []; wrapUp = false; askResume = nil; readings = []; stats = ReadStats()
+        summary = nil; shadowMarks = 0; learnedRules = []; wrapUp = false; askResume = nil; readings = []; stats = ReadStats(); previewFrame = nil; previewHeld = nil; screenText = ""
         var c = SessionConfig(); c.taskId = task; c.mode = mode; c.durationSeconds = duration; c.preset = preset ?? prefs.preset; c.shadow = shadow
         isActive = true
         send(.sessionStart(c))
@@ -123,12 +144,42 @@ public final class SessionController {
 
     // MARK: senses
     public func setWindowAccess(_ a: WindowAccess) { if windowAccess != a { windowAccess = a } }
+    public func setPreviewAccess(_ a: PreviewAccess) { if previewAccess != a { previewAccess = a } }
+
+    /// True when a picture may be taken right now: a session runs, the user turned the preview on, and the window is not private.
+    public var previewWanted: Bool { isActive && prefs.readScreen && previewHeld == nil }
+
+    /// Accepts a captured picture only if it is still allowed when it arrives (the window may have changed while it was taken).
+    public func setPreview(_ image: CGImage, app: String, text: String? = nil) {
+        guard previewWanted else { return }
+        previewFrame = PreviewFrame(image: image, app: app, at: now())
+        guard let text else { return }
+        if Rules.looksPrivate(screenText: text) {
+            // Looks like a login or payment screen: drop the picture and the words, and read nothing from this window.
+            previewHeld = "This looks private. Not read or shown."; previewFrame = nil; dropScreenText()
+            return
+        }
+        // Only attach the words to the window they came from; the judge reads them on its next check.
+        guard var w = currentWindow, w.app == app || w.app.isEmpty else { return }
+        screenText = text
+        if w.text != text { w.text = text; currentWindow = w }
+    }
+
+    private func dropScreenText() {
+        screenText = ""
+        if var w = currentWindow, !w.text.isEmpty { w.text = ""; currentWindow = w }
+    }
+
+    public func clearPreview() { previewFrame = nil; dropScreenText() }
+
 
     public func windowChanged(_ w: WindowSnapshot) {
-        currentWindow = w
+        currentWindow = w; screenText = ""
         guard isActive else { return }
         let m = moment(w)
+        previewHeld = nil
         if Rules.isSensitive(m) {
+            previewHeld = "Private window. Not captured."; previewFrame = nil
             if !sensitiveUp { sensitiveUp = true; send(.sensitiveEntered); record(Reading(at: now(), date: date(), key: "sensitive", app: "", title: "", call: .unsure, source: .sensitive, reason: "A private window. Focus did not read it.")) }
             return
         }
@@ -136,6 +187,7 @@ public final class SessionController {
         let hit = Rules.stage1(m)
         if hit == nil, prefs.skipPersonal, Rules.isNeverJudged(m, apps: prefs.neverJudgedApps) {
             // Not read, not sent to the model, not counted as off task. The title is dropped: chat titles are names.
+            previewHeld = "On your never-judged list. Not captured."; previewFrame = nil
             record(Reading(at: now(), date: date(), key: Keys.window(w), app: w.app, title: "", call: .unsure, source: .skipped, reason: "Personal messages, music and blank pages are not judged."))
             send(.windowChange(WindowChangeInput(windowKey: Keys.window(w), siteKey: Keys.site(w), ruleLabel: .unsure)))
             return
@@ -160,7 +212,7 @@ public final class SessionController {
     func record(_ r: Reading) {
         switch r.source { case .model: stats.model += 1; case .rule: stats.rule += 1; case .skipped: stats.skipped += 1; case .sensitive: break }
         if r.source == .model || r.source == .rule { switch r.call { case .on: stats.onTask += 1; case .unsure: stats.unsure += 1; case .off: stats.offTask += 1 } }
-        if let first = readings.first, first.key == r.key, first.call == r.call, first.source == r.source { readings[0].at = r.at; readings[0].date = r.date; readings[0].reason = r.reason; return }
+        if let first = readings.first, first.key == r.key, first.call == r.call, first.source == r.source { readings[0].at = r.at; readings[0].date = r.date; readings[0].reason = r.reason; readings[0].sawScreen = readings[0].sawScreen || r.sawScreen; return }
         readings.insert(r, at: 0)
         if readings.count > 12 { readings.removeLast() }
     }
@@ -230,6 +282,7 @@ public final class SessionController {
                                             offTopicSeconds: o, unsureSeconds: u, drifts: d, interrupts: i, refusals: r, shadowMarks: shadowMarks,
                                             segments: segments.filter { $0.seconds >= 1 }, reads: stats))
                 prefs.sessionFinished(wasPractice: shadow)
+                previewFrame = nil; previewHeld = nil; screenText = ""
                 isActive = false; surface = nil; reentryOpen = false; askResume = nil; wrapUp = false
                 timer?.invalidate(); timer = nil
             }
@@ -256,18 +309,19 @@ public final class SessionController {
         let m = moment(w)
         let content = Keys.content(w)
         let judge = self.judge
+        let sawScreen = !m.windowText.isEmpty
         checkedAt = observedAt
         tasks.append(Task { [weak self] in
             let j = await Pipeline.judge(m, with: judge, useRules: false)
-            self?.deliver(j, id: id, observedAt: observedAt, windowKey: windowKey, contentKey: content)
+            self?.deliver(j, id: id, observedAt: observedAt, windowKey: windowKey, contentKey: content, sawScreen: sawScreen)
         })
     }
 
-    func deliver(_ j: Judgement, id: Int, observedAt: Double, windowKey: String, contentKey: String) {
+    func deliver(_ j: Judgement, id: Int, observedAt: Double, windowKey: String, contentKey: String, sawScreen: Bool = false) {
         if let w = currentWindow, Keys.window(w) == windowKey {
             var r = Reading(at: observedAt, date: date(), key: windowKey, app: w.app, title: w.title, call: Self.call(j.label), source: .model,
                             reason: Self.tidy(j.reason, failed: j.error != nil))
-            r.failed = j.error != nil
+            r.failed = j.error != nil; r.sawScreen = sawScreen
             record(r)
         }
         var input = JudgmentInput(requestId: id, observedAt: observedAt, windowKey: windowKey, contentKey: contentKey, label: Self.brainLabel(j.label))

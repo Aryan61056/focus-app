@@ -5,8 +5,10 @@ Spike-grade: the sensitive lists are illustrative, not a shipped policy.
 from __future__ import annotations
 
 import os
+import re
+import unicodedata
 from typing import Optional, Tuple
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 from .scenarios import Scenario
 
@@ -92,3 +94,32 @@ def is_never_judged(s: Scenario, apps=DEFAULT_NEVER_JUDGED_APPS) -> bool:
     host, _ = _host_and_path(s.url)
     blank_url = (not s.url) or s.url.startswith(("about:blank", "chrome://newtab", "favorites://")) or host == "newtab"
     return s.window_title.strip().lower() in BLANK_PAGE_TITLES and blank_url and not s.document_path
+
+
+# Mirror of mac/Sources/FocusJudge/Rules.swift `injectionPatterns` (prompt-injection guard, docs/T7-injection.md).
+# tests/test_rules.py checks the two lists are identical.
+INJECTION_PATTERNS = [
+    r"\b(?:off|on)_task\b",
+    r"\b(?:different_activity|directly_serves)\b",
+    r"ignore\s+(?:all\s+|any\s+|the\s+|your\s+)*(?:previous|prior|above|earlier)\s+(?:instructions?|rules?|prompts?)",
+    r"disregard\s+(?:all\s+|any\s+|the\s+|your\s+)*(?:previous\s+|prior\s+|above\s+|earlier\s+)?(?:instructions?|rules?)",
+    r"ignore\s+the\s+task",
+    r"note\s+to\s+(?:the\s+)?(?:ai|assistant|model|llm)",
+    r"\[(?:system|assistant|developer)\]",
+    r"(?:^|[.!?\n])\s*(?:system|assistant|developer)\s*:",
+    r"classification\s+rules",
+    r"</?window_text",
+]
+_INJECTION_RE = [re.compile(p, re.IGNORECASE) for p in INJECTION_PATTERNS]
+
+
+def normalized_for_scan(text: str) -> str:
+    """Unicode compatibility form, zero-width characters removed, percent-escapes decoded (mirror of Rules.normalizedForScan in Swift)."""
+    folded = "".join(c for c in unicodedata.normalize("NFKC", text) if c not in "\u200b\u200c\u200d\u200e\u200f\u2060\ufeff\u00ad")
+    return unquote(folded)
+
+
+def looks_injected(s: Scenario) -> bool:
+    """Window text that talks to the AI. Such windows are not judged: they come back unsure."""
+    fields = [normalized_for_scan(f) for f in (s.window_title, s.url, s.document_path, s.window_text)]
+    return any(r.search(f) for f in fields for r in _INJECTION_RE)

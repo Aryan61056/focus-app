@@ -46,6 +46,19 @@ let judge = ScriptedJudge(readings: [
     await advance(c, to: 30)
     for dark in [false, true] { render(c, "on-task", dark: dark) }
 
+    // Live preview card with a synthetic picture (drawn here, not a capture of any screen).
+    let pw = 720, ph = 450
+    if let ctx = CGContext(data: nil, width: pw, height: ph, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) {
+        ctx.setFillColor(CGColor(red: 0.96, green: 0.96, blue: 0.94, alpha: 1)); ctx.fill(CGRect(x: 0, y: 0, width: pw, height: ph))
+        ctx.setFillColor(CGColor(red: 0.8, green: 0.82, blue: 0.8, alpha: 1))
+        for i in 0..<9 { ctx.fill(CGRect(x: 60, y: ph - 90 - i * 38, width: i % 3 == 2 ? 360 : 600, height: 14)) }
+        if let img = ctx.makeImage() {
+            c.prefs.readScreen = true; c.setPreview(img, app: "Preview", text: "Chapter 5 exercises\nProblem 4. Integrate x e^x dx using integration by parts.\nProblem 5. Evaluate the integral of ln x dx.")
+            for dark in [false, true] { render(c, "on-task-preview", dark: dark) }
+            c.prefs.readScreen = false; c.clearPreview()
+        }
+    }
+
     c.windowChanged(WindowSnapshot(app: "Browser", title: "youtube clip", url: "https://youtube.com/watch?v=1"))
     await advance(c, to: 95)
     for dark in [false, true] { render(c, "drifting", dark: dark) }

@@ -62,6 +62,16 @@ public enum Rules {
         return sensitiveDomains.contains { hostMatches(host, $0) }
     }
 
+    /// Words that mean the screen shows a login, payment or secret. Text read from the screen is dropped, not judged, when it has one.
+    /// Deliberately wide: a false hold only means Focus falls back to the window title for that window.
+    static let privateTextMarkers = ["password", "passcode", "passphrase", "card number", "cvv", "cvc", "security code", "social security",
+                                     "routing number", "account number", "recovery phrase", "seed phrase", "private key", "one-time code",
+                                     "verification code", "2fa", "iban"]
+    public static func looksPrivate(screenText t: String) -> Bool {
+        let s = normalizedForScan(t).lowercased()
+        return privateTextMarkers.contains { s.contains($0) }
+    }
+
     /// Apps Focus does not judge by default: personal messaging and music. Neither is read nor counted as off task.
     /// Slack, Mail and similar can be work, so they are not here. The owner approved a default list on 2026-10-01; this exact
     /// list is a starting point the user can edit in Settings.
@@ -78,6 +88,40 @@ public enum Rules {
         let (host, _) = hostAndPath(m.url)
         let blankURL = m.url.isEmpty || m.url.hasPrefix("about:blank") || m.url.hasPrefix("chrome://newtab") || m.url.hasPrefix("favorites://") || host == "newtab"
         return blankPageTitles.contains(title) && blankURL && m.documentPath.isEmpty
+    }
+
+    /// Patterns that mark on-screen text as instructions aimed at the AI (prompt injection). Matching windows are not judged: they come back
+    /// `unsure` with a reason, so they can never advance to a nudge. A denylist, so it fails open against wording it does not know;
+    /// tests/test_rules.py keeps this list identical to eval/focus_eval/rules.py. Measured in docs/T7-injection.md.
+    public static let injectionPatterns: [String] = [
+        #"\b(?:off|on)_task\b"#,
+        #"\b(?:different_activity|directly_serves)\b"#,
+        #"ignore\s+(?:all\s+|any\s+|the\s+|your\s+)*(?:previous|prior|above|earlier)\s+(?:instructions?|rules?|prompts?)"#,
+        #"disregard\s+(?:all\s+|any\s+|the\s+|your\s+)*(?:previous\s+|prior\s+|above\s+|earlier\s+)?(?:instructions?|rules?)"#,
+        #"ignore\s+the\s+task"#,
+        #"note\s+to\s+(?:the\s+)?(?:ai|assistant|model|llm)"#,
+        #"\[(?:system|assistant|developer)\]"#,
+        #"(?:^|[.!?\n])\s*(?:system|assistant|developer)\s*:"#,
+        #"classification\s+rules"#,
+        #"</?window_text"#,
+    ]
+    static let injectionRegexes: [NSRegularExpression] = injectionPatterns.compactMap { try? NSRegularExpression(pattern: $0, options: [.caseInsensitive]) }
+
+    /// What the patterns are matched against: Unicode compatibility form (so full-width letters fold), zero-width characters removed
+    /// (so they cannot split a phrase), and percent-escapes decoded (so a phrase in a URL cannot hide).
+    static func normalizedForScan(_ s: String) -> String {
+        let zeroWidth = CharacterSet(charactersIn: "\u{200B}\u{200C}\u{200D}\u{200E}\u{200F}\u{2060}\u{FEFF}\u{00AD}")
+        let folded = s.precomposedStringWithCompatibilityMapping.unicodeScalars.filter { !zeroWidth.contains($0) }
+        let text = String(String.UnicodeScalarView(folded))
+        return text.removingPercentEncoding ?? text
+    }
+
+    public static func looksInjected(_ m: Moment) -> Bool {
+        let fields = [m.windowTitle, m.url, m.documentPath, m.windowText].map(normalizedForScan)
+        return fields.contains { f in
+            let r = NSRange(f.startIndex..., in: f)
+            return injectionRegexes.contains { $0.firstMatch(in: f, options: [], range: r) != nil }
+        }
     }
 
     public struct RuleHit: Equatable, Sendable { public var label: Label; public var rule: String }

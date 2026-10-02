@@ -29,6 +29,7 @@ def main() -> int:
     ap.add_argument("--order", default="reason-first", choices=["reason-first", "label-first", "relation", "relation-reasoned"])
     ap.add_argument("--text-mode", default="full", choices=["full", "titles", "ocr", "pixels"],
                     help="titles: app, title, url and path only; ocr: window text replaced by OCR of a synthetic screenshot; pixels: vision model reads the screenshot")
+    ap.add_argument("--no-guard", action="store_true", help="skip the prompt-injection guard (used to measure what it blocks)")
     ap.add_argument("--no-rules", action="store_true", help="skip stage 0/1 so every scenario reaches the model")
     ap.add_argument("--only", help="comma-separated scenario ids")
     ap.add_argument("--category", help="comma-separated categories")
@@ -64,7 +65,7 @@ def main() -> int:
         def tick(i, n, s):
             if sys.stderr.isatty():
                 sys.stderr.write("\r%d/%d %s   " % (i + 1, n, s.id))
-        results = pipeline.run(items, backend, use_rules=not args.no_rules,
+        results = pipeline.run(items, backend, use_rules=not args.no_rules, use_guard=not args.no_guard,
                                text_mode=args.text_mode, text_for=lambda sc: ocr_map.get(sc.id, ""), progress=tick)
     finally:
         backend.close()

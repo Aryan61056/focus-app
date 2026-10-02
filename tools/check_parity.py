@@ -48,6 +48,8 @@ def main() -> int:
                 py = ("sensitive", "unsure")
             elif rules.stage1(s):
                 py = ("rule", rules.stage1(s)[0])
+            elif rules.looks_injected(s):
+                py = ("guarded", "unsure")
             else:
                 py = ("model", "unsure")  # stub judge answers unsure
             sw = (stage[s.id]["stage"], stage[s.id]["pred"])

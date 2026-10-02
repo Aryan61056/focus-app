@@ -68,7 +68,7 @@ struct SessionPanel: View {
                         Text(c.shadowMarks == 0 ? "Practice mode: Focus is watching but will not interrupt you."
                              : "Practice mode: \(c.shadowMarks) moment\(c.shadowMarks == 1 ? "" : "s") to review later.")
                     } else {
-                        Text("Focus reads app names and window titles on this Mac.")
+                        Text(c.prefs.readScreen ? "Focus reads app names, window titles and the words on screen, on this Mac." : "Focus reads app names and window titles on this Mac.")
                     }
                 }
                 .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).padding(.top, 12)

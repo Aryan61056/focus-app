@@ -23,6 +23,7 @@ RULES = [
     (r"LanguageModelSession\([^)]*\bmodel:", "model other than SystemLanguageModel.default (F8)"),
     (r"\bSystemLanguageModel\((?!\))|SystemLanguageModel\.init\(|\bPrivateCloudCompute|\bConversationalLanguageModel\b", "non-default or non-local model (F8)"),
     (r"https?://[A-Za-z0-9]", "hard-coded URL with a host"),
+    (r"\bCGImageDestination|\bpngData\(|\bjpegData\(|\btiffRepresentation\b|\bbitmapRepresentation|representation\(using:", "encodes an image, which could be saved: pictures stay in memory (principle 2)"),
 ]
 
 def strip_comments(line: str) -> str:
@@ -49,7 +50,7 @@ def self_test() -> int:
     bad = {
         "net": "let s = URLSession.shared", "imp": "import Network", "open": "NSWorkspace.shared.open(url)",
         "log": 'print("title: \\(t)")', "model": "LanguageModelSession(model: other, instructions: x)",
-        "url": 'let u = "https://example.com"', "cloud": "let m = PrivateCloudCompute()",
+        "url": 'let u = "https://example.com"', "cloud": "let m = PrivateCloudCompute()", "img": "let d = img.pngData()",
     }
     ok = ["let session = LanguageModelSession(instructions: x)", "switch SystemLanguageModel.default.availability {}", "// print(\"x\") in a comment", "let printable = 1"]
     failed = [k for k, v in bad.items() if not scan_text(k, v)] + [o for o in ok if scan_text("ok", o)]
