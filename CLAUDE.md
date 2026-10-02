@@ -86,6 +86,7 @@ python3 eval/combine_results.py <run-a.json> <run-b.json>                      #
 python3 eval/run_eval.py --backend mlx_text --order relation                   # local Qwen text model (needs `uv sync` in eval/ and models in eval/.cache/models/)
 python3 eval/run_eval.py --backend mlx_vlm --text-mode pixels                  # Qwen3-VL reading synthetic screenshots
 python3 eval/measure_resources.py --backend mlx_text                           # memory/CPU/energy proxy; needs a quiet machine
+./tools/build_app.sh                                                            # local ad-hoc-signed mac/.build/Focus.app (dev only, not for distribution)
 (cd mac && swift run -q focus-sense-check)                                     # Accessibility allowed? and the front app's name (never a title)
 (cd mac && swift test)                                                         # Swift judge port + brain (golden traces, scenarios, property tests)
 python3 tools/check_privacy.py                                                 # source scan: no networking, URL opening, logging or non-system model in engine modules (does not lift the claims ban)
