@@ -92,6 +92,7 @@ python3 eval/measure_resources.py --backend mlx_text                           #
 (cd mac && swift run -q brain-ffi-check ../core/traces)                         # Swift calling the Rust brain over its C ABI (build core/brain-rs --release first)
 python3 tools/diff_brains.py --runs 400                                        # Swift vs Rust brain on random sessions
 python3 tools/check_contrast.py                                                # WCAG contrast of the native color tokens, light and dark
+./tools/check_notch_hover.sh                                                    # moves the real pointer onto the notch area; fails if the demo app crashes (needs the bundle built)
 ./tools/build_app.sh                                                            # local ad-hoc-signed mac/.build/Focus.app (dev only, not for distribution)
 (cd mac && swift run -q focus-sense-check)                                     # Accessibility allowed? and the front app's name (never a title)
 (cd mac && swift test)                                                         # Swift judge port + brain (golden traces, scenarios, property tests)

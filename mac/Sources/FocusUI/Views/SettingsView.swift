@@ -106,8 +106,8 @@ struct SettingsView: View {
 
     func row<V: View>(_ title: String, _ help: String, @ViewBuilder _ trailing: () -> V) -> some View {
         HStack(spacing: 18) {
-            VStack(alignment: .leading, spacing: 2) { Text(title).font(Tokens.text(13.5, .semibold)); Text(help).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
-            Spacer(); trailing()
+            VStack(alignment: .leading, spacing: 2) { Text(title).font(Tokens.text(13.5, .semibold)); Text(help).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true) }
+            Spacer(minLength: 12); trailing().fixedSize().layoutPriority(2)
         }
         .padding(.horizontal, 16).padding(.vertical, 12).overlay(alignment: .top) { Divider().overlay(Tokens.line) }
     }
