@@ -1,0 +1,142 @@
+import SwiftUI
+import FocusBrain
+
+public enum NotchMode: Equatable, Sendable { case rest, open, nudge }
+
+/// Size of the notch surface for each mode. Pure, so it is tested; the AppKit panel just applies it.
+public enum NotchLayout {
+    public static let ear: CGFloat = 66
+    public static func size(_ mode: NotchMode, notchWidth: CGFloat, notchHeight: CGFloat) -> CGSize {
+        if notchWidth == 0 {   // Macs without a notch: a floating pill under the menu bar
+            switch mode { case .rest: return CGSize(width: 220, height: 36); case .open: return CGSize(width: 320, height: 118); case .nudge: return CGSize(width: 320, height: 126) }
+        }
+        let base = notchWidth + 2 * ear
+        switch mode {
+        case .rest: return CGSize(width: base, height: notchHeight)
+        case .open: return CGSize(width: max(base, 330), height: notchHeight + 88)
+        case .nudge: return CGSize(width: max(base, 330), height: notchHeight + 96)
+        }
+    }
+}
+
+struct NotchShape: Shape {
+    var bottom: CGFloat, top: CGFloat
+    func path(in r: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: r.minX, y: r.minY))
+        p.addLine(to: CGPoint(x: r.maxX, y: r.minY))
+        p.addLine(to: CGPoint(x: r.maxX, y: r.maxY - bottom))
+        p.addQuadCurve(to: CGPoint(x: r.maxX - bottom, y: r.maxY), control: CGPoint(x: r.maxX, y: r.maxY))
+        p.addLine(to: CGPoint(x: r.minX + bottom, y: r.maxY))
+        p.addQuadCurve(to: CGPoint(x: r.minX, y: r.maxY - bottom), control: CGPoint(x: r.minX, y: r.maxY))
+        p.closeSubpath()
+        return p
+    }
+}
+
+/// The notch presence. Aesthetic, not functional (owner, 2026-10-01): a ring and the time at rest, and when opened only the
+/// task and two buttons. A nudge opens it once with one action. It always draws dark so it melts into the hardware notch.
+public struct NotchView: View {
+    @Bindable var c: SessionController
+    var notchWidth: CGFloat
+    var notchHeight: CGFloat
+    var forced: NotchMode?
+    var openApp: () -> Void
+    @State private var hover = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    public init(controller: SessionController, notchWidth: CGFloat, notchHeight: CGFloat, forced: NotchMode? = nil, openApp: @escaping () -> Void) {
+        self.c = controller; self.notchWidth = notchWidth; self.notchHeight = notchHeight; self.forced = forced; self.openApp = openApp
+    }
+
+    static let ink = Color(red: 0.93, green: 0.95, blue: 0.94)
+    static let ink2 = Color(red: 0.70, green: 0.73, blue: 0.71)
+    static let accent = Color(red: 0.47, green: 0.84, blue: 0.62)
+
+    var nudging: Bool { if let s = c.surface, s.kind != "gate" { return true }; return false }
+    public var mode: NotchMode { forced ?? (nudging ? .nudge : (hover ? .open : .rest)) }
+    var tint: Color { c.ringColor == Tokens.accent ? Self.accent : Self.ink }
+    var hasNotch: Bool { notchWidth > 0 }
+
+    public var body: some View {
+        let size = NotchLayout.size(mode, notchWidth: notchWidth, notchHeight: notchHeight)
+        ZStack(alignment: .top) {
+            (hasNotch ? AnyShape(NotchShape(bottom: mode == .rest ? 12 : 22, top: 0)) : AnyShape(RoundedRectangle(cornerRadius: mode == .rest ? 18 : 24, style: .continuous))).fill(.black)
+            content.padding(.horizontal, hasNotch ? 0 : 14)
+        }
+        .frame(width: size.width, height: size.height)
+        .foregroundStyle(Self.ink)
+        .onHover { hover = $0 }
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: mode)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Focus, \(c.presenceLabel), \(c.taskName)")
+    }
+
+    @ViewBuilder var content: some View {
+        switch mode {
+        case .rest: rest
+        case .open: VStack(spacing: 0) { band; openBody }
+        case .nudge: VStack(spacing: 0) { band; nudgeBody }
+        }
+    }
+
+    /// The top band: ring on the left ear, the hardware notch in the middle, the time on the right ear.
+    var band: some View {
+        HStack(spacing: 0) {
+            ring.frame(width: NotchLayout.ear)
+            Spacer(minLength: hasNotch ? notchWidth : 0)
+            time.frame(width: NotchLayout.ear)
+        }.frame(height: hasNotch ? notchHeight : 0)
+    }
+
+    @ViewBuilder var rest: some View {
+        if hasNotch { band }
+        else {
+            HStack(spacing: 10) {
+                ring.frame(width: 20)
+                Text(c.taskName).font(Tokens.text(13, .medium)).lineLimit(1)
+                Spacer(minLength: 4)
+                time
+            }.frame(maxHeight: .infinity)
+        }
+    }
+
+    var ring: some View { RingView(c.ringState, color: tint).frame(width: 18, height: 18) }
+    var time: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { _ in Text(c.clockText()).font(Tokens.rounded(13, .semibold)).monospacedDigit() }
+    }
+
+    var openBody: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(c.taskName).font(Tokens.rounded(15, .semibold)).lineLimit(1)
+                    Text(c.presenceLabel).font(Tokens.text(12)).foregroundStyle(Self.ink2)
+                }
+                Spacer()
+            }
+            HStack(spacing: 8) {
+                pill(c.isPaused ? "Resume" : "Pause") { c.act(c.isPaused ? .resume : .pause) }
+                pill("Open Focus") { openApp() }
+            }
+        }.padding(.horizontal, 18).padding(.top, hasNotch ? 6 : 12).padding(.bottom, 14)
+    }
+
+    var nudgeBody: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(c.surface?.kind == "notice" ? "Still on \(c.taskName)?" : "Back to \(c.taskName)?").font(Tokens.rounded(15, .semibold)).lineLimit(2)
+            HStack(spacing: 8) {
+                pill("Back to task", primary: true) { c.act(.backToTask) }
+                pill("Not now") { c.act(.dismiss) }
+            }
+        }.frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 18).padding(.top, hasNotch ? 6 : 12).padding(.bottom, 14)
+    }
+
+    func pill(_ title: String, primary: Bool = false, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title).font(Tokens.text(12.5, .semibold)).foregroundStyle(primary ? Color(red: 0.02, green: 0.1, blue: 0.05) : Self.ink)
+                .padding(.horizontal, 14).frame(height: 28)
+                .background(Capsule().fill(primary ? Self.accent : Color.white.opacity(0.14)))
+        }.buttonStyle(.plain)
+    }
+}

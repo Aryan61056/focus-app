@@ -51,6 +51,7 @@ let judge = ScriptedJudge(readings: [
     for dark in [false, true] { render(c, "drifting", dark: dark) }
     while c.surface == nil && t < 300 { await advance(c, to: t + 1) }
     for dark in [false, true] { render(c, "nudge", dark: dark) }
+    notchShots(c)
     print("state:", c.presence, "surface:", String(describing: c.surface), "veil:", c.veilTarget)
 }
 
@@ -101,6 +102,20 @@ let judge = ScriptedJudge(readings: [
         m.answer = ans; store.addReview(m)
     }
     return store
+}
+
+@MainActor func notchShots(_ c: SessionController) {
+    func shot(_ name: String, _ v: NotchView, _ w: CGFloat, _ h: CGFloat) {
+        let wall = ZStack(alignment: .top) { LinearGradient(colors: [Color(red: 0.2, green: 0.3, blue: 0.4), Color(red: 0.1, green: 0.15, blue: 0.2)], startPoint: .top, endPoint: .bottom); v }
+            .frame(width: w, height: h)
+        let r = ImageRenderer(content: wall); r.scale = 2
+        guard let img = r.nsImage, let tiff = img.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff), let png = rep.representation(using: NSBitmapImageRep.FileType.png, properties: [:]) else { print("render failed: \(name)"); return }
+        try? png.write(to: URL(fileURLWithPath: "\(outDir)/\(name).png")); print("\(outDir)/\(name).png")
+    }
+    for (label, mode) in [("rest", NotchMode.rest), ("open", .open), ("nudge", .nudge)] {
+        shot("notch-\(label)", NotchView(controller: c, notchWidth: 200, notchHeight: 32, forced: mode, openApp: {}), 460, 150)
+        shot("pill-\(label)", NotchView(controller: c, notchWidth: 0, notchHeight: 0, forced: mode, openApp: {}), 460, 150)
+    }
 }
 
 @MainActor func screens() {

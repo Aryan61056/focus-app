@@ -9,12 +9,14 @@ struct FocusApp: App {
         ? SessionController(judge: ScriptedJudge(markers: [("youtube", .off), ("Calc", .on), ("khanacademy", .on)]), store: DataStore())
         : SessionController(judge: DefaultJudge.make(), store: DataStore(url: DataStore.defaultURL), prefs: Preferences())
     @State private var demo: DemoSenses?
+    @State private var notch: NotchPanelController?
     @Environment(\.openWindow) private var openWindow
 
     var body: some Scene {
         Window("Focus", id: "main") {
             RootView(controller: controller)
                 .task {
+                    if notch == nil { let n = NotchPanelController(controller: controller) { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main") }; notch = n; n.start() }
                     guard ProcessInfo.processInfo.environment["FOCUS_DEMO"] == "1", demo == nil else { return }
                     let d = DemoSenses(controller: controller, script: [
                         .init(after: 0.5, window: WindowSnapshot(app: "Notes", title: "Calc homework")),

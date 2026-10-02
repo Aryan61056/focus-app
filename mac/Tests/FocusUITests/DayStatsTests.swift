@@ -64,3 +64,34 @@ extension DayStatsTests {
         XCTAssertEqual(DayStats.morningShare(g), 67)
     }
 }
+
+@MainActor
+final class NotchTests: XCTestCase {
+    func testRestIsJustTheEarsAndOpenGrowsDownNeverSideways() {
+        let rest = NotchLayout.size(.rest, notchWidth: 200, notchHeight: 32)
+        XCTAssertEqual(rest.height, 32)
+        XCTAssertEqual(rest.width, 200 + 2 * NotchLayout.ear)
+        let open = NotchLayout.size(.open, notchWidth: 200, notchHeight: 32)
+        XCTAssertGreaterThan(open.height, rest.height)
+        XCTAssertGreaterThanOrEqual(open.width, rest.width)
+        XCTAssertLessThanOrEqual(open.width, 340, "it grows down; width barely changes")
+    }
+
+    func testNoNotchGivesAFloatingPill() {
+        let r = NotchLayout.size(.rest, notchWidth: 0, notchHeight: 0)
+        XCTAssertEqual(r.height, 36)
+        XCTAssertGreaterThan(NotchLayout.size(.nudge, notchWidth: 0, notchHeight: 0).height, r.height)
+    }
+
+    func testModeFollowsTheNudgeSurfaceAndNeverTheGate() async {
+        var t = 0.0
+        let judge = ScriptedJudge(markers: [("youtube", .off), ("Notes", .on)])
+        let c = SessionController(judge: judge, now: { t })
+        c.windowChanged(WindowSnapshot(app: "Notes", title: "Calc homework"))
+        c.begin(task: "Calc homework", preset: .standard, shadow: false)
+        XCTAssertEqual(NotchView(controller: c, notchWidth: 200, notchHeight: 32, openApp: {}).mode, .rest)
+        c.windowChanged(WindowSnapshot(app: "Browser", title: "youtube clip", url: "https://youtube.com/watch?v=1"))
+        while c.surface == nil && t < 300 { t += 1; c.tick(); await c.waitForJudgments() }
+        XCTAssertEqual(NotchView(controller: c, notchWidth: 200, notchHeight: 32, openApp: {}).mode, .nudge)
+    }
+}

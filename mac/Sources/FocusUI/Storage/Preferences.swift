@@ -14,6 +14,8 @@ public final class Preferences {
     /// Personal messaging, music and blank pages are not judged. The list is editable; the switch turns the whole idea off.
     public var skipPersonal: Bool { didSet { defaults.set(skipPersonal, forKey: "skipPersonal") } }
     public var neverJudgedApps: [String] { didSet { defaults.set(neverJudgedApps, forKey: "neverJudgedApps") } }
+    /// The notch (or floating pill) while a session runs. Aesthetic only; everything it does is also in the app and the menu bar.
+    public var showNotch: Bool { didSet { defaults.set(showNotch, forKey: "showNotch") } }
     public var practiceActive: Bool { practiceSessionsLeft > 0 }
 
     public init(defaults: UserDefaults = .standard) {
@@ -21,6 +23,7 @@ public final class Preferences {
         preset = Preset(rawValue: defaults.string(forKey: "preset") ?? "") ?? .gentle
         skipPersonal = defaults.object(forKey: "skipPersonal") as? Bool ?? true
         neverJudgedApps = defaults.stringArray(forKey: "neverJudgedApps") ?? Rules.defaultNeverJudgedApps
+        showNotch = defaults.object(forKey: "showNotch") as? Bool ?? true
         practiceSessionsLeft = defaults.object(forKey: "practiceLeft") as? Int ?? Preferences.practiceSessions
     }
 
