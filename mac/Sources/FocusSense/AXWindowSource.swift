@@ -43,7 +43,7 @@ public struct AXWindowSource: WindowSource {
         let el = AXUIElementCreateApplication(app.processIdentifier)
         AXUIElementSetMessagingTimeout(el, 0.25)   // a hung app must not freeze Focus
         var win: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(el, kAXFocusedWindowAttribute as CFString, &win) == .success, let window = win else {
+        guard AXUIElementCopyAttributeValue(el, kAXFocusedWindowAttribute as CFString, &win) == .success, let window = win, CFGetTypeID(window) == AXUIElementGetTypeID() else {
             return WindowSnapshot(app: name, title: "")
         }
         let w = window as! AXUIElement
