@@ -14,6 +14,12 @@ final class TaskWordsTests: XCTestCase {
         XCTAssertTrue(Rules.sharedTaskWords(m(task: "Fix the pagination bug in the orders API", title: "Funniest cat videos")).isEmpty)
     }
 
+    func testSitesAreRecognisedByNameInTheTitleWhenTheBrowserGivesNoAddress() {
+        XCTAssertTrue(Rules.sharedTaskWords(m(task: "Study organic chemistry", title: "Organic chemistry memes - YouTube")).isEmpty)
+        XCTAssertTrue(Rules.sharedTaskWords(m(task: "Fix the pagination bug in the orders API", title: "(3) Home / X")).isEmpty)
+        XCTAssertFalse(Rules.sharedTaskWords(m(task: "Study organic chemistry", title: "Organic chemistry - Khan Academy")).isEmpty)
+    }
+
     func testStopWordsAndShortWordsNeverMatch() {
         XCTAssertTrue(Rules.sharedTaskWords(m(task: "Write the report for work", title: "Work notes about the new page")).isEmpty)
     }

@@ -77,6 +77,10 @@ public enum Rules {
     static let wordMatchExcludedHosts = ["youtube.com", "youtu.be", "reddit.com", "twitter.com", "x.com", "facebook.com", "instagram.com", "tiktok.com", "netflix.com",
                                          "twitch.tv", "techcrunch.com", "medium.com", "linkedin.com", "news.ycombinator.com", "pinterest.com", "9gag.com"]
 
+    /// Browsers do not always report the address, so the same sites are also recognised by name in the title ("... - YouTube", "Home / X").
+    static let wordMatchExcludedTitleWords: Set<String> = ["youtube", "reddit", "facebook", "instagram", "tiktok", "netflix", "twitch", "twitter", "linkedin", "pinterest",
+                                                          "techcrunch", "medium", "9gag", "hulu", "disneyplus"]
+
     static func words(_ s: String) -> Set<String> {
         var out = Set<String>(), cur = ""
         for ch in normalizedForScan(s).lowercased() {
@@ -92,6 +96,8 @@ public enum Rules {
     public static func sharedTaskWords(_ m: Moment) -> [String] {
         let (host, path) = hostAndPath(m.url)
         if wordMatchExcludedHosts.contains(where: { hostMatches(host, $0) }) { return [] }
+        let titleWords = Set(m.windowTitle.lowercased().split(whereSeparator: { !$0.isLetter && !$0.isNumber }).map(String.init))
+        if !titleWords.isDisjoint(with: wordMatchExcludedTitleWords) || m.windowTitle.lowercased().hasSuffix(" / x") { return [] }
         let task = words([m.task, m.project.context].joined(separator: " "))
         let there = words([m.windowTitle, path, m.documentPath].joined(separator: " "))
         return task.intersection(there).sorted()

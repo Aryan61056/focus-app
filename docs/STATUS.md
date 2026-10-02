@@ -14,6 +14,7 @@ Everything here is on this Mac only. Nothing was pushed or published. Windows co
 - **Try it** (Settings): a 5-second countdown, then shows what Focus can see in the window you switched to. Use this to check sensing.
 - **System signals**: idle (4 min), sleep or screen lock, Low Power Mode or heat, and calls (camera on, or microphone with a conferencing app in front) pause or slow the brain as the spec says.
 - **First run**: one-screen intro (skipped if you already have sessions); one-time "too quiet, about right, too loud" after the first session that actually nudged.
+- **Typed duration**: "calc homework 50" starts a 50-minute timed session.
 - **Level 0 start**: the start sheet opens on your last project with its next step. Global shortcut Control-Option-F (start, or pause/resume). Session menu and View shortcuts (Command-1 to 6).
 - **Nudges reach you in the background**: they show in the notch/pill even if you hid it; the strict pause screen brings the window forward; "Back to task" activates the app you were last on task in.
 - Prompt-injection guard (see `docs/T7-injection.md`) with its limits.
@@ -37,4 +38,5 @@ The model said "Not sure" for most real work windows, so a window whose title, p
 - Accuracy numbers are from synthetic scenarios (`docs/S1-accuracy.md`); fresh-set strict precision 71%, recall 40% on clear distractions. Real windows are untested.
 - Privacy tests T1 to T4 (sandbox) not done, so the "cannot reach the network" claim stays banned.
 - Windows: nothing runnable here.
+- Whether Chrome reports page addresses through Accessibility is unknown (Safari does). Without an address, titles still work, and the matching-words rule also skips pages whose title names a video or social site.
 - Still yours to decide: product name, audience, pricing, open-sourcing, minimum OS, Mac distribution, languages.
