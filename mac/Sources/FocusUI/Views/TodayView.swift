@@ -16,11 +16,11 @@ struct TodayView: View {
                 Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide))).font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
             }
             if c.isActive { SessionPanel(c: c); ReadingPanel(c: c) } else { IdlePanel(c: c, showStart: $showStart); HowFocusDecides() }
-            if c.isActive && c.windowAccess == .appNamesOnly {
+            if c.windowAccess == .appNamesOnly {
                 Panel(tinted: true) {
                     HStack(spacing: 14) {
                         Image(systemName: "lock.open").foregroundStyle(Tokens.ink2)
-                        Text("Focus can only see which app is in front. Allow Accessibility and it can read window titles too, which it needs to tell work from drift. If Focus is already switched on in that list, remove it with the minus button and add it again.")
+                        Text(c.isActive ? "Focus can only see which app is in front. Allow Accessibility and it can read window titles too, which it needs to tell work from drift. If Focus is already switched on in that list, remove it with the minus button and add it again." : "To tell work from drift, Focus needs Accessibility so it can read window titles during a session. You can do this now or later. If Focus is already switched on in that list, remove it with the minus button and add it again.")
                             .font(Tokens.text(13.5)).fixedSize(horizontal: false, vertical: true)
                         Spacer(minLength: 12)
                         Button("Open Accessibility settings") { c.onOpenAccessSettings?() }.buttonStyle(FocusButtonStyle(.secondary, small: true))

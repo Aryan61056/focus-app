@@ -11,7 +11,11 @@ public struct AXWindowSource: WindowSource {
     public var isTrusted: Bool { AXIsProcessTrusted() }
 
     /// Shows the system's own prompt that points the user at Privacy & Security > Accessibility. Never grants anything by itself.
+    nonisolated(unsafe) private static var prompted = false
     public static func promptForAccess() {
+        // The system dialog adds Focus to the Accessibility list; once per launch is enough, more only nags.
+        guard !prompted else { return }
+        prompted = true
         let opts = ["AXTrustedCheckOptionPrompt" as CFString: true] as CFDictionary
         _ = AXIsProcessTrustedWithOptions(opts)
     }
