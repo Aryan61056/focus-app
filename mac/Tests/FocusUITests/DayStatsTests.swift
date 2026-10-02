@@ -198,3 +198,19 @@ final class MenuRequestTests: XCTestCase {
         c.requestStart(); XCTAssertEqual(c.startRequests, 1)
     }
 }
+
+@MainActor
+final class StoreSafetyTests: XCTestCase {
+    func testAnUnreadableStoreIsSetAsideNotOverwritten() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("focus-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let url = dir.appendingPathComponent("store.json")
+        try Data("{ not json".utf8).write(to: url)
+        let s = DataStore(url: url)
+        s.addProject(name: "New")
+        let files = try FileManager.default.contentsOfDirectory(atPath: dir.path)
+        XCTAssertTrue(files.contains { $0.hasPrefix("store.unreadable-") }, "the bad file is kept: \(files)")
+        XCTAssertEqual(DataStore(url: url).projects.map(\.name), ["New"])
+        try? FileManager.default.removeItem(at: dir)
+    }
+}

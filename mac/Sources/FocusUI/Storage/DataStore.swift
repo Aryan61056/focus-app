@@ -13,7 +13,14 @@ public final class DataStore {
 
     public init(url: URL? = nil) {
         self.url = url
-        guard let url, let data = try? Data(contentsOf: url), let f = try? JSONDecoder.store.decode(StoreFile.self, from: data) else { return }
+        guard let url, let data = try? Data(contentsOf: url) else { return }
+        guard let f = try? JSONDecoder.store.decode(StoreFile.self, from: data) else {
+            // An unreadable file must not be overwritten by the next save: set it aside so nothing is lost.
+            let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
+            let aside = url.deletingLastPathComponent().appendingPathComponent("store.unreadable-\(stamp).json")
+            try? FileManager.default.moveItem(at: url, to: aside)
+            return
+        }
         projects = f.projects; sessions = f.sessions; review = f.review
     }
 
