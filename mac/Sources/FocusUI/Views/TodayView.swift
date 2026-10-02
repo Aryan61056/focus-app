@@ -16,6 +16,17 @@ struct TodayView: View {
                 Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide))).font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
             }
             if c.isActive { SessionPanel(c: c); ReadingPanel(c: c) } else { IdlePanel(c: c, showStart: $showStart); HowFocusDecides() }
+            if c.isActive && c.windowAccess == .appNamesOnly {
+                Panel(tinted: true) {
+                    HStack(spacing: 14) {
+                        Image(systemName: "lock.open").foregroundStyle(Tokens.ink2)
+                        Text("Focus can only see which app is in front. Allow Accessibility and it can read window titles too, which it needs to tell work from drift.")
+                            .font(Tokens.text(13.5)).fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 12)
+                        Button("Open Accessibility settings") { c.onOpenAccessSettings?() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+                    }
+                }
+            }
             if let a = c.askResume { AwayBanner(c: c, reason: a) }
             if c.wrapUp && c.isActive { Panel(tinted: true) { Text("Two minutes left. Extend, or wrap up when you are ready.").font(Tokens.text(13.5)) } }
             if let st = c.store { TodayExtras(c: c, store: st) }
@@ -57,7 +68,7 @@ struct SessionPanel: View {
                         Text(c.shadowMarks == 0 ? "Practice mode: Focus is watching but will not interrupt you."
                              : "Practice mode: \(c.shadowMarks) moment\(c.shadowMarks == 1 ? "" : "s") to review later.")
                     } else {
-                        Text("Focus reads window titles and text on this Mac.")
+                        Text("Focus reads app names and window titles on this Mac.")
                     }
                 }
                 .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).padding(.top, 12)

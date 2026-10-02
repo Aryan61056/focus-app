@@ -22,7 +22,11 @@ struct SettingsView: View {
                     }
                 }
                 group("What Focus looks at") {
-                    row("Window titles and text", "The app name, the title, the page address and the words in the window.") { Text("On").foregroundStyle(Tokens.ink2) }
+                    row("Window titles", "The app name, the window title and the page or file address. Reading the words inside a window is not built yet.") { Text("On").foregroundStyle(Tokens.ink2) }
+                    row("Window access", c.windowAccess == .allowed ? "Accessibility is allowed, so Focus can read window titles." : "Without Accessibility, Focus can only see which app is in front. Allow it in System Settings, then come back.") {
+                        if c.windowAccess == .allowed { Label("Allowed", systemImage: "checkmark").foregroundStyle(Tokens.ink2) }
+                        else { Button("Open Accessibility settings") { c.onOpenAccessSettings?() }.buttonStyle(FocusButtonStyle(.secondary, small: true)) }
+                    }
                     row("Skip personal messages, music and blank pages", "Focus leaves these alone: it does not read them and does not count them as off topic.") {
                         Toggle("", isOn: $skip).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }

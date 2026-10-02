@@ -4,6 +4,9 @@ import FocusBrain
 import FocusJudge
 import SwiftUI
 
+/// Whether Focus can read window titles. Without Accessibility it can only see which app is in front.
+public enum WindowAccess: Equatable, Sendable { case unknown, allowed, appNamesOnly }
+
 public struct Presence: Equatable, Sendable { public var state: String; public var reason: String? }
 public struct Surface: Equatable, Sendable { public var kind: String; public var severity: Int; public var at: Double }
 public struct TimerState: Equatable, Sendable { public var seconds = 0.0, running = false, visible = false, at = 0.0 }
@@ -50,6 +53,8 @@ public final class SessionController {
     public private(set) var currentWindow: WindowSnapshot?
     public private(set) var checkedAt: Double?
     public private(set) var shadow = true
+    public private(set) var windowAccess = WindowAccess.unknown
+    @ObservationIgnored public var onOpenAccessSettings: (() -> Void)?
     public private(set) var readings: [Reading] = []
     public private(set) var stats = ReadStats()
 
@@ -117,6 +122,8 @@ public final class SessionController {
     }
 
     // MARK: senses
+    public func setWindowAccess(_ a: WindowAccess) { if windowAccess != a { windowAccess = a } }
+
     public func windowChanged(_ w: WindowSnapshot) {
         currentWindow = w
         guard isActive else { return }

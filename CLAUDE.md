@@ -70,6 +70,7 @@ Apple on-device model is reachable through the FoundationModels framework (Swift
 - `docs/PLAN.md` the plan. `docs/S1-accuracy.md` the S1 results and recommendation.
 - `eval/` S1 accuracy harness (scenarios, runner, Swift model helper, tests, results). See `eval/README.md`.
 - `mac/` Swift package: `FocusJudge` (judge pipeline port), `FocusBrain` (state machine), `BrainTraces` and `brain-trace` (golden trace runner), `BrainSim` and `brain-sim` (episode simulator).
+- `mac/Sources/FocusUI` the SwiftUI app views, controller and store; `FocusSense` real window sensing (Accessibility: app, title, page or file address; no window text yet; runs only during a session); `focus-sense-check` prints the Accessibility flag and the front app's name only.
 - `core/` shared across platforms: `prompts/` (single source of judge instructions), `traces/` (golden traces extracted from `docs/BRAIN-SPEC.md`). `tools/` generators and checks.
 - `docs/BRAIN-SPEC.md` the brain spec (draft 0.1, written by a subagent, reviewed and implemented). `docs/EPISODE-SIM.md` simulated false nudges per session.
 - `spikes/` the other spikes, one folder each (`spikes/s2-mac-capture/`, ...). Empty for now.
@@ -85,6 +86,7 @@ python3 eval/combine_results.py <run-a.json> <run-b.json>                      #
 python3 eval/run_eval.py --backend mlx_text --order relation                   # local Qwen text model (needs `uv sync` in eval/ and models in eval/.cache/models/)
 python3 eval/run_eval.py --backend mlx_vlm --text-mode pixels                  # Qwen3-VL reading synthetic screenshots
 python3 eval/measure_resources.py --backend mlx_text                           # memory/CPU/energy proxy; needs a quiet machine
+(cd mac && swift run -q focus-sense-check)                                     # Accessibility allowed? and the front app's name (never a title)
 (cd mac && swift test)                                                         # Swift judge port + brain (golden traces, scenarios, property tests)
 python3 tools/check_privacy.py                                                 # source scan: no networking, URL opening, logging or non-system model in engine modules (does not lift the claims ban)
 python3 tools/check_parity.py                                                  # Swift judge pipeline vs Python harness, all 100 scenarios

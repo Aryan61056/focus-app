@@ -10,7 +10,7 @@ from __future__ import annotations
 import re, sys, pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-MODULES = ["mac/Sources/FocusBrain", "mac/Sources/FocusJudge", "mac/Sources/FocusUI"]
+MODULES = ["mac/Sources/FocusBrain", "mac/Sources/FocusJudge", "mac/Sources/FocusUI", "mac/Sources/FocusSense"]
 
 RULES = [
     (r"\bURLSession\b|\bURLRequest\b|\bNWConnection\b|\bNWPathMonitor\b|\bCFSocket\b|\bCFStream\b|\bCFNetwork\b|URLSessionWebSocketTask",

@@ -1,6 +1,8 @@
 import SwiftUI
 import FocusUI
 import FocusJudge
+import FocusSense
+import AppKit
 
 @main
 struct FocusApp: App {
@@ -10,12 +12,21 @@ struct FocusApp: App {
         : SessionController(judge: DefaultJudge.make(), store: DataStore(url: DataStore.defaultURL), prefs: Preferences())
     @State private var demo: DemoSenses?
     @State private var notch: NotchPanelController?
+    @State private var sense: SenseCoordinator?
     @Environment(\.openWindow) private var openWindow
 
     var body: some Scene {
         Window("Focus", id: "main") {
             RootView(controller: controller)
                 .task {
+                    // Real window sensing, except in the scripted demo. It only runs while a session is active.
+                    if sense == nil, ProcessInfo.processInfo.environment["FOCUS_DEMO"] != "1" {
+                        controller.onOpenAccessSettings = {
+                            AXWindowSource.promptForAccess()
+                            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") { NSWorkspace.shared.open(url) }
+                        }
+                        let sc = SenseCoordinator(source: AXWindowSource(), controller: controller); sense = sc; sc.bind()
+                    }
                     if notch == nil { let n = NotchPanelController(controller: controller) { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main") }; notch = n; n.start() }
                     guard ProcessInfo.processInfo.environment["FOCUS_DEMO"] == "1", demo == nil else { return }
                     let d = DemoSenses(controller: controller, script: [

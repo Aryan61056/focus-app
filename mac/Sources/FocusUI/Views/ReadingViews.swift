@@ -100,7 +100,7 @@ struct ReadingPanel: View {
 
     func steps(_ r: Reading) -> some View {
         HStack(alignment: .top, spacing: 0) {
-            step("Read", "The app, the title and the words in the window", filled: false, r)
+            step("Read", "The app, the window title and the page or file it shows", filled: false, r)
             step("Compared", "With \u{201C}\(c.taskName)\u{201D} and what you wrote about it", filled: false, r)
             step(r.outcomeTitle, r.outcomeText, filled: true, r)
         }
@@ -153,7 +153,7 @@ struct HowFocusDecides: View {
             VStack(alignment: .leading, spacing: 14) {
                 Text("How Focus decides").font(Tokens.text(15, .semibold)).accessibilityAddTraits(.isHeader)
                 HStack(alignment: .top, spacing: 18) {
-                    item("1", "It reads the window", "The app, the title and the words in it, on this Mac. Never a recording.")
+                    item("1", "It reads the window", "The app, the window title and the page or file address, on this Mac. Never a recording.")
                     item("2", "It compares with your task", "Plus what you wrote about the project. It judges meaning, so it does not need a list of sites.")
                     item("3", "It waits to be sure", "On task, not sure or off topic. Not sure does nothing, and a nudge needs two checks that agree and a drift that lasts.")
                 }
