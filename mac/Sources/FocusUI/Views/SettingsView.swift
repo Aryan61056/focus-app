@@ -40,6 +40,9 @@ struct SettingsView: View {
                     row("Try it", probeText) {
                         Button(probeBusy ? "Switch windows now" : "Check in 5 seconds") { c.runProbe() }.buttonStyle(FocusButtonStyle(.secondary, small: true)).disabled(probeBusy)
                     }
+                    row("Judge with the on-device model", "Apple's on-device model reads the window and decides whether it fits your task. It can be wrong. Off: Focus only follows your project rules and matching words, shows everything else as not judged, and never nudges from its own reading.") {
+                        Toggle("", isOn: Binding(get: { c.prefs.useModel }, set: { c.prefs.useModel = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
+                    }
                     row("Count matching words as on task", "A window whose app name, title or address shares words with your task counts as on task without asking the model. It never applies on feeds, video or news sites, and it can only make Focus quieter.") {
                         Toggle("", isOn: Binding(get: { c.prefs.matchTaskWords }, set: { c.prefs.matchTaskWords = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
@@ -51,6 +54,7 @@ struct SettingsView: View {
                             .padding(.horizontal, 16).padding(.bottom, 10).overlay(alignment: .top) { Divider().overlay(Tokens.line) }
                     }
                     row("Never looked at", "Password managers, banking sites and private windows are skipped, always.") { Label("Always on", systemImage: "lock").foregroundStyle(Tokens.ink2) }
+                    row("Tools for any work", "Finder, Terminal, Mail, Calendar, System Settings and Activity Monitor are not judged: the app alone does not say whether it serves your task. A project rule, or a task that names the app, still applies.") { Label("Always on", systemImage: "wrench.and.screwdriver").foregroundStyle(Tokens.ink2) }
                 }
                 group("Appearance") {
                     row("Show in the notch", "A ring and the time while a session runs. On a Mac without a notch it is a small pill under the menu bar.") {

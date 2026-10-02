@@ -249,6 +249,12 @@ public final class SessionController {
             send(.windowChange(WindowChangeInput(windowKey: Keys.window(w), siteKey: Keys.site(w), ruleLabel: .onTask)))
             return
         }
+        if hit == nil, Rules.isGeneralPurposeApp(m) {
+            previewHeld = "General-purpose app. Not captured."; previewFrame = nil
+            record(Reading(at: now(), date: date(), key: Keys.window(w), app: w.app, title: "", call: .unsure, source: .skipped, reason: "\(w.app) is a tool for any kind of work, so the app alone does not say whether it serves your task."))
+            send(.windowChange(WindowChangeInput(windowKey: Keys.window(w), siteKey: Keys.site(w), ruleLabel: .unsure)))
+            return
+        }
         if let hit { record(Reading(at: now(), date: date(), key: Keys.window(w), app: w.app, title: w.title, call: Self.call(hit.label), source: .rule, reason: Self.ruleReason(hit.rule))) }
         send(.windowChange(WindowChangeInput(windowKey: Keys.window(w), siteKey: Keys.site(w), ruleLabel: hit.map { Self.brainLabel($0.label) })))
     }
@@ -385,6 +391,15 @@ public final class SessionController {
         let judge = self.judge
         let sawScreen = !m.windowText.isEmpty
         checkedAt = observedAt
+        if !prefs.useModel {
+            // The user switched the model off: say so, count it as not sure, and never ask the model.
+            record(Reading(at: observedAt, date: date(), key: windowKey, app: w.app, title: w.title, call: .unsure, source: .skipped,
+                           reason: "The on-device model is switched off in Settings. Focus only follows your rules and matching words."))
+            var input = JudgmentInput(requestId: id, observedAt: observedAt, windowKey: windowKey, contentKey: content, label: .unsure)
+            input.strong = false
+            send(.judgment(input))
+            return
+        }
         tasks.append(Task { [weak self] in
             let j = await Pipeline.judge(m, with: judge, useRules: false)
             self?.deliver(j, id: id, observedAt: observedAt, windowKey: windowKey, contentKey: content, sawScreen: sawScreen)

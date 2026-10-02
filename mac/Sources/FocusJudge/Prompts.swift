@@ -1,13 +1,13 @@
 import Foundation
 
-public enum PromptVersion: Sendable { case v1, v2 }
+public enum PromptVersion: Sendable { case v1, v2, v3 }
 
 /// Prompt construction, byte-identical to eval/focus_eval/prompts.py (checked by tools/check_prompt_parity.py).
 public enum Prompts {
     public static let maxTextScalars = 1200  // the Apple system model has a ~4K-token context window
 
     public static func instructions(_ version: PromptVersion) -> String {
-        version == .v2 ? PromptText.instructionsV2 : PromptText.instructionsV1
+        switch version { case .v1: return PromptText.instructionsV1; case .v2: return PromptText.instructionsV2; case .v3: return PromptText.instructionsV3 }
     }
 
     /// Screen-derived single-line fields must not be able to start new prompt lines.

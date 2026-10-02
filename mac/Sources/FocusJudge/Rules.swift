@@ -113,6 +113,13 @@ public enum Rules {
     public static let defaultNeverJudgedApps: [String] = [
         "Messages", "WhatsApp", "Telegram", "Signal", "Music", "Spotify", "Podcasts", "Tidal", "Pandora",
     ]
+    /// Apps that are tools for anything: the app name says nothing about whether the work serves the task, and their windows have
+    /// little text of their own, so the model guessed "off task" for Mail, Calendar, Terminal and Activity Monitor (2026-10-02, 4 of 12
+    /// neutral windows on a fresh set). They are treated as neutral: not read, not counted as off task. A project rule or a task that
+    /// names the app ("notes in Terminal") still wins.
+    static let generalPurposeApps: Set<String> = ["finder", "system settings", "system preferences", "activity monitor", "calendar", "terminal", "iterm2", "mail"]
+    public static func isGeneralPurposeApp(_ m: Moment) -> Bool { generalPurposeApps.contains(m.app.lowercased()) }
+
     static let blankPageTitles: Set<String> = ["new tab", "start page", "untitled", "favorites", "top sites", "new window"]
 
     /// True for a blank new-tab or start page, or an app on the list (matched by name, ignoring case).

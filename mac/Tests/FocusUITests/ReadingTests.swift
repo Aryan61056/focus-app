@@ -138,6 +138,36 @@ final class NeverJudgedTests: XCTestCase {
     func advance(_ c: SessionController, to target: Double) async { while t < target { t += 1; c.tick(); await c.waitForJudgments() } }
     let editor = WindowSnapshot(app: "Notes", title: "Calc homework")
 
+    func testWithTheModelSwitchedOffNothingIsAskedAndNothingNudges() async {
+        let c = make()
+        c.prefs.useModel = false
+        c.windowChanged(WindowSnapshot(app: "Browser", title: "Funniest cat videos - YouTube", url: "https://youtube.com/watch?v=1"))
+        c.begin(task: "Calc homework", preset: .strict, shadow: false)
+        await advance(c, to: 600)
+        XCTAssertEqual(spy.calls, 0, "the on-device model must not be asked while it is switched off")
+        XCTAssertNil(c.surface)
+        XCTAssertEqual(c.latest?.call, .unsure)
+        XCTAssertEqual(c.latest?.source, .skipped)
+    }
+
+    func testAToolForAnyWorkIsNeutralUnlessTheTaskNamesIt() async {
+        let c = make()
+        c.windowChanged(WindowSnapshot(app: "Terminal", title: "zsh - 80x24"))
+        c.begin(task: "Calc homework", preset: .strict, shadow: false)
+        await advance(c, to: 400)
+        XCTAssertEqual(spy.calls, 0, "Terminal says nothing about the task, so the model is not asked")
+        XCTAssertNil(c.surface)
+        XCTAssertEqual(c.latest?.source, .skipped)
+        c.end()
+
+        // A task that names the app counts it as on task (the matching-words rule), as before.
+        let named = SessionController(judge: spy, now: { [unowned self] in self.t })
+        named.begin(task: "Run the tests in Terminal", preset: .strict, shadow: false)
+        named.windowChanged(WindowSnapshot(app: "Terminal", title: "zsh - 80x24"))
+        XCTAssertEqual(named.latest?.call, .on)
+        XCTAssertTrue(named.latest?.byWords ?? false)
+    }
+
     func testMessagingWindowIsNeverSentToTheJudgeAndNeverNudges() async {
         let c = make()
         c.windowChanged(WindowSnapshot(app: "Messages", title: "Alex Rivera"))

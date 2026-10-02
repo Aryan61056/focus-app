@@ -124,3 +124,34 @@ final class InjectionGuardTests: XCTestCase {
         XCTAssertEqual(j.label, .unsure); XCTAssertEqual(j.stage, .guarded)
     }
 }
+
+/// A canned judge, to test how the pipeline treats the first judge's confidence.
+private struct Canned: Judge {
+    var first: Verdict, second: Verdict
+    func reasonFirst(prompt: String) async -> Verdict { first }
+    func relation(prompt: String) async -> Verdict { second }
+}
+
+final class ConfidenceGateTests: XCTestCase {
+    let m = Moment(task: "Writing a lab report", app: "Safari", windowTitle: "Funniest cat videos", url: "https://example.com/v")
+
+    func testASureOffTaskWithAnAgreeingSecondOpinionIsOffTask() async {
+        let j = await Pipeline.judge(m, with: Canned(first: Verdict(label: .offTask, reason: "video", confidence: 95), second: Verdict(label: .offTask)))
+        XCTAssertEqual(j.label, .offTask)
+    }
+
+    func testAnOffTaskTheModelIsLessSureAboutIsNotSure() async {
+        let j = await Pipeline.judge(m, with: Canned(first: Verdict(label: .offTask, reason: "video", confidence: 90), second: Verdict(label: .offTask)))
+        XCTAssertEqual(j.label, .unsure)
+    }
+
+    func testTheSecondOpinionCanStillVeto() async {
+        let j = await Pipeline.judge(m, with: Canned(first: Verdict(label: .offTask, confidence: 95), second: Verdict(label: .onTask)))
+        XCTAssertEqual(j.label, .unsure)
+    }
+
+    func testAJudgeThatReportsNoConfidenceIsNotGated() async {
+        let j = await Pipeline.judge(m, with: Canned(first: Verdict(label: .offTask), second: Verdict(label: .unsure)))
+        XCTAssertEqual(j.label, .offTask, "scripted and rule-like judges have no confidence to check")
+    }
+}

@@ -8,11 +8,13 @@ public struct Verdict: Sendable {
     public var topic: String?
     public var latencyMs: Double
     public var error: String?
+    /// How sure the model says it is, 0 to 100. nil when the judge does not report one.
+    public var confidence: Int?
 
     public init(label: Label, reason: String = "", relation: String? = nil, topic: String? = nil,
-                latencyMs: Double = 0, error: String? = nil) {
+                latencyMs: Double = 0, error: String? = nil, confidence: Int? = nil) {
         self.label = label; self.reason = reason; self.relation = relation; self.topic = topic
-        self.latencyMs = latencyMs; self.error = error
+        self.latencyMs = latencyMs; self.error = error; self.confidence = confidence
     }
 }
 
@@ -33,6 +35,6 @@ public enum Relation: String, Sendable {
 public protocol Judge: Sendable {
     /// Reason-first verdict (instructions v1).
     func reasonFirst(prompt: String) async -> Verdict
-    /// Relation verdict (instructions v2), already mapped to a label.
+    /// Second opinion on a possible off_task (instructions v3), already mapped to a label.
     func relation(prompt: String) async -> Verdict
 }

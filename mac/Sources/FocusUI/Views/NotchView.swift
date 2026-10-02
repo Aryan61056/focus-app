@@ -19,8 +19,18 @@ public enum NotchLayout {
     }
 }
 
+extension NotchLayout {
+    /// The window never resizes with the mode: it stays as big as the biggest mode and the black shape grows inside it, so the
+    /// animation is SwiftUI's and AppKit's layout is never touched while it runs.
+    public static func panelSize(notchWidth: CGFloat, notchHeight: CGFloat) -> CGSize {
+        let all = [NotchMode.rest, .open, .nudge].map { size($0, notchWidth: notchWidth, notchHeight: notchHeight) }
+        return CGSize(width: all.map(\.width).max() ?? 0, height: all.map(\.height).max() ?? 0)
+    }
+}
+
 struct NotchShape: Shape {
     var bottom: CGFloat, top: CGFloat
+    var animatableData: CGFloat { get { bottom } set { bottom = newValue } }
     func path(in r: CGRect) -> Path {
         var p = Path()
         p.move(to: CGPoint(x: r.minX, y: r.minY))
@@ -72,23 +82,32 @@ public struct NotchView: View {
 
     public var body: some View {
         let size = NotchLayout.size(mode, notchWidth: notchWidth, notchHeight: notchHeight)
+        let box = NotchLayout.panelSize(notchWidth: notchWidth, notchHeight: notchHeight)
+        let shape: AnyShape = hasNotch ? AnyShape(NotchShape(bottom: mode == .rest ? 12 : 22, top: 0)) : AnyShape(RoundedRectangle(cornerRadius: mode == .rest ? 18 : 24, style: .continuous))
         ZStack(alignment: .top) {
-            (hasNotch ? AnyShape(NotchShape(bottom: mode == .rest ? 12 : 22, top: 0)) : AnyShape(RoundedRectangle(cornerRadius: mode == .rest ? 18 : 24, style: .continuous))).fill(.black)
-            content.padding(.horizontal, hasNotch ? 0 : 14)
+            shape.fill(.black)
+            content.frame(width: size.width, height: size.height, alignment: .top)
         }
         .frame(width: size.width, height: size.height)
+        .clipShape(shape)
+        .frame(width: box.width, height: box.height, alignment: .top)
         .ignoresSafeArea()
         .foregroundStyle(Self.ink)
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: mode)
+        // A short spring, a little under critical damping: the shape settles without wobbling. Reduce Motion gets a plain fade of the size.
+        .animation(reduceMotion ? .easeOut(duration: 0.12) : .spring(response: 0.34, dampingFraction: 0.86), value: mode)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Focus, \(c.presenceLabel), \(c.taskName)")
     }
 
+    /// The band stays put while the body underneath fades in and out, so the ring and time never jump.
     @ViewBuilder var content: some View {
-        switch mode {
-        case .rest: rest
-        case .open: VStack(spacing: 0) { band; openBody }
-        case .nudge: VStack(spacing: 0) { band; nudgeBody }
+        VStack(spacing: 0) {
+            if hasNotch { band } else if mode == .rest { rest }
+            switch mode {
+            case .rest: EmptyView()
+            case .open: openBody.transition(.opacity.combined(with: .offset(y: -4)))
+            case .nudge: nudgeBody.transition(.opacity.combined(with: .offset(y: -4)))
+            }
         }
     }
 
@@ -98,19 +117,19 @@ public struct NotchView: View {
             ring.frame(width: NotchLayout.ear)
             Spacer(minLength: hasNotch ? notchWidth : 0)
             time.frame(width: NotchLayout.ear)
-        }.frame(height: hasNotch ? notchHeight : 0)
+        }
+        // Fixed at the resting width, so the ring and the time stay put while the shape grows around them.
+        .frame(width: hasNotch ? notchWidth + 2 * NotchLayout.ear : nil, height: hasNotch ? notchHeight : 0)
     }
 
-    @ViewBuilder var rest: some View {
-        if hasNotch { band }
-        else {
-            HStack(spacing: 10) {
-                ring.frame(width: 20)
-                Text(c.taskName).font(Tokens.text(13, .medium)).lineLimit(1)
-                Spacer(minLength: 4)
-                time
-            }.frame(maxHeight: .infinity)
-        }
+    /// The resting pill on a screen without a notch.
+    var rest: some View {
+        HStack(spacing: 10) {
+            ring.frame(width: 20)
+            Text(c.taskName).font(Tokens.text(13, .medium)).lineLimit(1)
+            Spacer(minLength: 4)
+            time
+        }.padding(.horizontal, 14).frame(maxHeight: .infinity)
     }
 
     var ring: some View { RingView(c.ringState, color: tint).frame(width: 18, height: 18) }

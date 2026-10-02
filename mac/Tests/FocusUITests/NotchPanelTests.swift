@@ -32,7 +32,8 @@ final class NotchPanelTests: XCTestCase {
         c.begin(task: "Calc homework", preset: .standard, shadow: false)
         await spin()
         XCTAssertTrue(panel.isShowing)
-        let restH = try XCTUnwrap(panel.frameForTesting).height
+        let restH = try XCTUnwrap(panel.shownSizeForTesting).height
+        let windowH = try XCTUnwrap(panel.frameForTesting).height
         let screens = NSScreen.screens
         if let hi = NotchPanelController.homeIndex(notchWidths: screens.map { NotchPanelController.geometry($0).width }), NotchPanelController.geometry(screens[hi]).width == 0 {
             XCTAssertLessThanOrEqual(try XCTUnwrap(panel.frameForTesting).maxY, screens[hi].visibleFrame.maxY, "the pill sits under the menu bar, not over it")
@@ -41,9 +42,10 @@ final class NotchPanelTests: XCTestCase {
 
         for _ in 0..<50 { panel.setHoverForTesting(true); await spin(0.01); panel.setHoverForTesting(false); await spin(0.01) }
         panel.setHoverForTesting(true); await spin()
-        XCTAssertGreaterThan(try XCTUnwrap(panel.frameForTesting).height, restH)
+        XCTAssertGreaterThan(try XCTUnwrap(panel.shownSizeForTesting).height, restH)
+        XCTAssertEqual(try XCTUnwrap(panel.frameForTesting).height, windowH, "the window itself never resizes with the mode")
         panel.setHoverForTesting(false); await spin()
-        XCTAssertEqual(try XCTUnwrap(panel.frameForTesting).height, restH)
+        XCTAssertEqual(try XCTUnwrap(panel.shownSizeForTesting).height, restH)
 
         // What macOS posts when a display is added or removed.
         for _ in 0..<20 { NotificationCenter.default.post(name: NSApplication.didChangeScreenParametersNotification, object: nil); await spin(0.01) }

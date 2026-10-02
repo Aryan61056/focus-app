@@ -24,6 +24,9 @@ public final class Preferences {
     public var contextTipDismissed: Bool { didSet { defaults.set(contextTipDismissed, forKey: "contextTipDismissed") } }
     /// A window whose title or address shares words with the task counts as on task without the model. Quiet by construction.
     public var matchTaskWords: Bool { didSet { defaults.set(matchTaskWords, forKey: "matchTaskWords") } }
+    /// Off: the on-device model is never asked. Only project rules, matching words and the never-judged lists decide; everything else
+    /// is "not judged" and cannot lead to a nudge.
+    public var useModel: Bool { didSet { defaults.set(useModel, forKey: "useModel") } }
     public var practiceActive: Bool { practiceSessionsLeft > 0 }
 
     public init(defaults: UserDefaults = .standard) {
@@ -37,6 +40,7 @@ public final class Preferences {
         loudnessAsked = defaults.object(forKey: "loudnessAsked") as? Bool ?? false
         contextTipDismissed = defaults.object(forKey: "contextTipDismissed") as? Bool ?? false
         matchTaskWords = defaults.object(forKey: "matchTaskWords") as? Bool ?? true
+        useModel = defaults.object(forKey: "useModel") as? Bool ?? true
         practiceSessionsLeft = defaults.object(forKey: "practiceLeft") as? Int ?? Preferences.practiceSessions
     }
 

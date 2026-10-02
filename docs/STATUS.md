@@ -36,6 +36,18 @@ The model said "Not sure" for most real work windows, so a window whose title, p
 - Also fixed on the way: "Start a session" in the menu bar menu (it only had Open Focus), the popover now closes after a click, project name clipped, chips vs typed length, paused footer, "1 minutes".
 - Tooling note: the computer-use click lands about 98 px too high on this two-display setup (external is 1080 high, built-in 982); mouse moves are exact. Escape sent by that tool does not reach the app; Command-period does.
 
+## Why clear distractions said "Not sure" (owner report 2026-10-02) and what changed
+- **Cause (measured with the real model):** the first judge flagged the distraction correctly, but the second judge wrote a correct reason ("unrelated to the lab report") and then picked the category "supporting" for nearly every window, and the two-judge rule treated that as a veto. On 82 scenarios that reach the model in the app, recall on clear distractions was 47% (17 of 36).
+- **Now:** (1) the second opinion is a plain question, "does this serve the task / unrelated / can't tell" (`core/prompts/instructions_v3.txt`); (2) the first judge must report confidence 95 or more before a window can count as off task (every off-task call that was really on-task work had 90 or less; the model says 95 when it is sure); (3) general-purpose apps (Finder, Terminal, Mail, Calendar, System Settings, Activity Monitor) are neutral, not judged, unless a project rule or the task names the app.
+- **Result on a fresh set written before the change (39 scenarios, one run):** 11 of 15 off-task windows flagged, the other 4 stay "Not sure"; 0 of 12 on-task and 0 of 12 neutral windows flagged. On the older (spent) sets the same rule gave 88% recall with 0 on-task false flags, plus about 12 gray neutral windows (feeds, lofi video, LinkedIn) flagged, which are the cost. Small samples, one labeler; the thresholds were chosen on the older sets. Nudges still need sustained agreement in the brain, so one flagged window does nothing by itself.
+- **New switch (Settings): "Judge with the on-device model"**, on by default. Off means rules and matching words only, everything else "not judged".
+- **Wrong picture on Today:** the capture used the front app's biggest window, so a browser with several windows was read through another window (the words were from a different page). It now takes the topmost window of the app. Needs your Screen Recording grant to try for real.
+- Tools: `FOCUS_PROBE=1 swift test --filter JudgeProbeTests` prints what each judge says about realistic windows; `FOCUS_LAB=1` compares second judges; `FOCUS_LAB_FINAL=scenarios_fresh2 swift test --filter JudgeLabTests/testShippedPipeline` runs the shipped pipeline on a set. `eval/scenarios_fresh2/` is the new set (spent after this run).
+- The Python eval harness still describes the old relation judge (docs/S1-accuracy.md numbers are for it).
+
+## Notch animation (owner report 2026-10-02)
+The window used to snap to its new size while the SwiftUI shape animated inside it. Now the window keeps one size (the biggest mode) and only the black shape animates, with a spring; the ring and time stay put; the body fades in and out; hover opens after 0.16 s so passing the pointer by does not pop it open, and closes after 0.1 s. Frames captured while hovering showed the fade; the shape growth itself could not be seen against this Mac's black wallpaper.
+
 ## Decisions I made without asking (change any of them)
 - OCR level `.fast` (accurate stalled about 66 s on first use).
 - Idle threshold 240 s; call needs two polls in a row (about 10 s).

@@ -29,6 +29,20 @@ public struct AppleJudge: Judge {
     @Generable
     enum RelationChoice { case directly_serves, supporting, neutral, unclear, different_activity }
 
+    /// The second opinion: a plain "does this serve the task" question. The five-way relation above wrote the right reason
+    /// ("unrelated to the lab report") and then chose "supporting" for nearly every window, which vetoed real distractions.
+    @Generable
+    enum ServesChoice { case serves_task, unrelated_to_task, cannot_tell }
+
+    @Generable
+    struct ServesOutput {
+        @Guide(description: "What the main content of the window is about, at most 10 words")
+        var topic: String
+        @Guide(description: "One sentence: is that topic part of doing the task, or a different subject? At most 16 words")
+        var reason: String
+        var verdict: ServesChoice
+    }
+
     @Generable
     struct RelationOutput {
         @Guide(description: "What the main content of the window is about, at most 10 words")
@@ -57,7 +71,7 @@ public struct AppleJudge: Judge {
                                                 options: GenerationOptions(sampling: .greedy)).content
             let label: Label
             switch out.label { case .on_task: label = .onTask; case .unsure: label = .unsure; case .off_task: label = .offTask }
-            return Verdict(label: label, reason: out.reason, latencyMs: Date().timeIntervalSince(start) * 1000)
+            return Verdict(label: label, reason: out.reason, latencyMs: Date().timeIntervalSince(start) * 1000, confidence: out.confidence)
         } catch {
             return Verdict(label: .unsure, latencyMs: Date().timeIntervalSince(start) * 1000, error: Self.classify(error))
         }
@@ -66,13 +80,16 @@ public struct AppleJudge: Judge {
     public func relation(prompt: String) async -> Verdict {
         let start = Date()
         do {
-            let session = LanguageModelSession(instructions: Prompts.instructions(.v2))
-            let out = try await session.respond(to: prompt, generating: RelationOutput.self,
+            let session = LanguageModelSession(instructions: Prompts.instructions(.v3))
+            let out = try await session.respond(to: prompt, generating: ServesOutput.self,
                                                 options: GenerationOptions(sampling: .greedy)).content
-            guard let rel = Relation(rawValue: String(describing: out.relation)) else {
-                return Verdict(label: .unsure, latencyMs: Date().timeIntervalSince(start) * 1000, error: "unknown relation")
+            let (label, name): (Label, String)
+            switch out.verdict {
+            case .serves_task: (label, name) = (.onTask, "serves_task")
+            case .unrelated_to_task: (label, name) = (.offTask, "unrelated_to_task")
+            case .cannot_tell: (label, name) = (.unsure, "cannot_tell")
             }
-            return Verdict(label: rel.label, reason: out.reason, relation: rel.rawValue, topic: out.topic,
+            return Verdict(label: label, reason: out.reason, relation: name, topic: out.topic,
                            latencyMs: Date().timeIntervalSince(start) * 1000)
         } catch {
             return Verdict(label: .unsure, latencyMs: Date().timeIntervalSince(start) * 1000, error: Self.classify(error))

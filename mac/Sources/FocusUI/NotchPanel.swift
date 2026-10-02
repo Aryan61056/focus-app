@@ -2,19 +2,53 @@ import AppKit
 import SwiftUI
 import Observation
 
-/// Content view that reports the pointer entering and leaving, even while Focus is not the active app. SwiftUI's own hover does not fire
-/// for a panel of a background app, and a notch that only reacts when Focus is in front would never open.
+/// Content view that reports the pointer entering and leaving the visible black shape, even while Focus is not the active app.
+/// SwiftUI's own hover does not fire for a panel of a background app, and a notch that only reacts when Focus is in front would
+/// never open. The window is bigger than the shape (see NotchLayout.panelSize), so the tracking rect follows `visibleSize`, not the
+/// window. Opening waits a moment so the pointer passing over the menu bar does not pop the notch open; closing waits less.
 final class HoverBox: NSView {
     var onHover: ((Bool) -> Void)?
+    var openDelay: TimeInterval = 0.16, closeDelay: TimeInterval = 0.1
+    /// The shape's current size, centred at the top of the window. Set by the controller whenever the mode changes.
+    var visibleSize = CGSize.zero { didSet { if oldValue != visibleSize { updateTrackingAreas(); syncSoon() } } }
     private var area: NSTrackingArea?
+    private var inside = false
+    private var pending: DispatchWorkItem?
+
+    var visibleRect2: NSRect {
+        let w = min(bounds.width, visibleSize.width), h = min(bounds.height, visibleSize.height)
+        return NSRect(x: (bounds.width - w) / 2, y: bounds.height - h, width: w, height: h)
+    }
+
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         if let area { removeTrackingArea(area) }
-        let a = NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self, userInfo: nil)
+        let a = NSTrackingArea(rect: visibleRect2, options: [.mouseEnteredAndExited, .activeAlways], owner: self, userInfo: nil)
         addTrackingArea(a); area = a
     }
-    override func mouseEntered(with event: NSEvent) { onHover?(true) }
-    override func mouseExited(with event: NSEvent) { onHover?(false) }
+    override func viewDidMoveToWindow() { super.viewDidMoveToWindow(); updateTrackingAreas() }
+    override func mouseEntered(with event: NSEvent) { set(true) }
+    override func mouseExited(with event: NSEvent) { set(false) }
+
+    private func set(_ on: Bool) {
+        pending?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, self.inside != on else { return }
+            self.inside = on; self.onHover?(on)
+        }
+        pending = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + (on ? openDelay : closeDelay), execute: work)
+    }
+
+    /// When the shape resizes under a stationary pointer AppKit sends no enter or exit; compare with where the pointer really is.
+    private func syncSoon() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let w = self.window else { return }
+            let p = self.convert(w.mouseLocationOutsideOfEventStream, from: nil)
+            let now = self.visibleRect2.contains(p) && w.isVisible
+            if now != self.inside { self.set(now) }
+        }
+    }
 }
 
 /// Hosts NotchView in borderless panels, visible only while a session runs.
@@ -40,6 +74,8 @@ public final class NotchPanelController {
 
     public var isShowing: Bool { slots.values.contains { $0.panel.isVisible } }
     var frameForTesting: NSRect? { homeID.flatMap { slots[$0] }?.panel.frame }
+    /// The size of the black shape (what the user sees), as opposed to the fixed window around it.
+    var shownSizeForTesting: CGSize? { (homeID.flatMap { slots[$0] }?.panel.contentView as? HoverBox)?.visibleSize }
     var framesForTesting: [NSRect] { slots.values.filter { $0.panel.isVisible }.map { $0.panel.frame } }
     /// For tests: pretend the pointer moved onto or off the notch of the home screen.
     public func setHoverForTesting(_ on: Bool) { homeID.flatMap { slots[$0] }?.model.hover = on }
@@ -113,7 +149,8 @@ public final class NotchPanelController {
         let p = slot.panel
         let g = Self.geometry(screen)
         let mode = NotchView.mode(for: c, hover: slot.model.hover)
-        let size = NotchLayout.size(mode, notchWidth: g.width, notchHeight: g.height)
+        let size = NotchLayout.panelSize(notchWidth: g.width, notchHeight: g.height)
+        let shown = NotchLayout.size(mode, notchWidth: g.width, notchHeight: g.height)
         // A notched screen: flush with the top edge, around the hardware notch. Any other screen: a pill a few points under the menu bar
         // (visibleFrame starts below it), never on top of the menu bar's items.
         let top = g.width == 0 ? screen.visibleFrame.maxY - 6 : screen.frame.maxY
@@ -130,11 +167,13 @@ public final class NotchPanelController {
             let box = HoverBox(frame: NSRect(origin: .zero, size: frame.size))
             let model = slot.model
             box.onHover = { on in model.hover = on }
+            box.visibleSize = shown
             host.frame = box.bounds; host.autoresizingMask = [.width, .height]
             box.addSubview(host)
             p.contentView = box
         }
         if p.frame != frame { p.setFrame(frame, display: true, animate: false) }
+        (p.contentView as? HoverBox)?.visibleSize = shown
         p.orderFrontRegardless()
     }
 
