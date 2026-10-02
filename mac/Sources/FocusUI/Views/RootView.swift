@@ -43,7 +43,7 @@ public struct RootView: View {
                 .animation(reduceMotion ? nil : .linear(duration: Double(c.veilDuration)), value: c.veilTarget)
 
                 if let s = c.surface, s.kind != "gate" { NudgeCard(c: c, kind: s.kind).padding(18).transition(.opacity) }
-                if c.reentryOpen { ReentryCard(c: c).padding(18).padding(.top, c.surface == nil ? 0 : 190) }
+                if c.reentryOpen || c.manualNextStep { ReentryCard(c: c).padding(18).padding(.top, c.surface == nil ? 0 : 190) }
                 if let s = c.surface, s.kind == "gate" { GateOverlay(c: c) }
             }
             .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: c.surface)

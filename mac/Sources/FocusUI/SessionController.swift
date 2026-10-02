@@ -61,6 +61,8 @@ public final class SessionController {
     public private(set) var clock = ClockState()
     public private(set) var surface: Surface?
     public private(set) var reentryOpen = false
+    /// "Next step" chosen from the menu bar: shows the same one-line card without waiting for a drift.
+    public var manualNextStep = false
     public private(set) var askResume: String?
     public private(set) var wrapUp = false
     public private(set) var shadowMarks = 0
@@ -275,6 +277,7 @@ public final class SessionController {
     public func saveNextStep(_ text: String) {
         let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
         if !t.isEmpty, let store, let pid = projectId, var p = store.project(pid) { p.nextStep = String(t.prefix(200)); store.update(p) }
+        manualNextStep = false
         act(.nextStep)
     }
 
@@ -331,7 +334,7 @@ public final class SessionController {
                                             segments: segments.filter { $0.seconds >= 1 }, reads: stats))
                 prefs.sessionFinished(wasPractice: shadow)
                 previewFrame = nil; previewHeld = nil; screenText = ""
-                isActive = false; surface = nil; reentryOpen = false; askResume = nil; wrapUp = false
+                isActive = false; manualNextStep = false; surface = nil; reentryOpen = false; askResume = nil; wrapUp = false
                 timer?.invalidate(); timer = nil
             }
             if case .beacon(let s, _) = e, s != "paused" { askResume = nil }

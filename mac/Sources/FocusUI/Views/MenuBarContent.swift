@@ -30,7 +30,7 @@ public struct MenuBarContent: View {
                 Menu("Take a break") { ForEach([5, 10, 15], id: \.self) { m in Button("\(m) minutes") { c.act(.breakTime, minutes: m) } } }.menuStyle(.borderlessButton).padding(.horizontal, 10).frame(height: 30)
                 Menu("Snooze") { ForEach([15, 30, 60], id: \.self) { m in Button("\(m) minutes") { c.act(.snooze, minutes: m) } } }.menuStyle(.borderlessButton).padding(.horizontal, 10).frame(height: 30)
                 Divider().padding(.vertical, 4)
-                item("Next step") { c.act(.nextStep) }
+                item("Set next step") { c.manualNextStep = true; openApp() }
                 item("That was fine") { c.act(.thatWasFine) }
                 item("Back to task") { c.act(.backToTask) }
                 Divider().padding(.vertical, 4)

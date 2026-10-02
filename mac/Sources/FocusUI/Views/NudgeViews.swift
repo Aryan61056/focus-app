@@ -55,7 +55,7 @@ struct ReentryCard: View {
             Text("What is the next step?").font(Tokens.rounded(15, .semibold))
             TextField("One small thing", text: $text).textFieldStyle(.plain).onSubmit { if !text.isEmpty { c.saveNextStep(text) } }.padding(.horizontal, 12).frame(height: 36)
                 .background(RoundedRectangle(cornerRadius: Tokens.radiusControl).fill(Tokens.control))
-            HStack { Spacer(); Button("Skip") { c.act(.nextStep) }.buttonStyle(FocusButtonStyle(.plain, small: true))
+            HStack { Spacer(); Button("Skip") { c.manualNextStep = false; c.act(.nextStep) }.buttonStyle(FocusButtonStyle(.plain, small: true))
                 Button("Save") { c.saveNextStep(text) }.buttonStyle(FocusButtonStyle(.primary, small: true)).disabled(text.isEmpty) }
         }
         .padding(18).frame(width: 340)
