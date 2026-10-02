@@ -162,8 +162,8 @@ struct HowFocusDecides: View {
             VStack(alignment: .leading, spacing: 14) {
                 Text("How Focus decides").font(Tokens.text(15, .semibold)).accessibilityAddTraits(.isHeader)
                 HStack(alignment: .top, spacing: 18) {
-                    item("1", "It reads the window", "The app, the window title and the page or file address, on this Mac. Never a recording.")
-                    item("2", "It compares with your task", "Plus what you wrote about the project. It judges meaning, so it does not need a list of sites.")
+                    item("1", "It reads the window", "The app, the window title and the page or file address, on this Mac. With screen reading on, the words on screen too. Nothing is recorded or saved.")
+                    item("2", "It compares with your task", "Plus what you wrote about the project. A window that shares words with your task counts at once; the rest the model judges by meaning, with no list of sites.")
                     item("3", "It waits to be sure", "On task, not sure or off topic. Not sure does nothing, and a nudge needs two checks that agree and a drift that lasts.")
                 }
                 Text("It runs on Apple's on-device model and can be wrong. Rules you set are optional and only add certainty.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
