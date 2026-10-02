@@ -106,7 +106,7 @@ INJECTION_PATTERNS = [
     r"ignore\s+the\s+task",
     r"note\s+to\s+(?:the\s+)?(?:ai|assistant|model|llm)",
     r"\[(?:system|assistant|developer)\]",
-    r"(?:^|[.!?\n])\s*(?:system|assistant|developer)\s*:",
+    r"(?:^|[.!?\n])\s*(?:system|assistant|developer)\s*:\s*(?:ignore|disregard|you\s+(?:must|are|should|will|need)|always|never|output|respond|answer|reply|classif|label|treat|mark|new\s+instructions|from\s+now|do\s+not)",
     r"classification\s+rules",
     r"</?window_text",
 ]

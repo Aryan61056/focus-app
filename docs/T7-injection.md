@@ -22,6 +22,6 @@ The reason-first judge on its own was flipped from on_task to off_task by inject
 
 ## Limits (say these out loud)
 - It is a denylist and fails open. Phrasing it does not know passes through to the two-judge rule, which already failed 5 of 36 adaptive cases. The adaptive set was written after the first results, so the guard is partly tuned to it. Fresh attacks are untested.
-- It costs coverage: a real page that discusses these words (a prompt-engineering tutorial, say) is never judged. Two clean scenarios (`f-ai-01`, `f-ai-02`) hit it in earlier work; not yet investigated.
+- It costs coverage: a real page that discusses these words (a prompt-engineering tutorial, say) is never judged. Two clean scenarios (`f-ai-01`, `f-ai-02`, AI chat transcripts containing "Assistant:") hit it in earlier work. Cause found 2026-10-02: the role-marker pattern matched any "Assistant:" after a sentence end. It now needs an instruction cue after the marker (ignore, you must, output, respond, ...). Re-run with the narrowed guard: injection set 59 of 71 still stopped, adaptive set 36 of 42 stopped, 0 false off_task in both.
 - The same guard now covers words read from screen pictures (OCR), which are untrusted in the same way.
 - `unsure` does nothing, so the failure it causes is a miss, not a false nudge (principle 1).

@@ -126,7 +126,7 @@ public enum Rules {
         #"ignore\s+the\s+task"#,
         #"note\s+to\s+(?:the\s+)?(?:ai|assistant|model|llm)"#,
         #"\[(?:system|assistant|developer)\]"#,
-        #"(?:^|[.!?\n])\s*(?:system|assistant|developer)\s*:"#,
+        #"(?:^|[.!?\n])\s*(?:system|assistant|developer)\s*:\s*(?:ignore|disregard|you\s+(?:must|are|should|will|need)|always|never|output|respond|answer|reply|classif|label|treat|mark|new\s+instructions|from\s+now|do\s+not)"#,
         #"classification\s+rules"#,
         #"</?window_text"#,
     ]
