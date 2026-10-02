@@ -17,6 +17,7 @@ public final class PreviewWatcher {
     private var lastWords = ""
     private var timer: Timer?
     private var busy = false
+    private var ticks = 0
     private var bound = false
 
     public init(grabber: ScreenGrabber, reader: ScreenReader = VisionScreenReader(), controller: SessionController, readEvery: TimeInterval = 8, openSettings: (() -> Void)? = nil) {
@@ -58,6 +59,10 @@ public final class PreviewWatcher {
     /// One capture. Exposed so tests can drive it without a timer.
     public func capture() {
         syncAccess()
+        // On battery saver or when the Mac is hot, look a third as often.
+        ticks += 1
+        let p = ProcessInfo.processInfo
+        if (p.isLowPowerModeEnabled || p.thermalState.rawValue >= ProcessInfo.ThermalState.serious.rawValue), ticks % 3 != 0 { return }
         guard grabber.isAllowed, controller.previewWanted, !busy else { return }
         busy = true
         Task { @MainActor in

@@ -24,6 +24,7 @@ public struct StartSheet: View {
                 .textFieldStyle(.plain).font(Tokens.text(16)).padding(.horizontal, 14).frame(height: 44)
                 .background(RoundedRectangle(cornerRadius: 12).fill(Tokens.control))
                 .focused($focused).onSubmit(start)
+            if let m = parsed.minutes { Text("Timed session, \(m) minutes, on \u{201C}\(parsed.task)\u{201D}.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
             if let p = Self.lastProject(c.store), p.name == task, !p.nextStep.isEmpty {
                 Label("Next step: \(p.nextStep)", systemImage: "arrow.turn.down.right").font(Tokens.text(13)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
             }
@@ -74,11 +75,23 @@ public struct StartSheet: View {
         return "Focus will use what you wrote: \u{201C}\(short)\u{201D}"
     }
 
-    var trimmed: String { task.trimmingCharacters(in: .whitespacesAndNewlines) }
+    /// "Calc homework 50" or "essay 25 min" start a timed session: a trailing number from 5 to 240, with an optional "m", "min" or "minutes".
+    static func parse(_ text: String) -> (task: String, minutes: Int?) {
+        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let re = try? NSRegularExpression(pattern: #"^(.*\S)\s+(\d{1,3})\s*(?:m|min|mins|minutes)?$"#, options: [.caseInsensitive]),
+              let m = re.firstMatch(in: t, range: NSRange(t.startIndex..., in: t)), m.numberOfRanges == 3,
+              let a = Range(m.range(at: 1), in: t), let b = Range(m.range(at: 2), in: t), let n = Int(t[b]), (5...240).contains(n) else { return (t, nil) }
+        return (String(t[a]), n)
+    }
+
+    var parsed: (task: String, minutes: Int?) { Self.parse(task) }
+    var trimmed: String { parsed.task }
 
     func start() {
         guard !trimmed.isEmpty else { return }
-        c.begin(task: trimmed, mode: timed ? .timed : .open, duration: timed ? Double(minutes * 60) : nil, autoTick: true)
+        let typedMinutes = parsed.minutes
+        let isTimed = timed || typedMinutes != nil
+        c.begin(task: trimmed, mode: isTimed ? .timed : .open, duration: isTimed ? Double((typedMinutes ?? minutes) * 60) : nil, autoTick: true)
         isPresented = false
     }
 

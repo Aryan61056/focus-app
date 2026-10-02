@@ -299,3 +299,17 @@ final class ClockTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(SessionController.clock() + 1, ProcessInfo.processInfo.systemUptime)
     }
 }
+
+final class StartParseTests: XCTestCase {
+    func testTrailingMinutesStartATimedSession() {
+        XCTAssertEqual(StartSheet.parse("Calc homework 50").task, "Calc homework"); XCTAssertEqual(StartSheet.parse("Calc homework 50").minutes, 50)
+        XCTAssertEqual(StartSheet.parse("essay 25 min").minutes, 25); XCTAssertEqual(StartSheet.parse("essay 25 minutes").task, "essay")
+    }
+    func testNumbersThatAreNotDurationsStayInTheTask() {
+        XCTAssertNil(StartSheet.parse("Chapter 3").minutes, "3 is below the 5 minute floor")
+        XCTAssertNil(StartSheet.parse("Study for exam 2026").minutes)
+        XCTAssertEqual(StartSheet.parse("Study for exam 2026").task, "Study for exam 2026")
+        XCTAssertNil(StartSheet.parse("50").minutes, "a bare number is a task, not a duration")
+        XCTAssertNil(StartSheet.parse("").minutes)
+    }
+}
