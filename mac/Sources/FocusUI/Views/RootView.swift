@@ -16,6 +16,7 @@ public struct RootView: View {
     @Bindable var c: SessionController
     @State var selection: AppSection
     @State private var showStart = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(controller: SessionController, selection: AppSection = .today) { self.c = controller; self._selection = State(initialValue: selection) }
 
@@ -39,13 +40,13 @@ public struct RootView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .background(Tokens.window)
                 .saturation(1 - Double(c.veilTarget) / 100)
-                .animation(.linear(duration: Double(c.veilDuration)), value: c.veilTarget)
+                .animation(reduceMotion ? nil : .linear(duration: Double(c.veilDuration)), value: c.veilTarget)
 
                 if let s = c.surface, s.kind != "gate" { NudgeCard(c: c, kind: s.kind).padding(18).transition(.opacity) }
                 if c.reentryOpen { ReentryCard(c: c).padding(18).padding(.top, c.surface == nil ? 0 : 190) }
                 if let s = c.surface, s.kind == "gate" { GateOverlay(c: c) }
             }
-            .animation(.easeOut(duration: 0.2), value: c.surface)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: c.surface)
         }
         .frame(minWidth: 960, minHeight: 600)
         .background(Tokens.window)

@@ -52,6 +52,7 @@ public struct FocusButtonStyle: ButtonStyle {
         let expand: Bool
         @State private var hover = false
         @Environment(\.isEnabled) private var enabled
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
         var body: some View {
             configuration.label
                 .font(Tokens.text(small ? 12.5 : 13, .semibold))
@@ -62,8 +63,8 @@ public struct FocusButtonStyle: ButtonStyle {
                 .background(RoundedRectangle(cornerRadius: Tokens.radiusControl).fill(fill))
                 .overlay { if kind == .plain { RoundedRectangle(cornerRadius: Tokens.radiusControl).strokeBorder(Tokens.line) } }
                 .opacity(enabled ? 1 : 0.45)
-                .scaleEffect(configuration.isPressed ? 0.98 : 1)
-                .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+                .scaleEffect(configuration.isPressed && !reduceMotion ? 0.98 : 1)
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: configuration.isPressed)
                 .onHover { hover = $0 }
                 .contentShape(RoundedRectangle(cornerRadius: Tokens.radiusControl))
         }
