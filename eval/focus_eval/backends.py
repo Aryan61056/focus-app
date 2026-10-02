@@ -102,7 +102,7 @@ class FMSwift(Backend):
     def __init__(self, order: str = "reason-first"):
         self.order = order
         self.name = "fm_swift:" + order
-        self.prompt_version = "v2" if order == "relation" else "v1"
+        self.prompt_version = "v2" if order in ("relation", "relation-reasoned") else "v1"
         self.proc: Optional[subprocess.Popen] = None
 
     def start(self) -> None:

@@ -60,6 +60,16 @@ struct RelationJudgment {
     var reason: String
 }
 
+// Same fields, but the reason is written before the choice, so the choice follows the reasoning (see docs/S1-accuracy.md Update 3).
+@Generable
+struct RelationReasoned {
+    @Guide(description: "What the main content of the window is about, at most 10 words")
+    var topic: String
+    @Guide(description: "At most 14 words saying how this content relates to the user's task")
+    var reason: String
+    var relation: Relation
+}
+
 func emit(_ obj: [String: Any]) {
     if let data = try? JSONSerialization.data(withJSONObject: obj, options: []),
        let s = String(data: data, encoding: .utf8) {
@@ -107,7 +117,10 @@ while let line = readLine() {
     let order = (req["order"] as? String) ?? "reason-first"
     let session = LanguageModelSession(instructions: instructions)
     do {
-        if order == "relation" {
+        if order == "relation-reasoned" {
+            let r = try await session.respond(to: prompt, generating: RelationReasoned.self, options: options).content
+            emit(["id": id, "relation": String(describing: r.relation), "topic": r.topic, "reason": r.reason])
+        } else if order == "relation" {
             let r = try await session.respond(to: prompt, generating: RelationJudgment.self, options: options).content
             emit(["id": id, "relation": String(describing: r.relation), "topic": r.topic, "reason": r.reason])
         } else if order == "label-first" {

@@ -180,3 +180,16 @@ python3 eval/run_eval.py --scenarios eval/scenarios_fresh --backend fm_swift --o
 cd eval/results && python3 ../combine_results.py --skip-never-judged ../scenarios_fresh fm_swift-reason-first_full_rules_fresh_reason.json fm_swift-relation_full_rules_fresh_relation.json
 ```
 Next, if prompts change: this fresh set is spent for the new prompts too, and a new one is needed. The relation judge's label/reason mismatch is the first thing to investigate (a guided-generation schema that makes the label follow the reason is one option).
+
+## Update 4 (2026-10-01): writing the reason before the relation choice does not help
+
+Hypothesis from Update 3: the relation schema generates `relation` before `reason`, so the reason only rationalizes the label, which is why "unrelated" reasons sat next to `on_task` labels. Experiment: new harness order `relation-reasoned` (topic, reason, then relation). Run on the **dev set** only (tuning is allowed there), same reason-first judge, same combination rule. The fresh set was not rerun, so it is still unspent for the shipped prompts.
+
+| Dev set, two-judge rule | Flagged | Right | False (unsure) | False (on_task) | Strict precision | Recall, clear (of 15) |
+|---|---|---|---|---|---|---|
+| Shipped order (relation, then reason) | 13 | 11 | 2 | 0 | 85% | 67% |
+| `relation-reasoned` | 19 | 13 | 5 | 1 | 68% | 67% |
+
+Result: the reasoned order makes the second judge say `different_activity` much more often, which flags more but adds false nudges, including one real on-task moment. Recall on clear distractions does not move. **Not adopted.** The shipped schema stays; `relation-reasoned` stays in the harness as an option only.
+
+Reading: the second judge's habit of labelling by gut and writing a reason afterwards is acting, by accident, as a brake. A more principled brake (for example requiring the first judge's reason and the second judge's reason to agree) is untested. Low recall is the price of the conservative rule; the cure is project context and rules, not a looser judge.

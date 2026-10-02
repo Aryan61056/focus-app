@@ -26,7 +26,7 @@ def main() -> int:
     ap.add_argument("--scenarios", default=os.path.join(HERE, "scenarios"))
     ap.add_argument("--validate", action="store_true", help="validate scenario files and exit")
     ap.add_argument("--backend", default="oracle", choices=["oracle", "always_unsure", "lexical", "fm_swift", "mlx_text", "mlx_vlm"])
-    ap.add_argument("--order", default="reason-first", choices=["reason-first", "label-first", "relation"])
+    ap.add_argument("--order", default="reason-first", choices=["reason-first", "label-first", "relation", "relation-reasoned"])
     ap.add_argument("--text-mode", default="full", choices=["full", "titles", "ocr", "pixels"],
                     help="titles: app, title, url and path only; ocr: window text replaced by OCR of a synthetic screenshot; pixels: vision model reads the screenshot")
     ap.add_argument("--no-rules", action="store_true", help="skip stage 0/1 so every scenario reaches the model")
