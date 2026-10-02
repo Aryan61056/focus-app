@@ -18,6 +18,10 @@ Everything here is on this Mac only. Nothing was pushed or published. Windows co
 - **Nudges reach you in the background**: they show in the notch/pill even if you hid it; the strict pause screen brings the window forward; "Back to task" activates the app you were last on task in.
 - Prompt-injection guard (see `docs/T7-injection.md`) with its limits.
 
+## Checked end to end with the real Apple model (scripted windows, fake clock; no real screen)
+- Notes on the task, then a video site: the nudge card came 55 s after the switch (Standard preset). Opt-in test: `FOCUS_E2E=1 swift test --filter RealModelE2ETests`.
+- Nine minutes of on-task developer windows (editor, terminal, Stack Overflow, pull request, Slack, Postman): 0 nudges. But the model said "Not sure" for most of them (only the pull request page read as "On task"), so the reading card will often say "Not sure" during real work. That is the conservative failure (nothing happens), not a false nudge; it is also why the headline recall is low. Sample of one task, not a measurement.
+
 ## Decisions I made without asking (change any of them)
 - OCR level `.fast` (accurate stalled about 66 s on first use).
 - Idle threshold 240 s; call needs two polls in a row (about 10 s).
