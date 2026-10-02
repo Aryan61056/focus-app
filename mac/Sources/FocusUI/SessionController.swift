@@ -264,6 +264,20 @@ public final class SessionController {
     public func act(_ a: UserAction, minutes: Int? = nil) { send(.userAction(a, minutes: minutes)) }
     public func end() { send(.sessionEnd) }
 
+    /// "What is the next step?": saved on the project (the start sheet shows it next time), then the brain is told it was answered.
+    /// The project of the session that just ended (or is running), for the "where to pick up" note on Today.
+    public var projectForNote: Project? { store?.project(projectId) }
+    public func setProjectNextStep(_ text: String) {
+        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let store, let pid = projectId, var p = store.project(pid) { p.nextStep = String(t.prefix(200)); store.update(p) }
+    }
+
+    public func saveNextStep(_ text: String) {
+        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !t.isEmpty, let store, let pid = projectId, var p = store.project(pid) { p.nextStep = String(t.prefix(200)); store.update(p) }
+        act(.nextStep)
+    }
+
     /// "Ask Focus about a window": runs the same judge on text the user typed. Nothing is read from the screen.
     public func ask(app: String, title: String, project p: Project) async -> Judgement {
         var profile = p.profile

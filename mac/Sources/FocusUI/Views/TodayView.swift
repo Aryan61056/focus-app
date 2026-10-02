@@ -97,6 +97,25 @@ struct IntroPanel: View {
     }
 }
 
+/// After a session: where to pick up next time. Saved on the project, offered on the start sheet. Optional.
+struct PickUpNote: View {
+    @Bindable var c: SessionController
+    var project: Project
+    @State private var text = ""
+    @State private var loaded = false
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Where to pick up next time").font(Tokens.text(13, .semibold))
+            TextField("One small thing", text: $text).textFieldStyle(.plain).padding(.horizontal, 12).frame(height: 36)
+                .background(RoundedRectangle(cornerRadius: Tokens.radiusControl).fill(Tokens.control))
+                .onSubmit { c.setProjectNextStep(text) }
+                .onChange(of: text) { _, v in if loaded { c.setProjectNextStep(v) } }
+        }
+        .frame(maxWidth: 420, alignment: .leading)
+        .onAppear { text = project.nextStep; loaded = true }
+    }
+}
+
 struct IdlePanel: View {
     @Bindable var c: SessionController
     @Binding var showStart: Bool
@@ -110,6 +129,7 @@ struct IdlePanel: View {
                     Text("No session running").font(Tokens.rounded(20, .semibold))
                     Text("Tell Focus what you are working on and it will keep an eye out for drift.").font(Tokens.text(14)).foregroundStyle(Tokens.ink2)
                 }
+                if c.summary != nil, let p = c.projectForNote { PickUpNote(c: c, project: p) }
                 Button("Start session") { showStart = true }.buttonStyle(FocusButtonStyle(.primary)).keyboardShortcut("n")
                 if c.summary != nil, c.askLoudness {
                     Divider().overlay(Tokens.line).padding(.vertical, 4)

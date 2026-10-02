@@ -214,3 +214,15 @@ final class StoreSafetyTests: XCTestCase {
         try? FileManager.default.removeItem(at: dir)
     }
 }
+
+@MainActor
+final class NextStepTests: XCTestCase {
+    func testSavingTheNextStepKeepsItOnTheProject() {
+        let store = DataStore()
+        let c = SessionController(judge: ScriptedJudge(markers: [("Notes", .on)]), store: store, now: { 0 })
+        c.windowChanged(WindowSnapshot(app: "Notes", title: "Calc homework"))
+        c.begin(task: "Calc homework", preset: .standard, shadow: false)
+        c.saveNextStep("  Check problem 4  ")
+        XCTAssertEqual(store.projectNamed("Calc homework").nextStep, "Check problem 4")
+    }
+}
