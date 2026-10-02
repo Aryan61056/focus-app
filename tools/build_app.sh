@@ -27,6 +27,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 </dict></plist>
 PLIST
 plutil -lint "$APP/Contents/Info.plist" >/dev/null
-codesign --force --sign - "$APP" 2>&1 | tail -1
+# A requirement that names the bundle id, not the build's hash: with the default ad-hoc requirement (a cdhash) every rebuild is a
+# "new app" to macOS and silently loses the Accessibility and Screen Recording grants, even though Settings still shows them on.
+codesign --force --sign - -r='designated => identifier "com.example.focus-app.dev"' "$APP" 2>&1 | tail -1
 codesign --verify --verbose=1 "$APP" 2>&1 | tail -1
 echo "built $(pwd)/$APP"
