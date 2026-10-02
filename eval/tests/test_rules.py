@@ -63,3 +63,21 @@ class Stage1Tests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NeverJudgedTests(unittest.TestCase):
+    def test_list_matches_the_swift_source(self):
+        import os, re
+        swift = open(os.path.join(os.path.dirname(__file__), "..", "..", "mac", "Sources", "FocusJudge", "Rules.swift")).read()
+        block = re.search(r"defaultNeverJudgedApps: \[String\] = \[(.*?)\]", swift, re.S).group(1)
+        self.assertEqual(re.findall(r'"([^"]+)"', block), rules.DEFAULT_NEVER_JUDGED_APPS)
+
+    def test_messaging_music_and_blank_tab_but_not_a_real_page_titled_new_tab(self):
+        from focus_eval.scenarios import Scenario
+        def sc(app, title, url=""):
+            return Scenario(id="x", category="c", difficulty="gray", task="t", app=app, window_title=title, url=url, label="unsure", notes="n")
+        self.assertTrue(rules.is_never_judged(sc("WhatsApp", "Family")))
+        self.assertTrue(rules.is_never_judged(sc("Spotify", "Playlist")))
+        self.assertTrue(rules.is_never_judged(sc("Google Chrome", "New Tab", "chrome://newtab/")))
+        self.assertFalse(rules.is_never_judged(sc("Google Chrome", "New Tab", "https://example.com/new")))
+        self.assertFalse(rules.is_never_judged(sc("Visual Studio Code", "main.py")))

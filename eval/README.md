@@ -53,6 +53,7 @@ This is one person's policy. Several gray labels are debatable. Nobody else has 
 ## Sets
 
 - `scenarios/`: dev set. Used while tuning prompts and settings.
+- `scenarios_fresh/`: written after the dev and held-out runs, run once on 2026-10-01 with frozen prompts (docs/S1-accuracy.md, Update 3). Single labeler. Spent if prompts change.
 - `scenarios_heldout/`: held-out set. Run only after a prompt is frozen. Once a change follows a held-out run, that set is spent.
 
 ## Pipeline under test

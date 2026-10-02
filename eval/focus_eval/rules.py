@@ -77,3 +77,18 @@ def stage1(s: Scenario) -> Optional[Tuple[str, str]]:
             if doc == base or doc.startswith(base.rstrip("/") + "/"):
                 return "on_task", "linked_path"
     return None
+
+
+# Mirror of mac/Sources/FocusJudge/Rules.swift `isNeverJudged` (owner approved the default list on 2026-10-01).
+# tests/test_rules.py checks the list against the Swift source so the two cannot drift.
+DEFAULT_NEVER_JUDGED_APPS = ["Messages", "WhatsApp", "Telegram", "Signal", "Music", "Spotify", "Podcasts", "Tidal", "Pandora"]
+BLANK_PAGE_TITLES = {"new tab", "start page", "untitled", "favorites", "top sites", "new window"}
+
+
+def is_never_judged(s: Scenario, apps=DEFAULT_NEVER_JUDGED_APPS) -> bool:
+    """Personal messaging, music and blank pages are not read and not counted. A project rule wins, so callers check stage1 first."""
+    if s.app.lower() in [a.lower() for a in apps]:
+        return True
+    host, _ = _host_and_path(s.url)
+    blank_url = (not s.url) or s.url.startswith(("about:blank", "chrome://newtab", "favorites://")) or host == "newtab"
+    return s.window_title.strip().lower() in BLANK_PAGE_TITLES and blank_url and not s.document_path

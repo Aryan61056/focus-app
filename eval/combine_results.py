@@ -34,11 +34,23 @@ def combine(first: dict, second: dict) -> list:
 
 
 def main() -> int:
-    if len(sys.argv) != 3:
+    args = sys.argv[1:]
+    skip_dir = None
+    if "--skip-never-judged" in args:  # model the shipped pipeline: never-judged windows never reach the model
+        i = args.index("--skip-never-judged"); skip_dir = args[i + 1]; del args[i:i + 2]
+    if len(args) != 2:
         print(__doc__)
         return 1
     load = lambda p: {r["id"]: r for r in json.load(open(p))["results"]}  # noqa: E731
-    rows = combine(load(sys.argv[1]), load(sys.argv[2]))
+    rows = combine(load(args[0]), load(args[1]))
+    if skip_dir:
+        from focus_eval import rules, scenarios
+        by_id = {s.id: s for s in scenarios.load_dir(skip_dir)}
+        skipped = [r["id"] for r in rows if r["id"] in by_id and rules.stage1(by_id[r["id"]]) is None and rules.is_never_judged(by_id[r["id"]])]
+        for r in rows:
+            if r["id"] in skipped:
+                r["pred"] = "unsure"
+        print("never-judged list applied before the model: %d scenarios left alone (%s)" % (len(skipped), ", ".join(skipped)))
     h = metrics.headline(rows)
     pct = lambda x: "n/a" if x is None else "%.0f%%" % (100 * x)  # noqa: E731
     print("flagged %d (true %d, false on_task %d, false unsure %d)" % (h["flagged"], h["tp"], h["fp_on_task"], h["fp_unsure"]))

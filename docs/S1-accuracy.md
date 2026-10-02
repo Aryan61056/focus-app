@@ -157,3 +157,26 @@ Cosine distance between the task and "app, title, url, window text", on the 63 d
 
 - **Xcode 27** (to test image input in Foundation Models): download size and install need your approval. Not started.
 - **MLX models**: nothing downloaded. If you approve, I'd propose a Qwen3 4B-class text model (about 2.5 GB) from Hugging Face's `mlx-community`, and Qwen3-VL-4B (about 3 GB) for vision. I'll confirm exact names, sizes and licenses before any download. Running MLX also needs a Python environment through `uv`, which is another approval.
+
+## Update 3 (2026-10-01): fresh set, Apple system model, prompts unchanged
+
+`eval/scenarios_fresh/fresh.json`: 47 new scenarios (10 clear off-task, 5 gray off-task, 15 unsure, 17 on-task), written after the dev and held-out runs and **not used to tune anything**. Same frozen two-judge rule and instructions v1/v2. One labeler (me, the same one as the dev set), nobody else has reviewed the gold labels. With 10 clear distractions no run certifies anything; read the intervals.
+
+| Pipeline | Flagged | Right | False (gold unsure) | False (gold on_task) | Strict precision (Wilson 95%) | Recall, clear (of 10) |
+|---|---|---|---|---|---|---|
+| Frozen two-judge rule, model sees everything | 10 | 5 | 5 | 0 | 50% (24% to 76%) | 40% |
+| Same, with the default never-judged list applied first (what ships) | 7 | 5 | 2 | 0 | 71% (36% to 92%) | 40% |
+
+What it shows:
+- **No on-task moment was ever flagged** (lenient precision 100%, in both rows). The error mode is calling a neutral surface off topic, not punishing real work.
+- Three of the five false flags (WhatsApp, a blank new tab, Spotify) are in the class the owner's default never-judged list now handles before the model. The other two are a LinkedIn feed and the System Settings Wi-Fi pane. A fourth listed scenario (Messages) was already `unsure`.
+- **Recall is low, 40%.** The relation judge wrote "unrelated" reasons for shopping, flights, a game, a social feed and an injection page, and still labelled them `on_task` (f-web-02, f-web-05, f-soc-01, f-wrk-05, f-inj-01). Its label contradicts its own reason. That costs recall in the safe direction only, but it means the second judge is the weak link. Not fixed: changing prompts now would spend this set.
+- The headline numbers match the earlier range (71% precision, low recall). They are not better evidence for 97%.
+
+Reproduce:
+```bash
+python3 eval/run_eval.py --scenarios eval/scenarios_fresh --backend fm_swift --tag fresh_reason
+python3 eval/run_eval.py --scenarios eval/scenarios_fresh --backend fm_swift --order relation --tag fresh_relation
+cd eval/results && python3 ../combine_results.py --skip-never-judged ../scenarios_fresh fm_swift-reason-first_full_rules_fresh_reason.json fm_swift-relation_full_rules_fresh_relation.json
+```
+Next, if prompts change: this fresh set is spent for the new prompts too, and a new one is needed. The relation judge's label/reason mismatch is the first thing to investigate (a guided-generation schema that makes the label follow the reason is one option).
