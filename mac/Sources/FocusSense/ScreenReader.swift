@@ -15,7 +15,7 @@ public struct VisionScreenReader: ScreenReader {
     public func words(in image: CGImage) async -> String {
         await Task.detached(priority: .utility) { () -> String in
             let req = VNRecognizeTextRequest()
-            req.recognitionLevel = .accurate
+            req.recognitionLevel = .fast   // .accurate took 66 s on its first call in a fresh process (model load); .fast takes about 0.1 s and is enough to tell the topic
             req.usesLanguageCorrection = false
             guard (try? VNImageRequestHandler(cgImage: image, options: [:]).perform([req])) != nil else { return "" }
             let lines = (req.results ?? []).compactMap { $0.topCandidates(1).first?.string }
