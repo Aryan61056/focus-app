@@ -81,6 +81,8 @@ public enum Rules {
     static let wordMatchExcludedTitleWords: Set<String> = ["youtube", "reddit", "facebook", "instagram", "tiktok", "netflix", "twitch", "twitter", "linkedin", "pinterest",
                                                           "techcrunch", "medium", "9gag", "hulu", "disneyplus"]
 
+    static let wordMatchBrowsers: Set<String> = ["safari", "google chrome", "chrome", "firefox", "arc", "brave browser", "microsoft edge", "opera", "vivaldi", "orion", "duckduckgo"]
+
     static func words(_ s: String) -> Set<String> {
         var out = Set<String>(), cur = ""
         for ch in normalizedForScan(s).lowercased() {
@@ -99,7 +101,9 @@ public enum Rules {
         let titleWords = Set(m.windowTitle.lowercased().split(whereSeparator: { !$0.isLetter && !$0.isNumber }).map(String.init))
         if !titleWords.isDisjoint(with: wordMatchExcludedTitleWords) || m.windowTitle.lowercased().hasSuffix(" / x") { return [] }
         let task = words([m.task, m.project.context].joined(separator: " "))
-        let there = words([m.windowTitle, path, m.documentPath].joined(separator: " "))
+        // A task that names the app ("notes in TextEdit") matches that app. Browsers are left out: the app says nothing about the page.
+        let appName = wordMatchBrowsers.contains(m.app.lowercased()) ? "" : m.app
+        let there = words([m.windowTitle, path, m.documentPath, appName].joined(separator: " "))
         return task.intersection(there).sorted()
     }
 

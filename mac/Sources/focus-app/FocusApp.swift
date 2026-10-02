@@ -9,7 +9,18 @@ struct FocusApp: App {
     // FOCUS_DEMO=1 runs a scripted session against an in-memory store, so demo data never reaches the real store file.
     @State private var controller = ProcessInfo.processInfo.environment["FOCUS_DEMO"] == "1"
         ? SessionController(judge: ScriptedJudge(markers: [("youtube", .off), ("Calc", .on), ("khanacademy", .on)]), store: DataStore())
-        : SessionController(judge: DefaultJudge.make(), store: DataStore(url: DataStore.defaultURL), prefs: Preferences())
+        : Self.makeController()
+    /// FOCUS_TEST_STORE=<folder> keeps the real judge and real sensing but uses a throwaway store and settings,
+    /// so testing never adds sessions to the owner's history.
+    static func makeController() -> SessionController {
+        if let dir = ProcessInfo.processInfo.environment["FOCUS_TEST_STORE"], !dir.isEmpty {
+            let folder = URL(fileURLWithPath: dir, isDirectory: true)
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            let defaults = UserDefaults(suiteName: "focus-app.test.\(folder.lastPathComponent)") ?? .standard
+            return SessionController(judge: DefaultJudge.make(), store: DataStore(url: folder.appendingPathComponent("store.json")), prefs: Preferences(defaults: defaults))
+        }
+        return SessionController(judge: DefaultJudge.make(), store: DataStore(url: DataStore.defaultURL), prefs: Preferences())
+    }
     @State private var demo: DemoSenses?
     @State private var notch: NotchPanelController?
     @State private var sense: SenseCoordinator?

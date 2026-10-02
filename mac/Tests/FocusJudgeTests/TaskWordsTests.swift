@@ -7,6 +7,15 @@ final class TaskWordsTests: XCTestCase {
         return Moment(task: task, app: "App", windowTitle: title, url: url, documentPath: path, windowText: "", project: p)
     }
 
+    func testNamingTheAppMatchesThatAppButNotABrowser() {
+        var a = m(task: "Writing a lab report in TextEdit", title: "README.md")
+        a.app = "TextEdit"
+        XCTAssertEqual(Rules.sharedTaskWords(a), ["textedit"])
+        var b = m(task: "Research chrome extensions", title: "Some page")
+        b.app = "Google Chrome"
+        XCTAssertTrue(Rules.sharedTaskWords(b).isEmpty)
+    }
+
     func testSharedWordsComeFromTheTitlePathAndFileNotJustAnyText() {
         XCTAssertEqual(Rules.sharedTaskWords(m(task: "Fix the pagination bug in the orders API", title: "orders_api.py - orders-service")), ["orders"])
         XCTAssertEqual(Rules.sharedTaskWords(m(task: "Write the methods section of my chemistry lab report", title: "Titration - Chemistry LibreTexts", url: "https://chem.libretexts.example/titration")), ["chemistry"])
