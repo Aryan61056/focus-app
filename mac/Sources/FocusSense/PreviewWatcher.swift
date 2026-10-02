@@ -30,7 +30,12 @@ public final class PreviewWatcher {
 
     public var isRunning: Bool { timer != nil }
 
-    public func bind() { guard !bound else { return }; bound = true; track() }
+    private var accessTimer: Timer?
+    public func bind() {
+        guard !bound else { return }; bound = true; track()
+        // Only the permission flag, so Settings shows the truth between sessions.
+        accessTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in MainActor.assumeIsolated { self?.syncAccess() } }
+    }
 
     private func track() {
         withObservationTracking { _ = controller.isActive; _ = controller.prefs.readScreen } onChange: { [weak self] in

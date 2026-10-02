@@ -6,7 +6,17 @@ struct SettingsView: View {
     @Bindable var c: SessionController
     @Bindable var store: DataStore
     @State private var confirmDelete = false
-    @State private var skip = true
+    var probeBusy: Bool { if case .waiting = c.probe { return true }; return false }
+    var probeText: String {
+        switch c.probe {
+        case .idle: return "Switch to another window after pressing the button. Focus tells you what it can see there. Nothing is kept."
+        case .waiting(let n): return "Switch to the window you want to test. Reading in \(n)."
+        case .nothing: return "Focus itself was in front, so nothing was read. Try again and switch to another app before the countdown ends."
+        case .saw(let app, let title, let trusted):
+            if !trusted { return "Saw the app \u{201C}\(app)\u{201D} only. Allow Accessibility to see window titles." }
+            return title.isEmpty ? "Saw the app \u{201C}\(app)\u{201D}, but that window gave no title." : "Saw \u{201C}\(app)\u{201D}, window \u{201C}\(title)\u{201D}."
+        }
+    }
     var body: some View {
         Scroller {
             VStack(alignment: .leading, spacing: 26) {
@@ -22,15 +32,18 @@ struct SettingsView: View {
                     }
                 }
                 group("What Focus looks at") {
-                    row("Window titles", "The app name, the window title and the page or file address. Reading the words inside a window is not built yet.") { Text("On").foregroundStyle(Tokens.ink2) }
+                    row("Window titles", "The app name, the window title and the page or file address, from the window in front.") { Text("On").foregroundStyle(Tokens.ink2) }
                     row("Window access", c.windowAccess == .allowed ? "Accessibility is allowed, so Focus can read window titles." : "Without Accessibility, Focus can only see which app is in front. Allow it in System Settings, then come back.") {
                         if c.windowAccess == .allowed { Label("Allowed", systemImage: "checkmark").foregroundStyle(Tokens.ink2) }
                         else { Button("Open Accessibility settings") { c.onOpenAccessSettings?() }.buttonStyle(FocusButtonStyle(.secondary, small: true)) }
                     }
-                    row("Skip personal messages, music and blank pages", "Focus leaves these alone: it does not read them and does not count them as off topic.") {
-                        Toggle("", isOn: $skip).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
+                    row("Try it", probeText) {
+                        Button(probeBusy ? "Switch windows now" : "Check in 5 seconds") { c.runProbe() }.buttonStyle(FocusButtonStyle(.secondary, small: true)).disabled(probeBusy)
                     }
-                    if skip {
+                    row("Skip personal messages, music and blank pages", "Focus leaves these alone: it does not read them and does not count them as off topic.") {
+                        Toggle("", isOn: Binding(get: { c.prefs.skipPersonal }, set: { c.prefs.skipPersonal = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
+                    }
+                    if c.prefs.skipPersonal {
                         RuleGroup(title: "Apps", symbol: "app", items: Binding(get: { c.prefs.neverJudgedApps }, set: { c.prefs.neverJudgedApps = $0 }), addLabel: "Add app")
                             .padding(.horizontal, 16).padding(.bottom, 10).overlay(alignment: .top) { Divider().overlay(Tokens.line) }
                     }
@@ -45,6 +58,12 @@ struct SettingsView: View {
                     row("Read the words on screen", "While a session runs, Focus takes a picture of the window every few seconds, reads the words on it on this Mac, and shows you the picture on Today. The model gets the words, not the picture. Needs Screen Recording. Nothing is saved. Private and never-judged windows are skipped.") {
                         Toggle("", isOn: Binding(get: { c.prefs.readScreen }, set: { c.prefs.readScreen = $0; if $0 { c.onRequestPreviewAccess?() } })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
+                    if c.prefs.readScreen {
+                        row("Screen Recording", c.previewAccess == .allowed ? "Allowed. If the picture does not appear, quit and reopen Focus once." : "Not allowed yet. Allow Focus in System Settings, then quit and reopen it. If Focus is already switched on, remove it with the minus button and add it again.") {
+                            if c.previewAccess == .allowed { Label("Allowed", systemImage: "checkmark").foregroundStyle(Tokens.ink2) }
+                            else { Button("Open Screen Recording settings") { c.onRequestPreviewAccess?() }.buttonStyle(FocusButtonStyle(.secondary, small: true)) }
+                        }
+                    }
                 }
                 group("Privacy") {
                     row("Where the work happens", "The judge is Apple's on-device model. There is no account.") { Text("On this Mac").foregroundStyle(Tokens.ink2) }
@@ -58,8 +77,6 @@ struct SettingsView: View {
             }
             .frame(maxWidth: 640, alignment: .leading)
         }
-        .onAppear { skip = c.prefs.skipPersonal }
-        .onChange(of: skip) { _, v in c.prefs.skipPersonal = v }
         .confirmationDialog("Delete everything?", isPresented: $confirmDelete) {
             Button("Delete everything", role: .destructive) { store.deleteEverything() }
         } message: { Text("Projects, sessions, rules and review moments are removed from this Mac. This cannot be undone.") }

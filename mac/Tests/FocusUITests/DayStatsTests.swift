@@ -95,3 +95,27 @@ final class NotchTests: XCTestCase {
         XCTAssertEqual(NotchView(controller: c, notchWidth: 200, notchHeight: 32, openApp: {}).mode, .nudge)
     }
 }
+
+@MainActor
+final class ProbeTests: XCTestCase {
+    func testProbeCountsDownThenReportsWhatItSawAndClears() async {
+        let c = SessionController(judge: ScriptedJudge(markers: []), now: { 0 })
+        c.senseNow = { WindowSnapshot(app: "Notes", title: "Calc homework") }
+        c.setWindowAccess(.allowed)
+        c.runProbe(seconds: 2, tick: 10_000_000)
+        try? await Task.sleep(nanoseconds: 5_000_000)
+        if case .waiting = c.probe {} else { XCTFail("should be counting down: \(c.probe)") }
+        try? await Task.sleep(nanoseconds: 60_000_000)
+        XCTAssertEqual(c.probe, .saw(app: "Notes", title: "Calc homework", trusted: true))
+        try? await Task.sleep(nanoseconds: 400_000_000)
+        XCTAssertEqual(c.probe, .idle)
+    }
+
+    func testProbeSaysNothingWhenFocusIsInFront() async {
+        let c = SessionController(judge: ScriptedJudge(markers: []), now: { 0 })
+        c.senseNow = { nil }
+        c.runProbe(seconds: 1, tick: 5_000_000)
+        try? await Task.sleep(nanoseconds: 40_000_000)
+        XCTAssertEqual(c.probe, .nothing)
+    }
+}

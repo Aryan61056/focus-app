@@ -26,6 +26,7 @@ struct FocusApp: App {
                             AXWindowSource.promptForAccess()
                             if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") { NSWorkspace.shared.open(url) }
                         }
+                        controller.senseNow = { AXWindowSource().current() }
                         let sc = SenseCoordinator(source: AXWindowSource(), controller: controller); sense = sc; sc.bind()
                         let pw = PreviewWatcher(grabber: SCKScreenGrabber(), controller: controller) {
                             if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") { NSWorkspace.shared.open(url) }

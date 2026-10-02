@@ -18,6 +18,9 @@ public struct PreviewFrame: Identifiable, @unchecked Sendable {
     public let at: Double
 }
 
+/// "Try it" in Settings: after a short countdown, shows what the sensors see right now. Memory only; clears itself.
+public enum ProbeState: Equatable, Sendable { case idle, waiting(Int), saw(app: String, title: String, trusted: Bool), nothing }
+
 public struct Presence: Equatable, Sendable { public var state: String; public var reason: String? }
 public struct Surface: Equatable, Sendable { public var kind: String; public var severity: Int; public var at: Double }
 public struct TimerState: Equatable, Sendable { public var seconds = 0.0, running = false, visible = false, at = 0.0 }
@@ -68,6 +71,10 @@ public final class SessionController {
     public private(set) var shadow = true
     public private(set) var windowAccess = WindowAccess.unknown
     @ObservationIgnored public var onOpenAccessSettings: (() -> Void)?
+    public private(set) var probe = ProbeState.idle
+    /// One read of the window in front (set by the app). Nil when Focus itself is in front.
+    @ObservationIgnored public var senseNow: (() -> WindowSnapshot?)?
+    @ObservationIgnored private var probeTask: Task<Void, Never>?
     public private(set) var readings: [Reading] = []
     public private(set) var stats = ReadStats()
     public private(set) var previewFrame: PreviewFrame?
@@ -144,6 +151,18 @@ public final class SessionController {
 
     // MARK: senses
     public func setWindowAccess(_ a: WindowAccess) { if windowAccess != a { windowAccess = a } }
+    /// Counts down so the user can switch to another window, then reports what Focus can see there.
+    public func runProbe(seconds: Int = 5, tick: UInt64 = 1_000_000_000) {
+        probeTask?.cancel()
+        probeTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            for n in stride(from: seconds, to: 0, by: -1) { self.probe = .waiting(n); try? await Task.sleep(nanoseconds: tick); if Task.isCancelled { return } }
+            if let w = self.senseNow?() { self.probe = .saw(app: w.app, title: w.title, trusted: self.windowAccess == .allowed) } else { self.probe = .nothing }
+            try? await Task.sleep(nanoseconds: tick * 20)
+            if !Task.isCancelled { self.probe = .idle }
+        }
+    }
+
     public func setPreviewAccess(_ a: PreviewAccess) { if previewAccess != a { previewAccess = a } }
 
     /// True when a picture may be taken right now: a session runs, the user turned the preview on, and the window is not private.
