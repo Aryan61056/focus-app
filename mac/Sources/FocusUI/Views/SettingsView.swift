@@ -76,6 +76,9 @@ struct SettingsView: View {
                             Toggle("", isOn: Binding(get: { c.prefs.screenGrayscale }, set: { c.prefs.screenGrayscale = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                         }
                     }
+                    row("Ease in, then push harder when behind", "Focus is easy on you before noon and once you reach your daily goal, and it warns sooner and climbs faster when you are behind the goal's pace for the time of day (a 9 to 6 working day). Today always says which it is. Needs the daily goal below to be on.") {
+                        toggle(\.paceMatters)
+                    }
                     if !c.prefs.practiceRemoved {
                         row("Practice mode", "Watch without interrupting for the first \(Preferences.practiceSessions) sessions.") {
                             Toggle("", isOn: Binding(get: { c.prefs.practiceActive }, set: { $0 ? c.prefs.restartPractice() : c.prefs.turnNudgesOnNow() })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
@@ -83,6 +86,55 @@ struct SettingsView: View {
                     }
                     row("Remove practice mode", c.prefs.practiceRemoved ? "Practice mode is gone from Focus. Every session nudges from the start, and Review shows only moments already waiting for an answer." : "Takes practice mode out of Focus for good. Every session nudges from the start, and its screens, counts and messages disappear. You can bring it back here.") {
                         Toggle("", isOn: Binding(get: { c.prefs.practiceRemoved }, set: { c.prefs.practiceRemoved = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
+                    }
+                }
+                group("Cues") {
+                    row("Banner over the window you are in", "A small banner with your task, over the window you drifted into, from the warning until you are back. No sound, and it never covers the whole screen.") {
+                        toggle(\.showBanner)
+                    }
+                    if c.prefs.showBanner {
+                        row("Heads-up before a warning", "When your last few windows look like a rabbit hole, a gentler banner appears before any warning. It can be wrong, so \u{201C}This is part of it\u{201D} teaches Focus the window, and it waits five minutes between heads-ups. Not in Gentle.") {
+                            toggle(\.headsUp)
+                        }
+                    }
+                    row("Ask before you go back", "After a pause screen, opening the same site again asks you to hold a button for \(Int(Friction.holdSeconds)) seconds or type why it belongs. Going back to the task is always one click.") {
+                        toggle(\.frictionReturn)
+                    }
+                    row("Tint the menu bar ring", "A warm tint for a heads-up or a prompt, and a slow pulse while you are away. The ring's shape shows the state either way.") {
+                        toggle(\.menuBarCue)
+                    }
+                    row("Bounce the Dock icon", "Once for a warning, a step up the ladder or a prompt, only while Focus is in the background.") {
+                        toggle(\.dockBounce)
+                    }
+                    row("Tap the trackpad", "A silent tap with a warning. It only works on a Force Touch trackpad and only while a finger rests on it, so it is a bonus cue, not a promise.") {
+                        HStack(spacing: 10) {
+                            Button("Try") { c.previewCue(haptic: true) }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+                            toggle(\.hapticTap)
+                        }
+                    }
+                    row("Say nudges aloud", "The Mac's own voice reads the nudge, such as \u{201C}Back to your task.\u{201D} It runs on this Mac. Off by default because other people in the room can hear it, and it stays off in practice mode.") {
+                        HStack(spacing: 10) {
+                            Button("Try") { c.previewCue(haptic: false) }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+                            toggle(\.speakNudges)
+                        }
+                    }
+                }
+                group("Rhythm") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(alignment: .firstTextBaseline) {
+                            Text("Scheduled prompts").font(Tokens.text(13.5, .semibold))
+                            Spacer()
+                            segmented(Rhythm.allCases, selection: Binding(get: { c.prefs.rhythm }, set: { c.prefs.rhythm = $0 }), title: \.title)
+                        }
+                        Text(c.prefs.rhythm.detail).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 12)
+                    if c.prefs.rhythm == .checkIns {
+                        row("Check in every", "Time spent in a session, not counting breaks or pauses. A prompt you ignore counts as a yes after 90 seconds.") {
+                            Picker("", selection: Binding(get: { c.prefs.checkInMinutes }, set: { c.prefs.checkInMinutes = $0 })) {
+                                ForEach(Rhythm.checkInChoices, id: \.self) { Text("\($0) min").tag($0) }
+                            }.labelsHidden().frame(width: 100)
+                        }
                     }
                 }
                 group("Progress") {
@@ -181,6 +233,10 @@ struct SettingsView: View {
         case .balanced: return "Flags a window when the model is at least 80 percent sure. A middle road."
         case .proactive: return "Flags a window when the model is at least 60 percent sure, so Focus speaks up about distractions it is not completely sure of. It will sometimes call work a distraction; \u{201C}That was fine\u{201D} teaches it. A warning still needs the drift to last and two checks to agree."
         }
+    }
+
+    func toggle(_ key: ReferenceWritableKeyPath<Preferences, Bool>) -> some View {
+        Toggle("", isOn: Binding(get: { c.prefs[keyPath: key] }, set: { c.prefs[keyPath: key] = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
     }
 
     /// A row of capsule choices in the same vocabulary as the tone picker.

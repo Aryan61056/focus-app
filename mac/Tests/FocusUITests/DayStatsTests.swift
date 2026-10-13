@@ -293,6 +293,8 @@ final class MatchingWordsTests: XCTestCase {
     p.practiceRemoved = false; p.restartPractice()
     // Likewise the original check timing and confidence bar; tests of the shipped defaults build their own Preferences.
     p.checkRate = .normal; p.sensitivity = .careful
+    // And no time-of-day pace, so the timing does not depend on the hour the tests run at.
+    p.paceMatters = false
     return p
 }
 

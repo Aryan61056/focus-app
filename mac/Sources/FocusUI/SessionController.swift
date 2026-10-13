@@ -67,9 +67,9 @@ public final class SessionController {
     public private(set) var escalationGate = false
     /// Until this time the pause screen's "That was fine" and "Snooze" stay disabled.
     public private(set) var gateHoldUntil: Double?
-    @ObservationIgnored private var warnedAt: Double?
+    @ObservationIgnored var warnedAt: Double?
     @ObservationIgnored private var enforcedRounds = 0
-    @ObservationIgnored private var sessionPreset = Preset.standard
+    @ObservationIgnored var sessionPreset = Preset.standard
     @ObservationIgnored private var veilFrom = 0.0
     @ObservationIgnored private var veilStartedAt = 0.0
     @ObservationIgnored private var floorFrom = 0.0
@@ -80,6 +80,32 @@ public final class SessionController {
     @ObservationIgnored public var onForeground: (() -> Void)?
     /// Hide the app you drifted into (the last step of the ladder). The name only; the app decides how.
     @ObservationIgnored public var onHideApp: ((String) -> Void)?
+    // MARK: cues around the warning (Cues.swift, SessionController+Cues.swift)
+    /// The small banner over the window you are in: a heads-up before a warning, then a reminder from the warning until you are back.
+    public internal(set) var banner: Banner?
+    /// After a pause screen, the same site asks for a short hold or a typed reason before it opens again.
+    public internal(set) var friction: Friction?
+    public internal(set) var frictionHoldStart: Double?
+    /// A scheduled prompt: a check-in at an interval, or a break after a block of work.
+    public internal(set) var rhythmPrompt: RhythmPrompt?
+    @ObservationIgnored var driftWatch = DriftWatch()
+    @ObservationIgnored var headsUpAt: Double?
+    @ObservationIgnored var bannerHidden = false
+    @ObservationIgnored var blockedSites: [String: String] = [:]
+    @ObservationIgnored var passUntil: [String: Double] = [:]
+    @ObservationIgnored var frictionQuietUntil = 0.0
+    @ObservationIgnored var workSeconds = 0.0
+    @ObservationIgnored var lastWorkTick: Double?
+    @ObservationIgnored var workBlocks = 0
+    @ObservationIgnored var lastSpokeAt: Double?
+    @ObservationIgnored var lastFrictionCheck = 0.0
+    @ObservationIgnored var warnedPressure = DayPressure.steady
+    /// The app plays these: a tap on the trackpad, a spoken line, a Dock bounce. The controller decides when, from the user's switches.
+    @ObservationIgnored public var onHaptic: ((HapticPattern) -> Void)?
+    @ObservationIgnored public var onSpeak: ((String) -> Void)?
+    @ObservationIgnored public var onDockBounce: (() -> Void)?
+    /// Where the window in front is on screen (Core Graphics coordinates, top left origin), so the banner can sit over it. Nil when unknown.
+    @ObservationIgnored public var frontWindowFrame: (() -> CGRect?)?
     public private(set) var offTopic = TimerState()
     public private(set) var clock = ClockState()
     public private(set) var surface: Surface?
@@ -160,10 +186,10 @@ public final class SessionController {
 
     @ObservationIgnored private var brain = Brain()
     @ObservationIgnored private let judge: any Judge
-    @ObservationIgnored private let now: () -> Double
+    @ObservationIgnored let now: () -> Double
     @ObservationIgnored public let store: DataStore?
     public let prefs: Preferences
-    @ObservationIgnored private let date: () -> Date
+    @ObservationIgnored let date: () -> Date
     @ObservationIgnored private var projectId: UUID?
     @ObservationIgnored private var sessionId = UUID()
     @ObservationIgnored private var startedAt = Date()
@@ -190,7 +216,8 @@ public final class SessionController {
 
     public init(judge: any Judge, store: DataStore? = nil, prefs: Preferences? = nil, now: @escaping () -> Double = SessionController.clock, date: @escaping () -> Date = Date.init) {
         self.judge = judge; self.store = store; self.now = now; self.date = date
-        self.prefs = prefs ?? Preferences(defaults: UserDefaults(suiteName: "focus.tests.\(UUID().uuidString)")!)
+        // Throwaway preferences (tests, snapshots, the scripted demo) keep Focus's timing the same at every hour; the real ones follow the day's pace.
+        self.prefs = prefs ?? { let p = Preferences(defaults: UserDefaults(suiteName: "focus.tests.\(UUID().uuidString)")!); p.paceMatters = false; return p }()
     }
 
     // MARK: session
@@ -208,7 +235,7 @@ public final class SessionController {
         self.project = profile; self.projectId = pid; self.shadow = shadow
         sessionId = UUID(); startedAt = date(); segments = []; segKind = nil; segStart = now()
         taskName = task; self.mode = mode; totalSeconds = duration ?? 0
-        sessionPreset = preset ?? prefs.preset; clearEscalation(); veilFrom = 0; veilStartedAt = now(); veilTarget = 0
+        sessionPreset = preset ?? prefs.preset; clearEscalation(); resetCues(); veilFrom = 0; veilStartedAt = now(); veilTarget = 0
         recapTask?.cancel(); recap = .idle; answer = .idle; sharpened = .idle
         moment = nil; highlight = nil; awayStart = nil; awayFlagged = false; returnTimes = []; stretchNotified = false
         let finished = store?.sessions ?? []
@@ -216,7 +243,7 @@ public final class SessionController {
         goalNotified = prefs.dailyGoalMinutes <= 0 || baselineToday >= Double(prefs.dailyGoalMinutes) * 60
         priorBestStretch = Rewards.bestStretch(finished)
         summary = nil; shadowMarks = 0; learnedRules = []; wrapUp = false; askResume = nil; readings = []; appByWindowKey = [:]; stats = ReadStats(); previewFrame = nil; previewHeld = nil; screenText = ""
-        var c = SessionConfig(); c.taskId = task; c.mode = mode; c.durationSeconds = duration; c.preset = preset ?? prefs.preset; c.shadow = shadow; c.sound = prefs.nudgeSound; c.checkScale = prefs.checkRate.scale
+        var c = SessionConfig(); c.taskId = task; c.mode = mode; c.durationSeconds = duration; c.preset = preset ?? prefs.preset; c.shadow = shadow; c.sound = prefs.nudgeSound; c.checkScale = prefs.checkRate.scale * pressure.factor
         isActive = true
         send(.sessionStart(c))
         if let w = currentWindow { windowChanged(w) }
@@ -238,6 +265,7 @@ public final class SessionController {
         send(.tick)
         checkLiveMoments(now())
         checkEscalation(now())
+        tickCues(now())
     }
 
     // MARK: escalation
@@ -247,7 +275,7 @@ public final class SessionController {
     }
 
     private func beaconForLadder(_ state: String, _ t: Double) {
-        if state == "interrupted" { if warnedAt == nil { warnedAt = t } } else { clearEscalation() }
+        if state == "interrupted" { if warnedAt == nil { warnedAt = t; warnedPressure = pressure } } else { clearEscalation() }
     }
 
     private func setFloor(_ target: Double, over secs: Double, _ t: Double) {
@@ -260,7 +288,9 @@ public final class SessionController {
     }
 
     private func checkEscalation(_ t: Double) {
-        guard isActive, !shadow, prefs.escalate, let start = warnedAt, let plan = EscalationPlan.of(sessionPreset) else { return }
+        guard isActive, !shadow, prefs.escalate, let start = warnedAt, let base = EscalationPlan.of(sessionPreset) else { return }
+        // Easy in the morning, firmer when you are behind the day's goal: the ladder is quicker or slower, and the pause screen holds longer.
+        let plan = base.scaled(by: warnedPressure.factor, extraHold: warnedPressure.extraHold)
         let secs = t - start
         let step = plan.step(after: secs)
         if step > escalationStep {
@@ -272,20 +302,25 @@ public final class SessionController {
             switch step {
             case .checkIn:
                 checkIn = t
+                fire(.checkIn, title: NudgeCopy.checkInTitle(task: taskName))
                 // Read the window again right now instead of waiting for the next scheduled look.
                 if let w = senseNow?() { windowChanged(w) }
             case .pauseScreen:
                 checkIn = nil; escalationGate = true; gateHoldUntil = t + plan.holdSeconds
+                fire(.pauseScreen, title: "Take a moment. " + NudgeCopy.gateBody(tone: prefs.nudgeTone, task: taskName, longDetour: longDetour))
                 onForeground?()
             default: break
             }
+            refreshBanner(t)
         }
         if step == .enforce {
             let round = plan.enforceRound(after: secs)
             if round > enforcedRounds {
                 enforcedRounds = round
+                blockCurrentSite()
                 if prefs.hideDistractingApp, Enforcement.canHide(currentWindow?.app), let app = currentWindow?.app { onHideApp?(app) }
                 act(.backToTask)   // brings the task forward
+                fire(.enforce, title: CueCopy.bannerTitle(.reminder, tone: prefs.nudgeTone, task: taskName))
                 onForeground?()
             }
         }
@@ -303,6 +338,7 @@ public final class SessionController {
     public func leaveGate(fine: Bool, snooze: Bool = false) {
         if fine || snooze, gateHoldRemaining() > 0 { return }
         escalationGate = false
+        if !fine { blockCurrentSite() }   // the same site now asks for a moment before it opens again (friction)
         if snooze { act(.snooze, minutes: 15) } else if fine { act(.thatWasFine); clearEscalation() } else { act(.backToTask) }
     }
 
@@ -444,6 +480,7 @@ public final class SessionController {
         currentWindow = w; screenText = ""
         if isActive { appByWindowKey[Keys.window(w)] = w.app }
         guard isActive else { return }
+        updateFriction(w)
         let m = moment(w)
         previewHeld = nil
         if Rules.isSensitive(m) {
@@ -492,6 +529,7 @@ public final class SessionController {
 
     /// Newest first, and a window that is read again replaces its own latest line instead of repeating it.
     func record(_ r: Reading) {
+        noteForHeadsUp(r)
         switch r.source { case .model: stats.model += 1; case .rule: stats.rule += 1; case .skipped: stats.skipped += 1; case .sensitive: break }
         if r.source == .model || r.source == .rule { switch r.call { case .on: stats.onTask += 1; case .unsure: stats.unsure += 1; case .off: stats.offTask += 1 } }
         if let first = readings.first, first.key == r.key, first.call == r.call, first.source == r.source { readings[0].at = r.at; readings[0].date = r.date; readings[0].reason = r.reason; readings[0].sawScreen = readings[0].sawScreen || r.sawScreen; return }
@@ -551,13 +589,14 @@ public final class SessionController {
     func apply(_ effects: [Effect], _ t: Double) {
         for e in effects {
             switch e {
-            case .beacon(let s, let r): trackReturn(s, t); beaconForLadder(s, t); presence = Presence(state: s, reason: r); markSegment(s, t)
+            case .beacon(let s, let r): trackReturn(s, t); beaconForLadder(s, t); presence = Presence(state: s, reason: r); markSegment(s, t); cueBeacon(s, t)
             case .veil(let from, let to, let secs): veilFrom = Double(from); veilStartedAt = t; veilTarget = to; veilDuration = secs
             case .offTopicTimer(let s, let r, let v): offTopic = TimerState(seconds: s, running: r, visible: v, at: t)
             case .clock(let s, let r): clock = ClockState(seconds: s, running: r, at: t)
             case .interrupt(let k, let sev, _, _):
                 surface = Surface(kind: k, severity: sev, at: t)
                 if k == "gate" { gateHoldUntil = t + (EscalationPlan.of(sessionPreset)?.holdSeconds ?? 10) }
+                fire(k == "gate" ? .pauseScreen : .warning, title: nudgeTitle)
             case .withdraw(let what):
                 if what == "reentry" { reentryOpen = false } else { surface = nil }
             case .reentryPrompt: reentryOpen = true
@@ -593,7 +632,7 @@ public final class SessionController {
                 prefs.sessionFinished(wasPractice: shadow)
                 startRecap()
                 previewFrame = nil; previewHeld = nil; screenText = ""
-                isActive = false; clearEscalation(); veilTarget = 0; manualNextStep = false; surface = nil; reentryOpen = false; askResume = nil; wrapUp = false
+                isActive = false; clearEscalation(); resetCues(); veilTarget = 0; manualNextStep = false; surface = nil; reentryOpen = false; askResume = nil; wrapUp = false
                 timer?.invalidate(); timer = nil
             }
             if case .beacon(let s, _) = e, s != "paused" { askResume = nil }

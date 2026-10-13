@@ -46,10 +46,12 @@ public struct RootView: View {
                 ZStack(alignment: .topTrailing) {
                     if c.checkIn != nil { CheckInCard(c: c).padding(18).transition(.opacity) }
                     else if let s = c.surface, s.kind != "gate" { NudgeCard(c: c, kind: s.kind).padding(18).transition(.opacity) }
+                    else if c.rhythmPrompt != nil { RhythmCard(c: c).padding(18).transition(.opacity) }
                 }
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: c.rhythmPrompt)
                 .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: c.surface)
                 .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: c.checkIn)
-                if c.reentryOpen || c.manualNextStep { ReentryCard(c: c).padding(18).padding(.top, c.surface == nil ? 0 : 190) }
+                if c.reentryOpen || c.manualNextStep { ReentryCard(c: c).padding(18).padding(.top, c.surface == nil && c.rhythmPrompt == nil ? 0 : 190) }
                 if c.gateOpen { GateOverlay(c: c) }
             }
         }

@@ -48,6 +48,32 @@ struct CheckInCard: View {
     }
 }
 
+/// A scheduled prompt: a check-in at your interval, or a break after a block of work. Always answerable in one click.
+struct RhythmCard: View {
+    @Bindable var c: SessionController
+    var body: some View {
+        if let p = c.rhythmPrompt {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(CueCopy.rhythmTitle(p.kind, task: c.taskName)).font(Tokens.rounded(17, .semibold)).fixedSize(horizontal: false, vertical: true)
+                Text(CueCopy.rhythmBody(p.kind)).font(Tokens.text(13)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                switch p.kind {
+                case .checkIn:
+                    Button("Yes, keep going") { c.rhythmKeepGoing() }.buttonStyle(FocusButtonStyle(.primary, expand: true))
+                    Button("Take a \(c.rhythmBreakMinutes) minute break") { c.rhythmTakeBreak() }.buttonStyle(FocusButtonStyle(.secondary, expand: true))
+                case .breakDue(let m):
+                    Button("Start a \(m) minute break") { c.rhythmTakeBreak() }.buttonStyle(FocusButtonStyle(.primary, expand: true))
+                    Button("Five more minutes") { c.rhythmKeepGoing() }.buttonStyle(FocusButtonStyle(.secondary, expand: true))
+                }
+            }
+            .padding(20).frame(width: 340)
+            .background(RoundedRectangle(cornerRadius: 24).fill(.regularMaterial))
+            .overlay { RoundedRectangle(cornerRadius: 24).strokeBorder(Tokens.line) }
+            .shadow(color: .black.opacity(0.2), radius: 20, y: 10)
+            .accessibilityElement(children: .contain)
+        }
+    }
+}
+
 /// The pause screen: Strict's gate, or the ladder's second step. Going back to the task is always one click; "That was fine" and
 /// "Snooze" wait a few seconds, so ignoring the warnings is no longer free.
 struct GateOverlay: View {

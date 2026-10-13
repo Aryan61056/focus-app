@@ -3,6 +3,7 @@ import FocusUI
 import FocusJudge
 import FocusSense
 import AppKit
+import AVFoundation
 
 @main
 struct FocusApp: App {
@@ -37,6 +38,10 @@ struct FocusApp: App {
     @State private var hotKey = GlobalHotKey()
     @State private var updater: Updater?
     @State private var veil: VeilController?
+    @State private var banner: BannerController?
+    @State private var friction: FrictionController?
+    @State private var cueClock: CueClock?
+    @State private var voice = Voice()
     @Environment(\.openWindow) private var openWindow
 
     var body: some Scene {
@@ -69,6 +74,14 @@ struct FocusApp: App {
                         NSWorkspace.shared.runningApplications.first { $0.localizedName == name && $0.activationPolicy == .regular && $0 != NSRunningApplication.current }?.hide()
                     }
                     if veil == nil { let v = VeilController(controller: controller); veil = v; v.start() }
+                    // The quieter cues. Each one is silent except the voice, which is off until the user turns it on. The controller decides when.
+                    controller.frontWindowFrame = { AXWindowSource.frontWindowFrame() }
+                    if banner == nil { let b = BannerController(controller: controller); banner = b; b.start() }
+                    if friction == nil { let f = FrictionController(controller: controller); friction = f; f.start() }
+                    if cueClock == nil { let k = CueClock(controller: controller); cueClock = k; k.start() }
+                    controller.onHaptic = { Haptics.play($0) }
+                    controller.onSpeak = { voice.say($0) }
+                    controller.onDockBounce = { if !NSApp.isActive { NSApp.requestUserAttention(.informationalRequest) } }
                     controller.onBringBackToApp = { name in
                         NSWorkspace.shared.runningApplications.first { $0.localizedName == name && $0.activationPolicy == .regular }?.activate()
                     }
@@ -126,7 +139,7 @@ struct FocusApp: App {
                 NSApp.activate(ignoringOtherApps: true); openWindow(id: "main")
             }
         } label: {
-            Image(nsImage: RingImage.make(controller.ringState))
+            MenuBarLabel(controller: controller, clock: cueClock ?? CueClock(controller: controller))
         }
         .menuBarExtraStyle(.window)
     }

@@ -50,6 +50,26 @@ public final class Preferences {
     public var hideDistractingApp: Bool { didSet { defaults.set(hideDistractingApp, forKey: "hideDistractingApp") } }
     /// Offer to restart into a newer build found on this Mac. Local only; it never installs anything by itself.
     public var offerUpdates: Bool { didSet { defaults.set(offerUpdates, forKey: "offerUpdates") } }
+    // MARK: cues around the warning (see Cues.swift)
+    /// A small banner with your task over the window you are in: a heads-up before a warning, then a reminder from the warning until you are back. Never any sound.
+    public var showBanner: Bool { didSet { defaults.set(showBanner, forKey: "showBanner") } }
+    /// The heads-up before a warning, when your recent windows look like a rabbit hole. Needs the banner.
+    public var headsUp: Bool { didSet { defaults.set(headsUp, forKey: "headsUp") } }
+    /// The menu bar ring takes a soft tint for a heads-up and a warm tint with a slow pulse while you are away.
+    public var menuBarCue: Bool { didSet { defaults.set(menuBarCue, forKey: "menuBarCue") } }
+    /// The Dock icon bounces once for a warning, a climb step or a prompt while Focus is in the background.
+    public var dockBounce: Bool { didSet { defaults.set(dockBounce, forKey: "dockBounce") } }
+    /// A tap on the trackpad with a warning. Silent and private; it only works on a Force Touch trackpad with a finger resting on it.
+    public var hapticTap: Bool { didSet { defaults.set(hapticTap, forKey: "hapticTap") } }
+    /// The Mac's own voice says the nudge aloud. Off by default because it is the one cue other people in the room can hear.
+    public var speakNudges: Bool { didSet { defaults.set(speakNudges, forKey: "speakNudges") } }
+    /// After a pause screen, opening the same site again asks for a short hold or a typed reason.
+    public var frictionReturn: Bool { didSet { defaults.set(frictionReturn, forKey: "frictionReturn") } }
+    /// Scheduled prompts: a check-in at an interval, or a work-and-break rhythm.
+    public var rhythm: Rhythm { didSet { defaults.set(rhythm.rawValue, forKey: "rhythm") } }
+    public var checkInMinutes: Int { didSet { defaults.set(checkInMinutes, forKey: "checkInMinutes") } }
+    /// Easy in the morning, firmer when you are behind the day's goal (DayPressure).
+    public var paceMatters: Bool { didSet { defaults.set(paceMatters, forKey: "paceMatters") } }
     public static let goalChoices = [30, 60, 90, 120, 180]
     public var practiceActive: Bool { !practiceRemoved && practiceSessionsLeft > 0 }
 
@@ -75,6 +95,16 @@ public final class Preferences {
         screenGrayscale = defaults.object(forKey: "screenGrayscale") as? Bool ?? true
         hideDistractingApp = defaults.object(forKey: "hideDistractingApp") as? Bool ?? true
         offerUpdates = defaults.object(forKey: "offerUpdates") as? Bool ?? true
+        showBanner = defaults.object(forKey: "showBanner") as? Bool ?? true
+        headsUp = defaults.object(forKey: "headsUp") as? Bool ?? true
+        menuBarCue = defaults.object(forKey: "menuBarCue") as? Bool ?? true
+        dockBounce = defaults.object(forKey: "dockBounce") as? Bool ?? true
+        hapticTap = defaults.object(forKey: "hapticTap") as? Bool ?? true
+        speakNudges = defaults.object(forKey: "speakNudges") as? Bool ?? false
+        frictionReturn = defaults.object(forKey: "frictionReturn") as? Bool ?? true
+        rhythm = Rhythm(rawValue: defaults.string(forKey: "rhythm") ?? "") ?? .off
+        checkInMinutes = defaults.object(forKey: "checkInMinutes") as? Int ?? 25
+        paceMatters = defaults.object(forKey: "paceMatters") as? Bool ?? true
         nudgeSound = defaults.object(forKey: "nudgeSound") as? Bool ?? false
         let removed = defaults.object(forKey: "practiceRemoved") as? Bool ?? true
         practiceRemoved = removed

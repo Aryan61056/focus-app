@@ -21,8 +21,8 @@ let judge = ScriptedJudge(readings: [
     while t < target { t += 1; c.tick(); await c.waitForJudgments() }
 }
 
-@MainActor func render(_ c: SessionController, _ name: String, dark: Bool, selection: AppSection = .today) {
-    let view = RootView(controller: c, selection: selection).frame(width: 1240, height: 800)
+@MainActor func render(_ c: SessionController, _ name: String, dark: Bool, selection: AppSection = .today, height: CGFloat = 800) {
+    let view = RootView(controller: c, selection: selection).frame(width: 1240, height: height)
         .environment(\.colorScheme, dark ? .dark : .light)
     let r = ImageRenderer(content: view)
     r.scale = 1
@@ -82,6 +82,78 @@ let judge = ScriptedJudge(readings: [
     await advance(c, to: warned + 105)
     for dark in [false, true] { render(c, "gate", dark: dark) }
     print("state:", c.presence, "surface:", String(describing: c.surface), "veil:", c.veilTarget)
+    await cueShots()
+}
+
+/// A stand-in for the window you drifted into: a title bar and some gray lines, so the banner can be seen on something. Drawn here, not captured.
+struct FakeWindow<Over: View>: View {
+    var dark: Bool
+    @ViewBuilder var over: Over
+    var body: some View {
+        ZStack(alignment: .top) {
+            LinearGradient(colors: [Color(red: 0.32, green: 0.42, blue: 0.55), Color(red: 0.2, green: 0.28, blue: 0.4)], startPoint: .topLeading, endPoint: .bottomTrailing)
+            VStack(spacing: 0) {
+                Rectangle().fill(dark ? Color(white: 0.2) : Color(white: 0.93)).frame(height: 34)
+                ZStack(alignment: .topLeading) {
+                    Rectangle().fill(dark ? Color(white: 0.13) : Color.white)
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(0..<9, id: \.self) { i in RoundedRectangle(cornerRadius: 4).fill(Color.gray.opacity(0.25)).frame(width: i % 3 == 2 ? 280 : 480, height: 12) }
+                    }.padding(28).padding(.top, 36)
+                }
+            }
+            .frame(width: 640, height: 300).clipShape(RoundedRectangle(cornerRadius: 10)).shadow(radius: 12, y: 6).padding(.top, 26)
+            over.padding(.top, 26 + 34)
+        }
+    }
+}
+
+@MainActor func png<V: View>(_ v: V, _ name: String, scale: CGFloat = 2) {
+    let r = ImageRenderer(content: v); r.scale = scale
+    guard let img = r.nsImage, let tiff = img.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff), let data = rep.representation(using: NSBitmapImageRep.FileType.png, properties: [:]) else { print("render failed: \(name)"); return }
+    try? data.write(to: URL(fileURLWithPath: "\(outDir)/\(name).png")); print("\(outDir)/\(name).png")
+}
+
+@MainActor func cueShots() async {
+    t = 0
+    let c = SessionController(judge: judge, store: DataStore(), now: { t })
+    c.windowChanged(WindowSnapshot(app: "Notes", title: "Calc homework"))
+    c.begin(task: "Calc homework", preset: .standard, shadow: false)
+    await advance(c, to: 20)
+    c.windowChanged(WindowSnapshot(app: "Browser", title: "youtube clip", url: "https://youtube.com/watch?v=1"))
+    while c.presence.state != "interrupted" && t < 300 { await advance(c, to: t + 1) }
+    for dark in [false, true] {
+        png(FakeWindow(dark: dark) { CuePreview.banner(c, .reminder) }.frame(width: 760, height: 380).environment(\.colorScheme, dark ? .dark : .light), "banner-reminder-\(dark ? "dark" : "light")")
+        png(FakeWindow(dark: dark) { CuePreview.banner(c, .early) }.frame(width: 760, height: 380).environment(\.colorScheme, dark ? .dark : .light), "banner-early-\(dark ? "dark" : "light")")
+        png(FakeWindow(dark: dark) { CuePreview.friction(c).padding(.top, 20) }.frame(width: 760, height: 520).environment(\.colorScheme, dark ? .dark : .light), "friction-\(dark ? "dark" : "light")")
+    }
+    // Scheduled prompts: a check-in, and a break after a block of work.
+    for (name, rhythm) in [("rhythm-checkin", Rhythm.checkIns), ("rhythm-break", .pomodoro)] {
+        t = 0
+        let r = SessionController(judge: judge, store: DataStore(), now: { t })
+        r.prefs.rhythm = rhythm
+        r.windowChanged(WindowSnapshot(app: "Notes", title: "Calc homework"))
+        r.begin(task: "Calc homework", preset: .standard, shadow: false)
+        await advance(r, to: 25 * 60 + 1)
+        for dark in [false, true] {
+            png(ZStack { Tokens.window; CuePreview.rhythm(r) }.frame(width: 420, height: 300).environment(\.colorScheme, dark ? .dark : .light), "\(name)-\(dark ? "dark" : "light")")
+        }
+        if rhythm == .pomodoro { notchRhythm(r) }
+    }
+    // Menu bar ring with its cues.
+    let ring = HStack(spacing: 18) {
+        ForEach([("plain", nil as NSColor?), ("heads-up / prompt", RingImage.warm), ("away, bright", RingImage.warm), ("away, dim", RingImage.warm.withAlphaComponent(0.35))], id: \.0) { item in
+            VStack(spacing: 6) {
+                Image(nsImage: RingImage.make(.drift, size: 36, tint: item.1)).background(Color(white: item.0 == "plain" ? 0.12 : 0.12))
+                Text(item.0).font(.system(size: 10)).foregroundStyle(.white)
+            }
+        }
+    }.padding(20).background(Color(white: 0.12))
+    png(ring, "menubar-cues")
+}
+
+@MainActor func notchRhythm(_ c: SessionController) {
+    let v = NotchView(controller: c, notchWidth: 200, notchHeight: 32, forced: .nudge, openApp: {})
+    png(ZStack(alignment: .top) { Color(red: 0.15, green: 0.22, blue: 0.3); v }.frame(width: 460, height: 150), "notch-rhythm")
 }
 
 @MainActor func seededStore() -> DataStore {
@@ -152,9 +224,14 @@ let judge = ScriptedJudge(readings: [
     let c = SessionController(judge: judge, store: store, now: { 0 })
     render(c, "today-full", dark: false, selection: .today)
     render(c, "today-full", dark: true, selection: .today)
-    for (sec, name) in [(AppSection.projects, "projects"), (.history, "history"), (.review, "review"), (.insights, "insights"), (.settings, "settings")] {
+    for (sec, name) in [(AppSection.projects, "projects"), (.history, "history"), (.review, "review"), (.insights, "insights")] {
         for dark in [false, true] { render(c, name, dark: dark, selection: sec) }
     }
+    for dark in [false, true] { render(c, "settings", dark: dark, selection: .settings, height: 3300) }
+    // Late afternoon, well short of a bigger goal: Today says why Focus is firmer.
+    let late = SessionController(judge: judge, store: store, now: { 0 }, date: { Calendar.current.date(bySettingHour: 16, minute: 0, second: 0, of: Date())! })
+    late.prefs.paceMatters = true; late.prefs.dailyGoalMinutes = 180
+    for dark in [false, true] { render(late, "today-behind", dark: dark, selection: .today) }
 }
 await run()
 screens()

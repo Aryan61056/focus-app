@@ -73,7 +73,7 @@ public struct NotchView: View {
 
     /// A nudge opens the notch once; otherwise hover decides. The gate (strict pause screen) is not shown here.
     public static func mode(for c: SessionController, hover: Bool) -> NotchMode {
-        if c.checkIn != nil { return .nudge }
+        if c.checkIn != nil || c.rhythmPrompt != nil { return .nudge }
         if let s = c.surface, s.kind != "gate" { return .nudge }
         return hover ? .open : .rest
     }
@@ -156,9 +156,18 @@ public struct NotchView: View {
 
     var nudgeBody: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(c.checkIn != nil ? NudgeCopy.checkInTitle(task: c.taskName) : c.nudgeTitle).font(Tokens.rounded(15, .semibold)).lineLimit(2)
+            Text(nudgeText).font(Tokens.rounded(15, .semibold)).lineLimit(2)
             HStack(spacing: 8) {
-                if c.checkIn != nil {
+                if let p = c.rhythmPrompt, c.checkIn == nil, c.surface == nil {
+                    switch p.kind {
+                    case .checkIn:
+                        pill("Yes, keep going", primary: true) { c.rhythmKeepGoing() }
+                        pill("Take a break") { c.rhythmTakeBreak() }
+                    case .breakDue(let m):
+                        pill("Start \(m) min break", primary: true) { c.rhythmTakeBreak() }
+                        pill("Five more minutes") { c.rhythmKeepGoing() }
+                    }
+                } else if c.checkIn != nil {
                     pill("Back to task", primary: true) { c.answerCheckIn(onTask: false) }
                     pill("Yes, I am") { c.answerCheckIn(onTask: true) }
                 } else if c.longDetour {
@@ -170,6 +179,12 @@ public struct NotchView: View {
                 }
             }
         }.frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 18).padding(.top, hasNotch ? 6 : 12).padding(.bottom, 14)
+    }
+
+    var nudgeText: String {
+        if c.checkIn != nil { return NudgeCopy.checkInTitle(task: c.taskName) }
+        if c.surface == nil, let p = c.rhythmPrompt { return CueCopy.rhythmTitle(p.kind, task: c.taskName) }
+        return c.nudgeTitle
     }
 
     func pill(_ title: String, primary: Bool = false, _ action: @escaping () -> Void) -> some View {

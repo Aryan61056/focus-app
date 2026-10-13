@@ -32,6 +32,25 @@ public struct AXWindowSource: WindowSource {
         _ = AXIsProcessTrustedWithOptions(opts)
     }
 
+    /// The front-most normal window of a process, from the system's window list (ordered front to back). Bounds need no permission; titles do.
+    static func bounds(inWindowList list: [[String: Any]], pid: pid_t) -> CGRect? {
+        for w in list {
+            guard (w[kCGWindowOwnerPID as String] as? Int32) == pid, (w[kCGWindowLayer as String] as? Int) == 0,
+                  let d = w[kCGWindowBounds as String] as? NSDictionary, let r = CGRect(dictionaryRepresentation: d as CFDictionary),
+                  r.width > 120, r.height > 80 else { continue }
+            return r
+        }
+        return nil
+    }
+
+    /// Where the window in front is on screen (Core Graphics coordinates: top left origin, points), so the banner can sit over it.
+    /// Nil when Focus itself is in front or there is nothing to find. It reads no titles and no contents.
+    public static func frontWindowFrame() -> CGRect? {
+        guard let app = NSWorkspace.shared.frontmostApplication, app.processIdentifier != ProcessInfo.processInfo.processIdentifier,
+              let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else { return nil }
+        return bounds(inWindowList: list, pid: app.processIdentifier)
+    }
+
     public func current() -> WindowSnapshot? {
         guard let app = NSWorkspace.shared.frontmostApplication, app.processIdentifier != ProcessInfo.processInfo.processIdentifier else { return nil }
         let name = app.localizedName ?? ""

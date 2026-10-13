@@ -111,9 +111,13 @@ public enum JudgmentLabelShim: Sendable {
 
 /// Menu bar glyph drawn as a template image so the system tints it for light, dark and wallpaper.
 public enum RingImage {
-    public static func make(_ state: RingState, size: CGFloat = 18) -> NSImage {
+    /// The warm tint of the menu bar cue. Shape still carries the state; the tint only adds to it.
+    public static let warm = NSColor(srgbRed: 0.85, green: 0.47, blue: 0.08, alpha: 1)
+
+    /// `tint` makes a colored image instead of a template one, for the menu bar cue.
+    public static func make(_ state: RingState, size: CGFloat = 18, tint: NSColor? = nil) -> NSImage {
         let img = NSImage(size: NSSize(width: size, height: size), flipped: false) { rect in
-            NSColor.black.set()
+            (tint ?? NSColor.black).set()
             let c = CGPoint(x: rect.midX, y: rect.midY), r = size * 6 / 18, lw = size * 2.25 / 18
             func ring(_ from: CGFloat, _ to: CGFloat) -> NSBezierPath {
                 let p = NSBezierPath(); p.appendArc(withCenter: c, radius: r, startAngle: from, endAngle: to, clockwise: false)
@@ -136,7 +140,7 @@ public enum RingImage {
             }
             return true
         }
-        img.isTemplate = true
+        img.isTemplate = tint == nil
         return img
     }
 }

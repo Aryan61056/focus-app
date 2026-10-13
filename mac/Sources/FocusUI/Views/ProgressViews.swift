@@ -20,6 +20,13 @@ struct ProgressPanel: View {
                         Text(goal.reached ? "Reached" : "\(goal.minutes) of \(goal.goalMinutes) min").font(Tokens.text(12.5, .semibold)).foregroundStyle(Tokens.ink2).monospacedDigit()
                     }
                     GoalBar(goal: goal)
+                    if let pace = c.paceLine {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            RingView(c.pressure >= .behind ? .drift : .on, color: c.pressure >= .behind ? Tokens.ink : Tokens.accent).frame(width: 14, height: 14)
+                            Text(pace).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
                     if !store.sessions.isEmpty {
                         Divider().overlay(Tokens.line)
                         HStack(alignment: .center, spacing: 18) {
