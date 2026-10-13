@@ -193,7 +193,7 @@ final class VeilFadeTests: XCTestCase {
         var last = c.veilLevel(), biggest = 0.0, peak = 0.0
         for _ in 0..<420 { await advance(c, to: t + 1); let v = c.veilLevel(); biggest = max(biggest, abs(v - last)); peak = max(peak, v); last = v }
         XCTAssertGreaterThan(peak, 95, "the climb reaches nearly full gray")
-        XCTAssertLessThanOrEqual(biggest, 3.5, "no second may change the gray by more than a few points on the way up")
+        XCTAssertLessThanOrEqual(biggest, 4.5, "no second may change the gray by more than a few points on the way up")
         c.windowChanged(WindowSnapshot(app: "Notes", title: "Calc homework"))
         last = c.veilLevel(); biggest = 0
         for _ in 0..<60 { await advance(c, to: t + 1); let v = c.veilLevel(); biggest = max(biggest, abs(v - last)); last = v }

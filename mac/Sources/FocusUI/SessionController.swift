@@ -314,7 +314,7 @@ public final class SessionController {
         guard isActive, !shadow, prefs.screenGrayscale else { return 0 }
         let from = veilFrom, to = Double(veilTarget)
         let raw = veilDuration <= 0 || t - veilStartedAt >= Double(veilDuration) ? to : from + (to - from) * (t - veilStartedAt) / Double(veilDuration)
-        // The brain's own veil tops out at 60 percent (Standard); the screen should be fully gray by then, so scale it. Same slow rate, steeper slope.
+        // The brain's own veil tops out at 60 percent (Standard) at 1 point a second. Counting that as 40 makes the screen fully gray about 40 s after the first flagged moment (about 2.5 points a second).
         let brain = raw * 100 / Self.brainVeilCap
         return max(0, min(100, max(brain, floorLevel(t))))
     }
@@ -322,7 +322,7 @@ public final class SessionController {
     /// It fades up over 4 s, holds for 2 s and fades back over 4 s, which is what a real drift looks like, only faster.
     public func previewVeil() { veilPreviewStart = now() }
     public var isPreviewingVeil: Bool { veilPreviewStart.map { Self.previewLevel(now() - $0) != nil } ?? false }
-    static let brainVeilCap = 60.0
+    static let brainVeilCap = 40.0
     static let previewUp = 4.0, previewHold = 2.0, previewDown = 4.0
     static func previewLevel(_ e: Double) -> Double? {
         if e < 0 || e >= previewUp + previewHold + previewDown { return nil }

@@ -32,7 +32,7 @@ final class VeilPanel: NSPanel {
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         ignoresMouseEvents = true; isMovable = false; hidesOnDeactivate = false
         let v = NSView(); v.wantsLayer = true
-        wash.backgroundColor = NSColor(white: 0.42, alpha: 1).cgColor; wash.opacity = 0
+        wash.backgroundColor = NSColor(white: 0.3, alpha: 1).cgColor; wash.opacity = 0
         if let backdrop { v.layer!.addSublayer(backdrop) }
         v.layer!.addSublayer(wash)
         contentView = v
@@ -50,7 +50,7 @@ final class VeilPanel: NSPanel {
         }
         // Full gray removes all color; the wash also darkens and flattens it so the top of the range is unmistakable.
         // Without the real filter the wash is all there is.
-        wash.opacity = Float(p * (usesBackdrop ? 0.32 : 0.7))
+        wash.opacity = Float(p * (usesBackdrop ? 0.62 : 0.85))
         CATransaction.commit()
     }
 }
