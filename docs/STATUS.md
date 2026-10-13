@@ -120,6 +120,11 @@ All are in the controller layer (`Cues.swift`, `SessionController+Cues.swift`, `
 - **Trackpad:** light is 3 taps, firm is 7 taps over about a second, the new strong is 12 taps close together (pause screen, last step). New repeating pulses while you stay off task: every 20 s after a warning (12 on Strict; strong once the pause screen is up) and a light one every 15 s while drifting. macOS gives apps one tap strength and plays it only on a Force Touch trackpad with a finger resting on it, so "stronger" means more taps; I could not feel it from here.
 - **Verified:** 291 tests, including the pulse timing, no wait, the punishment and the growing lock. **Not verified live:** how it feels on your trackpad.
 
+## The notch: better to read, no way out (owner, 2026-10-13)
+- **Removed from the notch:** Pause and Resume, Open Focus, "Not now", "Yes, I am", "Take a break", "Five more minutes", the short-break button, and the schedule prompt buttons. The only control left is "Back to task" on a nudge. A test reads the source and fails if any of the others return. Nothing that steps away from a nudge is reachable from the notch; those answers live in the Focus window (where the shield checks them) and the menu bar.
+- **Look:** hover now shows the task, how Focus reads you, and a thin progress bar with "X of Y today" against the daily goal (only when progress and a goal are on). Nudges show the message and a single large green button; a schedule prompt says where to answer it. Time digits animate; without a hardware notch the time sits beside the task when opened.
+- **Not verified live:** the look on a real notched display (only the offscreen render was viewed). `tools/check_notch_hover.sh` reports "panel never grew" on the commit before this change as well, because the window is fixed size by design now and the script measures the window; the app does not crash. The script needs updating, not run as a gate.
+
 ## Decisions I made without asking (change any of them)
 - OCR level `.fast` (accurate stalled about 66 s on first use).
 - Idle threshold 240 s; call needs two polls in a row (about 10 s).

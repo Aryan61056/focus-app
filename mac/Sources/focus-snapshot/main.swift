@@ -32,7 +32,7 @@ let judge = ScriptedJudge(readings: [
 }
 
 @MainActor func shot(_ name: String, _ c: SessionController) {
-    let v = NotchView(controller: c, notchWidth: 200, notchHeight: 32, forced: .nudge, openApp: {})
+    let v = NotchView(controller: c, notchWidth: 200, notchHeight: 32, forced: .nudge)
     let wall = ZStack(alignment: .top) { Color(red: 0.15, green: 0.22, blue: 0.3); v }.frame(width: 460, height: 150)
     let r = ImageRenderer(content: wall); r.scale = 2
     guard let img = r.nsImage, let tiff = img.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff), let png = rep.representation(using: NSBitmapImageRep.FileType.png, properties: [:]) else { return }
@@ -174,7 +174,7 @@ struct FakeWindow<Over: View>: View {
 }
 
 @MainActor func notchRhythm(_ c: SessionController) {
-    let v = NotchView(controller: c, notchWidth: 200, notchHeight: 32, forced: .nudge, openApp: {})
+    let v = NotchView(controller: c, notchWidth: 200, notchHeight: 32, forced: .nudge)
     png(ZStack(alignment: .top) { Color(red: 0.15, green: 0.22, blue: 0.3); v }.frame(width: 460, height: 150), "notch-rhythm")
 }
 
@@ -236,8 +236,8 @@ struct FakeWindow<Over: View>: View {
         try? png.write(to: URL(fileURLWithPath: "\(outDir)/\(name).png")); print("\(outDir)/\(name).png")
     }
     for (label, mode) in [("rest", NotchMode.rest), ("open", .open), ("nudge", .nudge)] {
-        shot("notch-\(label)", NotchView(controller: c, notchWidth: 200, notchHeight: 32, forced: mode, openApp: {}), 460, 150)
-        shot("pill-\(label)", NotchView(controller: c, notchWidth: 0, notchHeight: 0, forced: mode, openApp: {}), 460, 150)
+        shot("notch-\(label)", NotchView(controller: c, notchWidth: 200, notchHeight: 32, forced: mode), 460, 150)
+        shot("pill-\(label)", NotchView(controller: c, notchWidth: 0, notchHeight: 0, forced: mode), 460, 150)
     }
 }
 

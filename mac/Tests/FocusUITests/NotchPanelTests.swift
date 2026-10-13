@@ -23,7 +23,7 @@ final class NotchPanelTests: XCTestCase {
         var t = 0.0
         let c = SessionController(judge: ScriptedJudge(markers: [("Notes", .on)]), now: { t })
         c.prefs.showNotch = true
-        let panel = NotchPanelController(controller: c, openApp: {})
+        let panel = NotchPanelController(controller: c)
         panel.start(); defer { panel.stop() }
         await spin()
         XCTAssertFalse(panel.isShowing, "hidden until a session runs")
@@ -53,5 +53,20 @@ final class NotchPanelTests: XCTestCase {
 
         c.end(); await spin()
         XCTAssertFalse(panel.isShowing, "hidden when the session ends")
+    }
+}
+
+/// The notch is for looking. These fail if a way out of a nudge is ever put back on it (owner, 2026-10-13).
+final class NotchHasNoWayOutTests: XCTestCase {
+    func testTheNotchSourceHasOnlyBackToTaskAsAnAction() throws {
+        let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Sources/FocusUI/Views/NotchView.swift")
+        let src = try String(contentsOf: url, encoding: .utf8)
+        let actions = src.components(separatedBy: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") && !$0.trimmingCharacters(in: .whitespaces).hasPrefix("///") }.joined(separator: "\n")
+        for banned in [".pause", ".resume", ".dismiss", ".snooze", ".breakTime", "takeNudgeBreak", "rhythmTakeBreak", "rhythmKeepGoing", "answerCheckIn", "claimOnTask", "leaveGate", "requestEnd", "end()", "openApp", "Not now", "Yes, I am", "Take a break", "Open Focus", "Resume", "Pause"] {
+            XCTAssertFalse(actions.contains(banned), "the notch must not offer \(banned)")
+        }
+        XCTAssertEqual(actions.components(separatedBy: "pill(\"").count - 1, 1, "one button only")
+        XCTAssertTrue(actions.contains("c.act(.backToTask)"))
     }
 }

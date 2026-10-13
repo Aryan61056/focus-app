@@ -64,13 +64,12 @@ public final class NotchPanelController {
     private struct Slot { let panel: NSPanel; let model: NotchModel }
 
     private let c: SessionController
-    private let openApp: () -> Void
     private var slots: [CGDirectDisplayID: Slot] = [:]
     private var homeID: CGDirectDisplayID?
     private var running = false
     private var screenObserver: NSObjectProtocol?
 
-    public init(controller: SessionController, openApp: @escaping () -> Void) { self.c = controller; self.openApp = openApp }
+    public init(controller: SessionController) { self.c = controller }
 
     public var isShowing: Bool { slots.values.contains { $0.panel.isVisible } }
     var frameForTesting: NSRect? { homeID.flatMap { slots[$0] }?.panel.frame }
@@ -157,7 +156,7 @@ public final class NotchPanelController {
         let frame = NSRect(x: screen.frame.midX - size.width / 2, y: top - size.height, width: size.width, height: size.height)
 
         // A fresh root view each time the geometry changes (a display was added or removed); the same hosting view otherwise.
-        let view = NotchView(controller: c, notchWidth: g.width, notchHeight: g.height, model: slot.model, openApp: openApp)
+        let view = NotchView(controller: c, notchWidth: g.width, notchHeight: g.height, model: slot.model)
         if let host = p.contentView?.subviews.first as? NSHostingView<NotchView> { host.rootView = view } else {
             // The hosting view is NOT the window's content view. As the content view it resizes the window from inside AppKit's
             // constraint pass and throws when its own state changes there (the hover crash, reproduced with synthetic mouse moves).

@@ -91,10 +91,10 @@ final class NotchTests: XCTestCase {
         let c = SessionController(judge: judge, now: { t })
         c.windowChanged(WindowSnapshot(app: "Notes", title: "Calc homework"))
         c.begin(task: "Calc homework", preset: .standard, shadow: false)
-        XCTAssertEqual(NotchView(controller: c, notchWidth: 200, notchHeight: 32, openApp: {}).mode, .rest)
+        XCTAssertEqual(NotchView(controller: c, notchWidth: 200, notchHeight: 32).mode, .rest)
         c.windowChanged(WindowSnapshot(app: "Browser", title: "youtube clip", url: "https://youtube.com/watch?v=1"))
         while c.surface == nil && t < 300 { t += 1; c.tick(); await c.waitForJudgments() }
-        XCTAssertEqual(NotchView(controller: c, notchWidth: 200, notchHeight: 32, openApp: {}).mode, .nudge)
+        XCTAssertEqual(NotchView(controller: c, notchWidth: 200, notchHeight: 32).mode, .nudge)
     }
 }
 

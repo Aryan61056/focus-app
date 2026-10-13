@@ -52,24 +52,27 @@ public final class NotchModel {
     public init() {}
 }
 
-/// The notch presence. Aesthetic, not functional (owner, 2026-10-01): a ring and the time at rest, and when opened only the
-/// task and two buttons. A nudge opens it once with one action. It always draws dark so it melts into the hardware notch.
+/// The notch presence. Aesthetic, not functional (owner, 2026-10-01), and since 2026-10-13 not a way out either: it only shows.
+/// At rest a ring and the time; on hover the task, how Focus reads you and today's progress; a nudge says what it says and offers
+/// one button, "Back to task". There is no Pause, Resume, break, snooze, "Not now", "Yes, I am" or "Open Focus" here, because anything
+/// that lets you step away from a nudge lives in the app window, where it can be checked (the shield) or at least be seen.
+/// It always draws dark so it melts into the hardware notch.
 public struct NotchView: View {
     @Bindable var c: SessionController
     var notchWidth: CGFloat
     var notchHeight: CGFloat
     var forced: NotchMode?
-    var openApp: () -> Void
     @Bindable var model: NotchModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    public init(controller: SessionController, notchWidth: CGFloat, notchHeight: CGFloat, forced: NotchMode? = nil, model: NotchModel? = nil, openApp: @escaping () -> Void) {
-        self.c = controller; self.notchWidth = notchWidth; self.notchHeight = notchHeight; self.forced = forced; self.model = model ?? NotchModel(); self.openApp = openApp
+    public init(controller: SessionController, notchWidth: CGFloat, notchHeight: CGFloat, forced: NotchMode? = nil, model: NotchModel? = nil) {
+        self.c = controller; self.notchWidth = notchWidth; self.notchHeight = notchHeight; self.forced = forced; self.model = model ?? NotchModel()
     }
 
     static let ink = Color(red: 0.93, green: 0.95, blue: 0.94)
     static let ink2 = Color(red: 0.70, green: 0.73, blue: 0.71)
     static let accent = Color(red: 0.47, green: 0.84, blue: 0.62)
+    static let track = Color.white.opacity(0.16)
 
     /// A nudge opens the notch once; otherwise hover decides. The gate (strict pause screen) is not shown here.
     public static func mode(for c: SessionController, hover: Bool) -> NotchMode {
@@ -135,50 +138,60 @@ public struct NotchView: View {
 
     var ring: some View { RingView(c.ringState, color: tint).frame(width: 18, height: 18) }
     var time: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { _ in Text(c.clockText()).font(Tokens.rounded(13, .semibold)).monospacedDigit() }
+        TimelineView(.periodic(from: .now, by: 1)) { _ in
+            Text(c.clockText()).font(Tokens.rounded(13, .semibold)).monospacedDigit().contentTransition(.numericText())
+        }
+    }
+
+    // MARK: hover: read only
+
+    /// Today's time on task against the daily goal, when progress is shown and a goal is set.
+    var goal: (fraction: Double, line: String)? {
+        guard c.prefs.showProgress, c.prefs.dailyGoalMinutes > 0 else { return nil }
+        let seconds = c.todayOnTaskSeconds(), target = Double(c.prefs.dailyGoalMinutes) * 60
+        return (min(1, seconds / target), "\(Self.minutes(seconds)) of \(Self.minutes(target)) today")
+    }
+    static func minutes(_ s: Double) -> String {
+        let m = Int((s / 60).rounded(.down))
+        return m >= 60 ? (m % 60 == 0 ? "\(m / 60) h" : "\(m / 60) h \(m % 60) min") : "\(m) min"
     }
 
     var openBody: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(c.taskName).font(Tokens.rounded(15, .semibold)).lineLimit(1)
-                    Text(c.presenceLabel).font(Tokens.text(12)).foregroundStyle(Self.ink2)
-                }
-                Spacer()
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(c.taskName).font(Tokens.rounded(16, .semibold)).lineLimit(1)
+                // With no hardware notch there is no band above, so the time sits here.
+                if !hasNotch { Spacer(minLength: 8); time }
             }
-            HStack(spacing: 8) {
-                pill(c.isPaused ? "Resume" : "Pause") { c.act(c.isPaused ? .resume : .pause) }
-                pill("Open Focus") { openApp() }
+            Text(c.presenceLabel).font(Tokens.text(12.5, .medium)).foregroundStyle(Self.ink2).padding(.top, 1)
+            if let g = goal {
+                Capsule().fill(Self.track).frame(height: 4).overlay(alignment: .leading) {
+                    GeometryReader { r in Capsule().fill(Self.accent).frame(width: max(4, r.size.width * g.fraction)) }
+                }.padding(.top, 12)
+                Text(g.line).font(Tokens.text(11.5)).foregroundStyle(Self.ink2).monospacedDigit().padding(.top, 6)
             }
-        }.padding(.horizontal, 18).padding(.top, hasNotch ? 6 : 12).padding(.bottom, 14)
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 20).padding(.top, hasNotch ? 6 : 12).padding(.bottom, 14)
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(goal?.line ?? "")
     }
+
+    // MARK: nudge: one way forward, no way out
 
     var nudgeBody: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(nudgeText).font(Tokens.rounded(15, .semibold)).lineLimit(2)
-            HStack(spacing: 8) {
-                if let p = c.rhythmPrompt, c.checkIn == nil, c.surface == nil {
-                    switch p.kind {
-                    case .checkIn:
-                        pill("Yes, keep going", primary: true) { c.rhythmKeepGoing() }
-                        pill("Take a break") { c.rhythmTakeBreak() }
-                    case .breakDue(let m):
-                        pill("Start \(m) min break", primary: true) { c.rhythmTakeBreak() }
-                        pill("Five more minutes") { c.rhythmKeepGoing() }
-                    }
-                } else if c.checkIn != nil {
-                    pill("Back to task", primary: true) { c.answerCheckIn(onTask: false) }
-                    pill("Yes, I am") { c.answerCheckIn(onTask: true) }
-                } else if c.longDetour {
-                    pill(NudgeCopy.shortBreakButton(), primary: true) { c.takeNudgeBreak() }
-                    pill("Back to task") { c.act(.backToTask) }
-                } else {
-                    pill("Back to task", primary: true) { c.act(.backToTask) }
-                    pill("Not now") { c.act(.dismiss) }
-                }
+            Text(nudgeText).font(Tokens.rounded(15, .semibold)).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+            if let hint = nudgeHint {
+                // Prompts that need an answer other than going back are answered in the Focus window, not here.
+                Text(hint).font(Tokens.text(12)).foregroundStyle(Self.ink2)
+            } else {
+                pill("Back to task") { c.act(.backToTask) }
             }
-        }.frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 18).padding(.top, hasNotch ? 6 : 12).padding(.bottom, 14)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 20).padding(.top, hasNotch ? 6 : 12).padding(.bottom, 14)
     }
 
     var nudgeText: String {
@@ -187,11 +200,18 @@ public struct NotchView: View {
         return c.nudgeTitle
     }
 
-    func pill(_ title: String, primary: Bool = false, _ action: @escaping () -> Void) -> some View {
+    /// A check-in or schedule prompt has no "back to task" answer, so the notch says where to answer it instead of offering a button.
+    var nudgeHint: String? {
+        if c.surface == nil, c.rhythmPrompt != nil, c.checkIn == nil { return "Answer in the Focus window or the menu bar." }
+        return nil
+    }
+
+    /// The only button on the notch. It goes the way the app wants you to go, so it is the one thing that is safe to leave here.
+    func pill(_ title: String, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(title).font(Tokens.text(12.5, .semibold)).foregroundStyle(primary ? Color(red: 0.02, green: 0.1, blue: 0.05) : Self.ink)
-                .padding(.horizontal, 14).frame(height: 28)
-                .background(Capsule().fill(primary ? Self.accent : Color.white.opacity(0.14)))
+            Text(title).font(Tokens.text(13, .semibold)).foregroundStyle(Color(red: 0.02, green: 0.1, blue: 0.05))
+                .padding(.horizontal, 16).frame(height: 30)
+                .background(Capsule().fill(Self.accent))
         }.buttonStyle(.plain)
     }
 }

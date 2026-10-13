@@ -98,7 +98,7 @@ struct FocusApp: App {
                         if controller.isActive { controller.act(controller.isPaused ? .resume : .pause) }
                         else { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); controller.requestStart() }
                     }
-                    if notch == nil { let n = NotchPanelController(controller: controller) { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main") }; notch = n; n.start() }
+                    if notch == nil { let n = NotchPanelController(controller: controller); notch = n; n.start() }
                     guard ProcessInfo.processInfo.environment["FOCUS_DEMO"] == "1", demo == nil else { return }
                     let d = DemoSenses(controller: controller, script: [
                         .init(after: 0.5, window: WindowSnapshot(app: "Notes", title: "Calc homework")),
