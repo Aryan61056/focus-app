@@ -26,6 +26,8 @@ public final class LinkServer {
     @ObservationIgnored private var peers: [ObjectIdentifier: Peer] = [:]
     @ObservationIgnored private var pairingTimeout: Task<Void, Never>?
     @ObservationIgnored private var failedPairings = 0
+    @ObservationIgnored private var wanted = false
+    @ObservationIgnored private var restart: Task<Void, Never>?
     static let maxFailedPairings = 5
 
     private final class Peer {
@@ -42,6 +44,7 @@ public final class LinkServer {
     }
 
     public func start() throws {
+        wanted = true
         guard listener == nil else { return }
         let l = try NWListener(using: LinkTransport.parameters())
         if advertise {
@@ -52,7 +55,10 @@ public final class LinkServer {
                 guard let self else { return }
                 switch state {
                 case .ready: self.port = self.listener?.port?.rawValue
-                case .failed(let e): self.lastError = e.localizedDescription; self.listener = nil
+                case .failed(let e):
+                    // The network changed under us, or the Mac woke from sleep: try again shortly instead of staying deaf.
+                    self.lastError = e.localizedDescription; self.listener?.cancel(); self.listener = nil; self.port = nil
+                    self.scheduleRestart()
                 default: break
                 }
             }
@@ -62,7 +68,27 @@ public final class LinkServer {
         l.start(queue: .main)
     }
 
+    private func scheduleRestart() {
+        guard wanted else { return }
+        restart?.cancel()
+        restart = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled, let self, self.wanted, self.listener == nil else { return }
+            try? self.start()
+        }
+    }
+
+    /// Start over: used after the Mac wakes up, when the listener and its Bonjour entry may be stale.
+    public func restartListening() {
+        guard wanted else { return }
+        listener?.cancel(); listener = nil; port = nil
+        for p in peers.values { p.io.close() }
+        peers = [:]; connected = []
+        try? start()
+    }
+
     public func stop() {
+        wanted = false; restart?.cancel()
         endPairing()
         listener?.cancel(); listener = nil; port = nil
         for p in peers.values { p.io.close() }

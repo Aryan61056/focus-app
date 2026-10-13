@@ -155,3 +155,22 @@ private func connect(mac: PairedMac, registry: [UUID: PairedDevice]) -> (client:
         for m in msgs { #expect(try LinkCoding.decode(LinkMessage.self, from: LinkCoding.encode(m)) == m) }
     }
 }
+
+@Suite struct PairingLinkTests {
+    @Test func roundTripsThroughAURL() throws {
+        for _ in 0..<50 {
+            let link = PairingLink(code: .random(), macID: UUID())
+            #expect(PairingLink(url: link.url) == link)
+        }
+    }
+    @Test func hasTheShapeTheCameraAppCanOpen() {
+        let url = PairingLink(code: PairingCode(bytes: Data(repeating: 0, count: 10)), macID: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!).url
+        #expect(url.absoluteString == "focuslink://pair?c=0000000000000000&m=00000000-0000-0000-0000-000000000001")
+    }
+    @Test func rejectsAnythingElse() {
+        for s in ["https://pair?c=0000000000000000&m=00000000-0000-0000-0000-000000000001", "focuslink://other?c=0000000000000000&m=00000000-0000-0000-0000-000000000001",
+                  "focuslink://pair?c=0000&m=00000000-0000-0000-0000-000000000001", "focuslink://pair?c=0000000000000000", "focuslink://pair?c=0000000000000000&m=nope"] {
+            #expect(PairingLink(url: URL(string: s)!) == nil)
+        }
+    }
+}

@@ -19,7 +19,8 @@ struct ReadyView: View {
             VStack(spacing: 6) {
                 FocusRing(phase: .idle, progress: nil, lineWidth: 10).frame(width: 132, height: 132)
                 Text("Ready when you are").font(.title2.weight(.semibold)).padding(.top, 8)
-                Text(model.connection.isLive ? "Starts on your Mac" : "Waiting for your Mac")
+                Text(model.connection.isLive ? "Starts on your Mac" : "Waiting for your Mac. Open Focus on it and check Session › iPhone.")
+                    .multilineTextAlignment(.center)
                     .font(.subheadline).foregroundStyle(Palette.ink2).contentTransition(.interpolate)
             }
             .padding(.top, 20)

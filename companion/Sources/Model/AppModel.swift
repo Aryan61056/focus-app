@@ -19,6 +19,15 @@ final class AppModel {
     /// Bumped each time the Mac moves to a drift, so the phone can tap once.
     private(set) var driftCount = 0
 
+    /// What opening a pairing link (the Mac's QR code) is doing right now.
+    enum Linking: Equatable { case idle, working(String), done(String), failed(String) }
+    private(set) var linking = Linking.idle
+    /// Set when a scan could not finish by itself, so the person can type the code instead.
+    var showPairingSheet = false
+    private(set) var pendingCode: String?
+    /// Bumped on a successful pairing, for a haptic.
+    private(set) var pairedCount = 0
+
     let client = LinkClient()
     @ObservationIgnored private let store: PairedMacStore
     @ObservationIgnored private let demo = DemoMac()
@@ -69,6 +78,41 @@ final class AppModel {
             }
         }
     }
+
+    /// The Mac's QR code, opened by the Camera app: find that Mac, pair with the code in the link, and say what happened.
+    func open(_ url: URL) {
+        guard let link = PairingLink(url: url) else { return show("That isn't a Focus pairing code.") }
+        if mac?.macID == link.macID, connection == .connected { return }   // already paired with this Mac
+        pendingCode = link.code.display
+        linking = .working("Looking for your Mac…")
+        client.browse()
+        Task { [weak self] in
+            guard let self else { return }
+            var found: LinkClient.FoundMac?
+            for _ in 0..<150 {   // up to 15 s: the first launch also waits on the Local Network permission
+                found = client.found.first { $0.id == link.macID }
+                if found != nil { break }
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+            guard let found else { return failLink("Couldn't find your Mac. Check that you're on the same Wi-Fi and Focus is open.") }
+            linking = .working("Pairing with \(found.name)…")
+            pair(with: found, code: link.code.display, deviceName: UIDevice.current.name) { [weak self] problem in
+                guard let self else { return }
+                if let problem { failLink(problem) } else {
+                    pairedCount += 1; pendingCode = nil
+                    linking = .done(found.name)
+                    Task { try? await Task.sleep(for: .seconds(2.5)); if case .done = self.linking { self.linking = .idle } }
+                }
+            }
+        }
+    }
+
+    private func failLink(_ why: String) {
+        linking = .failed(why)
+        showPairingSheet = true
+    }
+
+    func dismissLinking() { linking = .idle }
 
     func forgetMac() {
         client.unfollow(); store.clear(); mac = nil

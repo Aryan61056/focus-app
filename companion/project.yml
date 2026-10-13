@@ -32,6 +32,9 @@ targets:
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
+        CFBundleURLTypes:
+          - CFBundleURLName: dev.focusapp.companion.pair
+            CFBundleURLSchemes: [focuslink]
         NSLocalNetworkUsageDescription: Focus finds your Mac on your Wi-Fi so this phone can show and control your session. Nothing leaves your network.
         NSBonjourServices: [_focuslink._tcp]
         NSSupportsLiveActivities: true

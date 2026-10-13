@@ -135,3 +135,19 @@ final class PhoneLinkTests: XCTestCase {
         XCTAssertFalse(link.enabled)
     }
 }
+
+@MainActor
+final class PairingLinkTests: XCTestCase {
+    func testOnePressTurnsTheLinkOnAndOpensPairingWithAScannableLink() async throws {
+        let link = PhoneLink(registry: MemoryDeviceRegistry(), advertise: false, defaults: UserDefaults(suiteName: "focus.link.tests.\(UUID().uuidString)")!, macName: "M")
+        XCTAssertFalse(link.enabled)
+        XCTAssertNil(link.pairingLink)
+        link.beginPairing()
+        defer { link.setEnabled(false) }
+        XCTAssertTrue(link.enabled)
+        let pairing = try XCTUnwrap(link.pairingLink)
+        XCTAssertEqual(PairingLink(url: pairing.url), pairing)
+        XCTAssertEqual(pairing.code, link.pairingCode)
+        XCTAssertNotNil(QRCode.image(for: pairing.url.absoluteString, points: 190))
+    }
+}

@@ -6,7 +6,10 @@ struct PairingView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var selected: LinkClient.FoundMac?
-    @State private var code = ""
+    @State private var code: String
+
+    /// `prefill` is a code a scan already read but could not finish with, so the person only has to press Pair.
+    init(prefill: String? = nil) { _code = State(initialValue: prefill ?? "") }
     @State private var working = false
     @State private var problem: String?
     @State private var paired = 0
@@ -19,7 +22,7 @@ struct PairingView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    step(1, "On your Mac", "Open Focus, choose Session › iPhone…, then Pair a phone. A code appears.")
+                    step(1, "On your Mac", "Open Focus, choose Session › iPhone…, then press Pair an iPhone. You can scan the square with your Camera, or type the code below.")
                     macPicker
                     step(2, "Type the code", "It's 16 letters and numbers.")
                     TextField("XXXX-XXXX-XXXX-XXXX", text: $code)

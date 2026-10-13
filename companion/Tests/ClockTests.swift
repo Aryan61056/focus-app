@@ -72,3 +72,12 @@ struct PickupReminderTests {
         #expect(PickupReminder.plan(clock: clock(.onTask), live: true, now: now, lastShown: now.addingTimeInterval(-400)) != nil)
     }
 }
+
+struct PairingLinkOpenTests {
+    @Test func aBadLinkIsExplainedNotIgnored() {
+        let model = AppModel(store: .memory())
+        model.open(URL(string: "focuslink://pair?c=nope")!)
+        #expect(model.notice == "That isn't a Focus pairing code.")
+        #expect(model.linking == .idle)
+    }
+}

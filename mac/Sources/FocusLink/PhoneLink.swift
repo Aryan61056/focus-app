@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import AppKit
 import FocusUI
 import FocusBrain
 import FocusLinkNet
@@ -12,11 +13,17 @@ public final class PhoneLink {
     public private(set) var enabled: Bool
     public private(set) var lastError: String?
     public var pairingCode: PairingCode? { server.pairingCode }
+    /// What the QR code says. Nil when pairing is not open.
+    public var pairingLink: PairingLink? { server.pairingCode.map { PairingLink(code: $0, macID: macID) } }
+    /// The phone that paired most recently, until the window is closed or pairing is started again: lets the window say "connected".
+    public private(set) var justPaired: PairedDevice?
     public var phones: [PairedDevice] { registry.devices }
     public var connected: [LinkServer.Phone] { server.connected }
     public var isListening: Bool { server.port != nil }
 
     @ObservationIgnored let server: LinkServer
+    @ObservationIgnored private let macID: UUID
+    @ObservationIgnored private var wakeObserver: NSObjectProtocol?
     @ObservationIgnored private let registry: any DeviceRegistry
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private weak var controller: SessionController?
@@ -38,8 +45,14 @@ public final class PhoneLink {
         self.registry = reg; self.defaults = defaults
         enabled = defaults.bool(forKey: Self.enabledKey)
         let macID = defaults.string(forKey: Self.macIDKey).flatMap(UUID.init) ?? { let id = UUID(); defaults.set(id.uuidString, forKey: Self.macIDKey); return id }()
+        self.macID = macID
         server = LinkServer(macName: macName ?? Host.current().localizedName ?? "Mac", macID: macID, registry: reg, advertise: advertise)
+        server.onPaired = { [weak self] device in self?.justPaired = device }
         server.onConnected = { [weak self] id in self?.phoneConnected(id) }
+        // After sleep the listener and its Bonjour entry can be stale; start them again so the phone finds this Mac without anyone clicking.
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { if self?.enabled == true { self?.server.restartListening() } }
+        }
         server.onMessage = { [weak self] message, id in self?.received(message, from: id) }
     }
 
@@ -52,7 +65,9 @@ public final class PhoneLink {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 for _ in 0..<100 where !self.isListening { try? await Task.sleep(for: .milliseconds(50)) }
-                try? self.server.beginPairing().display.write(toFile: path, atomically: true, encoding: .utf8)
+                self.beginPairing()
+                // Two lines: the typed code, then the link the QR code holds.
+                try? ((self.pairingCode?.display ?? "") + "\n" + (self.pairingLink?.url.absoluteString ?? "")).write(toFile: path, atomically: true, encoding: .utf8)
             }
         } else if enabled { startListening() }
         track()
@@ -63,8 +78,14 @@ public final class PhoneLink {
         if on { startListening() } else { server.stop() }
     }
 
-    public func beginPairing() { if !isListening { startListening() }; server.beginPairing() }
+    /// One step from the person's side: this turns the link on if it was off, starts listening and opens pairing.
+    public func beginPairing() {
+        if !enabled { setEnabled(true) } else if !isListening { startListening() }
+        justPaired = nil
+        server.beginPairing()
+    }
     public func cancelPairing() { server.endPairing() }
+    public func dismissPaired() { justPaired = nil }
     public func remove(_ id: UUID) { server.unpair(id) }
 
     private func startListening() {
