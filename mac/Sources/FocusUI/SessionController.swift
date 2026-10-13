@@ -68,6 +68,16 @@ public final class SessionController {
     /// Until this time the pause screen's "That was fine" and "Snooze" stay disabled.
     public private(set) var gateHoldUntil: Double?
     @ObservationIgnored var warnedAt: Double?
+    /// The last window Focus read as on task, so the ladder can switch a browser back to it. Memory only, dropped with the session.
+    @ObservationIgnored var lastOnTask: WindowSnapshot?
+    /// Rounds of the last step carried out since the warning: the first switches, later ones hide or, on Strict, close.
+    public internal(set) var enforceActions = 0
+    /// Switch the browser to the tab you were last working in. Returns true when it did. The app does it with AppleScript.
+    @ObservationIgnored public var onSwitchTab: ((_ from: WindowSnapshot, _ to: WindowSnapshot?) -> Bool)?
+    /// Close the browser tab in `window`. Returns true when it did.
+    @ObservationIgnored public var onCloseTab: ((_ window: WindowSnapshot) -> Bool)?
+    /// What the last enforcement did, for tests and the banner.
+    public internal(set) var lastEnforce: (action: EnforceAction, done: Bool)?
     @ObservationIgnored private var enforcedRounds = 0
     @ObservationIgnored var sessionPreset = Preset.standard
     @ObservationIgnored private var veilFrom = 0.0
@@ -272,7 +282,7 @@ public final class SessionController {
     // MARK: escalation
     func clearEscalation() {
         if warnedAt != nil || escalationStep != .warned { setFloor(0, over: 5, now()) }
-        warnedAt = nil; escalationStep = .warned; checkIn = nil; escalationGate = false; gateHoldUntil = nil; enforcedRounds = 0
+        warnedAt = nil; escalationStep = .warned; checkIn = nil; escalationGate = false; gateHoldUntil = nil; enforcedRounds = 0; enforceActions = 0
         if shield?.kind == .pause { shield = nil }
     }
 
@@ -320,9 +330,24 @@ public final class SessionController {
             if round > enforcedRounds {
                 enforcedRounds = round
                 blockCurrentSite()
-                if prefs.hideDistractingApp, Enforcement.canHide(currentWindow?.app), let app = currentWindow?.app { onHideApp?(app) }
+                let w = currentWindow
+                let wanted = Enforcement.action(performed: enforceActions, preset: sessionPreset, switching: prefs.switchTabs,
+                                                closing: prefs.closeOnStrict && closeAllowed)
+                var done = false
+                if let w {
+                    switch wanted {
+                    case .switchAway: done = Enforcement.isBrowser(w.app) && (onSwitchTab?(w, lastOnTask) ?? false)
+                    case .close: done = onCloseTab?(w) ?? false
+                    case .hide: break
+                    }
+                }
+                lastEnforce = (wanted, done)
+                // Whatever could not be done to the tab falls back to hiding the app, which is how this step always worked.
+                if !done, prefs.hideDistractingApp, Enforcement.canHide(w?.app), let app = w?.app { onHideApp?(app) }
+                enforceActions += 1
                 act(.backToTask)   // brings the task forward
                 fire(.enforce, title: CueCopy.bannerTitle(.reminder, tone: prefs.nudgeTone, task: taskName))
+                refreshBanner(t)
             }
         }
     }
@@ -530,6 +555,7 @@ public final class SessionController {
     /// Newest first, and a window that is read again replaces its own latest line instead of repeating it.
     func record(_ r: Reading) {
         noteForHeadsUp(r)
+        if r.call == .on, r.source == .model || r.source == .rule, let w = currentWindow, Keys.window(w) == r.key { lastOnTask = w }
         switch r.source { case .model: stats.model += 1; case .rule: stats.rule += 1; case .skipped: stats.skipped += 1; case .sensitive: break }
         if r.source == .model || r.source == .rule { switch r.call { case .on: stats.onTask += 1; case .unsure: stats.unsure += 1; case .off: stats.offTask += 1 } }
         if let first = readings.first, first.key == r.key, first.call == r.call, first.source == r.source { readings[0].at = r.at; readings[0].date = r.date; readings[0].reason = r.reason; readings[0].sawScreen = readings[0].sawScreen || r.sawScreen; return }

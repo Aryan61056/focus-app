@@ -196,6 +196,8 @@ extension EscalationPlan {
 
 /// Words for the new surfaces. Same rules as NudgeCopy: second person, sentence case, no exclamation marks, never the name of what you were looking at.
 public enum CueCopy {
+    /// Shown on the reminder banner before a Strict round closes the tab, so closing is never a surprise.
+    public static let closeWarning = "Focus will close this tab next."
     public static func bannerTitle(_ kind: Banner.Kind, tone: NudgeTone, task: String) -> String {
         switch (kind, tone) {
         case (.early, .neutral): return "Still on \(task)?"

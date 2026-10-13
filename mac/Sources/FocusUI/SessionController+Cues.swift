@@ -10,6 +10,7 @@ extension SessionController {
     static let checkInPromptSeconds = 90.0
 
     func resetCues() {
+        lastOnTask = nil; lastEnforce = nil
         banner = nil; shield = nil; shieldHoldStart = nil; overrideLockedUntil = nil; rhythmPrompt = nil
         driftWatch.reset(); headsUpAt = nil; bannerHidden = false
         blockedSites = [:]; passUntil = [:]; frictionQuietUntil = 0
@@ -57,6 +58,13 @@ extension SessionController {
         if presence.state == "drifting" || banner?.kind == .early || rhythmPrompt != nil || (shield != nil && shield?.kind != .pause) { return .headsUp }
         return .none
     }
+
+    // MARK: what the last step does
+    /// True when closing the tab you are on is allowed (Strict, switched on, and a tab Focus may close).
+    var closeAllowed: Bool { prefs.closeOnStrict && sessionPreset == .strict && Enforcement.mayClose(currentWindow, neverJudged: prefs.neverJudgedApps, skipPersonal: prefs.skipPersonal) }
+
+    /// The banner says so when the next round closes the tab, so it is never a surprise.
+    public var closeIsNext: Bool { isActive && !shadow && prefs.escalate && enforceActions >= 1 && closeAllowed }
 
     // MARK: banner and heads-up
     func cueBeacon(_ s: String, _ t: Double) {

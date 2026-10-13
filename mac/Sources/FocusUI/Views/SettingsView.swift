@@ -70,6 +70,14 @@ struct SettingsView: View {
                             Toggle("", isOn: Binding(get: { c.prefs.hideDistractingApp }, set: { c.prefs.hideDistractingApp = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                         }
                     }
+                    if c.prefs.escalate {
+                        row("Switch tabs first", "The first time the last step runs on a browser, Focus switches to the tab you were last working in instead of only hiding the app. Works with Safari, Chrome, Brave and Edge. macOS asks once for permission to control the browser; if you say no, Focus hides the app instead.") {
+                            toggle(\.switchTabs)
+                        }
+                        row("Close the tab on Strict", "On the Strict preset, later rounds of the last step close the tab you were warned about, not the whole browser. Only tabs Focus can name, never private windows or apps on your never-judged list. Closing can lose unsaved work in that tab, so the banner says so first.") {
+                            toggle(\.closeOnStrict)
+                        }
+                    }
                     row("Fade the whole screen to gray", "While you are off task, every display loses its color a little at a time, deeper the longer you stay away, and it fades back when you return. Preview shows a 10 second fade. Nothing is captured.") {
                         HStack(spacing: 10) {
                             Button("Preview") { c.previewVeil() }.buttonStyle(FocusButtonStyle(.secondary, small: true))

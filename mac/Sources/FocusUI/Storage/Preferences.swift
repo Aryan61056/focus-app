@@ -48,6 +48,10 @@ public final class Preferences {
     public var screenGrayscale: Bool { didSet { defaults.set(screenGrayscale, forKey: "screenGrayscale") } }
     /// The last step of the ladder. Hiding an app is reversible (click it in the Dock) and never closes it or loses its work.
     public var hideDistractingApp: Bool { didSet { defaults.set(hideDistractingApp, forKey: "hideDistractingApp") } }
+    /// The first time the ladder acts on a browser, it switches to the tab you were last working in instead of only hiding the app.
+    public var switchTabs: Bool { didSet { defaults.set(switchTabs, forKey: "switchTabs") } }
+    /// On Strict, the later rounds close the browser tab you were warned about. Never other apps, never private or never-judged windows.
+    public var closeOnStrict: Bool { didSet { defaults.set(closeOnStrict, forKey: "closeOnStrict") } }
     /// Offer to restart into a newer build found on this Mac. Local only; it never installs anything by itself.
     public var offerUpdates: Bool { didSet { defaults.set(offerUpdates, forKey: "offerUpdates") } }
     // MARK: cues around the warning (see Cues.swift)
@@ -95,6 +99,8 @@ public final class Preferences {
         screenGrayscale = defaults.object(forKey: "screenGrayscale") as? Bool ?? true
         hideDistractingApp = defaults.object(forKey: "hideDistractingApp") as? Bool ?? true
         offerUpdates = defaults.object(forKey: "offerUpdates") as? Bool ?? true
+        switchTabs = defaults.object(forKey: "switchTabs") as? Bool ?? true
+        closeOnStrict = defaults.object(forKey: "closeOnStrict") as? Bool ?? true
         showBanner = defaults.object(forKey: "showBanner") as? Bool ?? true
         headsUp = defaults.object(forKey: "headsUp") as? Bool ?? true
         menuBarCue = defaults.object(forKey: "menuBarCue") as? Bool ?? true

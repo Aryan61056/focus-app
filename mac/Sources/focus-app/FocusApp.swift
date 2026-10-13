@@ -69,6 +69,8 @@ struct FocusApp: App {
                     controller.onHideApp = { name in
                         NSWorkspace.shared.runningApplications.first { $0.localizedName == name && $0.activationPolicy == .regular && $0 != NSRunningApplication.current }?.hide()
                     }
+                    controller.onSwitchTab = { from, to in Tabs.switchAway(from: from, to: to) }
+                    controller.onCloseTab = { Tabs.close($0) }
                     if veil == nil { let v = VeilController(controller: controller); veil = v; v.start() }
                     // The quieter cues. Each one is silent except the voice, which is off until the user turns it on. The controller decides when.
                     controller.frontWindowFrame = { AXWindowSource.frontWindowFrame() }

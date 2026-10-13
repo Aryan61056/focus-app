@@ -206,3 +206,113 @@ final class VeilFadeTests: XCTestCase {
         XCTAssertEqual(last, 0, accuracy: 0.5, "it clears after you return")
     }
 }
+
+@MainActor
+final class TabEnforcementTests: XCTestCase {
+    let on = WindowSnapshot(app: "Safari", title: "Calc homework", url: "https://docs.example.com/calc")
+    let video = WindowSnapshot(app: "Safari", title: "clip youtube", url: "https://youtube.com/watch?v=1&t=9")
+    var t = 0.0
+    let judge = CountingJudge { p in Verdict(label: p.contains("youtube") ? .offTask : .onTask) }
+    var switched: [(String, String?)] = [], closed: [String] = [], hidden: [String] = []
+
+    func advance(_ c: SessionController, to target: Double) async { while t < target { t += 1; c.tick(); await c.waitForJudgments() } }
+    func make(preset: Preset, _ configure: (SessionController) -> Void = { _ in }) -> SessionController {
+        let c = SessionController(judge: judge, store: DataStore(), prefs: noWords(), now: { [unowned self] in self.t })
+        c.onSwitchTab = { [unowned self] from, to in switched.append((from.url, to?.url)); return true }
+        c.onCloseTab = { [unowned self] w in closed.append(w.url); return true }
+        c.onHideApp = { [unowned self] in hidden.append($0) }
+        configure(c)
+        c.windowChanged(on)
+        c.begin(task: "Calc homework", preset: preset, shadow: false)
+        return c
+    }
+    func warned(_ c: SessionController) async -> Double {
+        await advance(c, to: 20)
+        c.windowChanged(video)
+        while c.presence.state != "interrupted" && t < 300 { await advance(c, to: t + 1) }
+        XCTAssertEqual(c.presence.state, "interrupted")
+        return t
+    }
+
+    func testPureChoice() {
+        XCTAssertEqual(Enforcement.action(performed: 0, preset: .strict, switching: true, closing: true), .switchAway)
+        XCTAssertEqual(Enforcement.action(performed: 0, preset: .strict, switching: false, closing: true), .hide, "no switching asked for: the first round hides as before")
+        XCTAssertEqual(Enforcement.action(performed: 1, preset: .strict, switching: true, closing: true), .close)
+        XCTAssertEqual(Enforcement.action(performed: 1, preset: .standard, switching: true, closing: true), .hide, "only Strict closes")
+        XCTAssertEqual(Enforcement.action(performed: 3, preset: .strict, switching: true, closing: false), .hide)
+    }
+
+    func testOnlyNamedBrowserTabsMayBeClosed() {
+        XCTAssertTrue(Enforcement.mayClose(video, neverJudged: [], skipPersonal: true))
+        XCTAssertFalse(Enforcement.mayClose(WindowSnapshot(app: "Notes", title: "x", url: "https://youtube.com/a"), neverJudged: [], skipPersonal: true), "other apps are hidden, never closed")
+        XCTAssertFalse(Enforcement.mayClose(WindowSnapshot(app: "Safari", title: "new tab"), neverJudged: [], skipPersonal: true), "no address: Focus cannot name the tab")
+        XCTAssertFalse(Enforcement.mayClose(WindowSnapshot(app: "Finder", title: "x", url: "https://a.b/c"), neverJudged: [], skipPersonal: true))
+        XCTAssertFalse(Enforcement.mayClose(nil, neverJudged: [], skipPersonal: true))
+    }
+
+    func testStandardSwitchesBackFirstThenHides() async {
+        let c = make(preset: .standard)
+        let w = await warned(c)
+        await advance(c, to: w + 201)
+        XCTAssertEqual(switched.count, 1)
+        XCTAssertEqual(switched.first?.1, on.url, "it goes back to the tab you were working in")
+        XCTAssertTrue(hidden.isEmpty, "a switch that worked is enough")
+        await advance(c, to: w + 201 + 120)
+        XCTAssertTrue(closed.isEmpty, "Standard never closes")
+        XCTAssertEqual(hidden, ["Safari"], "later rounds hide")
+    }
+
+    func testStrictSwitchesThenCloses() async {
+        let c = make(preset: .strict)
+        let w = await warned(c)
+        await advance(c, to: w + 121)
+        XCTAssertEqual(switched.count, 1); XCTAssertTrue(closed.isEmpty)
+        XCTAssertTrue(c.closeIsNext, "the banner says so before closing")
+        await advance(c, to: w + 121 + 60)
+        XCTAssertEqual(closed, [video.url], "the second round closes that tab")
+        XCTAssertTrue(hidden.isEmpty)
+        XCTAssertEqual(c.lastEnforce?.action, .close)
+    }
+
+    func testClosingCanBeSwitchedOff() async {
+        let c = make(preset: .strict) { $0.prefs.closeOnStrict = false }
+        let w = await warned(c)
+        await advance(c, to: w + 121 + 60)
+        XCTAssertTrue(closed.isEmpty); XCTAssertFalse(c.closeIsNext)
+        XCTAssertEqual(hidden, ["Safari"])
+    }
+
+    func testFailedSwitchOrNoOnTaskTabFallsBackToHiding() async {
+        let c = make(preset: .standard) { $0.onSwitchTab = { [unowned self] _, _ in switched.append(("", nil)); return false } }
+        let w = await warned(c)
+        await advance(c, to: w + 201)
+        XCTAssertEqual(hidden, ["Safari"], "when the tab could not be switched, the app is hidden as before")
+        XCTAssertEqual(c.lastEnforce?.done, false)
+    }
+
+    func testSwitchingCanBeSwitchedOff() async {
+        let c = make(preset: .standard) { $0.prefs.switchTabs = false }
+        let w = await warned(c)
+        await advance(c, to: w + 201)
+        XCTAssertTrue(switched.isEmpty); XCTAssertEqual(hidden, ["Safari"])
+    }
+
+    func testScriptsEscapeTheAddress() throws {
+        let s = try XCTUnwrap(TabScript.close(app: "Google Chrome", url: "https://a.com/x\"; do shell script \"rm -rf ~\"?q=1#f"))
+        XCTAssertTrue(s.contains("active tab of front window"))
+        XCTAssertTrue(s.contains("a.com/x\\\"; do shell script \\\"rm -rf ~\\\""), "every quote in the address is escaped, so it stays data")
+        XCTAssertFalse(s.contains("q=1"), "query and fragment are dropped")
+        XCTAssertNil(TabScript.close(app: "Arc", url: "https://a.com"))
+        XCTAssertNil(TabScript.switchTo(app: "Safari", url: ""))
+        XCTAssertTrue(try XCTUnwrap(TabScript.switchTo(app: "Safari", url: "docs.example.com/calc")).contains("set current tab of w to t"))
+    }
+
+    /// Compiles only (nothing runs, no permission needed), so a typo in the script text shows up here and not on the user's Mac.
+    func testSafariScriptsCompile() throws {
+        try XCTSkipUnless(FileManager.default.fileExists(atPath: "/Applications/Safari.app") || FileManager.default.fileExists(atPath: "/System/Volumes/Preboot/Cryptexes/App/System/Applications/Safari.app"), "Safari not found")
+        for src in [TabScript.switchTo(app: "Safari", url: "https://docs.example.com/calc?x=1"), TabScript.close(app: "Safari", url: "https://youtube.com/watch")] {
+            var err: NSDictionary?
+            XCTAssertTrue(NSAppleScript(source: try XCTUnwrap(src))!.compileAndReturnError(&err), "\(String(describing: err))")
+        }
+    }
+}
