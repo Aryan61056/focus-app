@@ -75,7 +75,7 @@ public final class SessionController {
     @ObservationIgnored private var floorFrom = 0.0
     @ObservationIgnored private var floorTo = 0.0
     @ObservationIgnored private var floorStartedAt = 0.0
-    @ObservationIgnored private var veilPreviewUntil: Double?
+    @ObservationIgnored private var veilPreviewStart: Double?
     /// Bring the Focus window forward on the pointer's screen (the pause screen lives there).
     @ObservationIgnored public var onForeground: (() -> Void)?
     /// Hide the app you drifted into (the last step of the ladder). The name only; the app decides how.
@@ -265,7 +265,9 @@ public final class SessionController {
         let step = plan.step(after: secs)
         if step > escalationStep {
             escalationStep = step
-            setFloor(Double(EscalationPlan.veilFloor(step)), over: 10, t)
+            // About 2 percent a second, so each step is a visible fade and never a jump.
+            let target = Double(EscalationPlan.veilFloor(step))
+            setFloor(target, over: max(5, abs(target - floorLevel(t)) / 2), t)
             if prefs.nudgeSound { onCue?() }
             switch step {
             case .checkIn:
@@ -308,15 +310,23 @@ public final class SessionController {
     /// Percent of gray (0 to 100) the whole screen should show now: the brain's own veil, or the ladder's floor if that is higher.
     public func veilLevel() -> Double {
         let t = now()
-        if let u = veilPreviewUntil, t < u { return 100 }
+        if let start = veilPreviewStart, let p = Self.previewLevel(t - start) { return p }
         guard isActive, !shadow, prefs.screenGrayscale else { return 0 }
         let from = veilFrom, to = Double(veilTarget)
         let brain = veilDuration <= 0 || t - veilStartedAt >= Double(veilDuration) ? to : from + (to - from) * (t - veilStartedAt) / Double(veilDuration)
         return max(0, min(100, max(brain, floorLevel(t))))
     }
     /// Settings "Preview": the screen goes fully gray for a few seconds so you can see what the veil does.
-    public func previewVeil(seconds: Double = 6) { veilPreviewUntil = now() + seconds }
-    public var isPreviewingVeil: Bool { veilPreviewUntil.map { now() < $0 } ?? false }
+    /// It fades up over 4 s, holds for 2 s and fades back over 4 s, which is what a real drift looks like, only faster.
+    public func previewVeil() { veilPreviewStart = now() }
+    public var isPreviewingVeil: Bool { veilPreviewStart.map { Self.previewLevel(now() - $0) != nil } ?? false }
+    static let previewUp = 4.0, previewHold = 2.0, previewDown = 4.0
+    static func previewLevel(_ e: Double) -> Double? {
+        if e < 0 || e >= previewUp + previewHold + previewDown { return nil }
+        if e < previewUp { return 100 * e / previewUp }
+        if e < previewUp + previewHold { return 100 }
+        return 100 * (1 - (e - previewUp - previewHold) / previewDown)
+    }
 
     // MARK: progress (quiet rewards)
     /// The timeline so far, including the stretch still open, so a longest stretch can be noticed while it is happening.

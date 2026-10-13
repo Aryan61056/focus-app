@@ -132,8 +132,8 @@ final class EscalationTests: XCTestCase {
         let c = make()
         let warned = await driftUntilWarned(c)
         await advance(c, to: warned + 60)
-        XCTAssertGreaterThanOrEqual(c.veilLevel(), 70, "past the check-in the whole screen is at least 70% gray")
-        await advance(c, to: warned + 215)
+        XCTAssertGreaterThanOrEqual(c.veilLevel(), 60, "past the check-in the screen is well gray")
+        await advance(c, to: warned + 240)
         XCTAssertEqual(c.veilLevel(), 100, accuracy: 0.5)
 
         t = 0
@@ -163,9 +163,40 @@ final class EscalationTests: XCTestCase {
         t = 0
         let idle = SessionController(judge: judge, prefs: noWords(), now: { [unowned self] in self.t })
         XCTAssertEqual(idle.veilLevel(), 0)
-        idle.previewVeil(seconds: 6)
+        idle.previewVeil()
+        XCTAssertEqual(idle.veilLevel(), 0, accuracy: 0.1, "the preview starts clear")
+        t = 2
+        XCTAssertEqual(idle.veilLevel(), 50, accuracy: 0.1, "and fades up, not a jump")
+        t = 5
         XCTAssertEqual(idle.veilLevel(), 100)
-        t = 7
+        t = 8
+        XCTAssertEqual(idle.veilLevel(), 50, accuracy: 0.1, "then fades back")
+        t = 11
         XCTAssertEqual(idle.veilLevel(), 0)
+    }
+}
+
+@MainActor
+final class VeilFadeTests: XCTestCase {
+    var t = 0.0
+    let judge = CountingJudge { p in Verdict(label: p.contains("youtube") ? .offTask : .onTask) }
+    func advance(_ c: SessionController, to target: Double) async { while t < target { t += 1; c.tick(); await c.waitForJudgments() } }
+
+    /// Never a jump: from the first flagged moment to the warning, no second changes the gray by more than about 2 points,
+    /// and neither does any second of the climb after it.
+    func testTheGrayRisesAndFallsInSmallSteps() async {
+        let c = SessionController(judge: judge, store: DataStore(), prefs: noWords(), now: { [unowned self] in self.t })
+        c.windowChanged(WindowSnapshot(app: "Notes", title: "Calc homework"))
+        c.begin(task: "Calc homework", preset: .standard, shadow: false)
+        await advance(c, to: 20)
+        c.windowChanged(WindowSnapshot(app: "Safari", title: "clip youtube", url: "https://youtube.com/watch?v=1"))
+        var last = c.veilLevel(), biggest = 0.0, peak = 0.0
+        for _ in 0..<420 { await advance(c, to: t + 1); let v = c.veilLevel(); biggest = max(biggest, abs(v - last)); peak = max(peak, v); last = v }
+        XCTAssertGreaterThan(peak, 95, "the climb reaches nearly full gray")
+        XCTAssertLessThanOrEqual(biggest, 2.2, "no second may change the gray by more than about 2 points")
+        c.windowChanged(WindowSnapshot(app: "Notes", title: "Calc homework"))
+        last = c.veilLevel(); biggest = 0
+        for _ in 0..<60 { await advance(c, to: t + 1); let v = c.veilLevel(); biggest = max(biggest, abs(v - last)); last = v }
+        XCTAssertEqual(last, 0, accuracy: 0.5, "it clears after you return")
     }
 }

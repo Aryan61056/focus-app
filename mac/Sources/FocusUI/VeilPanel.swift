@@ -54,20 +54,21 @@ final class VeilPanel: NSPanel {
     }
 }
 
-/// Keeps one VeilPanel on every display and sets its gray from `SessionController.veilLevel()` twice a second.
-/// The level itself ramps slowly (a percent a second), so twice a second looks smooth.
+/// Keeps one VeilPanel on every display and sets its gray from `SessionController.veilLevel()` ten times a second, so a fade is smooth.
+/// The level itself ramps slowly (a percent or two a second), so a real drift fades in over a minute or more.
 @MainActor
 public final class VeilController {
     private let c: SessionController
     private var panels: [CGDirectDisplayID: VeilPanel] = [:]
     private var timer: Timer?
     public private(set) var lastLevel = 0.0
+    private var shown = false
 
     public init(controller: SessionController) { self.c = controller }
 
     public func start() {
         guard timer == nil else { return }
-        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in MainActor.assumeIsolated { self?.update() } }
+        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in MainActor.assumeIsolated { self?.update() } }
     }
     public func stop() { timer?.invalidate(); timer = nil; hide() }
 
@@ -77,7 +78,8 @@ public final class VeilController {
     func update() {
         let level = c.veilLevel()
         lastLevel = level
-        guard level >= 0.5 else { hide(); return }
+        guard level >= 0.3 else { if shown { hide() }; return }
+        shown = true
         let screens = NSScreen.screens
         var live = Set<CGDirectDisplayID>()
         for s in screens {
@@ -92,5 +94,5 @@ public final class VeilController {
         for (id, p) in panels where !live.contains(id) { p.orderOut(nil); panels[id] = nil }
     }
 
-    private func hide() { panels.values.forEach { $0.orderOut(nil) } }
+    private func hide() { shown = false; panels.values.forEach { $0.orderOut(nil) } }
 }
