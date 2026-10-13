@@ -71,6 +71,7 @@ struct Session {
     var shadow: Bool
     var reentry: Bool
     var sound: Bool
+    var checkScale: Double
     var startedAt: Double
 }
 
@@ -150,9 +151,11 @@ public struct Brain {
 
     // MARK: session lifecycle
     mutating func startSession(_ c: SessionConfig, _ t: Double) {
-        let p = Policy.of(c.preset)
+        var p = Policy.of(c.preset)
+        let scale = c.checkScale.isFinite && c.checkScale > 0 ? c.checkScale : 1
+        if scale != 1 { p.grace = max(8, p.grace * scale); p.confirmAfter = max(25, p.confirmAfter * scale) }
         session = Session(taskId: c.taskId, mode: c.mode, duration: c.durationSeconds ?? 0, policy: p, shadow: c.shadow,
-                          reentry: c.reentryPrompt ?? p.reentryDefault, sound: c.sound, startedAt: t)
+                          reentry: c.reentryPrompt ?? p.reentryDefault, sound: c.sound, checkScale: scale, startedAt: t)
         holds = []; pausedAccum = 0; pausedSince = nil; wrapUpSent = false
         focus = .onTask; window = nil; block = nil; frozen = nil; returnPendingSince = nil
         lastEvidence = nil; lastOnTaskWindowKey = nil; lastResumeAt = t
@@ -553,7 +556,8 @@ public struct Brain {
         else if c == .on { interval = [30.0, 60.0, 90.0][min(onStreak, 3) - 1] }
         else if c == .strong || block?.flagged == true { interval = 10 }
         else { neutralStreak += 1; interval = [10.0, 20.0, 40.0, 60.0][min(neutralStreak, 4) - 1] }
-        if let i = interval { nextCheckAt = t + i * (powerConstrained ? 2 : 1) } else { nextCheckAt = .infinity }
+        let scale = session?.checkScale ?? 1
+        if let i = interval { nextCheckAt = t + max(4, i * scale) * (powerConstrained ? 2 : 1) } else { nextCheckAt = .infinity }
     }
 
     // MARK: user actions (spec 2.3)

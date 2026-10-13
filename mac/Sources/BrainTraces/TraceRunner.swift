@@ -130,6 +130,7 @@ public enum TraceRunner {
             c.shadow = (p["shadow"] as? NSNumber)?.boolValue ?? false
             if let r = p["reentryPrompt"] as? NSNumber { c.reentryPrompt = r.boolValue }
             c.sound = (p["sound"] as? NSNumber)?.boolValue ?? false
+            c.checkScale = (p["checkScale"] as? NSNumber)?.doubleValue ?? 1
             return .sessionStart(c)
         case "SessionEnd": return .sessionEnd
         case "Judgment":

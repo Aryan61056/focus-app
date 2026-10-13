@@ -291,6 +291,8 @@ final class MatchingWordsTests: XCTestCase {
     let p = Preferences(defaults: UserDefaults(suiteName: "focus.tests.\(UUID().uuidString)")!); p.matchTaskWords = false
     // The shipped default has no practice mode; these tests were written for it, so they opt back in (a test asks for `shadow: false` to leave it).
     p.practiceRemoved = false; p.restartPractice()
+    // Likewise the original check timing and confidence bar; tests of the shipped defaults build their own Preferences.
+    p.checkRate = .normal; p.sensitivity = .careful
     return p
 }
 

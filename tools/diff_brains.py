@@ -43,7 +43,8 @@ def gen(rng: random.Random, seconds: int) -> dict:
     """Episodes: hold one window for a while with mostly consistent verdicts (so drifts get confirmed, interrupted and
     recovered), plus occasional user actions, holds, power changes and contradicting verdicts."""
     cfg = {"sessionId": "s", "taskId": "task", "mode": rng.choice(["Open", "Timed"]), "preset": rng.choice(["Gentle", "Standard", "Strict"]),
-           "shadow": rng.random() < 0.2, "sound": rng.random() < 0.2}
+           "shadow": rng.random() < 0.2, "sound": rng.random() < 0.2,
+           "checkScale": rng.choice([1.0, 1.0, 1.6, 0.6, 0.4])}
     if cfg["mode"] == "Timed": cfg["durationSeconds"] = rng.choice([300, 600, 1500])
     if rng.random() < 0.3: cfg["reentryPrompt"] = rng.random() < 0.5
     steps = [{"t": 0, "ev": {"SessionStart": cfg}}]

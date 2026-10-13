@@ -38,6 +38,10 @@ public final class Preferences {
     public var nudgeTone: NudgeTone { didSet { defaults.set(nudgeTone.rawValue, forKey: "nudgeTone") } }
     /// One soft system tone when a nudge appears. Off by default (PRODUCT.md: discreet).
     public var nudgeSound: Bool { didSet { defaults.set(nudgeSound, forKey: "nudgeSound") } }
+    /// How often Focus looks at the window and how soon it warns. Often is the default; Normal is the spec's original timing.
+    public var checkRate: CheckRate { didSet { defaults.set(checkRate.rawValue, forKey: "checkRate") } }
+    /// How sure the on-device model must be before a window counts as off task.
+    public var sensitivity: Sensitivity { didSet { defaults.set(sensitivity.rawValue, forKey: "sensitivity") } }
     /// If you stay away after a warning: a check-in, a pause screen, then the app you drifted into is hidden (see Escalation.swift). Off: the warning only.
     public var escalate: Bool { didSet { defaults.set(escalate, forKey: "escalate") } }
     /// The whole screen, every display, fades toward gray while you are off task (not only Focus's own window).
@@ -65,6 +69,8 @@ public final class Preferences {
         showProgress = defaults.object(forKey: "showProgress") as? Bool ?? true
         dailyGoalMinutes = defaults.object(forKey: "dailyGoalMinutes") as? Int ?? 90
         nudgeTone = NudgeTone(rawValue: defaults.string(forKey: "nudgeTone") ?? "") ?? .neutral
+        checkRate = CheckRate(rawValue: defaults.string(forKey: "checkRate") ?? "") ?? .often
+        sensitivity = Sensitivity(rawValue: defaults.string(forKey: "sensitivity") ?? "") ?? .proactive
         escalate = defaults.object(forKey: "escalate") as? Bool ?? true
         screenGrayscale = defaults.object(forKey: "screenGrayscale") as? Bool ?? true
         hideDistractingApp = defaults.object(forKey: "hideDistractingApp") as? Bool ?? true
@@ -91,4 +97,20 @@ public final class Preferences {
     public func sessionFinished(wasPractice: Bool) { if wasPractice && practiceSessionsLeft > 0 { practiceSessionsLeft -= 1 } }
     public func turnNudgesOnNow() { practiceSessionsLeft = 0 }
     public func restartPractice() { if !practiceRemoved { practiceSessionsLeft = Preferences.practiceSessions } }
+}
+
+/// How often Focus looks. The scale multiplies the brain's check intervals and its grace and confirm delays (SessionConfig.checkScale).
+public enum CheckRate: String, CaseIterable, Identifiable, Sendable {
+    case rarely, normal, often, veryOften
+    public var id: String { rawValue }
+    public var scale: Double { switch self { case .rarely: return 1.6; case .normal: return 1.0; case .often: return 0.6; case .veryOften: return 0.4 } }
+    public var title: String { switch self { case .rarely: return "Less often"; case .normal: return "Normal"; case .often: return "Often"; case .veryOften: return "Very often" } }
+    public var detail: String {
+        switch self {
+        case .rarely: return "Looks about every 50 to 150 seconds on task, warns later."
+        case .normal: return "The original timing: every 30 to 90 seconds on task."
+        case .often: return "About every 18 to 54 seconds on task, every 6 when something looks off. Warns sooner."
+        case .veryOften: return "About every 12 to 36 seconds on task, every 4 when something looks off. Warns soonest."
+        }
+    }
 }

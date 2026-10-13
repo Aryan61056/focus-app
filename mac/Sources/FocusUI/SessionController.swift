@@ -216,7 +216,7 @@ public final class SessionController {
         goalNotified = prefs.dailyGoalMinutes <= 0 || baselineToday >= Double(prefs.dailyGoalMinutes) * 60
         priorBestStretch = Rewards.bestStretch(finished)
         summary = nil; shadowMarks = 0; learnedRules = []; wrapUp = false; askResume = nil; readings = []; appByWindowKey = [:]; stats = ReadStats(); previewFrame = nil; previewHeld = nil; screenText = ""
-        var c = SessionConfig(); c.taskId = task; c.mode = mode; c.durationSeconds = duration; c.preset = preset ?? prefs.preset; c.shadow = shadow; c.sound = prefs.nudgeSound
+        var c = SessionConfig(); c.taskId = task; c.mode = mode; c.durationSeconds = duration; c.preset = preset ?? prefs.preset; c.shadow = shadow; c.sound = prefs.nudgeSound; c.checkScale = prefs.checkRate.scale
         isActive = true
         send(.sessionStart(c))
         if let w = currentWindow { windowChanged(w) }
@@ -534,7 +534,7 @@ public final class SessionController {
         var profile = p.profile
         if !p.context.isEmpty { profile.context = p.context }
         let m = Moment(task: p.name, app: app, windowTitle: title, url: "", documentPath: "", windowText: "", project: profile)
-        return await Pipeline.judge(m, with: judge, useRules: true)
+        return await Pipeline.judge(m, with: judge, useRules: true, minOffConfidence: prefs.sensitivity.minOffConfidence)
     }
 
     /// Wait for in-flight judge calls (tests, and orderly shutdown).
@@ -631,8 +631,9 @@ public final class SessionController {
             return
         }
         judging += 1
+        let minConfidence = prefs.sensitivity.minOffConfidence   // read now: a setting changed mid-call applies from the next check
         tasks.append(Task { [weak self] in
-            let j = await Pipeline.judge(m, with: judge, useRules: false)
+            let j = await Pipeline.judge(m, with: judge, useRules: false, minOffConfidence: minConfidence)
             self?.judging = max(0, (self?.judging ?? 1) - 1)
             self?.deliver(j, id: id, observedAt: observedAt, windowKey: windowKey, contentKey: content, sawScreen: sawScreen)
         })

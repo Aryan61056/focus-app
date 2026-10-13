@@ -135,7 +135,7 @@ final class JudgeLabTests: XCTestCase {
                 if Rules.isNeverJudged(m, apps: Rules.defaultNeverJudgedApps) { final = .unsure; how = "never-judged" }
                 else if !Rules.sharedTaskWords(m).isEmpty, Rules.stage1(m) == nil, !Rules.isSensitive(m) { final = .onTask; how = "words" }
                 else if Rules.stage1(m) == nil, Rules.isGeneralPurposeApp(m) { final = .unsure; how = "general-purpose" }
-                else { final = (await Pipeline.judge(m, with: judge)).label }
+                else { final = (await Pipeline.judge(m, with: judge, minOffConfidence: Int(ProcessInfo.processInfo.environment["FOCUS_MIN_CONF"] ?? "") ?? Pipeline.minOffConfidence)).label }
                 let key = "gold \(sc.label.rawValue) -> \(final.rawValue)"
                 counts[key, default: 0] += 1
                 if (sc.label == .offTask && final != .offTask) || (sc.label != .offTask && final == .offTask) || (sc.label == .onTask && final == .offTask) {

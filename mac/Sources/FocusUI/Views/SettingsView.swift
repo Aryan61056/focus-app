@@ -1,5 +1,6 @@
 import SwiftUI
 import FocusBrain
+import FocusJudge
 import AppKit
 
 struct SettingsView: View {
@@ -42,6 +43,25 @@ struct SettingsView: View {
                     row("Play a soft tone with a nudge", "One short system sound when a nudge appears. Off unless you turn it on, and it never plays in practice mode.") {
                         Toggle("", isOn: Binding(get: { c.prefs.nudgeSound }, set: { c.prefs.nudgeSound = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(alignment: .firstTextBaseline) {
+                            Text("How often Focus checks").font(Tokens.text(13.5, .semibold))
+                            Spacer()
+                            segmented(CheckRate.allCases, selection: Binding(get: { c.prefs.checkRate }, set: { c.prefs.checkRate = $0 }), title: \.title)
+                        }
+                        Text("\(c.prefs.checkRate.detail) Each check asks the on-device model, so checking more often uses more battery. Applies from the next session.")
+                            .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 12).overlay(alignment: .top) { Divider().overlay(Tokens.line) }
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(alignment: .firstTextBaseline) {
+                            Text("How sure Focus must be").font(Tokens.text(13.5, .semibold))
+                            Spacer()
+                            segmented(Sensitivity.allCases, selection: Binding(get: { c.prefs.sensitivity }, set: { c.prefs.sensitivity = $0 }), title: \.title)
+                        }
+                        Text(sensitivityHelp).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 12).overlay(alignment: .top) { Divider().overlay(Tokens.line) }
                     row("If you stay away after a warning", "Gentle stops at the warning. Standard and Strict keep going: after about 40 seconds (20 on Strict) Focus asks whether you are on task and reads the window again, then shows a pause screen, then hides the app you drifted into. Dismissing a card does not stop it; getting back to the task does.") {
                         Toggle("", isOn: Binding(get: { c.prefs.escalate }, set: { c.prefs.escalate = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
@@ -153,6 +173,28 @@ struct SettingsView: View {
         .confirmationDialog("Delete everything?", isPresented: $confirmDelete) {
             Button("Delete everything", role: .destructive) { store.deleteEverything() }
         } message: { Text("Projects, sessions, rules and review moments are removed from this Mac. This cannot be undone.") }
+    }
+
+    var sensitivityHelp: String {
+        switch c.prefs.sensitivity {
+        case .careful: return "Flags a window only when the model is nearly certain (95 percent or more). Fewest mistaken warnings; it misses some distractions."
+        case .balanced: return "Flags a window when the model is at least 80 percent sure. A middle road."
+        case .proactive: return "Flags a window when the model is at least 60 percent sure, so Focus speaks up about distractions it is not completely sure of. It will sometimes call work a distraction; \u{201C}That was fine\u{201D} teaches it. A warning still needs the drift to last and two checks to agree."
+        }
+    }
+
+    /// A row of capsule choices in the same vocabulary as the tone picker.
+    func segmented<T: Identifiable & Equatable>(_ items: [T], selection: Binding<T>, title: KeyPath<T, String>) -> some View {
+        HStack(spacing: 6) {
+            ForEach(items) { item in
+                let on = selection.wrappedValue == item
+                Button(item[keyPath: title]) { selection.wrappedValue = item }.buttonStyle(.plain)
+                    .font(Tokens.text(12.5, .semibold)).padding(.horizontal, 12).frame(height: 28)
+                    .background(Capsule().fill(on ? Tokens.accentSoft : Tokens.control))
+                    .overlay { if on { Capsule().strokeBorder(Tokens.accent, lineWidth: 1.5) } }
+                    .accessibilityAddTraits(on ? .isSelected : [])
+            }
+        }
     }
 
     func opt(_ p: Preset, _ title: String, _ text: String) -> some View {

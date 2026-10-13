@@ -14,6 +14,16 @@ public struct Judgement: Sendable {
     public var error: String?
 }
 
+/// How sure the model must be before an off-task call counts as off task. Lower flags more distractions and also more things that are
+/// really work; the brain still needs sustained agreement over time before anything is shown (owner, 2026-10-13: "call out
+/// distractions even if it isn't completely sure").
+public enum Sensitivity: String, CaseIterable, Identifiable, Sendable {
+    case careful, balanced, proactive
+    public var id: String { rawValue }
+    public var minOffConfidence: Int { switch self { case .careful: return 95; case .balanced: return 80; case .proactive: return 60 } }
+    public var title: String { switch self { case .careful: return "Careful"; case .balanced: return "Balanced"; case .proactive: return "Proactive" } }
+}
+
 public enum Pipeline {
     /// The first judge must report at least this much confidence before a window can count as off task. Measured 2026-10-02 on
     /// 82 scenarios that reach the model: every off_task call that was really on-task work had confidence 90 or less (the model says
@@ -29,7 +39,8 @@ public enum Pipeline {
         return .unsure
     }
 
-    public static func judge(_ m: Moment, with judge: Judge, useRules: Bool = true, useGuard: Bool = true) async -> Judgement {
+    public static func judge(_ m: Moment, with judge: Judge, useRules: Bool = true, useGuard: Bool = true,
+                             minOffConfidence: Int = Pipeline.minOffConfidence) async -> Judgement {
         if useRules && Rules.isSensitive(m) {
             return Judgement(label: .unsure, stage: .sensitive, reason: "sensitive window, not read", latencyMs: 0)
         }
@@ -42,7 +53,7 @@ public enum Pipeline {
         }
         let prompt = Prompts.prompt(for: m)
         var first = await judge.reasonFirst(prompt: prompt)
-        // An off_task the model is not very sure about is "not sure": a false nudge costs more than a miss.
+        // An off_task the model is not sure enough about is "not sure". The bar is the user's Sensitivity setting; 95 is the careful default of the eval.
         if first.label == .offTask, let c = first.confidence, c < minOffConfidence { first.label = .unsure }
         // Only a possible off_task needs the second opinion; skipping it otherwise halves the model calls.
         if first.label != .offTask || first.error != nil {

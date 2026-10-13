@@ -22,6 +22,7 @@ pub fn decode_event(e: &J) -> Event {
             c.shadow = g("shadow").and_then(J::bool).unwrap_or(false);
             c.reentry_prompt = g("reentryPrompt").and_then(J::bool);
             c.sound = g("sound").and_then(J::bool).unwrap_or(false);
+            c.check_scale = g("checkScale").and_then(J::num).unwrap_or(1.0);
             Event::SessionStart(c)
         }
         "SessionEnd" => Event::SessionEnd,

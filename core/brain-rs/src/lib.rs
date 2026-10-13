@@ -27,11 +27,11 @@ pub enum UserAction {
 pub struct SessionConfig {
     pub session_id: String, pub task_id: String,
     pub mode: Mode, pub duration_seconds: Option<f64>, pub preset: Preset,
-    pub shadow: bool, pub reentry_prompt: Option<bool>, pub sound: bool,
+    pub shadow: bool, pub reentry_prompt: Option<bool>, pub sound: bool, pub check_scale: f64,
 }
 impl Default for SessionConfig {
     fn default() -> Self {
-        SessionConfig { session_id: "s".into(), task_id: "task".into(), mode: Mode::Open, duration_seconds: None, preset: Preset::Standard, shadow: false, reentry_prompt: None, sound: false }
+        SessionConfig { session_id: "s".into(), task_id: "task".into(), mode: Mode::Open, duration_seconds: None, preset: Preset::Standard, shadow: false, reentry_prompt: None, sound: false, check_scale: 1.0 }
     }
 }
 
@@ -154,7 +154,7 @@ impl Stats { fn new() -> Stats { Stats { off_topic: 0.0, unsure: 0.0, drifts: 0,
 #[derive(Clone, PartialEq)]
 struct BeaconState { state: String, reason: Option<String> }
 
-struct Session { mode: Mode, duration: f64, policy: Policy, shadow: bool, reentry: bool, sound: bool, started_at: f64 }
+struct Session { mode: Mode, duration: f64, policy: Policy, shadow: bool, reentry: bool, sound: bool, check_scale: f64, started_at: f64 }
 
 pub struct Brain {
     last_t: f64, session: Option<Session>, holds: Vec<Hold>, paused_accum: f64, paused_since: Option<f64>, wrap_up_sent: bool,
@@ -222,9 +222,11 @@ impl Brain {
 
     // MARK: session lifecycle
     fn start_session(&mut self, c: &SessionConfig, t: f64) {
-        let p = Policy::of(c.preset);
+        let mut p = Policy::of(c.preset);
+        let scale = if c.check_scale.is_finite() && c.check_scale > 0.0 { c.check_scale } else { 1.0 };
+        if scale != 1.0 { p.grace = (p.grace * scale).max(8.0); p.confirm_after = (p.confirm_after * scale).max(25.0); }
         self.session = Some(Session { mode: c.mode, duration: c.duration_seconds.unwrap_or(0.0), policy: p, shadow: c.shadow,
-                                      reentry: c.reentry_prompt.unwrap_or(p.reentry_default), sound: c.sound, started_at: t });
+                                      reentry: c.reentry_prompt.unwrap_or(p.reentry_default), sound: c.sound, check_scale: scale, started_at: t });
         self.holds.clear(); self.paused_accum = 0.0; self.paused_since = None; self.wrap_up_sent = false;
         self.focus = Focus::OnTask; self.window = None; self.block = None; self.frozen = None; self.return_pending_since = None;
         self.last_evidence = None; self.last_on_task_window_key = None; self.last_resume_at = t;
@@ -644,7 +646,8 @@ impl Brain {
         else if c == EvClass::On { interval = Some([30.0, 60.0, 90.0][self.on_streak.min(3) - 1]); }
         else if c == EvClass::Strong || flagged { interval = Some(10.0); }
         else { self.neutral_streak += 1; interval = Some([10.0, 20.0, 40.0, 60.0][self.neutral_streak.min(4) - 1]); }
-        self.next_check_at = match interval { Some(i) => t + i * if self.power_constrained { 2.0 } else { 1.0 }, None => f64::INFINITY };
+        let scale = self.session.as_ref().map_or(1.0, |s| s.check_scale);
+        self.next_check_at = match interval { Some(i) => t + (i * scale).max(4.0) * if self.power_constrained { 2.0 } else { 1.0 }, None => f64::INFINITY };
     }
 
     // MARK: user actions (spec 2.3)

@@ -22,6 +22,10 @@ public struct SessionConfig: Sendable {
     public var shadow = false
     public var reentryPrompt: Bool?
     public var sound = false
+    /// How quickly Focus looks and warns, as a multiplier on the spec's check intervals and on the grace and confirm delays.
+    /// 1 is the spec's timing (and what the golden traces use); smaller is more often. Clamped so no check is closer than 4 s,
+    /// no grace shorter than 8 s and no confirm sooner than 25 s.
+    public var checkScale = 1.0
     public init() {}
 }
 
