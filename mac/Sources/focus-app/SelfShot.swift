@@ -6,7 +6,7 @@ import FocusUI
 @MainActor
 enum SelfShot {
     /// FOCUS_DEMO_ACTIONS="section:settings,start" runs these on the controller after 3 s (demo only), in place of clicks and keys I cannot send:
-    /// section:<today|projects|history|insights|review|settings>, start (opens the start sheet), readscreen (turns screen reading on).
+    /// section:<today|projects|history|insights|review|settings>, start (opens the start sheet), readscreen (turns screen reading on), veil (the whole-screen gray for 40 s).
     static func runActions(_ controller: SessionController) {
         let env = ProcessInfo.processInfo.environment
         guard env["FOCUS_DEMO"] == "1", let list = env["FOCUS_DEMO_ACTIONS"] else { return }
@@ -15,6 +15,7 @@ enum SelfShot {
                 if a.hasPrefix("section:"), let s = AppSection.allCases.first(where: { $0.rawValue.lowercased() == a.dropFirst(8).lowercased() }) { controller.requestSection(s) }
                 else if a == "start" { controller.requestStart() }
                 else if a == "readscreen" { controller.prefs.readScreen = true }
+                else if a == "veil" { controller.previewVeil(seconds: 40) }   // the whole-screen gray, so its windows can be listed
             }
         }
     }
