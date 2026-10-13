@@ -119,10 +119,14 @@ final class ShieldTests: XCTestCase {
         await advance(c, to: warned + 101)
         XCTAssertEqual(c.shield?.kind, .pause)
     }
-    /// Past the wait, with the form open.
+    /// Press and hold for the full time, then let the controller finish it.
+    func hold(_ c: SessionController, seconds: Double = Shield.holdSeconds + 0.1) {
+        c.beginShieldHold(); t += seconds; c.updateShieldHold()
+    }
+    /// Past the wait and the hold, with the form open.
     func openTheForm(_ c: SessionController) async {
         await advance(c, to: t + 31)
-        c.openExplanation()
+        hold(c)
         XCTAssertEqual(c.shield?.asking, true)
     }
 
@@ -145,7 +149,7 @@ final class ShieldTests: XCTestCase {
         c.submitExplanation(bluff + " and then some"); await c.waitForJudgments()
         XCTAssertEqual(c.shield?.asking, false, "the form closes")
         XCTAssertGreaterThan(c.overrideLockRemaining, 295)
-        c.openExplanation()
+        hold(c)
         XCTAssertEqual(c.shield?.asking, false, "it will not reopen during the lock")
         XCTAssertNotNil(c.shield?.message)
         c.shieldBackToTask()
@@ -158,7 +162,7 @@ final class ShieldTests: XCTestCase {
         c.submitExplanation(bluff); await c.waitForJudgments()
         c.submitExplanation(bluff + " twice"); await c.waitForJudgments()
         await advance(c, to: t + Shield.lockSeconds + 2)
-        c.openExplanation()
+        hold(c)
         XCTAssertEqual(c.shield?.asking, true)
         XCTAssertEqual(c.shield?.attemptsLeft, Shield.attempts)
     }
@@ -201,14 +205,79 @@ final class ShieldTests: XCTestCase {
         await advance(c, to: 20)
         c.windowChanged(video)
         c.prefs.useModel = false
-        c.debugShowShield(.claim)
-        c.openExplanation()
-        XCTAssertEqual(c.shield?.asking, true)
+        c.debugShowShield(.claim, asking: true)
         c.submitExplanation(good); await c.waitForJudgments()
         XCTAssertTrue(c.shield?.message?.contains("switched off") ?? false)
         XCTAssertEqual(c.shield?.attemptsLeft, Shield.attempts)
         XCTAssertNotNil(c.shield, "still covered")
         c.shieldBackToTask(); XCTAssertNil(c.shield)
+    }
+
+    // the hold
+    func testTheHoldNeedsTheWaitFirstAndLettingGoStartsOver() async {
+        let c = make()
+        await toThePauseScreen(c)
+        hold(c)
+        XCTAssertEqual(c.shield?.asking, false, "a hold during the wait counts for nothing")
+        XCTAssertEqual(c.shieldHoldProgress(), 0)
+        await advance(c, to: t + 31)
+        c.beginShieldHold(); t += 3
+        XCTAssertEqual(c.shieldHoldProgress(), 0.6, accuracy: 0.01)
+        c.endShieldHold()
+        XCTAssertEqual(c.shieldHoldProgress(), 0, "letting go starts over")
+        c.updateShieldHold()
+        XCTAssertEqual(c.shield?.asking, false)
+        c.beginShieldHold(); t += 4.9; c.updateShieldHold()
+        XCTAssertEqual(c.shield?.asking, false, "not quite five seconds")
+        t += 0.2; c.updateShieldHold()
+        XCTAssertEqual(c.shield?.asking, true)
+    }
+
+    func testAnExplanationCannotBeOpenedWithoutTheHold() async {
+        let c = make()
+        await toThePauseScreen(c)
+        await advance(c, to: t + 31)
+        c.openExplanation()
+        XCTAssertEqual(c.shield?.asking, false)
+        c.submitExplanation(good); await c.waitForJudgments()
+        XCTAssertNotNil(c.shield, "submitting without opening the form does nothing")
+        XCTAssertEqual(c.presence.state, "interrupted")
+    }
+
+    func testTheHoldIsNotAvailableDuringTheLock() async {
+        let c = make()
+        await toThePauseScreen(c); await openTheForm(c)
+        c.submitExplanation(bluff); await c.waitForJudgments()
+        c.submitExplanation(bluff + " again"); await c.waitForJudgments()
+        c.beginShieldHold()
+        XCTAssertNil(c.shieldHoldStart)
+    }
+
+    /// The hold is a native control, so a real mouse down and up reach it through the real panel. A SwiftUI gesture could not be driven this way.
+    func testAMouseHoldOnTheRealButtonInTheRealPanelOpensTheForm() async throws {
+        _ = NSApplication.shared
+        guard NSScreen.main != nil else { throw XCTSkip("no screen") }
+        let c = make()
+        await c.waitForJudgments()
+        let sc = ShieldController(controller: c); sc.start(); defer { sc.stop() }
+        c.debugShowShield(.claim)   // the wait is already over
+        try await Task.sleep(nanoseconds: 400_000_000)
+        let panel = try XCTUnwrap(sc.panelsForTesting.first)
+        func find(_ v: NSView) -> HoldPadView? { if let h = v as? HoldPadView { return h }; for s in v.subviews { if let h = find(s) { return h } }; return nil }
+        let pad = try XCTUnwrap(find(try XCTUnwrap(panel.contentView)), "the hold button is in the panel")
+        let centre = pad.convert(NSPoint(x: pad.bounds.midX, y: pad.bounds.midY), to: nil)
+        func event(_ type: NSEvent.EventType) -> NSEvent {
+            NSEvent.mouseEvent(with: type, location: centre, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: panel.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: type == .leftMouseDown ? 1 : 0)!
+        }
+        XCTAssertTrue(panel.contentView?.hitTest(panel.contentView!.convert(centre, from: nil)) is HoldPadView, "a click on that spot lands on the button")
+        panel.sendEvent(event(.leftMouseDown))
+        XCTAssertNotNil(c.shieldHoldStart, "mouse down starts the hold")
+        panel.sendEvent(event(.leftMouseUp))
+        XCTAssertNil(c.shieldHoldStart, "mouse up ends it")
+        panel.sendEvent(event(.leftMouseDown))
+        t += Shield.holdSeconds + 0.2
+        c.updateShieldHold()
+        XCTAssertEqual(c.shield?.asking, true, "five seconds with the button down opens the form")
     }
 
     // one-click claims
@@ -219,8 +288,9 @@ final class ShieldTests: XCTestCase {
         XCTAssertEqual(c.shield?.kind, .claim)
         XCTAssertEqual(c.shieldWaitRemaining(), Shield.claimWait, accuracy: 1)
         XCTAssertTrue(c.learnedRules.isEmpty)
-        c.openExplanation(); XCTAssertEqual(c.shield?.asking, false, "even a claim waits ten seconds")
-        await advance(c, to: t + 11); c.openExplanation()
+        hold(c); XCTAssertEqual(c.shield?.asking, false, "even a claim waits ten seconds")
+        await advance(c, to: t + 11); hold(c)
+        XCTAssertEqual(c.shield?.asking, true)
         c.submitExplanation(good); await c.waitForJudgments()
         XCTAssertNil(c.shield); XCTAssertFalse(c.learnedRules.isEmpty)
     }
@@ -293,7 +363,7 @@ final class ShieldTests: XCTestCase {
         c.windowChanged(editor); await advance(c, to: t + 30)
         c.windowChanged(video)
         XCTAssertEqual(c.shield?.kind, .friction)
-        await advance(c, to: t + 21); c.openExplanation()
+        await advance(c, to: t + 21); hold(c)
         c.submitExplanation(bluff); await c.waitForJudgments()
         XCTAssertEqual(c.shield?.kind, .friction, "a bluff does not open it")
         c.submitExplanation(good); await c.waitForJudgments()

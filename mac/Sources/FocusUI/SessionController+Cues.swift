@@ -10,7 +10,7 @@ extension SessionController {
     static let checkInPromptSeconds = 90.0
 
     func resetCues() {
-        banner = nil; shield = nil; overrideLockedUntil = nil; rhythmPrompt = nil
+        banner = nil; shield = nil; shieldHoldStart = nil; overrideLockedUntil = nil; rhythmPrompt = nil
         driftWatch.reset(); headsUpAt = nil; bannerHidden = false
         blockedSites = [:]; passUntil = [:]; frictionQuietUntil = 0
         workSeconds = 0; lastWorkTick = nil; workBlocks = 0; lastSpokeAt = nil; warnedPressure = .steady
@@ -100,6 +100,7 @@ extension SessionController {
         refreshBanner(t)
         tickRhythm(t)
         syncShield()
+        updateShieldHold()
         if shield == nil, t - lastFrictionCheck >= 5, let w = currentWindow { lastFrictionCheck = t; updateFriction(w) }
     }
 

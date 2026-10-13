@@ -14,7 +14,7 @@ extension SessionController {
             if shield?.kind != .pause {
                 let w = currentWindow
                 var s = Shield(kind: .pause, app: w?.app ?? "", siteKey: w.map(Keys.site) ?? "", since: now(), waitUntil: gateHoldUntil ?? now() + 10)
-                if let old = shield { s.asking = old.asking; s.message = old.message; s.attemptsLeft = old.attemptsLeft }
+                if let old = shield { s.asking = old.asking; s.held = old.held; s.message = old.message; s.attemptsLeft = old.attemptsLeft }
                 shield = s
             }
         } else if shield?.kind == .pause { shield = nil }
@@ -70,15 +70,37 @@ extension SessionController {
     func acceptClaim() {
         if let s = shield { passUntil[s.siteKey] = now() + Shield.passSeconds; blockedSites[s.siteKey] = nil }
         if let w = currentWindow { passUntil[Keys.site(w)] = now() + Shield.passSeconds }
-        shield = nil; checkIn = nil; escalationGate = false
+        shield = nil; shieldHoldStart = nil; checkIn = nil; escalationGate = false
         act(.thatWasFine)
         clearEscalation()
         headsUpAt = nil; driftWatch.clearReadings(); refreshBanner(now())
     }
 
-    /// "Explain": opens the form once the wait is over and the lock, if any, has run out.
+    // MARK: the hold
+    /// Pressing the hold button. It only counts once the wait is over and explaining is not locked.
+    public func beginShieldHold() {
+        guard let s = shield, !s.asking, !s.checking, shieldWaitRemaining() == 0, overrideLockRemaining == 0, shieldHoldStart == nil else { return }
+        shieldHoldStart = now()
+    }
+    public func endShieldHold() { shieldHoldStart = nil }
+    /// 0 to 1 while the button is held.
+    public func shieldHoldProgress() -> Double {
+        guard let h = shieldHoldStart else { return 0 }
+        return min(1, max(0, (now() - h) / Shield.holdSeconds))
+    }
+    /// Called a few times a second while the shield is up: a full hold lets the explanation form open.
+    public func updateShieldHold() {
+        guard shield != nil else { shieldHoldStart = nil; return }
+        guard shieldHoldStart != nil, shieldHoldProgress() >= 1, var s = shield else { return }
+        shieldHoldStart = nil
+        s.held = true
+        shield = s
+        openExplanation()
+    }
+
+    /// Opens the form. It needs the wait to be over, the hold to be done and no lock.
     public func openExplanation() {
-        guard var s = shield, !s.asking else { return }
+        guard var s = shield, !s.asking, s.held else { return }
         if shieldWaitRemaining() > 0 { return }
         if overrideLockRemaining > 0 { s.message = CueCopy.lockedLine(Int(overrideLockRemaining.rounded(.up))); shield = s; return }
         s.asking = true; s.message = nil
@@ -112,7 +134,7 @@ extension SessionController {
         s.attemptsLeft -= 1
         if s.attemptsLeft <= 0 {
             overrideLockedUntil = now() + Shield.lockSeconds
-            s.asking = false; s.attemptsLeft = Shield.attempts
+            s.asking = false; s.held = false; s.attemptsLeft = Shield.attempts
             s.message = CueCopy.lockedLine(Int(Shield.lockSeconds))
         } else {
             let n = s.attemptsLeft
@@ -131,6 +153,7 @@ extension SessionController {
     public func shieldBackToTask() {
         let kind = shield?.kind
         if kind == .pause { escalationGate = false }
+        shieldHoldStart = nil
         if kind != .pause { shield = nil }
         blockCurrentSite()
         frictionQuietUntil = now() + 25
@@ -147,7 +170,7 @@ extension SessionController {
     public func debugShowShield(_ kind: Shield.Kind, app: String = "Safari", site: String = "safari|youtube.com", wait: Double = 0,
                                 asking: Bool = false, checking: Bool = false, message: String? = nil, attemptsLeft: Int = Shield.attempts) {
         var s = Shield(kind: kind, app: app, siteKey: site, since: now() - (wait > 0 ? wait / 3 : 0), waitUntil: now() + wait)
-        s.asking = asking; s.checking = checking; s.message = message; s.attemptsLeft = attemptsLeft
+        s.asking = asking; s.held = asking; s.checking = checking; s.message = message; s.attemptsLeft = attemptsLeft
         shield = s
     }
 }

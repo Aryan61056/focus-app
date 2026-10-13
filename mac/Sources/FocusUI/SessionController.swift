@@ -85,6 +85,7 @@ public final class SessionController {
     public internal(set) var banner: Banner?
     /// After a pause screen, the same site asks for a short hold or a typed reason before it opens again.
     public internal(set) var shield: Shield?
+    public internal(set) var shieldHoldStart: Double?
     @ObservationIgnored var overrideLockedUntil: Double?
     /// A scheduled prompt: a check-in at an interval, or a break after a block of work.
     public internal(set) var rhythmPrompt: RhythmPrompt?

@@ -86,6 +86,8 @@ public struct Shield: Equatable, Sendable {
     public var since: Double
     /// Explaining opens at this time. Until then only "Back to task" works.
     public var waitUntil: Double
+    /// The hold has been completed, so the explanation form may open.
+    public var held = false
     /// The explanation form is open.
     public var asking = false
     /// The on-device model is reading the window against the explanation.
@@ -97,6 +99,8 @@ public struct Shield: Equatable, Sendable {
     /// Two failed explanations lock the way through for this long.
     public static let lockSeconds = 300.0
     public static let frictionWait = 20.0, claimWait = 10.0
+    /// After the wait, press and hold this long to open the explanation form. Letting go starts over.
+    public static let holdSeconds = 5.0
     /// A verified window stays open for this long without asking again.
     public static let passSeconds = 600.0
 }
@@ -216,6 +220,7 @@ public enum CueCopy {
     public static func shieldAsk(task: String) -> String { "How does this window help with \(task)?" }
     public static let shieldPlaceholder = "What are you doing here, and how does it connect?"
     public static func waitLine(_ seconds: Int) -> String { "You can explain in \(seconds) s. Going back to the task works now." }
+    public static func holdLine() -> String { "Press and hold for \(Int(Shield.holdSeconds)) seconds, then explain how it helps. Focus checks your words against the window." }
     public static func lockedLine(_ seconds: Int) -> String {
         let m = (seconds + 59) / 60
         return "Focus could not verify this. Explaining is locked for \(m) \(m == 1 ? "minute" : "minutes"). Going back to the task works now."
