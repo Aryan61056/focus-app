@@ -54,6 +54,8 @@ public struct Banner: Equatable, Sendable {
 /// Things worth a cue. The controller decides which channels each one uses from the user's switches.
 public enum CueEvent: Equatable, Sendable {
     case headsUp, warning, checkIn, pauseScreen, enforce, friction, rhythmCheckIn, breakDue
+    /// The strongest buzz: the pause screen and the last step.
+    var strong: Bool { self == .pauseScreen || self == .enforce }
     /// The loud ones: a nudge you ignored, or something that needs an answer. The heads-up stays light.
     var firm: Bool { self != .headsUp }
     /// The Dock bounce is for what happens while you are in another app.
@@ -62,12 +64,21 @@ public enum CueEvent: Equatable, Sendable {
 }
 
 public enum HapticPattern: Equatable, Sendable {
-    /// One light tap.
+    /// Three quick taps.
     case light
-    /// Two firmer taps a moment apart.
+    /// A run of seven taps, about a second.
     case firm
-    /// Seconds between taps of a pattern, so a player can schedule them.
-    public var taps: [Double] { switch self { case .light: return [0]; case .firm: return [0, 0.14] } }
+    /// A long run of twelve taps, close together: the pause screen and the last step.
+    case strong
+    /// Seconds between taps of a pattern, so a player can schedule them. The Mac gives apps one tap strength, so a stronger
+    /// buzz is more taps closer together, not a harder tap.
+    public var taps: [Double] {
+        switch self {
+        case .light: return [0, 0.1, 0.2]
+        case .firm: return (0..<7).map { Double($0) * 0.1 }
+        case .strong: return (0..<12).map { Double($0) * 0.08 }
+        }
+    }
 }
 
 /// How the menu bar icon reads: plain, a soft tint for a heads-up or a prompt, or the warm tint and a slow pulse while you are away.
@@ -97,13 +108,12 @@ public struct Shield: Equatable, Sendable {
     public var attemptsLeft = Shield.attempts
     public static let attempts = 2
     /// Two failed explanations lock the way through for this long.
+    /// The first lock lasts this long and each later one doubles, up to half an hour. Explaining itself never waits; a bad explanation is what costs time.
     public static let lockSeconds = 300.0
-    public static let frictionWait = 20.0, claimWait = 10.0
-    /// How long after the wait ends the cover may sit unanswered before Focus acts on the site.
-    public static let frictionIdle = 20.0
-    /// The wait grows with each return to the same site: 20, 40, then 60 seconds.
-    public static func frictionWait(strikes: Int) -> Double { min(60, frictionWait * Double(max(1, strikes))) }
-    /// After the wait, press and hold this long to open the explanation form. Letting go starts over.
+    public static func lockSeconds(after locks: Int) -> Double { min(1800, lockSeconds * pow(2, Double(max(0, locks)))) }
+    /// How long a cover may sit unanswered before Focus acts on the site.
+    public static let frictionIdle = 30.0
+    /// Press and hold this long to open the explanation form. Letting go starts over.
     public static let holdSeconds = 5.0
     /// A verified window stays open for this long without asking again.
     public static let passSeconds = 600.0
@@ -219,13 +229,16 @@ public enum CueCopy {
     public static func shieldBody(_ k: Shield.Kind, tone: NudgeTone, task: String, longDetour: Bool) -> String {
         switch k {
         case .pause: return NudgeCopy.gateBody(tone: tone, task: task, longDetour: longDetour)
-        case .friction: return "Focus covered this window because you were warned here. Go back to \(task), or explain how this helps once the wait is over."
-        case .claim: return "Focus read this window as off topic. Explain how it helps with \(task) once the wait is over, and Focus checks your words against the window."
+        case .friction: return "Focus covered this window because you were warned here. Go back to \(task), or explain how this helps."
+        case .claim: return "Focus read this window as off topic. Explain how it helps with \(task), and Focus checks your words against the window."
         }
     }
     public static func shieldAsk(task: String) -> String { "How does this window help with \(task)?" }
     public static let shieldPlaceholder = "What are you doing here, and how does it connect?"
-    public static func waitLine(_ seconds: Int) -> String { "You can explain in \(seconds) s. Going back to the task works now." }
+    /// What Focus says it did after a wrong explanation.
+    public static func punishment(_ a: EnforceAction) -> String {
+        switch a { case .close: return "Focus closed the tab."; case .hide: return "Focus hid the app."; case .switchAway: return "Focus switched you back." }
+    }
     public static func holdLine() -> String { "Press and hold for \(Int(Shield.holdSeconds)) seconds, then explain how it helps. Focus checks your words against the window." }
     public static func lockedLine(_ seconds: Int) -> String {
         let m = (seconds + 59) / 60

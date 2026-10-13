@@ -108,6 +108,10 @@ public final class SessionController {
     /// How many times each site has been covered this session. A site you keep coming back to waits longer and is acted on sooner.
     @ObservationIgnored var frictionStrikes: [String: Int] = [:]
     @ObservationIgnored var lastFrictionEnforce = -1000.0
+    /// Explanations that failed this session, and how many times explaining has been locked. Both make the next cost more.
+    @ObservationIgnored var explainStrikes = 0
+    @ObservationIgnored var overrideLocks = 0
+    @ObservationIgnored var lastPulseAt = -1000.0
     @ObservationIgnored var workSeconds = 0.0
     @ObservationIgnored var lastWorkTick: Double?
     @ObservationIgnored var workBlocks = 0
@@ -321,7 +325,7 @@ public final class SessionController {
                 // Read the window again right now instead of waiting for the next scheduled look.
                 if let w = senseNow?() { windowChanged(w) }
             case .pauseScreen:
-                checkIn = nil; escalationGate = true; gateHoldUntil = t + plan.holdSeconds
+                checkIn = nil; escalationGate = true; gateHoldUntil = t
                 fire(.pauseScreen, title: "Take a moment. " + NudgeCopy.gateBody(tone: prefs.nudgeTone, task: taskName, longDetour: longDetour))
             default: break
             }
@@ -611,7 +615,7 @@ public final class SessionController {
             case .clock(let s, let r): clock = ClockState(seconds: s, running: r, at: t)
             case .interrupt(let k, let sev, _, _):
                 surface = Surface(kind: k, severity: sev, at: t)
-                if k == "gate" { gateHoldUntil = t + (EscalationPlan.of(sessionPreset)?.holdSeconds ?? 10) }
+                if k == "gate" { gateHoldUntil = t }
                 fire(k == "gate" ? .pauseScreen : .warning, title: nudgeTitle)
             case .withdraw(let what):
                 if what == "reentry" { reentryOpen = false } else { surface = nil }

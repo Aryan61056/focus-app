@@ -13,7 +13,7 @@ extension SessionController {
         if pauseWanted {
             if shield?.kind != .pause {
                 let w = currentWindow
-                var s = Shield(kind: .pause, app: w?.app ?? "", siteKey: w.map(Keys.site) ?? "", since: now(), waitUntil: gateHoldUntil ?? now() + 10)
+                var s = Shield(kind: .pause, app: w?.app ?? "", siteKey: w.map(Keys.site) ?? "", since: now(), waitUntil: now())
                 if let old = shield { s.asking = old.asking; s.held = old.held; s.message = old.message; s.attemptsLeft = old.attemptsLeft }
                 shield = s
             }
@@ -40,12 +40,12 @@ extension SessionController {
         if let u = passUntil[site], t < u { return }
         let strikes = (frictionStrikes[site] ?? 0) + 1
         frictionStrikes[site] = strikes
-        shield = Shield(kind: .friction, app: w.app, siteKey: site, since: t, waitUntil: t + Shield.frictionWait(strikes: strikes))
+        shield = Shield(kind: .friction, app: w.app, siteKey: site, since: t, waitUntil: t)
         lastFrictionEnforce = -1000
         fire(.friction)
     }
 
-    /// Sitting behind the cover is not free. A while after the wait ends, with no explanation started and no step back to the task,
+    /// Sitting behind the cover is not free. A while after it appears, with no explanation started and no step back to the task,
     /// Focus acts on the site the way the last step of the ladder does, and again every 45 seconds. A site you keep coming back to
     /// is acted on at once: the strike count is the number of rounds already done.
     func enforceOnIdleFriction(_ t: Double) {
@@ -58,7 +58,7 @@ extension SessionController {
 
     /// The last step of the ladder, shared by the ladder and the friction cover. `performed` is how many rounds came before:
     /// the first switches the browser to the on-task tab, later ones hide the app, and on Strict close the tab.
-    func runEnforcement(performed: Int) {
+    @discardableResult func runEnforcement(performed: Int) -> EnforceAction? {
         let w = currentWindow
         let wanted = Enforcement.action(performed: performed, preset: sessionPreset, switching: prefs.switchTabs, closing: prefs.closeOnStrict && closeAllowed)
         var done = false
@@ -70,8 +70,10 @@ extension SessionController {
             }
         }
         lastEnforce = (wanted, done)
+        if done { return wanted }
         // Whatever could not be done to the tab falls back to hiding the app, which is how this step always worked.
-        if !done, prefs.hideDistractingApp, Enforcement.canHide(w?.app), let app = w?.app { onHideApp?(app) }
+        if prefs.hideDistractingApp, Enforcement.canHide(w?.app), let app = w?.app { onHideApp?(app); return .hide }
+        return nil
     }
 
     // MARK: claims
@@ -93,7 +95,7 @@ extension SessionController {
         if shield == nil {
             let w = currentWindow
             checkIn = nil
-            shield = Shield(kind: .claim, app: w?.app ?? "", siteKey: w.map(Keys.site) ?? "", since: t, waitUntil: t + Shield.claimWait)
+            shield = Shield(kind: .claim, app: w?.app ?? "", siteKey: w.map(Keys.site) ?? "", since: t, waitUntil: t)
         }
         return false
     }
@@ -109,7 +111,7 @@ extension SessionController {
     }
 
     // MARK: the hold
-    /// Pressing the hold button. It only counts once the wait is over and explaining is not locked.
+    /// Pressing the hold button. It only counts when explaining is not locked.
     public func beginShieldHold() {
         guard let s = shield, !s.asking, !s.checking, shieldWaitRemaining() == 0, overrideLockRemaining == 0, shieldHoldStart == nil else { return }
         shieldHoldStart = now()
@@ -130,7 +132,7 @@ extension SessionController {
         openExplanation()
     }
 
-    /// Opens the form. It needs the wait to be over, the hold to be done and no lock.
+    /// Opens the form. It needs the hold to be done and no lock.
     public func openExplanation() {
         guard var s = shield, !s.asking, s.held else { return }
         if shieldWaitRemaining() > 0 { return }
@@ -165,9 +167,11 @@ extension SessionController {
         s.checking = false
         s.attemptsLeft -= 1
         if s.attemptsLeft <= 0 {
-            overrideLockedUntil = now() + Shield.lockSeconds
+            let secs = Shield.lockSeconds(after: overrideLocks)
+            overrideLocks += 1
+            overrideLockedUntil = now() + secs
             s.asking = false; s.held = false; s.attemptsLeft = Shield.attempts
-            s.message = CueCopy.lockedLine(Int(Shield.lockSeconds))
+            s.message = CueCopy.lockedLine(Int(secs))
         } else {
             let n = s.attemptsLeft
             switch r.why {
@@ -179,6 +183,16 @@ extension SessionController {
             }
         }
         shield = s
+        // A wrong explanation costs something at once: Focus acts on the window the way the last step does (hides the app, or on
+        // Strict closes the tab). Only a real "this is not on task" reading or an attempt to give Focus orders counts. Focus not being
+        // able to tell, a private window or your own "never" rule are not held against you.
+        if r.why == .notOnTask || r.why == .injected {
+            explainStrikes += 1
+            if let did = runEnforcement(performed: explainStrikes), var cur = shield {
+                cur.message = (cur.message ?? "") + " " + CueCopy.punishment(did)
+                shield = cur
+            }
+        }
     }
 
     /// "Back to task": always available, never waits. Brings the task app forward and gives the task a moment to arrive before asking again.
@@ -196,7 +210,7 @@ extension SessionController {
 
 extension SessionController {
     /// Demo and test only: locks explaining, as two wrong answers would.
-    public func debugLock() { overrideLockedUntil = now() + Shield.lockSeconds }
+    public func debugLock() { overrideLockedUntil = now() + Shield.lockSeconds(after: overrideLocks) }
 
     /// Demo and test only: shows a shield as if it had just appeared.
     public func debugShowShield(_ kind: Shield.Kind, app: String = "Safari", site: String = "safari|youtube.com", wait: Double = 0,

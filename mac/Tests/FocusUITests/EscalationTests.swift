@@ -80,7 +80,6 @@ final class EscalationTests: XCTestCase {
         await advance(c, to: warned + 101)
         XCTAssertTrue(c.escalationGate, "then the pause screen"); XCTAssertEqual(c.shield?.kind, .pause)
         XCTAssertNil(c.checkIn)
-        XCTAssertGreaterThan(c.gateHoldRemaining(), 0)
         XCTAssertEqual(foreground, 0, "the pause screen is its own panel now, not the Focus window coming forward")
         XCTAssertTrue(hidden.isEmpty)
 
@@ -90,21 +89,17 @@ final class EscalationTests: XCTestCase {
         XCTAssertEqual(hidden, ["Safari", "Safari"], "and again every two minutes while you stay away")
     }
 
-    func testExplainingIsHeldBackOnThePauseScreenButBackToTaskIsNot() async {
+    func testExplainingNeedsTheHoldButNoWaitAndBackToTaskIsAlwaysThere() async {
         let c = make()
         let warned = await driftUntilWarned(c)
         await advance(c, to: warned + 101)
         XCTAssertTrue(c.gateOpen)
         XCTAssertEqual(c.shield?.kind, .pause)
-        XCTAssertEqual(c.gateHoldRemaining(), 30, accuracy: 1.5, "thirty seconds on Standard")
-        c.beginShieldHold(); t += 6; c.updateShieldHold()
-        XCTAssertEqual(c.shield?.asking, false, "the form stays shut during the wait, held or not")
+        XCTAssertEqual(c.shieldWaitRemaining(), 0, "no wait before explaining")
         c.leaveGate(fine: true)
-        XCTAssertEqual(c.shield?.asking, false, "so does the old one-click That was fine")
-        await advance(c, to: t + 31)
-        XCTAssertEqual(c.shieldWaitRemaining(), 0)
+        XCTAssertEqual(c.shield?.asking, false, "the old one-click That was fine does not open the form")
         c.beginShieldHold(); t += 5.1; c.updateShieldHold()
-        XCTAssertEqual(c.shield?.asking, true, "after the wait and the hold the form opens")
+        XCTAssertEqual(c.shield?.asking, true, "the hold alone opens the form")
         c.leaveGate(fine: false)
         XCTAssertFalse(c.gateOpen, "Back to task is always available")
         XCTAssertNil(c.shield)

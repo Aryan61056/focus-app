@@ -123,9 +123,8 @@ final class ShieldTests: XCTestCase {
     func hold(_ c: SessionController, seconds: Double = Shield.holdSeconds + 0.1) {
         c.beginShieldHold(); t += seconds; c.updateShieldHold()
     }
-    /// Past the wait and the hold, with the form open.
+    /// After the hold, with the form open.
     func openTheForm(_ c: SessionController) async {
-        await advance(c, to: t + 31)
         hold(c)
         XCTAssertEqual(c.shield?.asking, true)
     }
@@ -161,7 +160,7 @@ final class ShieldTests: XCTestCase {
         await toThePauseScreen(c); await openTheForm(c)
         c.submitExplanation(bluff); await c.waitForJudgments()
         c.submitExplanation(bluff + " twice"); await c.waitForJudgments()
-        await advance(c, to: t + Shield.lockSeconds + 2)
+        await advance(c, to: t + Shield.lockSeconds(after: 0) + 2)
         hold(c)
         XCTAssertEqual(c.shield?.asking, true)
         XCTAssertEqual(c.shield?.attemptsLeft, Shield.attempts)
@@ -214,13 +213,10 @@ final class ShieldTests: XCTestCase {
     }
 
     // the hold
-    func testTheHoldNeedsTheWaitFirstAndLettingGoStartsOver() async {
+    func testTheHoldNeedsNoWaitAndLettingGoStartsOver() async {
         let c = make()
         await toThePauseScreen(c)
-        hold(c)
-        XCTAssertEqual(c.shield?.asking, false, "a hold during the wait counts for nothing")
-        XCTAssertEqual(c.shieldHoldProgress(), 0)
-        await advance(c, to: t + 31)
+        XCTAssertEqual(c.shieldWaitRemaining(), 0)
         c.beginShieldHold(); t += 3
         XCTAssertEqual(c.shieldHoldProgress(), 0.6, accuracy: 0.01)
         c.endShieldHold()
@@ -236,7 +232,6 @@ final class ShieldTests: XCTestCase {
     func testAnExplanationCannotBeOpenedWithoutTheHold() async {
         let c = make()
         await toThePauseScreen(c)
-        await advance(c, to: t + 31)
         c.openExplanation()
         XCTAssertEqual(c.shield?.asking, false)
         c.submitExplanation(good); await c.waitForJudgments()
@@ -286,10 +281,9 @@ final class ShieldTests: XCTestCase {
         _ = await driftUntilWarned(c)
         XCTAssertFalse(c.claimOnTask())
         XCTAssertEqual(c.shield?.kind, .claim)
-        XCTAssertEqual(c.shieldWaitRemaining(), Shield.claimWait, accuracy: 1)
+        XCTAssertEqual(c.shieldWaitRemaining(), 0, "no wait")
         XCTAssertTrue(c.learnedRules.isEmpty)
-        hold(c); XCTAssertEqual(c.shield?.asking, false, "even a claim waits ten seconds")
-        await advance(c, to: t + 11); hold(c)
+        hold(c)
         XCTAssertEqual(c.shield?.asking, true)
         c.submitExplanation(good); await c.waitForJudgments()
         XCTAssertNil(c.shield); XCTAssertFalse(c.learnedRules.isEmpty)
@@ -334,7 +328,7 @@ final class ShieldTests: XCTestCase {
         c.windowChanged(video)
         XCTAssertEqual(c.shield?.kind, .friction)
         XCTAssertEqual(c.shield?.app, "Safari")
-        XCTAssertEqual(c.shieldWaitRemaining(), Shield.frictionWait, accuracy: 1)
+        XCTAssertEqual(c.shieldWaitRemaining(), 0, "no wait before explaining")
         XCTAssertEqual(c.menuCue, .headsUp)
         c.windowChanged(editor)
         XCTAssertNil(c.shield, "leaving the site clears it")
@@ -349,7 +343,7 @@ final class ShieldTests: XCTestCase {
         c.windowChanged(video)
         XCTAssertEqual(c.shield?.kind, .friction)
         hidden.removeAll(); switched = 0
-        await advance(c, to: t + Shield.frictionWait + Shield.frictionIdle - 2)
+        await advance(c, to: t + Shield.frictionIdle - 2)
         XCTAssertTrue(hidden.isEmpty && switched == 0, "nothing yet while the wait and the grace run")
         await advance(c, to: t + 4)
         XCTAssertEqual(hidden, ["Safari"], "then Focus acts on the site, here hiding because it was already acted on once")
@@ -357,21 +351,38 @@ final class ShieldTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(hidden.count, 2, "and again while you stay behind the cover")
     }
 
-    func testEachReturnToTheSameSiteWaitsLonger() async {
-        let c = make()
+    func testEachReturnToTheSameSiteIsActedOnSooner() async {
+        var acted: [Int] = []
+        let c = make { $0.onHideApp = { _ in } }
         await goBackFromThePauseScreen(c)
-        var waits: [Double] = []
         for _ in 0..<3 {
             c.windowChanged(editor)
             await advance(c, to: t + 30)
             c.windowChanged(video)
-            waits.append(c.shieldWaitRemaining())
+            acted.append(c.frictionStrikes[Keys.site(video)] ?? 0)
             c.shieldBackToTask()
             await advance(c, to: t + 30)
         }
-        XCTAssertEqual(waits[0], 20, accuracy: 1.5)
-        XCTAssertGreaterThan(waits[1], waits[0], "coming back waits longer"); XCTAssertEqual(waits[2], 60, accuracy: 1.5, "up to a minute")
-        XCTAssertEqual(Shield.frictionWait(strikes: 9), 60, "capped")
+        XCTAssertEqual(acted, acted.sorted(), "the count of covers only climbs")
+        XCTAssertGreaterThanOrEqual(acted.last ?? 0, 3)
+        XCTAssertEqual(Shield.lockSeconds(after: 0), 300); XCTAssertEqual(Shield.lockSeconds(after: 1), 600); XCTAssertEqual(Shield.lockSeconds(after: 9), 1800, "capped at half an hour")
+    }
+
+    func testAWrongExplanationIsActedOnAtOnceAndTheLockGrows() async {
+        var hidden: [String] = []
+        let c = make { $0.onHideApp = { hidden.append($0) } }
+        await toThePauseScreen(c); await openTheForm(c)
+        hidden.removeAll()
+        c.submitExplanation(bluff); await c.waitForJudgments()
+        XCTAssertEqual(hidden, ["Safari"], "the first wrong answer hides the app straight away")
+        XCTAssertTrue(c.shield?.message?.contains("hid the app") ?? false)
+        c.submitExplanation(bluff + " twice"); await c.waitForJudgments()
+        XCTAssertGreaterThan(c.overrideLockRemaining, 295)
+        await advance(c, to: t + 302)
+        hold(c)
+        c.submitExplanation(bluff + " third"); await c.waitForJudgments()
+        c.submitExplanation(bluff + " fourth"); await c.waitForJudgments()
+        XCTAssertGreaterThan(c.overrideLockRemaining, 595, "the second lock is ten minutes")
     }
 
     func testStayingOnTheSiteIsCoveredAgainAfterBackToTask() async {

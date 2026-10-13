@@ -43,20 +43,16 @@ struct ShieldCard: View {
     }
     static let width: CGFloat = 480
 
-    // Before the wait is over: the task, a visible countdown, nothing else.
+    // Before explaining: the task, a way back, and a press and hold to start explaining. There is no wait.
     @ViewBuilder var waiting: some View {
         Text(CueCopy.shieldBody(shield.kind, tone: c.prefs.nudgeTone, task: c.taskName, longDetour: c.longDetour))
             .font(Tokens.text(14)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
         if c.longDetour && shield.kind == .pause { Button(NudgeCopy.breakButton()) { c.takeNudgeBreak() }.buttonStyle(FocusButtonStyle(.primary, expand: true)) }
         Button("Back to task") { c.shieldBackToTask() }.buttonStyle(FocusButtonStyle(c.longDetour && shield.kind == .pause ? .secondary : .primary, expand: true))
         TimelineView(.periodic(from: .now, by: 0.25)) { _ in
-            let left = c.shieldWaitRemaining(), lock = c.overrideLockRemaining
-            let total = max(1, shield.waitUntil - shield.since)
+            let lock = c.overrideLockRemaining
             VStack(alignment: .leading, spacing: 8) {
-                if left > 0 {
-                    ProgressBar(fraction: 1 - left / total)
-                    Text(CueCopy.waitLine(Int(left.rounded(.up)))).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).monospacedDigit()
-                } else if lock > 0 {
+                if lock > 0 {
                     Text(CueCopy.lockedLine(Int(lock.rounded(.up)))).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
                 } else {
                     HoldPad(c: c).frame(height: 36)
@@ -87,7 +83,7 @@ struct ShieldCard: View {
                 .disabled(shield.checking || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             if shield.checking { ProgressView().controlSize(.small); Text("Reading the window").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
         }
-        Text("\(shield.attemptsLeft) \(shield.attemptsLeft == 1 ? "try" : "tries") left. Two wrong answers lock this for \(Int(Shield.lockSeconds / 60)) minutes.")
+        Text("\(shield.attemptsLeft) \(shield.attemptsLeft == 1 ? "try" : "tries") left. A wrong answer costs something, and two lock explaining for \(Int(Shield.lockSeconds(after: c.overrideLocks) / 60)) minutes.")
             .font(Tokens.text(12)).foregroundStyle(Tokens.ink2)
     }
 

@@ -13,7 +13,7 @@ extension SessionController {
         lastOnTask = nil; lastEnforce = nil
         banner = nil; shield = nil; shieldHoldStart = nil; overrideLockedUntil = nil; rhythmPrompt = nil
         driftWatch.reset(); headsUpAt = nil; bannerHidden = false
-        blockedSites = [:]; passUntil = [:]; frictionQuietUntil = 0; frictionStrikes = [:]; lastFrictionEnforce = -1000
+        blockedSites = [:]; passUntil = [:]; frictionQuietUntil = 0; frictionStrikes = [:]; lastFrictionEnforce = -1000; explainStrikes = 0; overrideLocks = 0; lastPulseAt = -1000
         workSeconds = 0; lastWorkTick = nil; workBlocks = 0; lastSpokeAt = nil; warnedPressure = .steady
     }
 
@@ -38,7 +38,7 @@ extension SessionController {
     /// One place that decides which channels a moment uses. Practice mode stays silent in every channel.
     func fire(_ e: CueEvent, title: String? = nil) {
         guard isActive, !shadow else { return }
-        if prefs.hapticTap { onHaptic?(e.firm ? .firm : .light) }
+        if prefs.hapticTap { onHaptic?(e.strong ? .strong : e.firm ? .firm : .light); lastPulseAt = now() }
         if prefs.dockBounce, e.bouncesDock { onDockBounce?() }
         let t = now()
         if prefs.speakNudges, e.speaks, let line = CueCopy.spoken(e, title: title ?? ""), !line.isEmpty, (lastSpokeAt.map { t - $0 >= 15 } ?? true) {
@@ -111,6 +111,19 @@ extension SessionController {
         updateShieldHold()
         if shield == nil, t - lastFrictionCheck >= 5, let w = currentWindow { lastFrictionCheck = t; updateFriction(w) }
         enforceOnIdleFriction(t)
+        pulseHaptics(t)
+    }
+
+    /// The trackpad keeps buzzing while you are off task, not just once: every 20 seconds after a warning (12 on Strict, and the
+    /// buzz is stronger), and a light one every 15 seconds while Focus suspects you are drifting.
+    func pulseHaptics(_ t: Double) {
+        guard prefs.hapticTap, isActive, !shadow, !isPaused else { return }
+        let state = presence.state
+        guard state == "interrupted" || state == "drifting" else { return }
+        let gap = state == "drifting" ? 15.0 : (sessionPreset == .strict ? 12.0 : 20.0)
+        guard t - lastPulseAt >= gap else { return }
+        lastPulseAt = t
+        onHaptic?(state == "interrupted" ? (escalationStep >= .pauseScreen ? .strong : .firm) : .light)
     }
 
     // MARK: scheduled rhythm

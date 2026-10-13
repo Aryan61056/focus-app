@@ -108,7 +108,7 @@ struct SettingsView: View {
                     row("Cover a flagged site when it opens again", "After a pause screen, the same site is covered whenever you open it again: 20 seconds the first time, then 40 and 60. If you sit behind the cover without going back or explaining, Focus acts on the site as the last step does (it switches tabs, hides the app, or on Strict closes the tab). Going back to the task is always one click.") {
                         toggle(\.frictionReturn)
                     }
-                    row("Explaining a flagged window", "Saying \u{201C}That was fine\u{201D} about a window Focus read as off topic asks you to explain it, after a short wait. Focus checks your words against the window itself with both of its judges, and your words alone never pass it. Two wrong answers lock it for \(Int(Shield.lockSeconds / 60)) minutes. A project rule that says never is final.") {
+                    row("Explaining a flagged window", "Saying \u{201C}That was fine\u{201D} about a window Focus read as off topic asks you to explain it, with no wait: press and hold, then type. Focus checks your words against the window itself with both of its judges, and your words alone never pass it. A wrong answer is acted on at once (the app is hidden, or on Strict the tab is closed), and two lock explaining for 5 minutes, then 10, 20 and 30. A project rule that says never is final.") {
                         Label("Always on", systemImage: "lock").foregroundStyle(Tokens.ink2)
                     }
                     row("Tint the menu bar ring", "A warm tint for a heads-up or a prompt, and a slow pulse while you are away. The ring's shape shows the state either way.") {
@@ -117,7 +117,7 @@ struct SettingsView: View {
                     row("Bounce the Dock icon", "Once for a warning, a step up the ladder or a prompt, only while Focus is in the background.") {
                         toggle(\.dockBounce)
                     }
-                    row("Tap the trackpad", "A silent tap with a warning. It only works on a Force Touch trackpad and only while a finger rests on it, so it is a bonus cue, not a promise.") {
+                    row("Tap the trackpad", "A silent buzz of several taps with each warning, and it repeats while you stay off task: every 20 seconds after a warning (12 on Strict), longer and stronger once the pause screen is up, and a light one every 15 seconds while Focus suspects you are drifting. The Mac gives apps one tap strength, so stronger means more taps close together. It only works on a Force Touch trackpad and only while a finger rests on it, so it is a bonus cue, not a promise.") {
                         HStack(spacing: 10) {
                             Button("Try") { c.previewCue(haptic: true) }.buttonStyle(FocusButtonStyle(.secondary, small: true))
                             toggle(\.hapticTap)

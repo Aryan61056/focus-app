@@ -135,7 +135,7 @@ final class CueCopyTests: XCTestCase {
         var lines: [String] = []
         for tone in NudgeTone.allCases { for k in [Banner.Kind.early, .reminder] { lines.append(CueCopy.bannerTitle(k, tone: tone, task: "Calc homework")) } }
         for k in [Shield.Kind.pause, .friction, .claim] { lines += [CueCopy.shieldTitle(k), CueCopy.shieldBody(k, tone: .neutral, task: "Calc homework", longDetour: false)] }
-        lines += [CueCopy.shieldAsk(task: "Calc homework"), CueCopy.shieldPlaceholder, CueCopy.waitLine(12), CueCopy.lockedLine(300)] + OverrideClaim.messagesForTesting
+        lines += [CueCopy.shieldAsk(task: "Calc homework"), CueCopy.shieldPlaceholder, CueCopy.punishment(.close), CueCopy.punishment(.hide), CueCopy.punishment(.switchAway), CueCopy.lockedLine(300)] + OverrideClaim.messagesForTesting
         for k in [RhythmPrompt.Kind.checkIn, .breakDue(minutes: 5), .breakDue(minutes: 15)] { lines += [CueCopy.rhythmTitle(k, task: "Calc homework"), CueCopy.rhythmBody(k)] }
         for p in [DayPressure.relaxed, .behind, .wellBehind] { lines += [PaceCopy.line(p, goalReached: true, behindMinutes: 20) ?? "", PaceCopy.line(p, goalReached: false, behindMinutes: 0) ?? ""] }
         for l in lines {
@@ -307,6 +307,20 @@ final class CueControllerTests: XCTestCase {
         await advance(c, to: warned + 101); XCTAssertGreaterThan(haptics, atCheckIn, "the pause screen")
     }
 
+    func testTheTrackpadKeepsBuzzingWhileYouStayAwayAndTheBuzzIsLongerAndStrongerThanBefore() async {
+        var haptics: [(Double, HapticPattern)] = []
+        let c = make { $0.onHaptic = { [unowned self] in haptics.append((self.t, $0)) } }
+        let warned = await driftUntilWarned(c)
+        haptics.removeAll()
+        await advance(c, to: warned + 110)
+        XCTAssertGreaterThanOrEqual(haptics.count, 5, "a buzz every 20 seconds or so, plus the ladder's own")
+        XCTAssertTrue(haptics.contains { $0.1 == .strong }, "the pause screen buzzes hardest")
+        XCTAssertGreaterThan(HapticPattern.firm.taps.count, 2); XCTAssertEqual(HapticPattern.strong.taps.count, 12)
+        XCTAssertGreaterThan(HapticPattern.light.taps.count, 1)
+        let quiet = make { $0.prefs.hapticTap = false; $0.onHaptic = { _ in XCTFail("haptics are off") } }
+        let w2 = await driftUntilWarned(quiet); await advance(quiet, to: w2 + 60)
+    }
+
     // rhythm
     func testCheckInsComeAtTheIntervalAndIgnoringOneCountsAsYes() async {
         let c = make { $0.prefs.rhythm = .checkIns; $0.prefs.checkInMinutes = 15 }
@@ -404,7 +418,7 @@ final class CueControllerTests: XCTestCase {
         XCTAssertNotNil(late.checkIn, "behind the pace, the check-in comes after about 26 seconds")
         await advance(late, to: warnedPM + 66)
         XCTAssertTrue(late.escalationGate)
-        XCTAssertGreaterThan(late.gateHoldRemaining(), 30, "and the pause screen makes you wait longer before you can explain")
+        XCTAssertEqual(late.shieldWaitRemaining(), 0, "nothing makes you wait to explain")
     }
 
     func testPaceCanBeSwitchedOffOrHiddenWithTheGoal() {

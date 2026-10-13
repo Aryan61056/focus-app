@@ -114,6 +114,12 @@ All are in the controller layer (`Cues.swift`, `SessionController+Cues.swift`, `
 - **The cover is no longer free (owner: "this keeps happening and nothing happens afterwards"):** the "This is where you drifted" cover used to just sit there. Now each return to the same site waits longer (20, 40, 60 s), and a cover left unanswered 20 s after its wait ends makes Focus act on the site like the last step (switch tabs, then hide the app, or on Strict close the tab), repeating every 45 s. Going back to the task or a verified explanation clears it. Settings text updated.
 - **Not verified live:** Chrome's script against a real Chrome (needs the Automation grant); I only tested that the script text is built and the Safari scripts compile.
 
+## No wait to explain, punish wrong explanations, stronger trackpad (owner, 2026-10-13: "why should you wait to explain why you're right", "make the trackpad nudges a lot stronger and frequent")
+- **Waits removed:** the 10, 20-60 and 30/45 second waits before the explanation form are gone, on the pause screen, the cover and the claim screen. Back to task was always instant. The 5 second press and hold stays (you asked for it earlier); say if it should shrink or go.
+- **Cost moved to wrong explanations:** a reading of "not on task" or an attempt to give Focus orders is acted on at once (Standard hides the app, Strict closes the browser tab) and the message says what it did. Two wrong answers lock explaining for 5 minutes, then 10, 20 and 30 on later locks in the same session. Focus being unable to tell, a private window and your own "never" rule are not punished. A cover left unanswered 30 s after it appears makes Focus act on the site, as before.
+- **Trackpad:** light is 3 taps, firm is 7 taps over about a second, the new strong is 12 taps close together (pause screen, last step). New repeating pulses while you stay off task: every 20 s after a warning (12 on Strict; strong once the pause screen is up) and a light one every 15 s while drifting. macOS gives apps one tap strength and plays it only on a Force Touch trackpad with a finger resting on it, so "stronger" means more taps; I could not feel it from here.
+- **Verified:** 291 tests, including the pulse timing, no wait, the punishment and the growing lock. **Not verified live:** how it feels on your trackpad.
+
 ## Decisions I made without asking (change any of them)
 - OCR level `.fast` (accurate stalled about 66 s on first use).
 - Idle threshold 240 s; call needs two polls in a row (about 10 s).
