@@ -315,6 +315,15 @@ final class TabEnforcementTests: XCTestCase {
     }
 
     /// Compiles only (nothing runs, no permission needed), so a typo in the script text shows up here and not on the user's Mac.
+    func testCometScriptsCompile() throws {
+        try XCTSkipUnless(FileManager.default.fileExists(atPath: "/Applications/Comet.app"), "Comet not installed")
+        for src in [TabScript.switchTo(app: "Comet", url: "https://docs.example.com/calc"), TabScript.close(app: "Comet", url: "https://youtube.com/watch"), TabScript.currentURL(app: "Comet")] {
+            var err: NSDictionary?
+            XCTAssertTrue(NSAppleScript(source: try XCTUnwrap(src))!.compileAndReturnError(&err), "\(String(describing: err))")
+        }
+        XCTAssertTrue(Enforcement.isBrowser("Comet"))
+    }
+
     func testSafariScriptsCompile() throws {
         try XCTSkipUnless(FileManager.default.fileExists(atPath: "/Applications/Safari.app") || FileManager.default.fileExists(atPath: "/System/Volumes/Preboot/Cryptexes/App/System/Applications/Safari.app"), "Safari not found")
         for src in [TabScript.switchTo(app: "Safari", url: "https://docs.example.com/calc?x=1"), TabScript.close(app: "Safari", url: "https://youtube.com/watch")] {

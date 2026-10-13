@@ -67,7 +67,7 @@ public enum EnforceAction: Equatable, Sendable { case switchAway, hide, close }
 
 extension Enforcement {
     /// Browsers Focus can steer through AppleScript. Arc and others are left out: their scripting is not the same and I have not checked it.
-    static let browsers: Set<String> = ["safari", "google chrome", "brave browser", "microsoft edge"]
+    static let browsers: Set<String> = ["safari", "google chrome", "brave browser", "microsoft edge", "comet"]
     public static func isBrowser(_ app: String?) -> Bool { app.map { browsers.contains($0.trimmingCharacters(in: .whitespaces).lowercased()) } ?? false }
 
     /// `performed` counts the rounds already carried out this warning (0 for the first).
@@ -115,6 +115,7 @@ public enum TabScript {
         case "google chrome": return "Google Chrome"
         case "brave browser": return "Brave Browser"
         case "microsoft edge": return "Microsoft Edge"
+        case "comet": return "Comet"
         default: return nil
         }
     }
