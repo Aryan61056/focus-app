@@ -28,6 +28,7 @@ struct InsightsView: View {
                         }
                     }
                     .frame(maxWidth: 560)
+                    if c.prefs.showProgress { ProgressInsights(store: store).frame(maxWidth: 560) }
                     Panel {
                         VStack(alignment: .leading, spacing: 14) {
                             Text("How well Focus is reading you").font(Tokens.text(15, .semibold)).accessibilityAddTraits(.isHeader)
@@ -84,6 +85,51 @@ struct Heatmap: View {
                     }
                 }
             }
+        }
+    }
+}
+
+/// How you recover, not how often you slip: time to get back on task, the longest stretch, the best run of focus days.
+/// Each figure appears only when there is enough behind it, and nothing here is ranked or scored.
+struct ProgressInsights: View {
+    @Bindable var store: DataStore
+    var body: some View {
+        let trend = Rewards.returnTrend(store.sessions, today: .now)
+        let streak = Rewards.streak(store.sessions, today: .now)
+        let best = Rewards.bestStretch(store.sessions)
+        if trend != nil || best >= Rewards.notableStretch || streak.best >= 2 {
+            Panel {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Getting back on track").font(Tokens.text(15, .semibold)).accessibilityAddTraits(.isHeader)
+                    if let t = trend {
+                        Text(headline(t)).font(Tokens.rounded(19, .semibold)).fixedSize(horizontal: false, vertical: true)
+                    }
+                    VStack(spacing: 0) {
+                        if let t = trend {
+                            fact("Average return this week", Rewards.duration(t.thisWeek.average))
+                            if let l = t.lastWeek { fact("Average return last week", Rewards.duration(l.average)) }
+                        }
+                        if best >= Rewards.notableStretch { fact("Longest stretch without a slip", Rewards.duration(best)) }
+                        if streak.best >= 2 { fact("Most focus days in a row", "\(streak.best)") }
+                    }
+                    if trend != nil {
+                        Text("A return is the time from drifting to being back on task. Practice sessions and weeks with fewer than three returns are left out.")
+                            .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
+    }
+
+    func headline(_ t: (thisWeek: Rewards.Returns, lastWeek: Rewards.Returns?)) -> String {
+        guard let l = t.lastWeek else { return "You are getting back on task in about \(Rewards.duration(t.thisWeek.average))." }
+        if t.thisWeek.average <= 0.85 * l.average { return "You got back faster this week: about \(Rewards.duration(t.thisWeek.average)), down from \(Rewards.duration(l.average))." }
+        return "You are getting back on task in about \(Rewards.duration(t.thisWeek.average))."
+    }
+    func fact(_ k: String, _ v: String) -> some View {
+        VStack(spacing: 0) {
+            Divider().overlay(Tokens.line)
+            HStack { Text(k).foregroundStyle(Tokens.ink2); Spacer(); Text(v).monospacedDigit() }.font(Tokens.text(13)).padding(.vertical, 8)
         }
     }
 }

@@ -58,6 +58,8 @@ struct FocusApp: App {
                         }
                         previewWatcher = pw; pw.bind()
                     }
+                    // One soft system tone, only when the user turned nudge sound on (the brain emits the cue only then).
+                    controller.onCue = { NSSound(named: "Tink")?.play() }
                     controller.onBringBackToApp = { name in
                         NSWorkspace.shared.runningApplications.first { $0.localizedName == name && $0.activationPolicy == .regular }?.activate()
                     }
@@ -102,6 +104,7 @@ struct FocusApp: App {
             CommandGroup(after: .sidebar) {
                 ForEach(Array(AppSection.allCases.enumerated()), id: \.element) { i, s in
                     Button(s.rawValue) { controller.requestSection(s) }.keyboardShortcut(KeyEquivalent(Character("\(i + 1)")), modifiers: .command)
+                        .disabled(s == .review && !controller.showsReview)
                 }
             }
         }

@@ -30,6 +30,7 @@ public struct RootView: View {
                     case .today: TodayView(c: c, showStart: $showStart)
                     case .projects: if let st = c.store { ProjectsView(c: c, store: st) } else { ComingNext(section: selection) }
                     case .history: if let st = c.store { HistoryView(store: st) } else { ComingNext(section: selection) }
+                    case .review where !c.showsReview: TodayView(c: c, showStart: $showStart)
                     case .review: if let st = c.store { ReviewView(c: c, store: st) } else { ComingNext(section: selection) }
                     case .insights: if let st = c.store { InsightsView(c: c, store: st) } else { ComingNext(section: selection) }
                     case .settings: if let st = c.store { SettingsView(c: c, store: st) } else { ComingNext(section: selection) }
@@ -64,7 +65,7 @@ struct Sidebar: View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 9) { RingView(.on, color: Tokens.accent).frame(width: 20, height: 20); Text("Focus").font(Tokens.rounded(15, .semibold)) }
                 .padding(.horizontal, 8).padding(.top, 18).padding(.bottom, 16)
-            ForEach(AppSection.allCases.filter { $0 != .settings }) { s in row(s) }
+            ForEach(AppSection.allCases.filter { $0 != .settings && ($0 != .review || c.showsReview) }) { s in row(s) }
             Spacer()
             if c.isActive {
                 HStack(spacing: 10) {

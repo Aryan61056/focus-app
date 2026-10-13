@@ -7,9 +7,15 @@ struct NudgeCard: View {
     var kind: String
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(kind == "notice" ? "Still on \(c.taskName)?" : "Back to \(c.taskName)?")
+            Text(c.nudgeTitle)
                 .font(Tokens.rounded(17, .semibold)).fixedSize(horizontal: false, vertical: true)
-            Button("Back to task") { c.act(.backToTask) }.buttonStyle(FocusButtonStyle(.primary, expand: true))
+            if c.longDetour {
+                // After a long detour another push helps less than a rest; the break leads and going back stays one click away.
+                Button(NudgeCopy.breakButton()) { c.takeNudgeBreak() }.buttonStyle(FocusButtonStyle(.primary, expand: true))
+                Button("Back to task") { c.act(.backToTask) }.buttonStyle(FocusButtonStyle(.secondary, expand: true))
+            } else {
+                Button("Back to task") { c.act(.backToTask) }.buttonStyle(FocusButtonStyle(.primary, expand: true))
+            }
             HStack {
                 Button("That was fine") { c.act(.thatWasFine) }.buttonStyle(FocusButtonStyle(.plain, small: true))
                 Spacer()
@@ -33,8 +39,14 @@ struct GateOverlay: View {
             VStack(spacing: 14) {
                 RingView(.drift, color: Tokens.ink).frame(width: 44, height: 44)
                 Text("Take a moment").font(Tokens.rounded(22, .semibold))
-                Text("You have been away from \(c.taskName) for a while.").font(Tokens.text(14)).foregroundStyle(Tokens.ink2)
-                Button("Back to task") { c.act(.backToTask) }.buttonStyle(FocusButtonStyle(.primary, expand: true)).frame(width: 240)
+                Text(NudgeCopy.gateBody(tone: c.prefs.nudgeTone, task: c.taskName, longDetour: c.longDetour)).font(Tokens.text(14)).foregroundStyle(Tokens.ink2)
+                    .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+                if c.longDetour {
+                    Button(NudgeCopy.breakButton()) { c.takeNudgeBreak() }.buttonStyle(FocusButtonStyle(.primary, expand: true)).frame(width: 240)
+                    Button("Back to task") { c.act(.backToTask) }.buttonStyle(FocusButtonStyle(.secondary, expand: true)).frame(width: 240)
+                } else {
+                    Button("Back to task") { c.act(.backToTask) }.buttonStyle(FocusButtonStyle(.primary, expand: true)).frame(width: 240)
+                }
                 HStack {
                     Button("That was fine") { c.act(.thatWasFine) }.buttonStyle(FocusButtonStyle(.plain, small: true))
                     Button("Snooze 15 min") { c.act(.snooze, minutes: 15) }.buttonStyle(FocusButtonStyle(.plain, small: true))

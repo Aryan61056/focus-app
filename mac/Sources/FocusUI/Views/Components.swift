@@ -38,3 +38,27 @@ struct Scroller<Content: View>: View {
         if SnapshotMode.on { content } else { ScrollView { content }.scrollIndicators(.hidden) }
     }
 }
+
+/// Marks any text the on-device model wrote, so it is never mistaken for a fact or a setting the user made.
+struct AITag: View {
+    var body: some View {
+        Label("On-device AI", systemImage: "sparkles").labelStyle(.titleAndIcon)
+            .font(Tokens.text(11.5, .medium)).foregroundStyle(Tokens.ink2)
+            .padding(.horizontal, 8).frame(height: 20)
+            .overlay { Capsule().strokeBorder(Tokens.line) }
+            .accessibilityLabel("Written by the on-device model. It can be wrong.")
+    }
+}
+
+/// A small pulsing ring while the model is working. Stands still with Reduce Motion.
+struct ThinkingDot: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var on = false
+    var body: some View {
+        Circle().strokeBorder(Tokens.accent, lineWidth: 2).frame(width: 12, height: 12)
+            .scaleEffect(on && !reduceMotion ? 1.25 : 1).opacity(on && !reduceMotion ? 0.5 : 1)
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: on)
+            .onAppear { on = true }
+            .accessibilityHidden(true)
+    }
+}

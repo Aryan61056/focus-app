@@ -168,4 +168,68 @@ final class ControllerStoreTests: XCTestCase {
         XCTAssertGreaterThan(store.openReviewCount, 0)
         XCTAssertEqual(store.review.first?.siteKey, "safari|youtube.com")
     }
+
+    // MARK: nudge wording and quiet rewards, driven through the real controller
+    var off: CountingJudge { judge }
+    func make(_ j: CountingJudge) -> SessionController { SessionController(judge: j, store: DataStore(), prefs: noWords(), now: { [unowned self] in self.t }) }
+
+    func testNudgeTitleFollowsToneAndNeverNamesTheWindow() async {
+        let c = make(off)
+        c.prefs.nudgeTone = .coach
+        c.windowChanged(editor)
+        c.begin(task: "Calc homework", preset: .standard, shadow: false)
+        await advance(c, to: 20)
+        c.windowChanged(video)
+        while c.surface == nil && t < 300 { await advance(c, to: t + 1) }
+        XCTAssertNotNil(c.surface)
+        XCTAssertEqual(c.nudgeTitle, "Ready to pick Calc homework back up?")
+        XCTAssertFalse(c.nudgeTitle.lowercased().contains("youtube"))
+        XCTAssertFalse(c.longDetour, "a first nudge is not a long detour")
+    }
+
+    func testGettingBackOnTaskAfterAFlaggedDriftShowsAQuickReturnAndRingTick() async {
+        let c = make(off)
+        c.windowChanged(editor)
+        c.begin(task: "Calc homework", preset: .standard, shadow: false)
+        await advance(c, to: 20)
+        c.windowChanged(video)
+        while c.surface == nil && t < 300 { await advance(c, to: t + 1) }
+        c.windowChanged(editor)
+        var seen: Confirmation?
+        while seen == nil && t < 400 { await advance(c, to: t + 1); seen = c.moment }
+        guard case .backOnTrack(let secs)? = seen?.kind else { return XCTFail("no return confirmation, got \(String(describing: seen))") }
+        XCTAssertGreaterThan(secs, 0)
+        XCTAssertEqual(c.ringState, .done)
+        await advance(c, to: t + 9)
+        XCTAssertNil(c.moment, "the confirmation fades after a few seconds")
+        c.end()
+        XCTAssertEqual(c.store?.sessions.first?.returns?.count ?? 1, 1)
+    }
+
+    func testTurningProgressOffShowsNoConfirmationOrHighlight() async {
+        let c = make(off)
+        c.prefs.showProgress = false
+        c.windowChanged(editor)
+        c.begin(task: "Calc homework", preset: .standard, shadow: false)
+        await advance(c, to: 20)
+        c.windowChanged(video)
+        while c.surface == nil && t < 300 { await advance(c, to: t + 1) }
+        c.windowChanged(editor)
+        await advance(c, to: t + 40)
+        XCTAssertNil(c.moment)
+        c.end()
+        XCTAssertNil(c.highlight)
+    }
+
+    func testPracticeSessionsGiveNoReturnConfirmations() async {
+        let c = make(off)
+        c.windowChanged(editor)
+        c.begin(task: "Calc homework", preset: .standard, shadow: true)
+        await advance(c, to: 20)
+        c.windowChanged(video)
+        await advance(c, to: 200)
+        c.windowChanged(editor)
+        await advance(c, to: 260)
+        XCTAssertNil(c.moment)
+    }
 }

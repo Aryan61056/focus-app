@@ -1,5 +1,6 @@
 import SwiftUI
 import FocusBrain
+import FocusJudge
 
 public struct StartSheet: View {
     @Bindable var c: SessionController
@@ -8,6 +9,8 @@ public struct StartSheet: View {
     @State private var timed = false
     @State private var minutes = 50
     @FocusState private var focused: Bool
+    /// A suggestion the user accepted: its "what counts" line is saved on the project only if they start with that exact task.
+    @State private var accepted: Sharpened?
 
     /// Level 0 start (PLAN 4.8): the project worked on last, so a returning user only presses Enter.
     static func lastProject(_ store: DataStore?) -> Project? {
@@ -25,6 +28,7 @@ public struct StartSheet: View {
                 .background(RoundedRectangle(cornerRadius: 12).fill(Tokens.control))
                 .focused($focused).onSubmit(start)
                 .onExitCommand { isPresented = false }
+            coach
             if let m = parsed.minutes { Text("Timed session, \(m) minutes, on \u{201C}\(parsed.task)\u{201D}.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
             if let p = Self.lastProject(c.store), p.name == task, !p.nextStep.isEmpty {
                 Label("Next step: \(p.nextStep)", systemImage: "arrow.turn.down.right").font(Tokens.text(13)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
@@ -62,9 +66,38 @@ public struct StartSheet: View {
             }
         }
         .padding(24).frame(width: 480)
+        .onChange(of: task) { _, _ in if c.sharpened.value != nil || c.sharpened == .failed { c.clearSharpened() } }
+        .onDisappear { c.clearSharpened() }
         .onAppear {
             focused = true
             if task.isEmpty, let p = Self.lastProject(c.store) { task = p.name }
+        }
+    }
+
+    /// Task coach: optional, one button, and nothing changes until the user accepts the suggestion.
+    @ViewBuilder var coach: some View {
+        switch c.sharpened {
+        case .idle:
+            if c.aiAvailable && trimmed.count >= 3 && accepted == nil {
+                Button { c.sharpenTask(trimmed) } label: { Label("Suggest a clearer task", systemImage: "sparkles") }
+                    .buttonStyle(FocusButtonStyle(.plain, small: true))
+            }
+        case .working:
+            HStack(spacing: 8) { ThinkingDot(); Text("Thinking about it on this Mac").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
+        case .failed:
+            Text("Focus has no suggestion right now. Your task is fine as it is.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
+        case .ready(let s):
+            VStack(alignment: .leading, spacing: 8) {
+                HStack { Text("Suggestion").font(Tokens.text(13, .semibold)); AITag() }
+                Text(s.task).font(Tokens.text(14, .medium))
+                if !s.counts.isEmpty { Text("Counts as on task: \(s.counts)").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true) }
+                HStack(spacing: 8) {
+                    Button("Use this") { task = s.task; accepted = s; c.clearSharpened() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+                    Button("Keep mine") { c.clearSharpened() }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                }
+            }
+            .padding(12).frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Tokens.window2))
         }
     }
 
@@ -94,6 +127,7 @@ public struct StartSheet: View {
         guard !trimmed.isEmpty else { return }
         let typedMinutes = parsed.minutes
         let isTimed = timed || typedMinutes != nil
+        if let a = accepted, a.task == trimmed { c.saveContextIfEmpty(task: trimmed, context: a.counts) }
         c.begin(task: trimmed, mode: isTimed ? .timed : .open, duration: isTimed ? Double((typedMinutes ?? minutes) * 60) : nil, autoTick: true)
         isPresented = false
     }

@@ -48,6 +48,14 @@ The model said "Not sure" for most real work windows, so a window whose title, p
 ## Notch animation (owner report 2026-10-02)
 The window used to snap to its new size while the SwiftUI shape animated inside it. Now the window keeps one size (the biggest mode) and only the black shape animates, with a spring; the ring and time stay put; the body fades in and out; hover opens after 0.16 s so passing the pointer by does not pop it open, and closes after 0.1 s. Frames captured while hovering showed the fade; the shape growth itself could not be seen against this Mac's black wallpaper.
 
+## Nudge wording and quiet rewards (owner asked 2026-10-13: "nudge features and reward systems that keep you on track")
+- **Nudges:** three tones (Neutral, Coach, Direct) of curated lines, never model-written, none naming the window. After a detour of 8 minutes or more the card, the notch and the Strict pause screen lead with "Take a 5 minute break" and keep "Back to task" one click away. Optional soft system tone (Tink), off by default, never in practice mode.
+- **Rewards, all from saved seconds (no text):** a daily goal (default 90 min), focus days (20 min on task) with up to 2 rest days a week so a missed day never breaks a streak, longest stretch without a slip, and time to get back on task after a flagged drift. A closed ring with a tick plus a short line ("Back in 40 s", "Daily goal reached", "Longest stretch yet") shows for 8 s while working; one line ends each session. Insights has a "Getting back on track" panel. Settings: "Progress" group (switch, goal) and tone/sound under Nudges.
+- **Held to PRODUCT.md principle 6:** no points, levels or badges, nothing taken away, no "streak at risk" copy, a rough session gets kindness not a score. Practice sessions are excluded from stretches and returns (their beacon never leaves "resting").
+- **Verified:** 176 tests pass (6 opt-in real-model tests skipped), including controller tests driving a drift and return through the real controller. Rendered with `focus-snapshot` (seeded store) and the demo app's self-render: Today progress panel, Insights panel, Settings, notch nudge. Found and fixed by rendering: the goal read 0 between sessions (only computed at session start).
+- **Not verified:** the in-session confirmation, the long-detour break card and the sound on a real display and real session (only logic tests and offscreen renders); the Rust brain is untouched, so the sound cue is the only brain-side behavior and it already existed. Windows: nothing.
+- **Decisions I made:** 90 min default goal, 20 min focus day, 2 rest days a week, 8 minute detour threshold, 5 minute break offer, Tink as the tone, confirmations for 8 s. All are constants in `Rewards.swift` / `NudgeCopy.swift`.
+
 ## Decisions I made without asking (change any of them)
 - OCR level `.fast` (accurate stalled about 66 s on first use).
 - Idle threshold 240 s; call needs two polls in a row (about 10 s).

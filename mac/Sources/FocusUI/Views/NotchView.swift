@@ -155,10 +155,15 @@ public struct NotchView: View {
 
     var nudgeBody: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(c.surface?.kind == "notice" ? "Still on \(c.taskName)?" : "Back to \(c.taskName)?").font(Tokens.rounded(15, .semibold)).lineLimit(2)
+            Text(c.nudgeTitle).font(Tokens.rounded(15, .semibold)).lineLimit(2)
             HStack(spacing: 8) {
-                pill("Back to task", primary: true) { c.act(.backToTask) }
-                pill("Not now") { c.act(.dismiss) }
+                if c.longDetour {
+                    pill(NudgeCopy.shortBreakButton(), primary: true) { c.takeNudgeBreak() }
+                    pill("Back to task") { c.act(.backToTask) }
+                } else {
+                    pill("Back to task", primary: true) { c.act(.backToTask) }
+                    pill("Not now") { c.act(.dismiss) }
+                }
             }
         }.frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 18).padding(.top, hasNotch ? 6 : 12).padding(.bottom, 14)
     }

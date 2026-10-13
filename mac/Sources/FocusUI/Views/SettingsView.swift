@@ -27,8 +27,40 @@ struct SettingsView: View {
                         opt(.standard, "Standard", "A card after about a minute, again every five.")
                         opt(.strict, "Strict", "A pause screen after 45 seconds.")
                     }.padding(14)
-                    row("Practice mode", "Watch without interrupting for the first \(Preferences.practiceSessions) sessions.") {
-                        Toggle("", isOn: Binding(get: { c.prefs.practiceActive }, set: { $0 ? c.prefs.restartPractice() : c.prefs.turnNudgesOnNow() })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
+                    row("How nudges sound", "For example \u{201C}\(c.prefs.nudgeTone.example)\u{201D}. A nudge never names what you were looking at.") {
+                        HStack(spacing: 6) {
+                            ForEach(NudgeTone.allCases) { tone in
+                                let on = c.prefs.nudgeTone == tone
+                                Button(tone.title) { c.prefs.nudgeTone = tone }.buttonStyle(.plain)
+                                    .font(Tokens.text(12.5, .semibold)).padding(.horizontal, 12).frame(height: 28)
+                                    .background(Capsule().fill(on ? Tokens.accentSoft : Tokens.control))
+                                    .overlay { if on { Capsule().strokeBorder(Tokens.accent, lineWidth: 1.5) } }
+                                    .accessibilityAddTraits(on ? .isSelected : [])
+                            }
+                        }
+                    }
+                    row("Play a soft tone with a nudge", "One short system sound when a nudge appears. Off unless you turn it on, and it never plays in practice mode.") {
+                        Toggle("", isOn: Binding(get: { c.prefs.nudgeSound }, set: { c.prefs.nudgeSound = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
+                    }
+                    if !c.prefs.practiceRemoved {
+                        row("Practice mode", "Watch without interrupting for the first \(Preferences.practiceSessions) sessions.") {
+                            Toggle("", isOn: Binding(get: { c.prefs.practiceActive }, set: { $0 ? c.prefs.restartPractice() : c.prefs.turnNudgesOnNow() })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
+                        }
+                    }
+                    row("Remove practice mode", c.prefs.practiceRemoved ? "Practice mode is gone from Focus. Every session nudges from the start, and Review shows only moments already waiting for an answer." : "Takes practice mode out of Focus for good. Every session nudges from the start, and its screens, counts and messages disappear. You can bring it back here.") {
+                        Toggle("", isOn: Binding(get: { c.prefs.practiceRemoved }, set: { c.prefs.practiceRemoved = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
+                    }
+                }
+                group("Progress") {
+                    row("Show progress", "A daily goal, focus days with rest days, your longest stretch and how fast you get back on task. Nothing is ever taken away, and a missed day counts as a rest day, up to two a week. Off hides all of it.") {
+                        Toggle("", isOn: Binding(get: { c.prefs.showProgress }, set: { c.prefs.showProgress = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
+                    }
+                    if c.prefs.showProgress {
+                        row("Daily goal", "On-task time you would like most days. A day with 20 minutes on task counts as a focus day whatever the goal is.") {
+                            Picker("", selection: Binding(get: { c.prefs.dailyGoalMinutes }, set: { c.prefs.dailyGoalMinutes = $0 })) {
+                                ForEach(Preferences.goalChoices, id: \.self) { Text($0 >= 60 ? ($0 % 60 == 0 ? "\($0 / 60) h" : "\($0 / 60) h \($0 % 60) min") : "\($0) min").tag($0) }
+                            }.labelsHidden().frame(width: 110)
+                        }
                     }
                 }
                 group("What Focus looks at") {
@@ -42,6 +74,9 @@ struct SettingsView: View {
                     }
                     row("Judge with the on-device model", "Apple's on-device model reads the window and decides whether it fits your task. It can be wrong. Off: Focus only follows your project rules and matching words, shows everything else as not judged, and never nudges from its own reading.") {
                         Toggle("", isOn: Binding(get: { c.prefs.useModel }, set: { c.prefs.useModel = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
+                    }
+                    row("AI coaching, recaps and questions", "The on-device model can suggest a clearer task, write a short recap after a session and answer questions about it. It writes suggestions only and can be wrong. Off: none of these appear. Judging windows is a separate switch above.") {
+                        Toggle("", isOn: Binding(get: { c.prefs.aiHelp }, set: { c.prefs.aiHelp = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
                     row("Count matching words as on task", "A window whose app name, title or address shares words with your task counts as on task without asking the model. It never applies on feeds, video or news sites, and it can only make Focus quieter.") {
                         Toggle("", isOn: Binding(get: { c.prefs.matchTaskWords }, set: { c.prefs.matchTaskWords = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
@@ -107,7 +142,7 @@ struct SettingsView: View {
     func group<V: View>(_ title: String, @ViewBuilder _ content: () -> V) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             SectionTitle(text: title)
-            VStack(spacing: 0) { content() }.overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(Tokens.line) }
+            VStack(spacing: 0) { content() }.clipShape(RoundedRectangle(cornerRadius: 14)).overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(Tokens.line) }
         }
     }
 

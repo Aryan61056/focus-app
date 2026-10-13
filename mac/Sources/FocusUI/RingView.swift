@@ -5,6 +5,8 @@ import AppKit
 /// bars = paused, dot = break, arc = timed progress (docs/design, PRODUCT.md accessibility baseline).
 public enum RingState: Equatable, Sendable {
     case on, unsure, drift, paused, breakTime
+    /// A closed ring with a tick: a quick return or a goal reached. Shape, not color, carries it.
+    case done
     case progress(Double)
 }
 
@@ -40,6 +42,14 @@ public struct RingView: View {
                 ctx.stroke(circle, with: .color(color), style: style)
                 let d = s * 1.9 / 18 * 2
                 ctx.fill(Path(ellipseIn: CGRect(x: c.x - d / 2, y: c.y - d / 2, width: d, height: d)), with: .color(color))
+            case .done:
+                ctx.stroke(circle, with: .color(color), style: style)
+                let tick = Path { p in
+                    p.move(to: CGPoint(x: c.x - r * 0.42, y: c.y + r * 0.02))
+                    p.addLine(to: CGPoint(x: c.x - r * 0.1, y: c.y + r * 0.36))
+                    p.addLine(to: CGPoint(x: c.x + r * 0.46, y: c.y - r * 0.32))
+                }
+                ctx.stroke(tick, with: .color(color), style: StrokeStyle(lineWidth: lw, lineCap: .round, lineJoin: .round))
             case .progress(let f):
                 ctx.stroke(circle, with: .color(Tokens.track), style: style)
                 if f > 0 { ctx.stroke(arc(from: -90, sweep: 360 * min(max(f, 0), 1)), with: .color(color), style: style) }

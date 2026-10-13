@@ -27,7 +27,19 @@ public final class Preferences {
     /// Off: the on-device model is never asked. Only project rules, matching words and the never-judged lists decide; everything else
     /// is "not judged" and cannot lead to a nudge.
     public var useModel: Bool { didSet { defaults.set(useModel, forKey: "useModel") } }
-    public var practiceActive: Bool { practiceSessionsLeft > 0 }
+    /// Task coach, session recap and Ask Focus, all written by the on-device model. Off: none of them appear.
+    public var aiHelp: Bool { didSet { defaults.set(aiHelp, forKey: "aiHelp") } }
+    /// Practice mode taken out of the app for good: every session nudges from the start, and no practice screen, count or message appears.
+    public var practiceRemoved: Bool { didSet { defaults.set(practiceRemoved, forKey: "practiceRemoved"); if practiceRemoved { practiceSessionsLeft = 0 } } }
+    /// Quiet rewards: today's progress toward a daily goal, a streak with rest days, longest stretch, how fast you get back. Off hides all of it.
+    public var showProgress: Bool { didSet { defaults.set(showProgress, forKey: "showProgress") } }
+    public var dailyGoalMinutes: Int { didSet { defaults.set(dailyGoalMinutes, forKey: "dailyGoalMinutes") } }
+    /// Wording of nudges only. Curated lines, never model-written, and none ever names what you were looking at.
+    public var nudgeTone: NudgeTone { didSet { defaults.set(nudgeTone.rawValue, forKey: "nudgeTone") } }
+    /// One soft system tone when a nudge appears. Off by default (PRODUCT.md: discreet).
+    public var nudgeSound: Bool { didSet { defaults.set(nudgeSound, forKey: "nudgeSound") } }
+    public static let goalChoices = [30, 60, 90, 120, 180]
+    public var practiceActive: Bool { !practiceRemoved && practiceSessionsLeft > 0 }
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -41,7 +53,14 @@ public final class Preferences {
         contextTipDismissed = defaults.object(forKey: "contextTipDismissed") as? Bool ?? false
         matchTaskWords = defaults.object(forKey: "matchTaskWords") as? Bool ?? true
         useModel = defaults.object(forKey: "useModel") as? Bool ?? true
-        practiceSessionsLeft = defaults.object(forKey: "practiceLeft") as? Int ?? Preferences.practiceSessions
+        aiHelp = defaults.object(forKey: "aiHelp") as? Bool ?? true
+        showProgress = defaults.object(forKey: "showProgress") as? Bool ?? true
+        dailyGoalMinutes = defaults.object(forKey: "dailyGoalMinutes") as? Int ?? 90
+        nudgeTone = NudgeTone(rawValue: defaults.string(forKey: "nudgeTone") ?? "") ?? .neutral
+        nudgeSound = defaults.object(forKey: "nudgeSound") as? Bool ?? false
+        let removed = defaults.object(forKey: "practiceRemoved") as? Bool ?? false
+        practiceRemoved = removed
+        practiceSessionsLeft = removed ? 0 : (defaults.object(forKey: "practiceLeft") as? Int ?? Preferences.practiceSessions)
     }
 
     public enum Loudness: Sendable { case tooQuiet, aboutRight, tooLoud }
@@ -59,5 +78,5 @@ public final class Preferences {
 
     public func sessionFinished(wasPractice: Bool) { if wasPractice && practiceSessionsLeft > 0 { practiceSessionsLeft -= 1 } }
     public func turnNudgesOnNow() { practiceSessionsLeft = 0 }
-    public func restartPractice() { practiceSessionsLeft = Preferences.practiceSessions }
+    public func restartPractice() { if !practiceRemoved { practiceSessionsLeft = Preferences.practiceSessions } }
 }

@@ -41,6 +41,8 @@ struct ReadingPanel: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .firstTextBaseline) {
                     Text("What Focus is reading").font(Tokens.text(15, .semibold)).accessibilityAddTraits(.isHeader)
+                    if c.latest?.source == .model { AITag().padding(.leading, 4) }
+                    if c.isJudging { HStack(spacing: 6) { ThinkingDot(); Text("Reading now").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) } .padding(.leading, 6) }
                     Spacer()
                     if let r = c.latest {
                         TimelineView(.periodic(from: .now, by: 1)) { _ in

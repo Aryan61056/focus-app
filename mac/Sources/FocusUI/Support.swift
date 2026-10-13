@@ -55,6 +55,24 @@ public struct AdaptiveJudge: Judge {
     public func relation(prompt: String) async -> Verdict { await current().relation(prompt: prompt) }
 }
 
+public enum DefaultAssistant {
+    public static func make() -> any Assistant { AdaptiveAssistant() }
+}
+
+/// Like AdaptiveJudge: checks on every call, so Apple Intelligence turning on takes effect without a relaunch.
+public struct AdaptiveAssistant: Assistant {
+    public init() {}
+    private func current() -> any Assistant {
+        #if canImport(FoundationModels)
+        if #available(macOS 26.0, *), case .available = AppleJudge.availability { return AppleAssistant() }
+        #endif
+        return NoAssistant()
+    }
+    public func sharpen(task: String, context: String) async -> Sharpened? { await current().sharpen(task: task, context: context) }
+    public func recap(facts: String) async -> Recap? { await current().recap(facts: facts) }
+    public func answer(question: String, facts: String) async -> String? { await current().answer(question: question, facts: facts) }
+}
+
 /// Deterministic judge for demos, snapshots and tests: a window whose prompt contains a marker gets that label.
 public struct ScriptedJudge: Judge {
     public var markers: [(String, JudgmentLabelShim, String)]
@@ -110,6 +128,10 @@ public enum RingImage {
                 for x in [5.2, 10.0] { NSBezierPath(roundedRect: NSRect(x: size * x / 18, y: size * 4 / 18, width: size * 2.8 / 18, height: size * 10 / 18), xRadius: size * 1.4 / 18, yRadius: size * 1.4 / 18).fill() }
             case .breakTime:
                 ring(0, 360).stroke(); NSBezierPath(ovalIn: NSRect(x: c.x - size * 1.9 / 18, y: c.y - size * 1.9 / 18, width: size * 3.8 / 18, height: size * 3.8 / 18)).fill()
+            case .done:
+                ring(0, 360).stroke()
+                let t = NSBezierPath(); t.move(to: NSPoint(x: c.x - r * 0.42, y: c.y - r * 0.02)); t.line(to: NSPoint(x: c.x - r * 0.1, y: c.y - r * 0.36)); t.line(to: NSPoint(x: c.x + r * 0.46, y: c.y + r * 0.32))
+                t.lineWidth = lw; t.lineCapStyle = .round; t.lineJoinStyle = .round; t.stroke()
             case .progress(let f): ring(90, 90 - 360 * CGFloat(max(0.02, min(1, f)))).stroke()
             }
             return true

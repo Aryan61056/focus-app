@@ -15,7 +15,16 @@ struct TodayView: View {
                 Text("Today").font(Tokens.rounded(26, .semibold))
                 Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide))).font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
             }
-            if c.isActive { SessionPanel(c: c); ReadingPanel(c: c) } else if !c.prefs.introSeen && c.summary == nil && (c.store?.sessions.isEmpty ?? true) { IntroPanel(c: c, showStart: $showStart) } else { IdlePanel(c: c, showStart: $showStart); HowFocusDecides() }
+            // The AI's reading stays the hero while a session runs; progress follows it. Between sessions it sits right under the status.
+            if c.isActive {
+                SessionPanel(c: c); ReadingPanel(c: c); progress; if c.aiAvailable { AskPanel(c: c) }
+            } else if !c.prefs.introSeen && c.summary == nil && (c.store?.sessions.isEmpty ?? true) {
+                IntroPanel(c: c, showStart: $showStart)
+            } else {
+                IdlePanel(c: c, showStart: $showStart); progress
+                if c.aiAvailable && c.stats.total > 0 { AskPanel(c: c) }
+                HowFocusDecides()
+            }
             if case .unavailable(let why) = c.judgeStatus {
                 Panel(tinted: true) {
                     HStack(spacing: 14) {
@@ -59,6 +68,12 @@ struct TodayView: View {
     }
 }
 
+extension TodayView {
+    @ViewBuilder var progress: some View {
+        if let st = c.store, !st.sessions.isEmpty { ProgressPanel(c: c, store: st) }
+    }
+}
+
 struct SessionPanel: View {
     @Bindable var c: SessionController
     var body: some View {
@@ -72,7 +87,11 @@ struct SessionPanel: View {
                             Text("\(c.mode == .timed ? "Timed" : "Open") session, \(c.clockText())\(c.mode == .timed ? " left" : "")")
                                 .font(Tokens.text(13)).foregroundStyle(Tokens.ink2).monospacedDigit()
                         }
-                        StateChip(label: c.presenceLabel, ring: c.ringState, on: c.ringColor == Tokens.accent)
+                        HStack(spacing: 8) {
+                            StateChip(label: c.presenceLabel, ring: c.ringState, on: c.ringColor == Tokens.accent)
+                            if let m = c.moment { MomentLine(moment: m) }
+                        }
+                        .animation(.easeOut(duration: 0.2), value: c.moment)
                     }
                     Spacer(minLength: 12)
                     HStack(spacing: 8) {
@@ -113,7 +132,7 @@ struct IntroPanel: View {
                 Text("Stay on what you meant to do").font(Tokens.rounded(24, .semibold))
                 Text("Tell Focus what you are working on. It compares the window in front with that task, on this Mac, and nudges gently when you drift. When it is not sure, it does nothing.")
                     .font(Tokens.text(14.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true).frame(maxWidth: 520, alignment: .leading)
-                Text("Your first sessions are practice: Focus watches and learns, and does not interrupt. You can turn nudges on from the start screen or in Settings.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true).frame(maxWidth: 520, alignment: .leading)
+                if !c.prefs.practiceRemoved { Text("Your first sessions are practice: Focus watches and learns, and does not interrupt. You can turn nudges on from the start screen or in Settings.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true).frame(maxWidth: 520, alignment: .leading) }
                 HStack(spacing: 10) {
                     Button("Start a session") { c.prefs.introSeen = true; showStart = true }.buttonStyle(FocusButtonStyle(.primary)).keyboardShortcut("n")
                     Button("Skip intro") { c.prefs.introSeen = true }.buttonStyle(FocusButtonStyle(.plain))
@@ -155,6 +174,8 @@ struct IdlePanel: View {
                     Text("No session running").font(Tokens.rounded(20, .semibold))
                     Text("Tell Focus what you are working on and it will keep an eye out for drift.").font(Tokens.text(14)).foregroundStyle(Tokens.ink2)
                 }
+                if c.summary != nil, let h = c.highlight { HighlightLine(highlight: h) }
+                if c.summary != nil { RecapBlock(c: c) }
                 if c.summary != nil, let p = c.projectForNote { PickUpNote(c: c, project: p) }
                 Button("Start session") { showStart = true }.buttonStyle(FocusButtonStyle(.primary)).keyboardShortcut("n")
                 if c.summary != nil, c.askLoudness {

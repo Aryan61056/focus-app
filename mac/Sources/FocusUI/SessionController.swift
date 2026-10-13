@@ -70,6 +70,10 @@ public final class SessionController {
     public private(set) var shadowMarks = 0
     public private(set) var learnedRules: [LearnedRule] = []
     public private(set) var summary: SessionSummary?
+    /// Quiet rewards. `moment` is a short confirmation while working (quick return, daily goal, longest stretch); `highlight` is the one line
+    /// about a finished session. Both are memory only, and both stay empty when the user turned progress off.
+    public private(set) var moment: Confirmation?
+    public private(set) var highlight: Rewards.Highlight?
     public private(set) var currentWindow: WindowSnapshot?
     public private(set) var checkedAt: Double?
     public private(set) var shadow = true
@@ -89,6 +93,15 @@ public final class SessionController {
     @ObservationIgnored public var senseNow: (() -> WindowSnapshot?)?
     @ObservationIgnored private var probeTask: Task<Void, Never>?
     public private(set) var readings: [Reading] = []
+    /// Judge calls in flight, so the app can show that Focus is reading right now.
+    public private(set) var judging = 0
+    public var isJudging: Bool { judging > 0 }
+    /// Writing help from the on-device model: task coach, session recap, Ask Focus. Never decides anything; all of it is a suggestion.
+    @ObservationIgnored public var assistant: any Assistant = DefaultAssistant.make()
+    public internal(set) var recap = AIState<Recap>.idle
+    public internal(set) var answer = AIState<String>.idle
+    public internal(set) var sharpened = AIState<Sharpened>.idle
+    @ObservationIgnored var recapTask: Task<Void, Never>?
     public private(set) var stats = ReadStats()
     public private(set) var previewFrame: PreviewFrame?
     /// Words read from the latest picture (Apple Vision, on this Mac). Memory only, dropped when the window changes or the session ends.
@@ -122,6 +135,14 @@ public final class SessionController {
     @ObservationIgnored private var tasks: [Task<Void, Never>] = []
     @ObservationIgnored private var timer: Timer?
     @ObservationIgnored var totalSeconds = 0.0
+    // Rewards bookkeeping for the running session (seconds only).
+    @ObservationIgnored private var awayStart: Double?
+    @ObservationIgnored private var awayFlagged = false
+    @ObservationIgnored private var returnTimes: [Double] = []
+    @ObservationIgnored private var baselineToday = 0.0
+    @ObservationIgnored private var priorBestStretch = 0.0
+    @ObservationIgnored private var goalNotified = false
+    @ObservationIgnored private var stretchNotified = false
 
     /// Seconds on a clock that keeps counting while the Mac sleeps. ProcessInfo.systemUptime stops during sleep (on the dev Mac it was 92,000 s
     /// behind), which made a night's sleep look like a second, so "ask to resume after a long sleep" never fired.
@@ -143,12 +164,18 @@ public final class SessionController {
             pid = p.id; profile = p.profile
             if !p.context.isEmpty { profile.context = p.context }   // the judge reads profile.context; Projects edits Project.context
         }
-        let shadow = shadow ?? prefs.practiceActive
+        let shadow = prefs.practiceRemoved ? false : (shadow ?? prefs.practiceActive)
         self.project = profile; self.projectId = pid; self.shadow = shadow
         sessionId = UUID(); startedAt = date(); segments = []; segKind = nil; segStart = now()
         taskName = task; self.mode = mode; totalSeconds = duration ?? 0
+        recapTask?.cancel(); recap = .idle; answer = .idle; sharpened = .idle
+        moment = nil; highlight = nil; awayStart = nil; awayFlagged = false; returnTimes = []; stretchNotified = false
+        let finished = store?.sessions ?? []
+        baselineToday = DayStats.total(finished, on: date()).onTaskSeconds
+        goalNotified = prefs.dailyGoalMinutes <= 0 || baselineToday >= Double(prefs.dailyGoalMinutes) * 60
+        priorBestStretch = Rewards.bestStretch(finished)
         summary = nil; shadowMarks = 0; learnedRules = []; wrapUp = false; askResume = nil; readings = []; appByWindowKey = [:]; stats = ReadStats(); previewFrame = nil; previewHeld = nil; screenText = ""
-        var c = SessionConfig(); c.taskId = task; c.mode = mode; c.durationSeconds = duration; c.preset = preset ?? prefs.preset; c.shadow = shadow
+        var c = SessionConfig(); c.taskId = task; c.mode = mode; c.durationSeconds = duration; c.preset = preset ?? prefs.preset; c.shadow = shadow; c.sound = prefs.nudgeSound
         isActive = true
         send(.sessionStart(c))
         if let w = currentWindow { windowChanged(w) }
@@ -166,11 +193,70 @@ public final class SessionController {
 
     public func tick() {
         if let s = surface, s.kind != "gate", now() >= s.at + 12 { surface = nil }
+        if let m = moment, now() >= m.at + 8 { moment = nil }
         send(.tick)
+        checkLiveMoments(now())
     }
+
+    // MARK: progress (quiet rewards)
+    /// The timeline so far, including the stretch still open, so a longest stretch can be noticed while it is happening.
+    func liveSegments(_ t: Double) -> [TimelineSegment] {
+        var all = segments
+        if let k = segKind, t > segStart { all.append(TimelineSegment(k, t - segStart)) }
+        return all
+    }
+
+    /// On-task seconds today across finished sessions and the one running. A practice session adds nothing live: its beacon never leaves "resting".
+    public func todayOnTaskSeconds() -> Double {
+        // Between sessions `baselineToday` is stale (it is taken when a session begins), so read the saved sessions.
+        guard isActive else { return DayStats.total(store?.sessions ?? [], on: date()).onTaskSeconds }
+        guard !shadow else { return baselineToday }
+        return baselineToday + liveSegments(now()).filter { $0.kind == .on }.reduce(0) { $0 + $1.seconds }
+    }
+
+    private func checkLiveMoments(_ t: Double) {
+        guard isActive, !shadow, prefs.showProgress else { return }
+        let live = liveSegments(t)
+        if !goalNotified, baselineToday + live.filter({ $0.kind == .on }).reduce(0, { $0 + $1.seconds }) >= Double(prefs.dailyGoalMinutes) * 60 {
+            goalNotified = true; moment = Confirmation(kind: .goalReached, at: t)
+        }
+        if !stretchNotified, priorBestStretch >= Rewards.notableStretch {
+            let s = Rewards.longestStretch(live)
+            if s > priorBestStretch { stretchNotified = true; moment = Confirmation(kind: .longestStretch(minutes: Int(s / 60)), at: t) }
+        }
+    }
+
+    /// The brain's beacon walks resting, watching, drifting, interrupted, recovering. Time away runs from the first step off task to the
+    /// moment the brain confirms the return, which is 15 s after you actually came back, so those 15 s are taken off.
+    private func trackReturn(_ s: String, _ t: Double) {
+        switch s {
+        case "watching": if awayStart == nil { awayStart = t }
+        case "drifting", "interrupted": if awayStart == nil { awayStart = t }; awayFlagged = true
+        case "recovering":
+            if let a = awayStart, awayFlagged {
+                let secs = max(1, t - 15 - a)
+                returnTimes.append(secs)
+                if prefs.showProgress { moment = Confirmation(kind: .backOnTrack(seconds: Int(secs.rounded())), at: t) }
+            }
+            awayStart = nil; awayFlagged = false
+        default: awayStart = nil; awayFlagged = false
+        }
+    }
+
+    // MARK: nudge wording
+    /// True when the card on screen follows a long detour: it offers a break instead of another push.
+    public var longDetour: Bool { surface != nil && offTopicSecondsNow() >= NudgeCopy.longDetour }
+
+    public var nudgeTitle: String {
+        NudgeCopy.title(kind: surface?.kind ?? "card", severity: surface?.severity ?? 1, tone: prefs.nudgeTone, task: taskName, longDetour: longDetour)
+    }
+
+    public func takeNudgeBreak() { act(.breakTime, minutes: NudgeCopy.breakMinutes) }
 
     // MARK: senses
     /// Ask "too quiet, about right, too loud" once, after the first finished session in which Focus actually spoke up (not practice).
+    /// Review holds moments practice mode flagged. With practice removed it appears only while old moments are left to answer.
+    public var showsReview: Bool { !prefs.practiceRemoved || !(store?.review.isEmpty ?? true) }
     public var askLoudness: Bool { !prefs.loudnessAsked && !shadow && (summary?.interrupts ?? 0) > 0 }
 
     /// One hint, once: during a session where the model is mostly unsure and the project has no description, say what helps.
@@ -332,7 +418,7 @@ public final class SessionController {
     func apply(_ effects: [Effect], _ t: Double) {
         for e in effects {
             switch e {
-            case .beacon(let s, let r): presence = Presence(state: s, reason: r); markSegment(s, t)
+            case .beacon(let s, let r): trackReturn(s, t); presence = Presence(state: s, reason: r); markSegment(s, t)
             case .veil(_, let to, let secs): veilTarget = to; veilDuration = secs
             case .offTopicTimer(let s, let r, let v): offTopic = TimerState(seconds: s, running: r, visible: v, at: t)
             case .clock(let s, let r): clock = ClockState(seconds: s, running: r, at: t)
@@ -358,10 +444,19 @@ public final class SessionController {
             case .summary(let a, let o, let u, let d, let i, let r):
                 summary = SessionSummary(activeSeconds: a, offTopicSeconds: o, unsureSeconds: u, drifts: d, interrupts: i, refusals: r)
                 markSegment("off", t)
-                store?.record(SessionRecord(projectId: projectId, task: taskName, timed: mode == .timed, start: startedAt, end: date(), activeSeconds: a,
-                                            offTopicSeconds: o, unsureSeconds: u, drifts: d, interrupts: i, refusals: r, shadowMarks: shadowMarks,
-                                            segments: segments.filter { $0.seconds >= 1 }, reads: stats))
+                let record = SessionRecord(projectId: projectId, task: taskName, timed: mode == .timed, start: startedAt, end: date(), activeSeconds: a,
+                                           offTopicSeconds: o, unsureSeconds: u, drifts: d, interrupts: i, refusals: r, shadowMarks: shadowMarks,
+                                           segments: segments.filter { $0.seconds >= 1 }, reads: stats,
+                                           returns: returnTimes.isEmpty ? nil : returnTimes, practice: shadow ? true : nil)
+                highlight = nil
+                if prefs.showProgress, var h = Rewards.highlight(for: record, others: store?.sessions ?? [], goalMinutes: prefs.dailyGoalMinutes, calendar: .current) {
+                    if shadow, h == .rough { h = .started }   // practice does not classify, so it cannot call a session rough
+                    highlight = h
+                }
+                store?.record(record)
+                moment = nil
                 prefs.sessionFinished(wasPractice: shadow)
+                startRecap()
                 previewFrame = nil; previewHeld = nil; screenText = ""
                 isActive = false; manualNextStep = false; surface = nil; reentryOpen = false; askResume = nil; wrapUp = false
                 timer?.invalidate(); timer = nil
@@ -400,8 +495,10 @@ public final class SessionController {
             send(.judgment(input))
             return
         }
+        judging += 1
         tasks.append(Task { [weak self] in
             let j = await Pipeline.judge(m, with: judge, useRules: false)
+            self?.judging = max(0, (self?.judging ?? 1) - 1)
             self?.deliver(j, id: id, observedAt: observedAt, windowKey: windowKey, contentKey: content, sawScreen: sawScreen)
         })
     }
@@ -462,7 +559,10 @@ extension SessionController {
         case "paused": return presence.reason == "break" ? .breakTime : .paused
         case "drifting", "interrupted": return .drift
         case "watching": return .unsure
-        default: return mode == .timed ? .progress(timedProgress()) : .on
+        default:
+            // A quick return or a goal reached shows as a closed ring with a tick for a few seconds; shape carries it, not color.
+            if moment != nil { return .done }
+            return mode == .timed ? .progress(timedProgress()) : .on
         }
     }
 

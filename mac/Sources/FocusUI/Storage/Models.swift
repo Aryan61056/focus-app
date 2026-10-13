@@ -52,14 +52,20 @@ public struct SessionRecord: Codable, Identifiable, Equatable, Sendable {
     public var segments: [TimelineSegment]
     public var note = ""
     public var reads: ReadStats?
+    /// Seconds it took to get back on task after each confirmed drift. Counts only, like everything else saved.
+    public var returns: [Double]?
+    /// A practice session: Focus watched and did not classify, so stretches and returns from it say nothing.
+    public var practice: Bool?
 
     public var onTaskSeconds: Double { max(0, activeSeconds - offTopicSeconds - unsureSeconds) }
 
     public init(projectId: UUID?, task: String, timed: Bool, start: Date, end: Date, activeSeconds: Double, offTopicSeconds: Double, unsureSeconds: Double,
-                drifts: Int, interrupts: Int, refusals: Int, shadowMarks: Int, segments: [TimelineSegment], reads: ReadStats? = nil) {
+                drifts: Int, interrupts: Int, refusals: Int, shadowMarks: Int, segments: [TimelineSegment], reads: ReadStats? = nil,
+                returns: [Double]? = nil, practice: Bool? = nil) {
         self.projectId = projectId; self.task = task; self.timed = timed; self.start = start; self.end = end; self.activeSeconds = activeSeconds
         self.offTopicSeconds = offTopicSeconds; self.unsureSeconds = unsureSeconds; self.drifts = drifts; self.interrupts = interrupts
         self.refusals = refusals; self.shadowMarks = shadowMarks; self.segments = segments; self.reads = reads
+        self.returns = returns; self.practice = practice
     }
 }
 
