@@ -30,7 +30,26 @@ struct NudgeCard: View {
     }
 }
 
-/// Strict preset: a pause screen over the window, one primary action, two ways out.
+/// After a warning went unanswered: a plain question. "Yes" teaches Focus the window belongs to the task and ends the climb.
+struct CheckInCard: View {
+    @Bindable var c: SessionController
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(NudgeCopy.checkInTitle(task: c.taskName)).font(Tokens.rounded(17, .semibold)).fixedSize(horizontal: false, vertical: true)
+            Text("Focus read the window again and it still does not look like the task.").font(Tokens.text(13)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+            Button("Back to task") { c.answerCheckIn(onTask: false) }.buttonStyle(FocusButtonStyle(.primary, expand: true))
+            Button("Yes, this is part of it") { c.answerCheckIn(onTask: true) }.buttonStyle(FocusButtonStyle(.secondary, expand: true))
+        }
+        .padding(20).frame(width: 340)
+        .background(RoundedRectangle(cornerRadius: 24).fill(.regularMaterial))
+        .overlay { RoundedRectangle(cornerRadius: 24).strokeBorder(Tokens.line) }
+        .shadow(color: .black.opacity(0.2), radius: 20, y: 10)
+        .accessibilityElement(children: .contain)
+    }
+}
+
+/// The pause screen: Strict's gate, or the ladder's second step. Going back to the task is always one click; "That was fine" and
+/// "Snooze" wait a few seconds, so ignoring the warnings is no longer free.
 struct GateOverlay: View {
     @Bindable var c: SessionController
     var body: some View {
@@ -43,13 +62,19 @@ struct GateOverlay: View {
                     .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                 if c.longDetour {
                     Button(NudgeCopy.breakButton()) { c.takeNudgeBreak() }.buttonStyle(FocusButtonStyle(.primary, expand: true)).frame(width: 240)
-                    Button("Back to task") { c.act(.backToTask) }.buttonStyle(FocusButtonStyle(.secondary, expand: true)).frame(width: 240)
+                    Button("Back to task") { c.leaveGate(fine: false) }.buttonStyle(FocusButtonStyle(.secondary, expand: true)).frame(width: 240)
                 } else {
-                    Button("Back to task") { c.act(.backToTask) }.buttonStyle(FocusButtonStyle(.primary, expand: true)).frame(width: 240)
+                    Button("Back to task") { c.leaveGate(fine: false) }.buttonStyle(FocusButtonStyle(.primary, expand: true)).frame(width: 240)
                 }
-                HStack {
-                    Button("That was fine") { c.act(.thatWasFine) }.buttonStyle(FocusButtonStyle(.plain, small: true))
-                    Button("Snooze 15 min") { c.act(.snooze, minutes: 15) }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                TimelineView(.periodic(from: .now, by: 0.5)) { _ in
+                    let wait = c.gateHoldRemaining()
+                    VStack(spacing: 6) {
+                        HStack {
+                            Button("That was fine") { c.leaveGate(fine: true) }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                            Button("Snooze 15 min") { c.leaveGate(fine: false, snooze: true) }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                        }.disabled(wait > 0)
+                        if wait > 0 { Text("Available in \(Int(wait.rounded(.up))) s").font(Tokens.text(12)).foregroundStyle(Tokens.ink2).monospacedDigit() }
+                    }
                 }
             }
             .padding(28)

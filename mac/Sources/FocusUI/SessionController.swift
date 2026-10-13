@@ -59,6 +59,27 @@ public final class SessionController {
     public private(set) var presence = Presence(state: "off", reason: nil)
     public private(set) var veilTarget = 0
     public private(set) var veilDuration = 0
+    // MARK: escalation (Escalation.swift). Climbs while the brain says "interrupted"; only being back on task, or an honest answer, ends it.
+    public private(set) var escalationStep = EscalationStep.warned
+    /// "Are you working on <task>?" is on screen.
+    public private(set) var checkIn: Double?
+    /// The pause screen is up because of the ladder (the brain's own Strict gate is `surface.kind == "gate"`).
+    public private(set) var escalationGate = false
+    /// Until this time the pause screen's "That was fine" and "Snooze" stay disabled.
+    public private(set) var gateHoldUntil: Double?
+    @ObservationIgnored private var warnedAt: Double?
+    @ObservationIgnored private var enforcedRounds = 0
+    @ObservationIgnored private var sessionPreset = Preset.standard
+    @ObservationIgnored private var veilFrom = 0.0
+    @ObservationIgnored private var veilStartedAt = 0.0
+    @ObservationIgnored private var floorFrom = 0.0
+    @ObservationIgnored private var floorTo = 0.0
+    @ObservationIgnored private var floorStartedAt = 0.0
+    @ObservationIgnored private var veilPreviewUntil: Double?
+    /// Bring the Focus window forward on the pointer's screen (the pause screen lives there).
+    @ObservationIgnored public var onForeground: (() -> Void)?
+    /// Hide the app you drifted into (the last step of the ladder). The name only; the app decides how.
+    @ObservationIgnored public var onHideApp: ((String) -> Void)?
     public private(set) var offTopic = TimerState()
     public private(set) var clock = ClockState()
     public private(set) var surface: Surface?
@@ -187,6 +208,7 @@ public final class SessionController {
         self.project = profile; self.projectId = pid; self.shadow = shadow
         sessionId = UUID(); startedAt = date(); segments = []; segKind = nil; segStart = now()
         taskName = task; self.mode = mode; totalSeconds = duration ?? 0
+        sessionPreset = preset ?? prefs.preset; clearEscalation(); veilFrom = 0; veilStartedAt = now(); veilTarget = 0
         recapTask?.cancel(); recap = .idle; answer = .idle; sharpened = .idle
         moment = nil; highlight = nil; awayStart = nil; awayFlagged = false; returnTimes = []; stretchNotified = false
         let finished = store?.sessions ?? []
@@ -215,7 +237,86 @@ public final class SessionController {
         if let m = moment, now() >= m.at + 8 { moment = nil }
         send(.tick)
         checkLiveMoments(now())
+        checkEscalation(now())
     }
+
+    // MARK: escalation
+    private func clearEscalation() {
+        if warnedAt != nil || escalationStep != .warned { setFloor(0, over: 5, now()) }
+        warnedAt = nil; escalationStep = .warned; checkIn = nil; escalationGate = false; gateHoldUntil = nil; enforcedRounds = 0
+    }
+
+    private func beaconForLadder(_ state: String, _ t: Double) {
+        if state == "interrupted" { if warnedAt == nil { warnedAt = t } } else { clearEscalation() }
+    }
+
+    private func setFloor(_ target: Double, over secs: Double, _ t: Double) {
+        floorFrom = floorLevel(t); floorTo = target; floorStartedAt = t; floorSeconds = secs
+    }
+    @ObservationIgnored private var floorSeconds = 5.0
+    private func floorLevel(_ t: Double) -> Double {
+        guard floorSeconds > 0, t - floorStartedAt < floorSeconds else { return floorTo }
+        return floorFrom + (floorTo - floorFrom) * (t - floorStartedAt) / floorSeconds
+    }
+
+    private func checkEscalation(_ t: Double) {
+        guard isActive, !shadow, prefs.escalate, let start = warnedAt, let plan = EscalationPlan.of(sessionPreset) else { return }
+        let secs = t - start
+        let step = plan.step(after: secs)
+        if step > escalationStep {
+            escalationStep = step
+            setFloor(Double(EscalationPlan.veilFloor(step)), over: 10, t)
+            if prefs.nudgeSound { onCue?() }
+            switch step {
+            case .checkIn:
+                checkIn = t
+                // Read the window again right now instead of waiting for the next scheduled look.
+                if let w = senseNow?() { windowChanged(w) }
+            case .pauseScreen:
+                checkIn = nil; escalationGate = true; gateHoldUntil = t + plan.holdSeconds
+                onForeground?()
+            default: break
+            }
+        }
+        if step == .enforce {
+            let round = plan.enforceRound(after: secs)
+            if round > enforcedRounds {
+                enforcedRounds = round
+                if prefs.hideDistractingApp, Enforcement.canHide(currentWindow?.app), let app = currentWindow?.app { onHideApp?(app) }
+                act(.backToTask)   // brings the task forward
+                onForeground?()
+            }
+        }
+    }
+
+    /// "Yes, I am": the answer teaches Focus that this window belongs to the task, and ends the climb. "No" or "Back to task" only sends you back.
+    public func answerCheckIn(onTask: Bool) {
+        checkIn = nil
+        if onTask { act(.thatWasFine); clearEscalation() } else { act(.backToTask) }
+    }
+
+    /// The pause screen's buttons. The easy exits are held back for a few seconds; going back to the task never is.
+    public var gateOpen: Bool { surface?.kind == "gate" || escalationGate }
+    public func gateHoldRemaining() -> Double { max(0, (gateHoldUntil ?? 0) - now()) }
+    public func leaveGate(fine: Bool, snooze: Bool = false) {
+        if fine || snooze, gateHoldRemaining() > 0 { return }
+        escalationGate = false
+        if snooze { act(.snooze, minutes: 15) } else if fine { act(.thatWasFine); clearEscalation() } else { act(.backToTask) }
+    }
+
+    // MARK: screen-wide veil
+    /// Percent of gray (0 to 100) the whole screen should show now: the brain's own veil, or the ladder's floor if that is higher.
+    public func veilLevel() -> Double {
+        let t = now()
+        if let u = veilPreviewUntil, t < u { return 100 }
+        guard isActive, !shadow, prefs.screenGrayscale else { return 0 }
+        let from = veilFrom, to = Double(veilTarget)
+        let brain = veilDuration <= 0 || t - veilStartedAt >= Double(veilDuration) ? to : from + (to - from) * (t - veilStartedAt) / Double(veilDuration)
+        return max(0, min(100, max(brain, floorLevel(t))))
+    }
+    /// Settings "Preview": the screen goes fully gray for a few seconds so you can see what the veil does.
+    public func previewVeil(seconds: Double = 6) { veilPreviewUntil = now() + seconds }
+    public var isPreviewingVeil: Bool { veilPreviewUntil.map { now() < $0 } ?? false }
 
     // MARK: progress (quiet rewards)
     /// The timeline so far, including the stretch still open, so a longest stretch can be noticed while it is happening.
@@ -437,11 +538,13 @@ public final class SessionController {
     func apply(_ effects: [Effect], _ t: Double) {
         for e in effects {
             switch e {
-            case .beacon(let s, let r): trackReturn(s, t); presence = Presence(state: s, reason: r); markSegment(s, t)
-            case .veil(_, let to, let secs): veilTarget = to; veilDuration = secs
+            case .beacon(let s, let r): trackReturn(s, t); beaconForLadder(s, t); presence = Presence(state: s, reason: r); markSegment(s, t)
+            case .veil(let from, let to, let secs): veilFrom = Double(from); veilStartedAt = t; veilTarget = to; veilDuration = secs
             case .offTopicTimer(let s, let r, let v): offTopic = TimerState(seconds: s, running: r, visible: v, at: t)
             case .clock(let s, let r): clock = ClockState(seconds: s, running: r, at: t)
-            case .interrupt(let k, let sev, _, _): surface = Surface(kind: k, severity: sev, at: t)
+            case .interrupt(let k, let sev, _, _):
+                surface = Surface(kind: k, severity: sev, at: t)
+                if k == "gate" { gateHoldUntil = t + (EscalationPlan.of(sessionPreset)?.holdSeconds ?? 10) }
             case .withdraw(let what):
                 if what == "reentry" { reentryOpen = false } else { surface = nil }
             case .reentryPrompt: reentryOpen = true
@@ -477,7 +580,7 @@ public final class SessionController {
                 prefs.sessionFinished(wasPractice: shadow)
                 startRecap()
                 previewFrame = nil; previewHeld = nil; screenText = ""
-                isActive = false; manualNextStep = false; surface = nil; reentryOpen = false; askResume = nil; wrapUp = false
+                isActive = false; clearEscalation(); veilTarget = 0; manualNextStep = false; surface = nil; reentryOpen = false; askResume = nil; wrapUp = false
                 timer?.invalidate(); timer = nil
             }
             if case .beacon(let s, _) = e, s != "paused" { askResume = nil }

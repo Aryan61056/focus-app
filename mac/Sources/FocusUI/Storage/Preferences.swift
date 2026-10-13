@@ -38,6 +38,12 @@ public final class Preferences {
     public var nudgeTone: NudgeTone { didSet { defaults.set(nudgeTone.rawValue, forKey: "nudgeTone") } }
     /// One soft system tone when a nudge appears. Off by default (PRODUCT.md: discreet).
     public var nudgeSound: Bool { didSet { defaults.set(nudgeSound, forKey: "nudgeSound") } }
+    /// If you stay away after a warning: a check-in, a pause screen, then the app you drifted into is hidden (see Escalation.swift). Off: the warning only.
+    public var escalate: Bool { didSet { defaults.set(escalate, forKey: "escalate") } }
+    /// The whole screen, every display, fades toward gray while you are off task (not only Focus's own window).
+    public var screenGrayscale: Bool { didSet { defaults.set(screenGrayscale, forKey: "screenGrayscale") } }
+    /// The last step of the ladder. Hiding an app is reversible (click it in the Dock) and never closes it or loses its work.
+    public var hideDistractingApp: Bool { didSet { defaults.set(hideDistractingApp, forKey: "hideDistractingApp") } }
     /// Offer to restart into a newer build found on this Mac. Local only; it never installs anything by itself.
     public var offerUpdates: Bool { didSet { defaults.set(offerUpdates, forKey: "offerUpdates") } }
     public static let goalChoices = [30, 60, 90, 120, 180]
@@ -45,7 +51,7 @@ public final class Preferences {
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        preset = Preset(rawValue: defaults.string(forKey: "preset") ?? "") ?? .gentle
+        preset = Preset(rawValue: defaults.string(forKey: "preset") ?? "") ?? .standard
         skipPersonal = defaults.object(forKey: "skipPersonal") as? Bool ?? true
         neverJudgedApps = defaults.stringArray(forKey: "neverJudgedApps") ?? Rules.defaultNeverJudgedApps
         showNotch = defaults.object(forKey: "showNotch") as? Bool ?? true
@@ -59,9 +65,12 @@ public final class Preferences {
         showProgress = defaults.object(forKey: "showProgress") as? Bool ?? true
         dailyGoalMinutes = defaults.object(forKey: "dailyGoalMinutes") as? Int ?? 90
         nudgeTone = NudgeTone(rawValue: defaults.string(forKey: "nudgeTone") ?? "") ?? .neutral
+        escalate = defaults.object(forKey: "escalate") as? Bool ?? true
+        screenGrayscale = defaults.object(forKey: "screenGrayscale") as? Bool ?? true
+        hideDistractingApp = defaults.object(forKey: "hideDistractingApp") as? Bool ?? true
         offerUpdates = defaults.object(forKey: "offerUpdates") as? Bool ?? true
         nudgeSound = defaults.object(forKey: "nudgeSound") as? Bool ?? false
-        let removed = defaults.object(forKey: "practiceRemoved") as? Bool ?? false
+        let removed = defaults.object(forKey: "practiceRemoved") as? Bool ?? true
         practiceRemoved = removed
         practiceSessionsLeft = removed ? 0 : (defaults.object(forKey: "practiceLeft") as? Int ?? Preferences.practiceSessions)
     }

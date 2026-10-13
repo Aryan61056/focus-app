@@ -36,6 +36,7 @@ struct FocusApp: App {
     @State private var previewWatcher: PreviewWatcher?
     @State private var hotKey = GlobalHotKey()
     @State private var updater: Updater?
+    @State private var veil: VeilController?
     @Environment(\.openWindow) private var openWindow
 
     var body: some Scene {
@@ -61,6 +62,13 @@ struct FocusApp: App {
                     }
                     // One soft system tone, only when the user turned nudge sound on (the brain emits the cue only then).
                     controller.onCue = { NSSound(named: "Tink")?.play() }
+                    // The ladder: bring the Focus window (the pause screen) forward on the pointer's screen, and hide the app you drifted into.
+                    // Hiding is the same as Command-H: nothing is closed and no work is lost.
+                    controller.onForeground = { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); Self.bringToPointerScreen() }
+                    controller.onHideApp = { name in
+                        NSWorkspace.shared.runningApplications.first { $0.localizedName == name && $0.activationPolicy == .regular && $0 != NSRunningApplication.current }?.hide()
+                    }
+                    if veil == nil { let v = VeilController(controller: controller); veil = v; v.start() }
                     controller.onBringBackToApp = { name in
                         NSWorkspace.shared.runningApplications.first { $0.localizedName == name && $0.activationPolicy == .regular }?.activate()
                     }

@@ -42,6 +42,20 @@ struct SettingsView: View {
                     row("Play a soft tone with a nudge", "One short system sound when a nudge appears. Off unless you turn it on, and it never plays in practice mode.") {
                         Toggle("", isOn: Binding(get: { c.prefs.nudgeSound }, set: { c.prefs.nudgeSound = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
+                    row("If you stay away after a warning", "Gentle stops at the warning. Standard and Strict keep going: after about 40 seconds (20 on Strict) Focus asks whether you are on task and reads the window again, then shows a pause screen, then hides the app you drifted into. Dismissing a card does not stop it; getting back to the task does.") {
+                        Toggle("", isOn: Binding(get: { c.prefs.escalate }, set: { c.prefs.escalate = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
+                    }
+                    if c.prefs.escalate {
+                        row("Hide the app you drifted into", "The last step. It hides the app like Command-H: nothing is closed and no work is lost. Click the app in the Dock to bring it back. Focus, Finder and system apps are never hidden.") {
+                            Toggle("", isOn: Binding(get: { c.prefs.hideDistractingApp }, set: { c.prefs.hideDistractingApp = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
+                        }
+                    }
+                    row("Fade the whole screen to gray", "While you are off task, every display loses its color a little at a time, deeper the longer you stay away, and it clears when you are back. Nothing is captured.") {
+                        HStack(spacing: 10) {
+                            Button("Preview") { c.previewVeil() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+                            Toggle("", isOn: Binding(get: { c.prefs.screenGrayscale }, set: { c.prefs.screenGrayscale = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
+                        }
+                    }
                     if !c.prefs.practiceRemoved {
                         row("Practice mode", "Watch without interrupting for the first \(Preferences.practiceSessions) sessions.") {
                             Toggle("", isOn: Binding(get: { c.prefs.practiceActive }, set: { $0 ? c.prefs.restartPractice() : c.prefs.turnNudgesOnNow() })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)

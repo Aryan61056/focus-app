@@ -148,7 +148,7 @@ final class FirstRunTests: XCTestCase {
 
     func testTheQuestionIsNotAskedForPracticeSessionsOrQuietOnes() async {
         var t = 0.0
-        let c = SessionController(judge: ScriptedJudge(markers: [("youtube", .off), ("Notes", .on)]), now: { t })
+        let c = SessionController(judge: ScriptedJudge(markers: [("youtube", .off), ("Notes", .on)]), prefs: noWords(), now: { t })
         c.windowChanged(WindowSnapshot(app: "Notes", title: "Calc homework"))
         c.begin(task: "Calc homework", preset: .standard, shadow: true)
         c.windowChanged(WindowSnapshot(app: "Browser", title: "youtube clip", url: "https://youtube.com/watch?v=1"))
@@ -288,7 +288,10 @@ final class MatchingWordsTests: XCTestCase {
 
 /// Most tests use windows titled like the task. The matching-words rule would settle those without the model, so they opt out.
 @MainActor func noWords() -> Preferences {
-    let p = Preferences(defaults: UserDefaults(suiteName: "focus.tests.\(UUID().uuidString)")!); p.matchTaskWords = false; return p
+    let p = Preferences(defaults: UserDefaults(suiteName: "focus.tests.\(UUID().uuidString)")!); p.matchTaskWords = false
+    // The shipped default has no practice mode; these tests were written for it, so they opt back in (a test asks for `shadow: false` to leave it).
+    p.practiceRemoved = false; p.restartPractice()
+    return p
 }
 
 final class ClockTests: XCTestCase {

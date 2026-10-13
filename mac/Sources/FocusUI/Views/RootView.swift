@@ -40,14 +40,18 @@ public struct RootView: View {
                 .padding(.horizontal, 28).padding(.vertical, 26)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .background(Tokens.window)
-                .saturation(1 - Double(c.veilTarget) / 100)
-                .animation(reduceMotion ? nil : .linear(duration: Double(c.veilDuration)), value: c.veilTarget)
 
-                if let s = c.surface, s.kind != "gate" { NudgeCard(c: c, kind: s.kind).padding(18).transition(.opacity) }
+                // The card has its own animation scope. An animation on the whole content (the old veil fade, then the card fade) made every
+                // change that landed with it, such as a session ending, cross-fade the old and new screens over each other.
+                ZStack(alignment: .topTrailing) {
+                    if c.checkIn != nil { CheckInCard(c: c).padding(18).transition(.opacity) }
+                    else if let s = c.surface, s.kind != "gate" { NudgeCard(c: c, kind: s.kind).padding(18).transition(.opacity) }
+                }
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: c.surface)
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: c.checkIn)
                 if c.reentryOpen || c.manualNextStep { ReentryCard(c: c).padding(18).padding(.top, c.surface == nil ? 0 : 190) }
-                if let s = c.surface, s.kind == "gate" { GateOverlay(c: c) }
+                if c.gateOpen { GateOverlay(c: c) }
             }
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: c.surface)
         }
         .frame(minWidth: 960, minHeight: 600)
         .background(Tokens.window)

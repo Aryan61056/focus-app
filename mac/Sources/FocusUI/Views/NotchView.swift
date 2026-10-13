@@ -73,6 +73,7 @@ public struct NotchView: View {
 
     /// A nudge opens the notch once; otherwise hover decides. The gate (strict pause screen) is not shown here.
     public static func mode(for c: SessionController, hover: Bool) -> NotchMode {
+        if c.checkIn != nil { return .nudge }
         if let s = c.surface, s.kind != "gate" { return .nudge }
         return hover ? .open : .rest
     }
@@ -155,9 +156,12 @@ public struct NotchView: View {
 
     var nudgeBody: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(c.nudgeTitle).font(Tokens.rounded(15, .semibold)).lineLimit(2)
+            Text(c.checkIn != nil ? NudgeCopy.checkInTitle(task: c.taskName) : c.nudgeTitle).font(Tokens.rounded(15, .semibold)).lineLimit(2)
             HStack(spacing: 8) {
-                if c.longDetour {
+                if c.checkIn != nil {
+                    pill("Back to task", primary: true) { c.answerCheckIn(onTask: false) }
+                    pill("Yes, I am") { c.answerCheckIn(onTask: true) }
+                } else if c.longDetour {
                     pill(NudgeCopy.shortBreakButton(), primary: true) { c.takeNudgeBreak() }
                     pill("Back to task") { c.act(.backToTask) }
                 } else {

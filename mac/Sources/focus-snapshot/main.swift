@@ -31,6 +31,14 @@ let judge = ScriptedJudge(readings: [
     try? png.write(to: URL(fileURLWithPath: path)); print(path)
 }
 
+@MainActor func shot(_ name: String, _ c: SessionController) {
+    let v = NotchView(controller: c, notchWidth: 200, notchHeight: 32, forced: .nudge, openApp: {})
+    let wall = ZStack(alignment: .top) { Color(red: 0.15, green: 0.22, blue: 0.3); v }.frame(width: 460, height: 150)
+    let r = ImageRenderer(content: wall); r.scale = 2
+    guard let img = r.nsImage, let tiff = img.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff), let png = rep.representation(using: NSBitmapImageRep.FileType.png, properties: [:]) else { return }
+    try? png.write(to: URL(fileURLWithPath: "\(outDir)/\(name).png"))
+}
+
 @MainActor func run() async {
     let idle = SessionController(judge: judge, now: { t })
     for dark in [false, true] { render(idle, "idle", dark: dark) }
@@ -65,6 +73,14 @@ let judge = ScriptedJudge(readings: [
     while c.surface == nil && t < 300 { await advance(c, to: t + 1) }
     for dark in [false, true] { render(c, "nudge", dark: dark) }
     notchShots(c)
+    // Ignored warning: the check-in after about 40 s, then the pause screen after about 100 s.
+    let warned = t
+    c.act(.dismiss)
+    await advance(c, to: warned + 45)
+    render(c, "checkin", dark: false)
+    shot("notch-checkin", c)
+    await advance(c, to: warned + 105)
+    for dark in [false, true] { render(c, "gate", dark: dark) }
     print("state:", c.presence, "surface:", String(describing: c.surface), "veil:", c.veilTarget)
 }
 

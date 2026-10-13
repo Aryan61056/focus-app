@@ -99,7 +99,7 @@ public final class NotchPanelController {
     private func track() {
         guard running else { return }
         withObservationTracking {
-            _ = c.isActive; _ = c.prefs.showNotch; _ = c.surface
+            _ = c.isActive; _ = c.prefs.showNotch; _ = c.surface; _ = c.checkIn
             for slot in slots.values { _ = slot.model.hover }
         } onChange: { [weak self] in
             // Hop off the observation callback, then apply on the next turn of the run loop, never inside a layout pass.
@@ -126,7 +126,7 @@ public final class NotchPanelController {
 
     func refresh() {
         // The notch preference is about the resting ring. A nudge always shows here, so it reaches you when Focus is in the background.
-        let nudging = c.surface.map { $0.kind != "gate" } ?? false
+        let nudging = (c.surface.map { $0.kind != "gate" } ?? false) || c.checkIn != nil
         let screens = NSScreen.screens
         guard running, c.isActive, c.prefs.showNotch || nudging,
               let hi = Self.homeIndex(notchWidths: screens.map { Self.geometry($0).width }) else { hideAll(); return }

@@ -46,6 +46,9 @@ public enum NudgeCopy {
         }
     }
 
+    /// The check-in question after a warning went unanswered. Names the task, never the window.
+    public static func checkInTitle(task: String) -> String { "Are you working on \(task)?" }
+
     public static func breakButton() -> String { "Take a \(breakMinutes) minute break" }
     public static func shortBreakButton() -> String { "Take a break" }
 }
