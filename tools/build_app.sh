@@ -1,5 +1,6 @@
 #!/bin/bash
 # Builds mac/.build/Focus.app from the SwiftPM release build: a local, ad-hoc-signed development bundle.
+# Pass --install to also copy it to ~/Applications, where Spotlight finds it (no sudo).
 # Not for distribution (signing, notarization and the bundle id are owner decisions still open).
 set -euo pipefail
 cd "$(dirname "$0")/../mac"
@@ -35,3 +36,13 @@ plutil -lint "$APP/Contents/Info.plist" >/dev/null
 codesign --force --sign - -r='designated => identifier "com.example.focus-app.dev"' "$APP" 2>&1 | tail -1
 codesign --verify --verbose=1 "$APP" 2>&1 | tail -1
 echo "built $(pwd)/$APP"
+if [ "${1:-}" = "--install" ]; then
+  DEST="$HOME/Applications/Focus.app"
+  mkdir -p "$HOME/Applications"
+  # Quit a running copy first so the replaced bundle is the one that opens next.
+  osascript -e 'tell application id "com.example.focus-app.dev" to quit' >/dev/null 2>&1 || true
+  rm -rf "$DEST"; ditto "$APP" "$DEST"
+  /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$DEST" >/dev/null 2>&1 || true
+  mdimport "$DEST" >/dev/null 2>&1 || true
+  echo "installed $DEST"
+fi
