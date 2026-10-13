@@ -290,6 +290,13 @@ final class TabEnforcementTests: XCTestCase {
         XCTAssertEqual(c.lastEnforce?.done, false)
     }
 
+    func testChromeAddressScriptAsksTheFrontTabAndHidesPrivateWindows() throws {
+        let s = try XCTUnwrap(TabScript.currentURL(app: "Google Chrome"))
+        XCTAssertTrue(s.contains("URL of active tab of front window") && s.contains("incognito"))
+        XCTAssertNil(TabScript.currentURL(app: "Safari"), "Safari reports its address through Accessibility")
+        XCTAssertNil(TabScript.currentURL(app: "Arc"))
+    }
+
     func testSwitchingCanBeSwitchedOff() async {
         let c = make(preset: .standard) { $0.prefs.switchTabs = false }
         let w = await warned(c)

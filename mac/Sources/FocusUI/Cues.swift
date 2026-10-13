@@ -99,6 +99,10 @@ public struct Shield: Equatable, Sendable {
     /// Two failed explanations lock the way through for this long.
     public static let lockSeconds = 300.0
     public static let frictionWait = 20.0, claimWait = 10.0
+    /// How long after the wait ends the cover may sit unanswered before Focus acts on the site.
+    public static let frictionIdle = 20.0
+    /// The wait grows with each return to the same site: 20, 40, then 60 seconds.
+    public static func frictionWait(strikes: Int) -> Double { min(60, frictionWait * Double(max(1, strikes))) }
     /// After the wait, press and hold this long to open the explanation form. Letting go starts over.
     public static let holdSeconds = 5.0
     /// A verified window stays open for this long without asking again.

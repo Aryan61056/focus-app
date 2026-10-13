@@ -90,6 +90,24 @@ extension Enforcement {
 /// AppleScript text for steering a browser tab. Only builds strings; the app runs them (focus-app/Tabs.swift), because that needs the
 /// user's Automation permission. Addresses from the page are untrusted, so they are escaped as data and never become script.
 public enum TabScript {
+    /// The address of the front window's current tab in a Chromium browser, which does not report it through Accessibility.
+    /// Empty for a private window, so a private tab is never read or closed. Safari reports its address through Accessibility already.
+    public static func currentURL(app: String) -> String? {
+        guard let name = appName(app), !isSafari(name) else { return nil }
+        return """
+        with timeout of 2 seconds
+        tell application \(quoted(name))
+            try
+                if (count of windows) is 0 then return ""
+                if (mode of front window) is "incognito" then return ""
+                return URL of active tab of front window
+            end try
+        end tell
+        return ""
+        end timeout
+        """
+    }
+
     /// The name AppleScript knows the browser by.
     public static func appName(_ app: String) -> String? {
         switch app.trimmingCharacters(in: .whitespaces).lowercased() {

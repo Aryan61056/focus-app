@@ -105,6 +105,9 @@ public final class SessionController {
     @ObservationIgnored var blockedSites: [String: String] = [:]
     @ObservationIgnored var passUntil: [String: Double] = [:]
     @ObservationIgnored var frictionQuietUntil = 0.0
+    /// How many times each site has been covered this session. A site you keep coming back to waits longer and is acted on sooner.
+    @ObservationIgnored var frictionStrikes: [String: Int] = [:]
+    @ObservationIgnored var lastFrictionEnforce = -1000.0
     @ObservationIgnored var workSeconds = 0.0
     @ObservationIgnored var lastWorkTick: Double?
     @ObservationIgnored var workBlocks = 0
@@ -330,20 +333,7 @@ public final class SessionController {
             if round > enforcedRounds {
                 enforcedRounds = round
                 blockCurrentSite()
-                let w = currentWindow
-                let wanted = Enforcement.action(performed: enforceActions, preset: sessionPreset, switching: prefs.switchTabs,
-                                                closing: prefs.closeOnStrict && closeAllowed)
-                var done = false
-                if let w {
-                    switch wanted {
-                    case .switchAway: done = Enforcement.isBrowser(w.app) && (onSwitchTab?(w, lastOnTask) ?? false)
-                    case .close: done = onCloseTab?(w) ?? false
-                    case .hide: break
-                    }
-                }
-                lastEnforce = (wanted, done)
-                // Whatever could not be done to the tab falls back to hiding the app, which is how this step always worked.
-                if !done, prefs.hideDistractingApp, Enforcement.canHide(w?.app), let app = w?.app { onHideApp?(app) }
+                runEnforcement(performed: enforceActions)
                 enforceActions += 1
                 act(.backToTask)   // brings the task forward
                 fire(.enforce, title: CueCopy.bannerTitle(.reminder, tone: prefs.nudgeTone, task: taskName))

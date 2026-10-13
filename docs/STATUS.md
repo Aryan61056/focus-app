@@ -109,6 +109,10 @@ All are in the controller layer (`Cues.swift`, `SessionController+Cues.swift`, `
 - **Permission:** macOS asks once per browser for Automation. Focus does not grant it; `NSAppleEventsUsageDescription` is in the app bundle.
 - **Verified:** 285 tests: the choice rules, Standard (switch, then hide), Strict (switch, then close), each switch off, failed switch falls back to hiding, address escaping, and that the Safari scripts compile. **Not verified live:** the scripts running against a real Safari/Chrome (needs the Automation grant, which I cannot give), Chrome, Brave and Edge script details, a tab in a second window.
 
+- **Chrome fix (owner, 2026-10-13: "the chrome version doesn't work"):** Chrome, Brave and Edge do not report the page address through Accessibility (Safari does), so Focus had no address for them: no tab to switch to, none to close, and every Chrome tab shared one "site" key, so the cover for one flagged tab covered all of Chrome. Now, while a session runs and a tab switch is on, Focus asks the browser for the front tab's address with AppleScript (same Automation permission; private windows return nothing; it stops asking for a minute if refused). The address goes to the judge as it already did for Safari.
+- **The cover is no longer free (owner: "this keeps happening and nothing happens afterwards"):** the "This is where you drifted" cover used to just sit there. Now each return to the same site waits longer (20, 40, 60 s), and a cover left unanswered 20 s after its wait ends makes Focus act on the site like the last step (switch tabs, then hide the app, or on Strict close the tab), repeating every 45 s. Going back to the task or a verified explanation clears it. Settings text updated.
+- **Not verified live:** Chrome's script against a real Chrome (needs the Automation grant); I only tested that the script text is built and the Safari scripts compile.
+
 ## Decisions I made without asking (change any of them)
 - OCR level `.fast` (accurate stalled about 66 s on first use).
 - Idle threshold 240 s; call needs two polls in a row (about 10 s).

@@ -38,8 +38,40 @@ extension SessionController {
         let t = now()
         guard prefs.frictionReturn, !shadow, shield == nil, t >= frictionQuietUntil, blockedSites[site] != nil, checkIn == nil else { return }
         if let u = passUntil[site], t < u { return }
-        shield = Shield(kind: .friction, app: w.app, siteKey: site, since: t, waitUntil: t + Shield.frictionWait)
+        let strikes = (frictionStrikes[site] ?? 0) + 1
+        frictionStrikes[site] = strikes
+        shield = Shield(kind: .friction, app: w.app, siteKey: site, since: t, waitUntil: t + Shield.frictionWait(strikes: strikes))
+        lastFrictionEnforce = -1000
         fire(.friction)
+    }
+
+    /// Sitting behind the cover is not free. A while after the wait ends, with no explanation started and no step back to the task,
+    /// Focus acts on the site the way the last step of the ladder does, and again every 45 seconds. A site you keep coming back to
+    /// is acted on at once: the strike count is the number of rounds already done.
+    func enforceOnIdleFriction(_ t: Double) {
+        guard isActive, !shadow, prefs.escalate, let s = shield, s.kind == .friction, !s.asking, !s.checking,
+              t >= s.waitUntil + Shield.frictionIdle, t - lastFrictionEnforce >= 45 else { return }
+        lastFrictionEnforce = t
+        runEnforcement(performed: frictionStrikes[s.siteKey] ?? 1)
+        frictionStrikes[s.siteKey, default: 1] += 1
+    }
+
+    /// The last step of the ladder, shared by the ladder and the friction cover. `performed` is how many rounds came before:
+    /// the first switches the browser to the on-task tab, later ones hide the app, and on Strict close the tab.
+    func runEnforcement(performed: Int) {
+        let w = currentWindow
+        let wanted = Enforcement.action(performed: performed, preset: sessionPreset, switching: prefs.switchTabs, closing: prefs.closeOnStrict && closeAllowed)
+        var done = false
+        if let w {
+            switch wanted {
+            case .switchAway: done = Enforcement.isBrowser(w.app) && (onSwitchTab?(w, lastOnTask) ?? false)
+            case .close: done = onCloseTab?(w) ?? false
+            case .hide: break
+            }
+        }
+        lastEnforce = (wanted, done)
+        // Whatever could not be done to the tab falls back to hiding the app, which is how this step always worked.
+        if !done, prefs.hideDistractingApp, Enforcement.canHide(w?.app), let app = w?.app { onHideApp?(app) }
     }
 
     // MARK: claims
@@ -68,7 +100,7 @@ extension SessionController {
 
     /// The claim passed (or never needed to): Focus learns the window, the climb ends, and the site opens for ten minutes.
     func acceptClaim() {
-        if let s = shield { passUntil[s.siteKey] = now() + Shield.passSeconds; blockedSites[s.siteKey] = nil }
+        if let s = shield { passUntil[s.siteKey] = now() + Shield.passSeconds; blockedSites[s.siteKey] = nil; frictionStrikes[s.siteKey] = nil }
         if let w = currentWindow { passUntil[Keys.site(w)] = now() + Shield.passSeconds }
         shield = nil; shieldHoldStart = nil; checkIn = nil; escalationGate = false
         act(.thatWasFine)

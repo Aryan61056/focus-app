@@ -340,6 +340,40 @@ final class ShieldTests: XCTestCase {
         XCTAssertNil(c.shield, "leaving the site clears it")
     }
 
+    func testSittingBehindTheCoverIsNotFree() async {
+        var hidden: [String] = [], switched = 0
+        let c = make { $0.onHideApp = { hidden.append($0) }; $0.onSwitchTab = { _, _ in switched += 1; return false } }
+        await goBackFromThePauseScreen(c)
+        c.windowChanged(editor)
+        await advance(c, to: t + 30)
+        c.windowChanged(video)
+        XCTAssertEqual(c.shield?.kind, .friction)
+        hidden.removeAll(); switched = 0
+        await advance(c, to: t + Shield.frictionWait + Shield.frictionIdle - 2)
+        XCTAssertTrue(hidden.isEmpty && switched == 0, "nothing yet while the wait and the grace run")
+        await advance(c, to: t + 4)
+        XCTAssertEqual(hidden, ["Safari"], "then Focus acts on the site, here hiding because it was already acted on once")
+        await advance(c, to: t + 100)
+        XCTAssertGreaterThanOrEqual(hidden.count, 2, "and again while you stay behind the cover")
+    }
+
+    func testEachReturnToTheSameSiteWaitsLonger() async {
+        let c = make()
+        await goBackFromThePauseScreen(c)
+        var waits: [Double] = []
+        for _ in 0..<3 {
+            c.windowChanged(editor)
+            await advance(c, to: t + 30)
+            c.windowChanged(video)
+            waits.append(c.shieldWaitRemaining())
+            c.shieldBackToTask()
+            await advance(c, to: t + 30)
+        }
+        XCTAssertEqual(waits[0], 20, accuracy: 1.5)
+        XCTAssertGreaterThan(waits[1], waits[0], "coming back waits longer"); XCTAssertEqual(waits[2], 60, accuracy: 1.5, "up to a minute")
+        XCTAssertEqual(Shield.frictionWait(strikes: 9), 60, "capped")
+    }
+
     func testStayingOnTheSiteIsCoveredAgainAfterBackToTask() async {
         let c = make()
         await goBackFromThePauseScreen(c)

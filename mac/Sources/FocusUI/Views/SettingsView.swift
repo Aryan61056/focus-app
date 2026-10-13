@@ -105,7 +105,7 @@ struct SettingsView: View {
                             toggle(\.headsUp)
                         }
                     }
-                    row("Cover a flagged site when it opens again", "After a pause screen, the same site is covered for \(Int(Shield.frictionWait)) seconds whenever you open it again. Going back to the task is always one click.") {
+                    row("Cover a flagged site when it opens again", "After a pause screen, the same site is covered whenever you open it again: 20 seconds the first time, then 40 and 60. If you sit behind the cover without going back or explaining, Focus acts on the site as the last step does (it switches tabs, hides the app, or on Strict closes the tab). Going back to the task is always one click.") {
                         toggle(\.frictionReturn)
                     }
                     row("Explaining a flagged window", "Saying \u{201C}That was fine\u{201D} about a window Focus read as off topic asks you to explain it, after a short wait. Focus checks your words against the window itself with both of its judges, and your words alone never pass it. Two wrong answers lock it for \(Int(Shield.lockSeconds / 60)) minutes. A project rule that says never is final.") {

@@ -13,7 +13,7 @@ extension SessionController {
         lastOnTask = nil; lastEnforce = nil
         banner = nil; shield = nil; shieldHoldStart = nil; overrideLockedUntil = nil; rhythmPrompt = nil
         driftWatch.reset(); headsUpAt = nil; bannerHidden = false
-        blockedSites = [:]; passUntil = [:]; frictionQuietUntil = 0
+        blockedSites = [:]; passUntil = [:]; frictionQuietUntil = 0; frictionStrikes = [:]; lastFrictionEnforce = -1000
         workSeconds = 0; lastWorkTick = nil; workBlocks = 0; lastSpokeAt = nil; warnedPressure = .steady
     }
 
@@ -110,6 +110,7 @@ extension SessionController {
         syncShield()
         updateShieldHold()
         if shield == nil, t - lastFrictionCheck >= 5, let w = currentWindow { lastFrictionCheck = t; updateFriction(w) }
+        enforceOnIdleFriction(t)
     }
 
     // MARK: scheduled rhythm
