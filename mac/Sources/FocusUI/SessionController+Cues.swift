@@ -10,7 +10,7 @@ extension SessionController {
     static let checkInPromptSeconds = 90.0
 
     func resetCues() {
-        banner = nil; friction = nil; frictionHoldStart = nil; rhythmPrompt = nil
+        banner = nil; shield = nil; overrideLockedUntil = nil; rhythmPrompt = nil
         driftWatch.reset(); headsUpAt = nil; bannerHidden = false
         blockedSites = [:]; passUntil = [:]; frictionQuietUntil = 0
         workSeconds = 0; lastWorkTick = nil; workBlocks = 0; lastSpokeAt = nil; warnedPressure = .steady
@@ -54,7 +54,7 @@ extension SessionController {
     public var menuCue: MenuCue {
         guard isActive, !shadow, prefs.menuBarCue, !isPaused else { return .none }
         if presence.state == "interrupted" { return .away }
-        if presence.state == "drifting" || banner?.kind == .early || rhythmPrompt != nil || friction != nil { return .headsUp }
+        if presence.state == "drifting" || banner?.kind == .early || rhythmPrompt != nil || (shield != nil && shield?.kind != .pause) { return .headsUp }
         return .none
     }
 
@@ -91,60 +91,16 @@ extension SessionController {
 
     /// "Back to task" on the banner.
     public func bannerBackToTask() { headsUpAt = nil; bannerHidden = true; refreshBanner(now()); act(.backToTask) }
-    /// "It's part of it" on the heads-up: Focus learns the window belongs, the same as "That was fine".
-    public func bannerPartOfIt() { headsUpAt = nil; driftWatch.clearReadings(); refreshBanner(now()); act(.thatWasFine) }
+    /// "This is part of it" on the heads-up. A window Focus has read as off topic has to be explained; otherwise it is taken at its word.
+    public func bannerPartOfIt() { headsUpAt = nil; driftWatch.clearReadings(); refreshBanner(now()); claimOnTask() }
     /// The small cross on the banner. A reminder stays hidden until you have been back on task and drift again.
     public func dismissBanner() { headsUpAt = nil; bannerHidden = true; refreshBanner(now()) }
 
     func tickCues(_ t: Double) {
         refreshBanner(t)
         tickRhythm(t)
-        if friction != nil { updateFrictionHold() }
-        else if t - lastFrictionCheck >= 5, let w = currentWindow { lastFrictionCheck = t; updateFriction(w) }
-    }
-
-    // MARK: friction before going back
-    /// Remembers the site you were warned about, once the pause screen is answered or the app is hidden.
-    func blockCurrentSite() {
-        guard prefs.frictionReturn, !shadow, let w = currentWindow, Enforcement.canHide(w.app) else { return }
-        blockedSites[Keys.site(w)] = w.app
-    }
-
-    func updateFriction(_ w: WindowSnapshot) {
-        let site = Keys.site(w)
-        if let f = friction, f.siteKey != site { friction = nil; frictionHoldStart = nil }
-        let t = now()
-        guard prefs.frictionReturn, !shadow, friction == nil, t >= frictionQuietUntil, blockedSites[site] != nil, !gateOpen, checkIn == nil else { return }
-        if let u = passUntil[site], t < u { return }
-        friction = Friction(app: w.app, siteKey: site, at: t)
-        fire(.friction)
-    }
-
-    public func beginFrictionHold() { if friction != nil, frictionHoldStart == nil { frictionHoldStart = now() } }
-    public func endFrictionHold() { frictionHoldStart = nil }
-    /// 0 to 1 while the button is held.
-    public func frictionHoldProgress() -> Double {
-        guard let s = frictionHoldStart else { return 0 }
-        return min(1, max(0, (now() - s) / Friction.holdSeconds))
-    }
-    /// Called a few times a second while the friction panel is up: finishes the hold. A short hold lets the site open for ten minutes; it is still read.
-    public func updateFrictionHold() {
-        guard let f = friction, frictionHoldStart != nil, frictionHoldProgress() >= 1 else { return }
-        passUntil[f.siteKey] = now() + Friction.passSeconds
-        friction = nil; frictionHoldStart = nil
-    }
-    /// A typed reason lets the site open for the rest of the session and counts as "That was fine" for the window. The words are not kept.
-    @discardableResult public func submitFrictionReason(_ text: String) -> Bool {
-        guard let f = friction, Friction.acceptable(reason: text) else { return false }
-        passUntil[f.siteKey] = .infinity; blockedSites[f.siteKey] = nil
-        friction = nil; frictionHoldStart = nil
-        act(.thatWasFine)
-        return true
-    }
-    public func frictionBackToTask() {
-        friction = nil; frictionHoldStart = nil
-        frictionQuietUntil = now() + 20   // give the task app time to come forward before asking again
-        act(.backToTask)
+        syncShield()
+        if shield == nil, t - lastFrictionCheck >= 5, let w = currentWindow { lastFrictionCheck = t; updateFriction(w) }
     }
 
     // MARK: scheduled rhythm
@@ -157,7 +113,7 @@ extension SessionController {
         if let p = rhythmPrompt, p.kind == .checkIn, t - p.at >= Self.checkInPromptSeconds { rhythmPrompt = nil; workSeconds = 0 }
         guard rhythmPrompt == nil, let due = prefs.rhythm.dueAfter(checkInMinutes: prefs.checkInMinutes), workSeconds >= due else { return }
         // Not while you are being warned about something else, or paused; it waits until you are working again.
-        guard !isPaused, surface == nil, checkIn == nil, !gateOpen, presence.state != "interrupted", presence.state != "drifting", readings.first?.call != .off, banner == nil, friction == nil else { return }
+        guard !isPaused, surface == nil, checkIn == nil, !gateOpen, presence.state != "interrupted", presence.state != "drifting", readings.first?.call != .off, banner == nil, shield == nil else { return }
         let kind: RhythmPrompt.Kind = prefs.rhythm == .pomodoro ? .breakDue(minutes: Rhythm.breakMinutes(afterBlock: workBlocks + 1)) : .checkIn
         rhythmPrompt = RhythmPrompt(kind: kind, at: t)
         fire(prefs.rhythm == .pomodoro ? .breakDue : .rhythmCheckIn, title: CueCopy.rhythmTitle(kind, task: taskName))
@@ -186,3 +142,4 @@ extension SessionController {
         return Rhythm.shortBreak
     }
 }
+

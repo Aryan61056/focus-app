@@ -73,21 +73,32 @@ public enum HapticPattern: Equatable, Sendable {
 /// How the menu bar icon reads: plain, a soft tint for a heads-up or a prompt, or the warm tint and a slow pulse while you are away.
 public enum MenuCue: Equatable, Sendable { case none, headsUp, away }
 
-// MARK: friction before going back
+// MARK: the shield: a screen that has to be answered
 
-/// After a pause screen, the same site asks for a moment before it opens again. Either hold for a few seconds, or say why it belongs.
-public struct Friction: Equatable, Sendable {
+/// A screen that covers the display until it is answered. Three kinds: the pause screen after a warning went unanswered, the same site
+/// opening again after a pause screen, and a claim that a window Focus flagged is really part of the task.
+/// The only ways through are going back to the task, or explaining the window in words that Focus checks against the window itself.
+public struct Shield: Equatable, Sendable {
+    public enum Kind: Equatable, Sendable { case pause, friction, claim }
+    public var kind: Kind
     public var app: String
     public var siteKey: String
-    public var at: Double
-    /// How long the hold takes. A reason needs at least this many characters (about a short sentence).
-    public static let holdSeconds = 5.0
+    public var since: Double
+    /// Explaining opens at this time. Until then only "Back to task" works.
+    public var waitUntil: Double
+    /// The explanation form is open.
+    public var asking = false
+    /// The on-device model is reading the window against the explanation.
+    public var checking = false
+    /// Why the last explanation did not pass, or what is wrong with it.
+    public var message: String?
+    public var attemptsLeft = Shield.attempts
+    public static let attempts = 2
+    /// Two failed explanations lock the way through for this long.
+    public static let lockSeconds = 300.0
+    public static let frictionWait = 20.0, claimWait = 10.0
+    /// A verified window stays open for this long without asking again.
     public static let passSeconds = 600.0
-    public static let minimumReason = 12
-    public static func acceptable(reason: String) -> Bool {
-        let t = reason.trimmingCharacters(in: .whitespacesAndNewlines)
-        return t.count >= minimumReason && t.split(whereSeparator: { $0.isWhitespace }).count >= 2
-    }
 }
 
 // MARK: scheduled rhythm
@@ -192,8 +203,23 @@ public enum CueCopy {
         }
     }
 
-    public static func frictionTitle(task: String) -> String { "This is where you drifted" }
-    public static func frictionBody(task: String) -> String { "Hold for a few seconds to open it anyway, or say how it helps with \(task)." }
+    public static func shieldTitle(_ k: Shield.Kind) -> String {
+        switch k { case .pause: return "Take a moment"; case .friction: return "This is where you drifted"; case .claim: return "Check this window" }
+    }
+    public static func shieldBody(_ k: Shield.Kind, tone: NudgeTone, task: String, longDetour: Bool) -> String {
+        switch k {
+        case .pause: return NudgeCopy.gateBody(tone: tone, task: task, longDetour: longDetour)
+        case .friction: return "Focus covered this window because you were warned here. Go back to \(task), or explain how this helps once the wait is over."
+        case .claim: return "Focus read this window as off topic. Explain how it helps with \(task) once the wait is over, and Focus checks your words against the window."
+        }
+    }
+    public static func shieldAsk(task: String) -> String { "How does this window help with \(task)?" }
+    public static let shieldPlaceholder = "What are you doing here, and how does it connect?"
+    public static func waitLine(_ seconds: Int) -> String { "You can explain in \(seconds) s. Going back to the task works now." }
+    public static func lockedLine(_ seconds: Int) -> String {
+        let m = (seconds + 59) / 60
+        return "Focus could not verify this. Explaining is locked for \(m) \(m == 1 ? "minute" : "minutes"). Going back to the task works now."
+    }
 
     public static func rhythmTitle(_ k: RhythmPrompt.Kind, task: String) -> String {
         switch k {

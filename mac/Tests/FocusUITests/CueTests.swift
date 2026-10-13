@@ -102,7 +102,7 @@ final class LadderScaleTests: XCTestCase {
         let p = EscalationPlan.standard.scaled(by: 0.65, extraHold: 10)
         XCTAssertLessThan(p.checkInAfter, EscalationPlan.standard.checkInAfter)
         XCTAssertLessThan(p.checkInAfter, p.pauseAfter); XCTAssertLessThan(p.pauseAfter, p.enforceAfter)
-        XCTAssertEqual(p.holdSeconds, 20)
+        XCTAssertEqual(p.holdSeconds, 40)
         let tight = EscalationPlan.strict.scaled(by: 0.01)
         XCTAssertGreaterThanOrEqual(tight.checkInAfter, 12); XCTAssertGreaterThan(tight.pauseAfter, tight.checkInAfter); XCTAssertGreaterThan(tight.enforceAfter, tight.pauseAfter)
     }
@@ -128,20 +128,14 @@ final class CueLayoutTests: XCTestCase {
         XCTAssertEqual(f.midX, screen.midX, accuracy: 0.5)
         XCTAssertLessThanOrEqual(f.maxY - CueLayout.margin, visible.maxY)
     }
-    func testFrictionCoversABigWindowAndIsACardOtherwise() {
-        let big = CueLayout.frictionFrame(card: CGSize(width: 380, height: 300), window: NSRect(x: 100, y: 100, width: 900, height: 700), screen: screen)
-        XCTAssertTrue(big.covers); XCTAssertEqual(big.frame, NSRect(x: 100, y: 100, width: 900, height: 700))
-        let small = CueLayout.frictionFrame(card: CGSize(width: 380, height: 300), window: NSRect(x: 100, y: 100, width: 300, height: 200), screen: screen)
-        XCTAssertFalse(small.covers); XCTAssertEqual(small.frame.midX, screen.midX, accuracy: 0.5)
-        XCTAssertFalse(CueLayout.frictionFrame(card: CGSize(width: 380, height: 300), window: nil, screen: screen).covers)
-    }
 }
 
 final class CueCopyTests: XCTestCase {
     func testNoLineEverNamesTheDistractionOrShoutsOrUsesADash() {
         var lines: [String] = []
         for tone in NudgeTone.allCases { for k in [Banner.Kind.early, .reminder] { lines.append(CueCopy.bannerTitle(k, tone: tone, task: "Calc homework")) } }
-        lines += [CueCopy.frictionTitle(task: "Calc homework"), CueCopy.frictionBody(task: "Calc homework")]
+        for k in [Shield.Kind.pause, .friction, .claim] { lines += [CueCopy.shieldTitle(k), CueCopy.shieldBody(k, tone: .neutral, task: "Calc homework", longDetour: false)] }
+        lines += [CueCopy.shieldAsk(task: "Calc homework"), CueCopy.shieldPlaceholder, CueCopy.waitLine(12), CueCopy.lockedLine(300)] + OverrideClaim.messagesForTesting
         for k in [RhythmPrompt.Kind.checkIn, .breakDue(minutes: 5), .breakDue(minutes: 15)] { lines += [CueCopy.rhythmTitle(k, task: "Calc homework"), CueCopy.rhythmBody(k)] }
         for p in [DayPressure.relaxed, .behind, .wellBehind] { lines += [PaceCopy.line(p, goalReached: true, behindMinutes: 20) ?? "", PaceCopy.line(p, goalReached: false, behindMinutes: 0) ?? ""] }
         for l in lines {
@@ -254,7 +248,7 @@ final class CueControllerTests: XCTestCase {
         XCTAssertNil(c.banner)
     }
 
-    func testThisIsPartOfItTeachesTheWindowAndHidesTheHeadsUp() async {
+    func testThisIsPartOfItHidesTheHeadsUpAndAsksForAnExplanation() async {
         let c = make()
         await advance(c, to: 20)
         var n = 0
@@ -262,7 +256,8 @@ final class CueControllerTests: XCTestCase {
         XCTAssertNotNil(c.banner)
         c.bannerPartOfIt()
         XCTAssertNil(c.banner)
-        XCTAssertFalse(c.learnedRules.isEmpty, "the window was learned")
+        XCTAssertEqual(c.shield?.kind, .claim, "Focus read this window as off topic, so a click is not enough")
+        XCTAssertTrue(c.learnedRules.isEmpty)
     }
 
     func testNoHeadsUpInGentleOrWhenItsSwitchOrTheBannerIsOff() async {
@@ -310,98 +305,6 @@ final class CueControllerTests: XCTestCase {
         await advance(c, to: warned + 41); XCTAssertGreaterThan(haptics, atWarning, "the check-in")
         let atCheckIn = haptics
         await advance(c, to: warned + 101); XCTAssertGreaterThan(haptics, atCheckIn, "the pause screen")
-    }
-
-    // friction
-    func goThroughThePauseScreen(_ c: SessionController) async {
-        let warned = await driftUntilWarned(c)
-        await advance(c, to: warned + 101)
-        XCTAssertTrue(c.escalationGate)
-        await advance(c, to: t + 11)
-        c.leaveGate(fine: false)
-        XCTAssertFalse(c.gateOpen)
-    }
-
-    func testReopeningTheSameSiteAfterThePauseScreenAsksForAMoment() async {
-        let c = make()
-        await goThroughThePauseScreen(c)
-        c.windowChanged(editor)
-        XCTAssertNil(c.friction)
-        await advance(c, to: t + 30)
-        c.windowChanged(video)
-        XCTAssertEqual(c.friction?.app, "Safari")
-        XCTAssertEqual(c.menuCue, .headsUp)
-        c.windowChanged(editor)
-        XCTAssertNil(c.friction, "leaving the site clears it")
-    }
-
-    func testADifferentSiteInTheSameBrowserIsNotAskedAbout() async {
-        let c = make()
-        await goThroughThePauseScreen(c)
-        c.windowChanged(WindowSnapshot(app: "Safari", title: "Calc reference", url: "https://docs.example.com/calc"))
-        XCTAssertNil(c.friction, "the key is the site, not the browser")
-    }
-
-    func testHoldingForFiveSecondsOpensItForTenMinutesAndLettingGoStartsOver() async {
-        let c = make()
-        await goThroughThePauseScreen(c)
-        c.windowChanged(editor); await advance(c, to: t + 30)
-        c.windowChanged(video)
-        XCTAssertNotNil(c.friction)
-        c.beginFrictionHold(); t += 3
-        XCTAssertEqual(c.frictionHoldProgress(), 0.6, accuracy: 0.01)
-        c.endFrictionHold()
-        XCTAssertEqual(c.frictionHoldProgress(), 0)
-        c.updateFrictionHold(); XCTAssertNotNil(c.friction, "letting go early opens nothing")
-        c.beginFrictionHold(); t += 5.1
-        c.updateFrictionHold()
-        XCTAssertNil(c.friction)
-        c.windowChanged(editor); c.windowChanged(video)
-        XCTAssertNil(c.friction, "no second ask during the pass")
-        t += Friction.passSeconds + 1
-        c.windowChanged(editor); c.windowChanged(video)
-        XCTAssertNotNil(c.friction, "the pass ran out")
-    }
-
-    func testATypedReasonOpensItForTheSessionAndCountsAsThatWasFine() async {
-        let c = make()
-        await goThroughThePauseScreen(c)
-        c.windowChanged(editor); await advance(c, to: t + 30)
-        c.windowChanged(video)
-        XCTAssertFalse(c.submitFrictionReason("no"), "too short")
-        XCTAssertFalse(c.submitFrictionReason("because"), "one word")
-        XCTAssertNotNil(c.friction)
-        XCTAssertTrue(c.submitFrictionReason("a lecture on integrals"))
-        XCTAssertNil(c.friction)
-        t += 5000
-        c.windowChanged(editor); c.windowChanged(video)
-        XCTAssertNil(c.friction, "for the rest of the session")
-    }
-
-    func testBackToTaskOnTheFrictionPanelDoesNotAskAgainAtOnce() async {
-        let c = make()
-        await goThroughThePauseScreen(c)
-        c.windowChanged(editor); await advance(c, to: t + 30)
-        c.windowChanged(video)
-        c.frictionBackToTask()
-        XCTAssertNil(c.friction)
-        c.windowChanged(video)
-        XCTAssertNil(c.friction, "the task app needs a moment to come forward")
-    }
-
-    func testFrictionCanBeSwitchedOffAndNeverRunsInPractice() async {
-        let c = make { $0.prefs.frictionReturn = false }
-        await goThroughThePauseScreen(c)
-        c.windowChanged(video); XCTAssertNil(c.friction)
-    }
-
-    func testSayingThatWasFineOnThePauseScreenDoesNotBlockTheSite() async {
-        let c = make()
-        let warned = await driftUntilWarned(c)
-        await advance(c, to: warned + 101 + 11)
-        c.leaveGate(fine: true)
-        c.windowChanged(editor); c.windowChanged(video)
-        XCTAssertNil(c.friction)
     }
 
     // rhythm
@@ -501,7 +404,7 @@ final class CueControllerTests: XCTestCase {
         XCTAssertNotNil(late.checkIn, "behind the pace, the check-in comes after about 26 seconds")
         await advance(late, to: warnedPM + 66)
         XCTAssertTrue(late.escalationGate)
-        XCTAssertGreaterThan(late.gateHoldRemaining(), 10, "and the pause screen holds the easy exits longer")
+        XCTAssertGreaterThan(late.gateHoldRemaining(), 30, "and the pause screen makes you wait longer before you can explain")
     }
 
     func testPaceCanBeSwitchedOffOrHiddenWithTheGoal() {

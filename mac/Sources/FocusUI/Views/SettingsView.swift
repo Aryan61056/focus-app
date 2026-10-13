@@ -62,7 +62,7 @@ struct SettingsView: View {
                         Text(sensitivityHelp).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(.horizontal, 16).padding(.vertical, 12).overlay(alignment: .top) { Divider().overlay(Tokens.line) }
-                    row("If you stay away after a warning", "Gentle stops at the warning. Standard and Strict keep going: after about 40 seconds (20 on Strict) Focus asks whether you are on task and reads the window again, then shows a pause screen, then hides the app you drifted into. Dismissing a card does not stop it; getting back to the task does.") {
+                    row("If you stay away after a warning", "Gentle stops at the warning. Standard and Strict keep going: after about 40 seconds (20 on Strict) Focus asks whether you are on task and reads the window again, then covers every screen with a pause screen, then hides the app you drifted into. Dismissing a card does not stop it; getting back to the task does.") {
                         Toggle("", isOn: Binding(get: { c.prefs.escalate }, set: { c.prefs.escalate = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
                     if c.prefs.escalate {
@@ -97,8 +97,11 @@ struct SettingsView: View {
                             toggle(\.headsUp)
                         }
                     }
-                    row("Ask before you go back", "After a pause screen, opening the same site again asks you to hold a button for \(Int(Friction.holdSeconds)) seconds or type why it belongs. Going back to the task is always one click.") {
+                    row("Cover a flagged site when it opens again", "After a pause screen, the same site is covered for \(Int(Shield.frictionWait)) seconds whenever you open it again. Going back to the task is always one click.") {
                         toggle(\.frictionReturn)
+                    }
+                    row("Explaining a flagged window", "Saying \u{201C}That was fine\u{201D} about a window Focus read as off topic asks you to explain it, after a short wait. Focus checks your words against the window itself with both of its judges, and your words alone never pass it. Two wrong answers lock it for \(Int(Shield.lockSeconds / 60)) minutes. A project rule that says never is final.") {
+                        Label("Always on", systemImage: "lock").foregroundStyle(Tokens.ink2)
                     }
                     row("Tint the menu bar ring", "A warm tint for a heads-up or a prompt, and a slow pulse while you are away. The ring's shape shows the state either way.") {
                         toggle(\.menuBarCue)

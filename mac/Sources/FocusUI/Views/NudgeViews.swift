@@ -17,7 +17,7 @@ struct NudgeCard: View {
                 Button("Back to task") { c.act(.backToTask) }.buttonStyle(FocusButtonStyle(.primary, expand: true))
             }
             HStack {
-                Button("That was fine") { c.act(.thatWasFine) }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                Button("That was fine") { c.claimOnTask() }.buttonStyle(FocusButtonStyle(.plain, small: true))
                 Spacer()
                 Button("Not now") { c.act(.dismiss) }.buttonStyle(FocusButtonStyle(.plain, small: true))
             }
@@ -70,42 +70,6 @@ struct RhythmCard: View {
             .overlay { RoundedRectangle(cornerRadius: 24).strokeBorder(Tokens.line) }
             .shadow(color: .black.opacity(0.2), radius: 20, y: 10)
             .accessibilityElement(children: .contain)
-        }
-    }
-}
-
-/// The pause screen: Strict's gate, or the ladder's second step. Going back to the task is always one click; "That was fine" and
-/// "Snooze" wait a few seconds, so ignoring the warnings is no longer free.
-struct GateOverlay: View {
-    @Bindable var c: SessionController
-    var body: some View {
-        ZStack {
-            Rectangle().fill(.ultraThinMaterial).ignoresSafeArea()
-            VStack(spacing: 14) {
-                RingView(.drift, color: Tokens.ink).frame(width: 44, height: 44)
-                Text("Take a moment").font(Tokens.rounded(22, .semibold))
-                Text(NudgeCopy.gateBody(tone: c.prefs.nudgeTone, task: c.taskName, longDetour: c.longDetour)).font(Tokens.text(14)).foregroundStyle(Tokens.ink2)
-                    .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
-                if c.longDetour {
-                    Button(NudgeCopy.breakButton()) { c.takeNudgeBreak() }.buttonStyle(FocusButtonStyle(.primary, expand: true)).frame(width: 240)
-                    Button("Back to task") { c.leaveGate(fine: false) }.buttonStyle(FocusButtonStyle(.secondary, expand: true)).frame(width: 240)
-                } else {
-                    Button("Back to task") { c.leaveGate(fine: false) }.buttonStyle(FocusButtonStyle(.primary, expand: true)).frame(width: 240)
-                }
-                TimelineView(.periodic(from: .now, by: 0.5)) { _ in
-                    let wait = c.gateHoldRemaining()
-                    VStack(spacing: 6) {
-                        HStack {
-                            Button("That was fine") { c.leaveGate(fine: true) }.buttonStyle(FocusButtonStyle(.plain, small: true))
-                            Button("Snooze 15 min") { c.leaveGate(fine: false, snooze: true) }.buttonStyle(FocusButtonStyle(.plain, small: true))
-                        }.disabled(wait > 0)
-                        if wait > 0 { Text("Available in \(Int(wait.rounded(.up))) s").font(Tokens.text(12)).foregroundStyle(Tokens.ink2).monospacedDigit() }
-                    }
-                }
-            }
-            .padding(28)
-            .background(RoundedRectangle(cornerRadius: 28).fill(Tokens.window))
-            .overlay { RoundedRectangle(cornerRadius: 28).strokeBorder(Tokens.line) }
         }
     }
 }

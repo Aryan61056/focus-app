@@ -78,10 +78,10 @@ final class EscalationTests: XCTestCase {
         XCTAssertEqual(c.escalationStep, .checkIn)
 
         await advance(c, to: warned + 101)
-        XCTAssertTrue(c.escalationGate, "then the pause screen")
+        XCTAssertTrue(c.escalationGate, "then the pause screen"); XCTAssertEqual(c.shield?.kind, .pause)
         XCTAssertNil(c.checkIn)
         XCTAssertGreaterThan(c.gateHoldRemaining(), 0)
-        XCTAssertGreaterThanOrEqual(foreground, 1)
+        XCTAssertEqual(foreground, 0, "the pause screen is its own panel now, not the Focus window coming forward")
         XCTAssertTrue(hidden.isEmpty)
 
         await advance(c, to: warned + 201)
@@ -90,19 +90,24 @@ final class EscalationTests: XCTestCase {
         XCTAssertEqual(hidden, ["Safari", "Safari"], "and again every two minutes while you stay away")
     }
 
-    func testEasyExitsAreHeldBackOnThePauseScreenButBackToTaskIsNot() async {
+    func testExplainingIsHeldBackOnThePauseScreenButBackToTaskIsNot() async {
         let c = make()
         let warned = await driftUntilWarned(c)
         await advance(c, to: warned + 101)
         XCTAssertTrue(c.gateOpen)
+        XCTAssertEqual(c.shield?.kind, .pause)
+        XCTAssertEqual(c.gateHoldRemaining(), 30, accuracy: 1.5, "thirty seconds on Standard")
+        c.openExplanation()
+        XCTAssertEqual(c.shield?.asking, false, "the form stays shut during the wait")
         c.leaveGate(fine: true)
-        XCTAssertTrue(c.gateOpen, "That was fine is disabled during the hold")
-        c.leaveGate(fine: false, snooze: true)
-        XCTAssertTrue(c.gateOpen, "so is Snooze")
-        await advance(c, to: t + 11)
-        XCTAssertEqual(c.gateHoldRemaining(), 0)
+        XCTAssertEqual(c.shield?.asking, false, "so does the old one-click That was fine")
+        await advance(c, to: t + 31)
+        XCTAssertEqual(c.shieldWaitRemaining(), 0)
+        c.openExplanation()
+        XCTAssertEqual(c.shield?.asking, true, "after the wait the form opens")
         c.leaveGate(fine: false)
         XCTAssertFalse(c.gateOpen, "Back to task is always available")
+        XCTAssertNil(c.shield)
     }
 
     func testGettingBackToTheTaskEndsTheClimbAndTheGrayClears() async {
@@ -117,15 +122,16 @@ final class EscalationTests: XCTestCase {
         XCTAssertEqual(c.veilLevel(), 0, accuracy: 0.5)
     }
 
-    func testAnsweringYesToTheCheckInTeachesTheWindowAndEndsTheClimb() async {
+    func testAnsweringYesToTheCheckInNowHasToBeExplainedNotJustClicked() async {
         let c = make()
         let warned = await driftUntilWarned(c)
         await advance(c, to: warned + 41)
         XCTAssertNotNil(c.checkIn)
         c.answerCheckIn(onTask: true)
-        XCTAssertNil(c.checkIn); XCTAssertEqual(c.escalationStep, .warned)
-        await advance(c, to: t + 30)
-        XCTAssertNotEqual(c.presence.state, "interrupted", "the window was forgiven")
+        XCTAssertNil(c.checkIn)
+        XCTAssertEqual(c.shield?.kind, .claim, "a flagged window needs an explanation Focus can check")
+        XCTAssertTrue(c.learnedRules.isEmpty, "nothing was learned from a click")
+        XCTAssertEqual(c.presence.state, "interrupted")
     }
 
     func testTheScreenGraysWithTheClimbAndStaysAtZeroWhenOff() async {

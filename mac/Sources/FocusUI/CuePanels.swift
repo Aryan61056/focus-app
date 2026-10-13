@@ -2,8 +2,8 @@ import AppKit
 import SwiftUI
 import Observation
 
-// The panels that sit over other apps: the small banner (heads-up and reminder) and the friction panel (a moment before a site opens again).
-// Like the notch panel, they are borderless, never take focus from the app you are in, and exist only while a session runs.
+// The small banner that sits over the window you are in (heads-up and reminder). Like the notch panel it is borderless, never takes focus
+// from the app you are in, and exists only while a session runs. The screen-covering shield lives in ShieldPanel.swift.
 
 /// Where the panels go. Pure, so the arithmetic is tested; the controllers only apply it.
 public enum CueLayout {
@@ -32,12 +32,6 @@ public enum CueLayout {
         return f
     }
 
-    /// The friction panel covers the window it is about, so nothing in it can be used until you answer. With no window it is a card in the middle of the screen.
-    static func frictionFrame(card: CGSize, window: NSRect?, screen: NSRect) -> (frame: NSRect, covers: Bool) {
-        if let w = window, w.width >= card.width + 40, w.height >= card.height + 40 { return (w, true) }
-        let size = CGSize(width: card.width + 2 * margin, height: card.height + 2 * margin)
-        return (NSRect(x: screen.midX - size.width / 2, y: screen.midY - size.height / 2 + 40, width: size.width, height: size.height), false)
-    }
 }
 
 private func screen(containing p: NSPoint) -> NSScreen? { NSScreen.screens.first { NSMouseInRect(p, $0.frame, false) } ?? NSScreen.main ?? NSScreen.screens.first }
@@ -153,142 +147,9 @@ public final class BannerController {
     }
 }
 
-// MARK: friction
-
-final class FrictionPanel: NSPanel {
-    var onEscape: (() -> Void)?
-    init() {
-        super.init(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-        isOpaque = false; backgroundColor = .clear; hasShadow = false
-        level = .statusBar
-        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
-        isMovable = false; hidesOnDeactivate = false
-    }
-    // The reason field needs the keyboard, so this panel can be key even though it never makes Focus the active app.
-    override var canBecomeKey: Bool { true }
-    override func cancelOperation(_ sender: Any?) { onEscape?() }
-}
-
-/// Press and hold for a few seconds. The fill shows how far along it is; letting go starts over. The controller finishes the hold.
-struct HoldButton: View {
-    @Bindable var c: SessionController
-    var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: c.frictionHoldStart == nil)) { _ in
-            let p = c.frictionHoldProgress()
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: Tokens.radiusControl).fill(Tokens.control)
-                GeometryReader { g in RoundedRectangle(cornerRadius: Tokens.radiusControl).fill(Tokens.accentSoft).frame(width: g.size.width * p) }
-                Text(p > 0 ? "Keep holding" : "Hold to open it anyway").font(Tokens.text(13, .semibold)).frame(maxWidth: .infinity)
-            }
-            .frame(height: 34)
-            .overlay { RoundedRectangle(cornerRadius: Tokens.radiusControl).strokeBorder(Tokens.line) }
-            .contentShape(RoundedRectangle(cornerRadius: Tokens.radiusControl))
-        }
-        .gesture(DragGesture(minimumDistance: 0).onChanged { _ in c.beginFrictionHold() }.onEnded { _ in c.endFrictionHold() })
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Hold to open it anyway")
-        .accessibilityHint("Takes \(Int(Friction.holdSeconds)) seconds. You can also type a reason instead.")
-        .accessibilityAddTraits(.isButton)
-        .accessibilityAction { c.beginFrictionHold() }
-    }
-}
-
-struct FrictionCard: View {
-    @Bindable var c: SessionController
-    @State private var reason = ""
-    @FocusState private var typing: Bool
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                RingView(.drift, color: Tokens.ink).frame(width: 22, height: 22)
-                Text(CueCopy.frictionTitle(task: c.taskName)).font(Tokens.rounded(17, .semibold))
-            }
-            Text(CueCopy.frictionBody(task: c.taskName)).font(Tokens.text(13)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
-            Button("Back to task") { c.frictionBackToTask() }.buttonStyle(FocusButtonStyle(.primary, expand: true))
-            HoldButton(c: c)
-            HStack(spacing: 8) {
-                TextField("Or say how this helps", text: $reason).textFieldStyle(.plain).focused($typing).onSubmit(submit)
-                    .padding(.horizontal, 12).frame(height: 34)
-                    .background(RoundedRectangle(cornerRadius: Tokens.radiusControl).fill(Tokens.control))
-                Button("Open it", action: submit).buttonStyle(FocusButtonStyle(.secondary)).disabled(!Friction.acceptable(reason: reason))
-            }
-            Text("A reason counts as \u{201C}That was fine\u{201D} for this window. The words are not kept.").font(Tokens.text(12)).foregroundStyle(Tokens.ink2)
-        }
-        .padding(20).frame(width: Self.width)
-        .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(.regularMaterial))
-        .overlay { RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(Tokens.line) }
-        .shadow(color: .black.opacity(0.22), radius: 22, y: 10)
-        .foregroundStyle(Tokens.ink)
-        .accessibilityElement(children: .contain)
-    }
-    func submit() { if c.submitFrictionReason(reason) { reason = "" } }
-    static let width: CGFloat = 380
-    static let height: CGFloat = 300
-}
-
-struct FrictionContent: View {
-    @Bindable var c: SessionController
-    var covers: Bool
-    var body: some View {
-        ZStack {
-            if covers { Color.black.opacity(0.34) }
-            FrictionCard(c: c).padding(covers ? 0 : CueLayout.margin)
-        }
-    }
-}
-
-/// Covers the window you reopened with a card that asks for a short hold or a reason. It sits only over that window; the rest of the screen is untouched.
-@MainActor
-public final class FrictionController {
-    private let c: SessionController
-    private var panel: FrictionPanel?
-    private var timer: Timer?
-    private var running = false
-    private var covers = false
-
-    public init(controller: SessionController) { self.c = controller }
-    public var isShowing: Bool { panel?.isVisible ?? false }
-
-    public func start() { guard !running else { return }; running = true; track() }
-    public func stop() { running = false; timer?.invalidate(); timer = nil; panel?.orderOut(nil) }
-
-    private func track() {
-        guard running else { return }
-        withObservationTracking { _ = c.friction } onChange: { [weak self] in
-            Task { @MainActor in self?.refresh(); self?.track() }
-        }
-        refresh()
-    }
-
-    func refresh() {
-        guard running, c.friction != nil else { timer?.invalidate(); timer = nil; panel?.orderOut(nil); return }
-        let p = panel ?? FrictionPanel(); panel = p
-        p.onEscape = { [weak self] in self?.c.frictionBackToTask() }
-        place(p)
-        if !p.isVisible { p.makeKeyAndOrderFront(nil) }
-        if timer == nil {
-            timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-                MainActor.assumeIsolated { guard let self else { return }; self.c.updateFrictionHold(); if let p = self.panel, p.isVisible { self.place(p) } }
-            }
-        }
-    }
-
-    private func place(_ p: FrictionPanel) {
-        let window = windowRectInCocoa(c)
-        guard let s = window.flatMap({ w in NSScreen.screens.first { NSMouseInRect(NSPoint(x: w.midX, y: w.midY), $0.frame, false) } }) ?? screen(containing: NSEvent.mouseLocation) else { return }
-        let (f, covers) = CueLayout.frictionFrame(card: CGSize(width: FrictionCard.width, height: FrictionCard.height), window: window, screen: s.frame)
-        if p.contentView == nil || self.covers != covers {
-            let host = NSHostingView(rootView: FrictionContent(c: c, covers: covers))
-            host.sizingOptions = []; host.safeAreaRegions = []
-            p.contentView = host; self.covers = covers
-        }
-        if p.frame != f { p.setFrame(f, display: true) }
-    }
-}
-
 /// The new surfaces as plain views, for the snapshot tool that renders the app offscreen. Nothing here reads the screen.
 public enum CuePreview {
     @MainActor public static func banner(_ c: SessionController, _ kind: Banner.Kind) -> some View { BannerView(c: c, banner: Banner(kind: kind, at: 0)) }
-    @MainActor public static func friction(_ c: SessionController) -> some View { FrictionContent(c: c, covers: false) }
+    @MainActor public static func shield(_ c: SessionController) -> some View { ShieldContent(c: c) }
     @MainActor public static func rhythm(_ c: SessionController) -> some View { RhythmCard(c: c).padding(CueLayout.margin) }
 }

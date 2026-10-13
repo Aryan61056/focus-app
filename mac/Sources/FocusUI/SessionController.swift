@@ -62,9 +62,9 @@ public final class SessionController {
     // MARK: escalation (Escalation.swift). Climbs while the brain says "interrupted"; only being back on task, or an honest answer, ends it.
     public private(set) var escalationStep = EscalationStep.warned
     /// "Are you working on <task>?" is on screen.
-    public private(set) var checkIn: Double?
+    public internal(set) var checkIn: Double?
     /// The pause screen is up because of the ladder (the brain's own Strict gate is `surface.kind == "gate"`).
-    public private(set) var escalationGate = false
+    public internal(set) var escalationGate = false
     /// Until this time the pause screen's "That was fine" and "Snooze" stay disabled.
     public private(set) var gateHoldUntil: Double?
     @ObservationIgnored var warnedAt: Double?
@@ -84,8 +84,8 @@ public final class SessionController {
     /// The small banner over the window you are in: a heads-up before a warning, then a reminder from the warning until you are back.
     public internal(set) var banner: Banner?
     /// After a pause screen, the same site asks for a short hold or a typed reason before it opens again.
-    public internal(set) var friction: Friction?
-    public internal(set) var frictionHoldStart: Double?
+    public internal(set) var shield: Shield?
+    @ObservationIgnored var overrideLockedUntil: Double?
     /// A scheduled prompt: a check-in at an interval, or a break after a block of work.
     public internal(set) var rhythmPrompt: RhythmPrompt?
     @ObservationIgnored var driftWatch = DriftWatch()
@@ -185,7 +185,7 @@ public final class SessionController {
     }
 
     @ObservationIgnored private var brain = Brain()
-    @ObservationIgnored private let judge: any Judge
+    @ObservationIgnored let judge: any Judge
     @ObservationIgnored let now: () -> Double
     @ObservationIgnored public let store: DataStore?
     public let prefs: Preferences
@@ -198,7 +198,7 @@ public final class SessionController {
     @ObservationIgnored private var segments: [TimelineSegment] = []
     @ObservationIgnored private var project = ProjectProfile()
     @ObservationIgnored private var sensitiveUp = false
-    @ObservationIgnored private var tasks: [Task<Void, Never>] = []
+    @ObservationIgnored var tasks: [Task<Void, Never>] = []
     @ObservationIgnored private var timer: Timer?
     @ObservationIgnored var totalSeconds = 0.0
     // Rewards bookkeeping for the running session (seconds only).
@@ -269,9 +269,10 @@ public final class SessionController {
     }
 
     // MARK: escalation
-    private func clearEscalation() {
+    func clearEscalation() {
         if warnedAt != nil || escalationStep != .warned { setFloor(0, over: 5, now()) }
         warnedAt = nil; escalationStep = .warned; checkIn = nil; escalationGate = false; gateHoldUntil = nil; enforcedRounds = 0
+        if shield?.kind == .pause { shield = nil }
     }
 
     private func beaconForLadder(_ state: String, _ t: Double) {
@@ -308,9 +309,9 @@ public final class SessionController {
             case .pauseScreen:
                 checkIn = nil; escalationGate = true; gateHoldUntil = t + plan.holdSeconds
                 fire(.pauseScreen, title: "Take a moment. " + NudgeCopy.gateBody(tone: prefs.nudgeTone, task: taskName, longDetour: longDetour))
-                onForeground?()
             default: break
             }
+            syncShield()
             refreshBanner(t)
         }
         if step == .enforce {
@@ -321,25 +322,23 @@ public final class SessionController {
                 if prefs.hideDistractingApp, Enforcement.canHide(currentWindow?.app), let app = currentWindow?.app { onHideApp?(app) }
                 act(.backToTask)   // brings the task forward
                 fire(.enforce, title: CueCopy.bannerTitle(.reminder, tone: prefs.nudgeTone, task: taskName))
-                onForeground?()
             }
         }
     }
 
-    /// "Yes, I am": the answer teaches Focus that this window belongs to the task, and ends the climb. "No" or "Back to task" only sends you back.
+    /// "Yes, I am" says the window belongs to the task. A window Focus read as off topic has to be explained (see claimOnTask);
+    /// "No" or "Back to task" only sends you back.
     public func answerCheckIn(onTask: Bool) {
-        checkIn = nil
-        if onTask { act(.thatWasFine); clearEscalation() } else { act(.backToTask) }
+        if onTask { claimOnTask() } else { checkIn = nil; act(.backToTask) }
     }
 
-    /// The pause screen's buttons. The easy exits are held back for a few seconds; going back to the task never is.
-    public var gateOpen: Bool { surface?.kind == "gate" || escalationGate }
+    /// The pause screen. There is no snooze and no one-click "That was fine": going back to the task is always open, and explaining the window
+    /// opens only after the wait and only passes if Focus's own reading of the window agrees.
+    public var gateOpen: Bool { pauseWanted }
     public func gateHoldRemaining() -> Double { max(0, (gateHoldUntil ?? 0) - now()) }
-    public func leaveGate(fine: Bool, snooze: Bool = false) {
-        if fine || snooze, gateHoldRemaining() > 0 { return }
-        escalationGate = false
-        if !fine { blockCurrentSite() }   // the same site now asks for a moment before it opens again (friction)
-        if snooze { act(.snooze, minutes: 15) } else if fine { act(.thatWasFine); clearEscalation() } else { act(.backToTask) }
+    public func leaveGate(fine: Bool) {
+        if fine { claimOnTask(); openExplanation(); return }
+        shieldBackToTask()
     }
 
     // MARK: screen-wide veil
@@ -637,6 +636,7 @@ public final class SessionController {
             }
             if case .beacon(let s, _) = e, s != "paused" { askResume = nil }
         }
+        syncShield()
     }
 
     /// Builds the session timeline (seconds per state, never window titles) from beacon changes.

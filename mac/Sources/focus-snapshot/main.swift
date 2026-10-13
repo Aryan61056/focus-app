@@ -124,7 +124,29 @@ struct FakeWindow<Over: View>: View {
     for dark in [false, true] {
         png(FakeWindow(dark: dark) { CuePreview.banner(c, .reminder) }.frame(width: 760, height: 380).environment(\.colorScheme, dark ? .dark : .light), "banner-reminder-\(dark ? "dark" : "light")")
         png(FakeWindow(dark: dark) { CuePreview.banner(c, .early) }.frame(width: 760, height: 380).environment(\.colorScheme, dark ? .dark : .light), "banner-early-\(dark ? "dark" : "light")")
-        png(FakeWindow(dark: dark) { CuePreview.friction(c).padding(.top, 20) }.frame(width: 760, height: 520).environment(\.colorScheme, dark ? .dark : .light), "friction-\(dark ? "dark" : "light")")
+        
+    }
+    // The shield, over a stand-in for the screen (the real one blurs what is behind it).
+    let shields: [(String, Shield.Kind, Double, Bool, Bool, String?, Int)] = [
+        ("shield-pause-waiting", .pause, 30, false, false, nil, 2),
+        ("shield-friction-waiting", .friction, 20, false, false, nil, 2),
+        ("shield-explain-ready", .claim, 0, false, false, nil, 2),
+        ("shield-asking", .claim, 0, true, false, nil, 2),
+        ("shield-refused", .claim, 0, true, false, "Focus read the window again and it does not look like Calc homework. 1 try left.", 1),
+        ("shield-checking", .claim, 0, true, true, nil, 2),
+        ("shield-locked", .pause, 0, false, false, "Focus could not verify this. Explaining is locked for 5 minutes. Going back to the task works now.", 2),
+    ]
+    for (name, kind, wait, asking, checking, message, tries) in shields {
+        t = 0
+        let sc = SessionController(judge: judge, store: DataStore(), now: { t })
+        sc.windowChanged(WindowSnapshot(app: "Notes", title: "Calc homework"))
+        sc.begin(task: "Calc homework", preset: .standard, shadow: false)
+        await sc.waitForJudgments()
+        sc.debugShowShield(kind, wait: wait, asking: asking, checking: checking, message: message, attemptsLeft: tries)
+        if name == "shield-locked" { sc.debugLock() }
+        for dark in [false, true] {
+            png(FakeWindow(dark: dark) { EmptyView() }.overlay { CuePreview.shield(sc) }.frame(width: 760, height: 560).environment(\.colorScheme, dark ? .dark : .light), "\(name)-\(dark ? "dark" : "light")")
+        }
     }
     // Scheduled prompts: a check-in, and a break after a block of work.
     for (name, rhythm) in [("rhythm-checkin", Rhythm.checkIns), ("rhythm-break", .pomodoro)] {

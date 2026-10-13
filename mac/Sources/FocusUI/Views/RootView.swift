@@ -52,7 +52,6 @@ public struct RootView: View {
                 .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: c.surface)
                 .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: c.checkIn)
                 if c.reentryOpen || c.manualNextStep { ReentryCard(c: c).padding(18).padding(.top, c.surface == nil && c.rhythmPrompt == nil ? 0 : 190) }
-                if c.gateOpen { GateOverlay(c: c) }
             }
         }
         .frame(minWidth: 960, minHeight: 600)

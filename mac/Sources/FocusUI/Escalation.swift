@@ -20,11 +20,11 @@ public struct EscalationPlan: Equatable, Sendable {
     /// Seconds after the warning at which each step begins.
     public var checkInAfter: Double, pauseAfter: Double, enforceAfter: Double
     public var enforceEvery: Double
-    /// Seconds the "That was fine" and "Snooze" buttons stay disabled on the pause screen.
+    /// Seconds before the pause screen lets you explain the window. Only "Back to task" works until then.
     public var holdSeconds: Double
 
-    public static let standard = EscalationPlan(checkInAfter: 40, pauseAfter: 100, enforceAfter: 200, enforceEvery: 120, holdSeconds: 10)
-    public static let strict = EscalationPlan(checkInAfter: 20, pauseAfter: 45, enforceAfter: 120, enforceEvery: 60, holdSeconds: 15)
+    public static let standard = EscalationPlan(checkInAfter: 40, pauseAfter: 100, enforceAfter: 200, enforceEvery: 120, holdSeconds: 30)
+    public static let strict = EscalationPlan(checkInAfter: 20, pauseAfter: 45, enforceAfter: 120, enforceEvery: 60, holdSeconds: 45)
 
     /// Gentle has no ladder: it is the preset for people who want a single quiet note.
     public static func of(_ p: Preset) -> EscalationPlan? {

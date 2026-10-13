@@ -39,7 +39,7 @@ struct FocusApp: App {
     @State private var updater: Updater?
     @State private var veil: VeilController?
     @State private var banner: BannerController?
-    @State private var friction: FrictionController?
+    @State private var shield: ShieldController?
     @State private var cueClock: CueClock?
     @State private var voice = Voice()
     @Environment(\.openWindow) private var openWindow
@@ -47,10 +47,6 @@ struct FocusApp: App {
     var body: some Scene {
         Window("Focus", id: "main") {
             RootView(controller: controller)
-                .onChange(of: controller.surface) { _, s in
-                    // The strict pause screen lives in this window, so it has to come forward to be seen.
-                    if s?.kind == "gate" { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); Self.bringToPointerScreen() }
-                }
                 .task {
                     // Real window sensing, except in the scripted demo. It only runs while a session is active.
                     if sense == nil, ProcessInfo.processInfo.environment["FOCUS_DEMO"] != "1" {
@@ -77,7 +73,7 @@ struct FocusApp: App {
                     // The quieter cues. Each one is silent except the voice, which is off until the user turns it on. The controller decides when.
                     controller.frontWindowFrame = { AXWindowSource.frontWindowFrame() }
                     if banner == nil { let b = BannerController(controller: controller); banner = b; b.start() }
-                    if friction == nil { let f = FrictionController(controller: controller); friction = f; f.start() }
+                    if shield == nil { let f = ShieldController(controller: controller); shield = f; f.start() }
                     if cueClock == nil { let k = CueClock(controller: controller); cueClock = k; k.start() }
                     controller.onHaptic = { Haptics.play($0) }
                     controller.onSpeak = { voice.say($0) }

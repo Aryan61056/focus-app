@@ -31,7 +31,7 @@ public struct MenuBarContent: View {
                 Menu("Snooze") { ForEach([15, 30, 60], id: \.self) { m in Button("\(m) minutes") { c.act(.snooze, minutes: m) } } }.menuStyle(.borderlessButton).padding(.horizontal, 10).frame(height: 30)
                 Divider().padding(.vertical, 4)
                 item("Set next step") { c.manualNextStep = true; openApp() }
-                item("That was fine") { c.act(.thatWasFine) }
+                item("That was fine") { c.claimOnTask() }
                 item("Back to task") { c.act(.backToTask) }
                 Divider().padding(.vertical, 4)
                 if c.mode == .timed { item("Extend 5 minutes") { c.act(.extend, minutes: 5) } }
