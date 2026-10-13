@@ -3,6 +3,8 @@ import SwiftUI
 enum AppTab: String, Hashable { case today, insights, mac }
 
 struct RootView: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.scenePhase) private var scenePhase
     @State private var tab = AppTab(rawValue: UserDefaults.standard.string(forKey: "tab") ?? "") ?? .today
 
     var body: some View {
@@ -13,5 +15,9 @@ struct RootView: View {
         }
         .tabBarMinimizeBehavior(.onScrollDown)
         .selectionFeedback(tab)
+        // Only .background: .inactive also happens when you pull down Control Center, which is not leaving.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background { model.leftApp() } else if phase == .active { model.cameBack() }
+        }
     }
 }

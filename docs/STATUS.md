@@ -142,3 +142,9 @@ Early on I did not drive your screen (synthetic events sent to the process do no
 - Windows: nothing runnable here.
 - Whether Chrome reports page addresses through Accessibility is unknown (Safari does). Without an address, titles still work, and the matching-words rule also skips pages whose title names a video or social site.
 - Still yours to decide: product name, audience, pricing, open-sourcing, minimum OS, Mac distribution, languages.
+
+## iPhone companion and Mac link (Aarav and Claude, 2026-10-13; branch `aarav/companion`, not pushed)
+- New: `companion/` (iPhone app), `core/link/` (encrypted local-network link), `mac/Sources/FocusLink/` (Mac side, Session > iPhone..., **off by default**). Details, security design,
+  the decision it needs from the owner, and what is and is not verified: **`docs/COMPANION.md`**.
+- Existing files touched: `mac/Package.swift`, `FocusApp.swift` (9 lines), `tools/build_app.sh` (2 plist keys). Full Mac suite still passes (0 failures); the Rust brain is untouched.
+

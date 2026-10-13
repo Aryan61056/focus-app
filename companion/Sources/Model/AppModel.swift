@@ -23,6 +23,7 @@ final class AppModel {
     @ObservationIgnored private let store: PairedMacStore
     @ObservationIgnored private let demo = DemoMac()
     @ObservationIgnored private let liveActivity = LiveActivityController()
+    @ObservationIgnored private let pickup = PickupReminder()
     @ObservationIgnored private var nextCommandID: UInt32 = 1
     @ObservationIgnored private var noticeTask: Task<Void, Never>?
 
@@ -58,7 +59,8 @@ final class AppModel {
             guard let self else { return }
             switch result {
             case .success(let paired):
-                store.save(paired); mac = paired; stopDemo()
+                guard store.save(paired) else { return done("Paired, but this phone couldn't keep the pairing safe. Try again.") }
+                mac = paired; stopDemo()
                 client.follow(paired)
                 done(nil)
             case .failure(.wrongCode): done("That code isn't right. Check your Mac and try again.")
@@ -72,6 +74,27 @@ final class AppModel {
         client.unfollow(); store.clear(); mac = nil
         apply(.idle); insights = nil
     }
+
+    #if DEBUG
+    /// `-pair <code>` on launch: pair with the first Mac that shows up. For testing the real link without typing.
+    func autoPair(code: String) {
+        client.browse()
+        Task { [weak self] in
+            guard let self else { return }
+            for _ in 0..<200 where client.found.isEmpty { try? await Task.sleep(for: .milliseconds(100)) }
+            guard let found = client.found.first else { return show("No Mac found to pair with.") }
+            pair(with: found, code: code, deviceName: "Test iPhone") { [weak self] problem in if let problem { self?.show(problem) } }
+        }
+    }
+
+    /// `-remote-start <task>` on launch: start a 25 minute session once the Mac is connected.
+    func autoStart(task: String) {
+        Task {
+            for _ in 0..<200 where connection != .connected { try? await Task.sleep(for: .milliseconds(100)) }
+            start(task: task, minutes: 25)
+        }
+    }
+    #endif
 
     // MARK: demo
     func startDemo() {
@@ -111,8 +134,13 @@ final class AppModel {
         }
     }
 
+    /// The app went to the background: if a session is running, a gentle reminder is scheduled. See PickupReminder.
+    func leftApp() { pickup.arm(clock: clock, live: connection.isLive) }
+    func cameBack() { pickup.disarm() }
+
     private func apply(_ s: SessionState) {
         if s.phase == .drifting, clock.state.phase != .drifting { driftCount += 1 }
+        if s.isActive, !clock.state.isActive { pickup.askPermissionIfNeeded() }
         clock = SessionClock(state: s, receivedAt: .now)
         liveActivity.sync(clock)
     }

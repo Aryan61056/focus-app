@@ -5,7 +5,8 @@ import FocusLinkNet
 /// Where the phone keeps the key it shares with the Mac. The Keychain, so the key stays out of backups and other apps.
 struct PairedMacStore {
     var load: () -> PairedMac?
-    var save: (PairedMac) -> Void
+    /// False when the Keychain refused, so the app can say so rather than forget the Mac at the next launch.
+    var save: (PairedMac) -> Bool
     var clear: () -> Void
 
     static let keychain: PairedMacStore = {
@@ -18,10 +19,10 @@ struct PairedMacStore {
                 return try? LinkCoding.decode(PairedMac.self, from: data)
             },
             save: { mac in
-                guard let data = try? LinkCoding.encode(mac) else { return }
+                guard let data = try? LinkCoding.encode(mac) else { return false }
                 SecItemDelete(base as CFDictionary)
                 var q = base; q[kSecValueData as String] = data; q[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-                SecItemAdd(q as CFDictionary, nil)
+                return SecItemAdd(q as CFDictionary, nil) == errSecSuccess
             },
             clear: { SecItemDelete(base as CFDictionary) })
     }()
@@ -30,6 +31,6 @@ struct PairedMacStore {
     static func memory(_ initial: PairedMac? = nil) -> PairedMacStore {
         final class Box: @unchecked Sendable { var mac: PairedMac?; init(_ m: PairedMac?) { mac = m } }
         let box = Box(initial)
-        return PairedMacStore(load: { box.mac }, save: { box.mac = $0 }, clear: { box.mac = nil })
+        return PairedMacStore(load: { box.mac }, save: { box.mac = $0; return true }, clear: { box.mac = nil })
     }
 }

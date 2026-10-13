@@ -42,3 +42,33 @@ struct PairingFieldTests {
         #expect(PairingView.format("0123456789ABCDEFGHJKM").filter { $0 != "-" }.count == 16)
     }
 }
+
+struct PickupReminderTests {
+    private let now = Date(timeIntervalSince1970: 2_000_000)
+    private func clock(_ phase: SessionState.Phase, timed: Bool = false, seconds: Double = 600, practice: Bool = false) -> SessionClock {
+        SessionClock(state: SessionState(phase: phase, task: "Calc", timed: timed, clockSeconds: seconds, clockRunning: true, totalSeconds: timed ? 1500 : 0, practice: practice), receivedAt: now)
+    }
+
+    @Test func remindsWhileWorkingOrDrifting() {
+        for p in [SessionState.Phase.onTask, .unsure, .drifting, .recovering] {
+            #expect(PickupReminder.plan(clock: clock(p), live: true, now: now, lastShown: nil) == PickupReminder.delay)
+        }
+    }
+    @Test func neverRemindsWhenNothingIsRunningOrYouPaused() {
+        #expect(PickupReminder.plan(clock: clock(.idle), live: true, now: now, lastShown: nil) == nil)
+        #expect(PickupReminder.plan(clock: clock(.paused), live: true, now: now, lastShown: nil) == nil)
+        #expect(PickupReminder.plan(clock: clock(.onBreak), live: true, now: now, lastShown: nil) == nil)
+    }
+    @Test func neverRemindsWithoutAConnectionOrDuringPractice() {
+        #expect(PickupReminder.plan(clock: clock(.onTask), live: false, now: now, lastShown: nil) == nil)
+        #expect(PickupReminder.plan(clock: clock(.onTask, practice: true), live: true, now: now, lastShown: nil) == nil)
+    }
+    @Test func noReminderForASessionAboutToEnd() {
+        #expect(PickupReminder.plan(clock: clock(.onTask, timed: true, seconds: 90), live: true, now: now, lastShown: nil) == nil)
+        #expect(PickupReminder.plan(clock: clock(.onTask, timed: true, seconds: 400), live: true, now: now, lastShown: nil) != nil)
+    }
+    @Test func atMostOneEveryFiveMinutes() {
+        #expect(PickupReminder.plan(clock: clock(.onTask), live: true, now: now, lastShown: now.addingTimeInterval(-120)) == nil)
+        #expect(PickupReminder.plan(clock: clock(.onTask), live: true, now: now, lastShown: now.addingTimeInterval(-400)) != nil)
+    }
+}
