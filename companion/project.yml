@@ -1,0 +1,76 @@
+name: FocusCompanion
+options:
+  bundleIdPrefix: dev.focusapp
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+    SWIFT_APPROACHABLE_CONCURRENCY: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    CODE_SIGN_STYLE: Automatic
+    # Set your team in Xcode (Signing & Capabilities) to run on a real iPhone. The simulator needs no signing.
+packages:
+  FocusLinkKit:
+    path: ../core/link
+targets:
+  FocusCompanion:
+    type: application
+    platform: iOS
+    sources: [App, Sources, Shared]
+    dependencies:
+      - package: FocusLinkKit
+        product: FocusLinkNet
+      - target: FocusCompanionWidgets
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Focus
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        NSLocalNetworkUsageDescription: Focus finds your Mac on your Wi-Fi so this phone can show and control your session. Nothing leaves your network.
+        NSBonjourServices: [_focuslink._tcp]
+        NSSupportsLiveActivities: true
+        ITSAppUsesNonExemptEncryption: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.focusapp.companion
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        GENERATE_INFOPLIST_FILE: NO
+  FocusCompanionWidgets:
+    type: app-extension
+    platform: iOS
+    sources: [LiveActivity, Shared]
+    info:
+      path: LiveActivity/Info.plist
+      properties:
+        CFBundleDisplayName: Focus
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.focusapp.companion.widgets
+        TARGETED_DEVICE_FAMILY: "1"
+        SKIP_INSTALL: YES
+  FocusCompanionTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [Tests]
+    dependencies:
+      - target: FocusCompanion
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.focusapp.companion.tests
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  FocusCompanion:
+    build:
+      targets:
+        FocusCompanion: all
+    test:
+      targets: [FocusCompanionTests]
