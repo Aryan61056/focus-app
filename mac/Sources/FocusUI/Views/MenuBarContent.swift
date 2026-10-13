@@ -40,6 +40,10 @@ public struct MenuBarContent: View {
                 Text("No session running").font(Tokens.rounded(15)).padding(10)
                 item("Start a session") { c.requestStart(); openApp() }
             }
+            if c.visibleUpdate != nil {
+                Divider().padding(.vertical, 4)
+                item("Restart to update") { c.installUpdate() }
+            }
             Divider().padding(.vertical, 4)
             item("Open Focus", openApp)
         }

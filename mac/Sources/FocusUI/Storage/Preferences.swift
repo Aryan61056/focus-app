@@ -38,6 +38,8 @@ public final class Preferences {
     public var nudgeTone: NudgeTone { didSet { defaults.set(nudgeTone.rawValue, forKey: "nudgeTone") } }
     /// One soft system tone when a nudge appears. Off by default (PRODUCT.md: discreet).
     public var nudgeSound: Bool { didSet { defaults.set(nudgeSound, forKey: "nudgeSound") } }
+    /// Offer to restart into a newer build found on this Mac. Local only; it never installs anything by itself.
+    public var offerUpdates: Bool { didSet { defaults.set(offerUpdates, forKey: "offerUpdates") } }
     public static let goalChoices = [30, 60, 90, 120, 180]
     public var practiceActive: Bool { !practiceRemoved && practiceSessionsLeft > 0 }
 
@@ -57,6 +59,7 @@ public final class Preferences {
         showProgress = defaults.object(forKey: "showProgress") as? Bool ?? true
         dailyGoalMinutes = defaults.object(forKey: "dailyGoalMinutes") as? Int ?? 90
         nudgeTone = NudgeTone(rawValue: defaults.string(forKey: "nudgeTone") ?? "") ?? .neutral
+        offerUpdates = defaults.object(forKey: "offerUpdates") as? Bool ?? true
         nudgeSound = defaults.object(forKey: "nudgeSound") as? Bool ?? false
         let removed = defaults.object(forKey: "practiceRemoved") as? Bool ?? false
         practiceRemoved = removed

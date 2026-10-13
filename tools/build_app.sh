@@ -30,6 +30,9 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
   <key>NSScreenCaptureUsageDescription</key><string>Focus shows you a small picture of the window it is reading. The picture stays in memory and is never saved.</string>
 </dict></plist>
 PLIST
+# Which build this is, and where it came from: an installed copy watches that folder for a newer build (see Updater.swift). Local only.
+BUILD_ID="$(date -u +%Y%m%d%H%M%S)-$(git rev-parse --short HEAD 2>/dev/null || echo nogit)"
+/usr/libexec/PlistBuddy -c "Add :FocusBuildID string $BUILD_ID" -c "Add :FocusBuildSource string $(pwd)/$APP" "$APP/Contents/Info.plist"
 plutil -lint "$APP/Contents/Info.plist" >/dev/null
 # A requirement that names the bundle id, not the build's hash: with the default ad-hoc requirement (a cdhash) every rebuild is a
 # "new app" to macOS and silently loses the Accessibility and Screen Recording grants, even though Settings still shows them on.

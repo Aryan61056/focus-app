@@ -59,6 +59,17 @@ struct TodayView: View {
                     }
                 }
             }
+            if let u = c.visibleUpdate {
+                Panel(tinted: true) {
+                    HStack(spacing: 14) {
+                        Image(systemName: "arrow.triangle.2.circlepath").foregroundStyle(Tokens.ink2)
+                        Text("A newer build of Focus is ready on this Mac. Restarting takes a few seconds.").font(Tokens.text(13.5)).fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 12)
+                        Button("Restart to update") { c.installUpdate() }.buttonStyle(FocusButtonStyle(.primary, small: true)).help("Build \(u.buildID)")
+                        Button("Later") { c.dismissUpdate() }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                    }
+                }
+            }
             if let a = c.askResume { AwayBanner(c: c, reason: a) }
             if c.wrapUp && c.isActive { Panel(tinted: true) { Text("Two minutes left. Extend, or wrap up when you are ready.").font(Tokens.text(13.5)) } }
             if let st = c.store { TodayExtras(c: c, store: st) }

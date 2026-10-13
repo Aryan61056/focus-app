@@ -56,6 +56,14 @@ The window used to snap to its new size while the SwiftUI shape animated inside 
 - **Not verified:** the in-session confirmation, the long-detour break card and the sound on a real display and real session (only logic tests and offscreen renders); the Rust brain is untouched, so the sound cue is the only brain-side behavior and it already existed. Windows: nothing.
 - **Decisions I made:** 90 min default goal, 20 min focus day, 2 rest days a week, 8 minute detour threshold, 5 minute break offer, Tink as the tone, confirmations for 8 s. All are constants in `Rewards.swift` / `NudgeCopy.swift`.
 
+## Local auto-update (owner chose "local updates from this repo", 2026-10-13)
+- **How:** `tools/build_app.sh` stamps every build with `FocusBuildID` (UTC timestamp, then git hash) and `FocusBuildSource` (the build folder). The copy installed in `~/Applications` (`./tools/build_app.sh --install`) checks that folder on launch, when it comes to the front and every minute (`mac/Sources/focus-app/Updater.swift`, pure check in `FocusUI/Updates.swift`). A larger ID in a bundle that has been still for 15 s and has its executable counts as newer. It then shows "A newer build of Focus is ready on this Mac" on Today and "Restart to update" in the menu bar. Settings has an "Updates" group (switch, check now).
+- **Limits kept:** no network and no download; it reads a local file. Never offered and never run during a session. It never restarts without a click. "Later" hides that build until a newer one appears. Practice and everything else are unchanged.
+- **Restart:** a helper shell waits for the app to exit, verifies the new bundle's signature, copies it beside the old one, swaps, and reopens. If the check or copy fails it reopens the old copy.
+- **Not network updates:** Sparkle or any download would need a host, signing identity and network access in the app, which conflicts with the no-network and undecided distribution decisions. Not started.
+- **Verified:** 9 new tests (newer, same, older, unstamped, still-being-written, missing executable, never its own update, hidden during a session, Later, switch off); the helper script run for real on a scratch copy of the installed app (swapped to the new build, signature valid, reopened, no leftovers) and with a broken source (old copy kept and reopened).
+- **Not verified:** the banner and menu item seen live in the installed app (I did not capture your screen), and a restart triggered by clicking the button in the app. The first copy installed before this change has no build ID and must be updated once by hand with `--install`.
+
 ## Decisions I made without asking (change any of them)
 - OCR level `.fast` (accurate stalled about 66 s on first use).
 - Idle threshold 240 s; call needs two polls in a row (about 10 s).

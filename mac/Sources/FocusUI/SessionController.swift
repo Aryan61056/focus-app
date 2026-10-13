@@ -118,6 +118,25 @@ public final class SessionController {
     @ObservationIgnored var appByWindowKey: [String: String] = [:]
     @ObservationIgnored public var onCue: (() -> Void)?
 
+    /// Local updates (see Updates.swift). The app sets `updateSource` when it was built to update from a build folder and calls
+    /// `setUpdateOffer` as it checks; `onInstallUpdate` replaces the app and reopens it. Never offered or run during a session.
+    public var updateSource: String?
+    public private(set) var updateOffer: UpdateOffer?
+    @ObservationIgnored private var updateDismissed: String?
+    @ObservationIgnored public var onCheckUpdates: (() -> Void)?
+    @ObservationIgnored public var onInstallUpdate: ((UpdateOffer) -> Void)?
+    /// The offer to show: only between sessions, only if the user left updates on, and not for a build they said "Later" to.
+    public var visibleUpdate: UpdateOffer? {
+        guard !isActive, prefs.offerUpdates, let o = updateOffer, o.buildID != updateDismissed else { return nil }
+        return o
+    }
+    public func setUpdateOffer(_ o: UpdateOffer?) { if updateOffer != o { updateOffer = o } }
+    public func dismissUpdate() { updateDismissed = updateOffer?.buildID }
+    public func installUpdate() {
+        guard let o = visibleUpdate else { return }
+        onInstallUpdate?(o)
+    }
+
     @ObservationIgnored private var brain = Brain()
     @ObservationIgnored private let judge: any Judge
     @ObservationIgnored private let now: () -> Double

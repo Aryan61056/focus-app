@@ -35,6 +35,7 @@ struct FocusApp: App {
     @State private var sense: SenseCoordinator?
     @State private var previewWatcher: PreviewWatcher?
     @State private var hotKey = GlobalHotKey()
+    @State private var updater: Updater?
     @Environment(\.openWindow) private var openWindow
 
     var body: some Scene {
@@ -70,6 +71,7 @@ struct FocusApp: App {
                     controller.onOpenModelSettings = {
                         if let url = URL(string: "x-apple.systempreferences:com.apple.Siri-Settings.extension") { NSWorkspace.shared.open(url) }
                     }
+                    if updater == nil, ProcessInfo.processInfo.environment["FOCUS_DEMO"] != "1" { let u = Updater(controller: controller); updater = u; u.start() }
                     controller.setJudgeStatus(DefaultJudge.status())
                     Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in MainActor.assumeIsolated { controller.setJudgeStatus(DefaultJudge.status()) } }
                     hotKey.register {

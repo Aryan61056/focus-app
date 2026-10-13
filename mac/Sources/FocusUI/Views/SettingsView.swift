@@ -112,6 +112,18 @@ struct SettingsView: View {
                         }
                     }
                 }
+                if c.updateSource != nil {
+                    group("Updates") {
+                        row("Offer new builds from this Mac", "When a newer build appears in the project's build folder, Focus offers to restart into it between sessions. Nothing is downloaded and the network is not used; it never restarts by itself.") {
+                            Toggle("", isOn: Binding(get: { c.prefs.offerUpdates }, set: { c.prefs.offerUpdates = $0; if $0 { c.onCheckUpdates?() } })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
+                        }
+                        if c.prefs.offerUpdates {
+                            row("Check now", c.updateOffer == nil ? "This copy is the newest build found." : "A newer build is ready. It is offered on Today when no session is running.") {
+                                Button("Check for a new build") { c.onCheckUpdates?() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+                            }
+                        }
+                    }
+                }
                 group("Privacy") {
                     row("Where the work happens", "The judge is Apple's on-device model. There is no account.") { Text("On this Mac").foregroundStyle(Tokens.ink2) }
                     row("Your data", "\(store.projects.count) projects, \(store.sessions.count) sessions and \(store.review.count) review moments.") {
