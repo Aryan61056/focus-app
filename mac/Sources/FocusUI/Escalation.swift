@@ -45,7 +45,8 @@ public struct EscalationPlan: Equatable, Sendable {
 
     /// The least gray the screen may be (percent) at this step, whatever the brain's own veil says.
     public static func veilFloor(_ s: EscalationStep) -> Int {
-        switch s { case .warned: return 0; case .checkIn: return 70; case .pauseScreen: return 90; case .enforce: return 100 }
+        // Full gray from the check-in on: the owner asked for the maximum.
+        switch s { case .warned: return 0; case .checkIn, .pauseScreen, .enforce: return 100 }
     }
 }
 

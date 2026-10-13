@@ -27,7 +27,7 @@ final class EscalationPlanTests: XCTestCase {
     func testTheGrayFloorOnlyGrows() {
         let f = [EscalationStep.warned, .checkIn, .pauseScreen, .enforce].map(EscalationPlan.veilFloor)
         XCTAssertEqual(f, f.sorted())
-        XCTAssertEqual(f.last, 100)
+        XCTAssertEqual(f.dropFirst().min(), 100, "from the check-in on it is full gray")
     }
 
     func testFocusAndSystemAppsAreNeverHidden() {
@@ -132,7 +132,7 @@ final class EscalationTests: XCTestCase {
         let c = make()
         let warned = await driftUntilWarned(c)
         await advance(c, to: warned + 60)
-        XCTAssertGreaterThanOrEqual(c.veilLevel(), 60, "past the check-in the screen is well gray")
+        XCTAssertGreaterThanOrEqual(c.veilLevel(), 95, "once the warning is confirmed the screen is fully gray")
         await advance(c, to: warned + 240)
         XCTAssertEqual(c.veilLevel(), 100, accuracy: 0.5)
 
@@ -182,7 +182,7 @@ final class VeilFadeTests: XCTestCase {
     let judge = CountingJudge { p in Verdict(label: p.contains("youtube") ? .offTask : .onTask) }
     func advance(_ c: SessionController, to target: Double) async { while t < target { t += 1; c.tick(); await c.waitForJudgments() } }
 
-    /// Never a jump: from the first flagged moment to the warning, no second changes the gray by more than about 2 points,
+    /// Never a jump: from the first flagged moment to the warning, no second changes the gray by more than a few points,
     /// and neither does any second of the climb after it.
     func testTheGrayRisesAndFallsInSmallSteps() async {
         let c = SessionController(judge: judge, store: DataStore(), prefs: noWords(), now: { [unowned self] in self.t })
@@ -193,7 +193,7 @@ final class VeilFadeTests: XCTestCase {
         var last = c.veilLevel(), biggest = 0.0, peak = 0.0
         for _ in 0..<420 { await advance(c, to: t + 1); let v = c.veilLevel(); biggest = max(biggest, abs(v - last)); peak = max(peak, v); last = v }
         XCTAssertGreaterThan(peak, 95, "the climb reaches nearly full gray")
-        XCTAssertLessThanOrEqual(biggest, 2.2, "no second may change the gray by more than about 2 points")
+        XCTAssertLessThanOrEqual(biggest, 3.5, "no second may change the gray by more than a few points on the way up")
         c.windowChanged(WindowSnapshot(app: "Notes", title: "Calc homework"))
         last = c.veilLevel(); biggest = 0
         for _ in 0..<60 { await advance(c, to: t + 1); let v = c.veilLevel(); biggest = max(biggest, abs(v - last)); last = v }

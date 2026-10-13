@@ -32,7 +32,7 @@ final class VeilPanel: NSPanel {
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         ignoresMouseEvents = true; isMovable = false; hidesOnDeactivate = false
         let v = NSView(); v.wantsLayer = true
-        wash.backgroundColor = NSColor(white: 0.5, alpha: 1).cgColor; wash.opacity = 0
+        wash.backgroundColor = NSColor(white: 0.42, alpha: 1).cgColor; wash.opacity = 0
         if let backdrop { v.layer!.addSublayer(backdrop) }
         v.layer!.addSublayer(wash)
         contentView = v
@@ -48,8 +48,9 @@ final class VeilPanel: NSPanel {
             filter.setValue(1 - p, forKey: "inputAmount")
             backdrop.setValue([filter], forKey: "filters")   // reassigned so the window server sees the new amount
         }
-        // With the real filter the wash is only a hedge; without it the wash is all there is.
-        wash.opacity = Float(p * (usesBackdrop ? 0.18 : 0.5))
+        // Full gray removes all color; the wash also darkens and flattens it so the top of the range is unmistakable.
+        // Without the real filter the wash is all there is.
+        wash.opacity = Float(p * (usesBackdrop ? 0.32 : 0.7))
         CATransaction.commit()
     }
 }
