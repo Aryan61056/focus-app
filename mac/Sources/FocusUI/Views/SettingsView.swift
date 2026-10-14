@@ -3,12 +3,29 @@ import FocusBrain
 import FocusJudge
 import AppKit
 
+/// Settings split into pages, each its own row in the sidebar, the way System Settings and Droppy lay them out.
+public enum SettingsPage: String, CaseIterable, Identifiable, Hashable, Sendable {
+    case general = "General", nudges = "Nudges", cues = "Cues", rhythm = "Rhythm and goals", reading = "What Focus reads", privacy = "Privacy"
+    public var id: String { rawValue }
+    var symbol: String {
+        switch self {
+        case .general: return "gearshape.fill"; case .nudges: return "hand.wave.fill"; case .cues: return "bell.badge.fill"
+        case .rhythm: return "metronome.fill"; case .reading: return "eye.fill"; case .privacy: return "hand.raised.fill"
+        }
+    }
+    var color: Color {
+        switch self {
+        case .general: return .gray; case .nudges: return Color(red: 0.16, green: 0.62, blue: 0.38); case .cues: return .red
+        case .rhythm: return .orange; case .reading: return .blue; case .privacy: return .indigo
+        }
+    }
+}
+
 struct SettingsView: View {
     @Bindable var c: SessionController
     @Bindable var store: DataStore
+    var page: SettingsPage = .nudges
     @State private var confirmDelete = false
-    /// One topic at a time, so the screen is never a wall of switches.
-    @State private var tab: SettingsTab = .nudges
     var probeBusy: Bool { if case .waiting = c.probe { return true }; return false }
     var probeText: String {
         switch c.probe {
@@ -21,16 +38,20 @@ struct SettingsView: View {
         }
     }
     var body: some View {
-        Scroller {
-            VStack(alignment: .leading, spacing: 24) {
-                PageHeader(title: "Settings", subtitle: "Everything here stays on this Mac.")
-                ChoiceRow(items: SettingsTab.allCases, selection: $tab, title: \.rawValue)
-                group("Nudges", in: .nudges) {
+        Form {
+                if page == .nudges {
+                    // Droppy heads its pages with a picture of the feature: here, a nudge as the notch shows it, in the tone you picked.
+                    Section {
+                        HeroBanner(caption: "A nudge in the notch") { NudgePreviewPill(text: c.prefs.nudgeTone.example) }
+                            .listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
+                    }
+                }
+                group("Nudges", .nudges) {
                     HStack(spacing: 10) {
                         opt(.gentle, "Gentle", "One quiet note after about three minutes.")
                         opt(.standard, "Standard", "A card after about a minute, again every five.")
                         opt(.strict, "Strict", "A pause screen after 45 seconds.")
-                    }.fixedSize(horizontal: false, vertical: true).padding(14)
+                    }.padding(.vertical, 4)
                     row("How nudges sound", "For example \u{201C}\(c.prefs.nudgeTone.example)\u{201D}. A nudge never names what you were looking at.") {
                         segmented(NudgeTone.allCases, selection: Binding(get: { c.prefs.nudgeTone }, set: { c.prefs.nudgeTone = $0 }), title: \.title)
                     }
@@ -39,23 +60,20 @@ struct SettingsView: View {
                     }
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(alignment: .firstTextBaseline) {
-                            Text("How often Focus checks").font(Tokens.text(13.5, .semibold))
+                            HStack(spacing: 6) { Text("How often Focus checks"); InfoButton(text: "\(c.prefs.checkRate.detail) Each check asks the on-device model, so checking more often uses more battery. Applies from the next session.") }
                             Spacer()
                             segmented(CheckRate.allCases, selection: Binding(get: { c.prefs.checkRate }, set: { c.prefs.checkRate = $0 }), title: \.title)
                         }
-                        Text("\(c.prefs.checkRate.detail) Each check asks the on-device model, so checking more often uses more battery. Applies from the next session.")
-                            .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
                     }
-                    .padding(.horizontal, 16).padding(.vertical, 12).overlay(alignment: .top) { Divider().overlay(Tokens.line) }
+
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(alignment: .firstTextBaseline) {
-                            Text("How sure Focus must be").font(Tokens.text(13.5, .semibold))
+                            HStack(spacing: 6) { Text("How sure Focus must be"); InfoButton(text: sensitivityHelp) }
                             Spacer()
                             segmented(Sensitivity.allCases, selection: Binding(get: { c.prefs.sensitivity }, set: { c.prefs.sensitivity = $0 }), title: \.title)
                         }
-                        Text(sensitivityHelp).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
                     }
-                    .padding(.horizontal, 16).padding(.vertical, 12).overlay(alignment: .top) { Divider().overlay(Tokens.line) }
+
                     row("If you stay away after a warning", "Gentle stops at the warning. Standard and Strict keep going: after about 40 seconds (20 on Strict) Focus asks whether you are on task and reads the window again, then covers every screen with a pause screen, then hides the app you drifted into. Dismissing a card does not stop it; getting back to the task does.") {
                         Toggle("", isOn: Binding(get: { c.prefs.escalate }, set: { c.prefs.escalate = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
@@ -90,7 +108,7 @@ struct SettingsView: View {
                         Toggle("", isOn: Binding(get: { c.prefs.practiceRemoved }, set: { c.prefs.practiceRemoved = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
                 }
-                group("Cues", in: .nudges) {
+                group("Cues", .cues) {
                     row("Banner over the window you are in", "A small banner with your task, over the window you drifted into, from the warning until you are back. No sound, and it never covers the whole screen.") {
                         toggle(\.showBanner)
                     }
@@ -127,16 +145,14 @@ struct SettingsView: View {
                         }
                     }
                 }
-                group("Rhythm", in: .rhythm) {
+                group("Rhythm", .rhythm) {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(alignment: .firstTextBaseline) {
-                            Text("Scheduled prompts").font(Tokens.text(13.5, .semibold))
+                            HStack(spacing: 6) { Text("Scheduled prompts"); InfoButton(text: c.prefs.rhythm.detail) }
                             Spacer()
                             segmented(Rhythm.allCases, selection: Binding(get: { c.prefs.rhythm }, set: { c.prefs.rhythm = $0 }), title: \.title)
                         }
-                        Text(c.prefs.rhythm.detail).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
                     }
-                    .padding(.horizontal, 16).padding(.vertical, 12)
                     if c.prefs.rhythm == .checkIns {
                         row("Check in every", "Time spent in a session, not counting breaks or pauses. A prompt you ignore counts as a yes after 90 seconds.") {
                             Picker("", selection: Binding(get: { c.prefs.checkInMinutes }, set: { c.prefs.checkInMinutes = $0 })) {
@@ -145,7 +161,7 @@ struct SettingsView: View {
                         }
                     }
                 }
-                group("Progress", in: .rhythm) {
+                group("Progress", .rhythm) {
                     row("Show progress", "A daily goal, focus days with rest days, your longest stretch and how fast you get back on task. Nothing is ever taken away, and a missed day counts as a rest day, up to two a week. Off hides all of it.") {
                         Toggle("", isOn: Binding(get: { c.prefs.showProgress }, set: { c.prefs.showProgress = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
@@ -157,7 +173,7 @@ struct SettingsView: View {
                         }
                     }
                 }
-                group("What Focus looks at", in: .reading) {
+                group("What Focus looks at", .reading) {
                     row("Window titles", "The app name, the window title and the page or file address, from the window in front.") { Text("On").foregroundStyle(Tokens.ink2) }
                     row("Window access", c.windowAccess == .allowed ? "Focus can read window titles. Page addresses need Accessibility; titles alone also work with Screen Recording." : "Without Accessibility, Focus can only see which app is in front. Allow it in System Settings, then come back.") {
                         if c.windowAccess == .allowed { Label("Allowed", systemImage: "checkmark").foregroundStyle(Tokens.ink2) }
@@ -180,22 +196,22 @@ struct SettingsView: View {
                     }
                     if c.prefs.skipPersonal {
                         RuleGroup(title: "Apps", symbol: "app", items: Binding(get: { c.prefs.neverJudgedApps }, set: { c.prefs.neverJudgedApps = $0 }), addLabel: "Add app")
-                            .padding(.horizontal, 16).padding(.bottom, 10).overlay(alignment: .top) { Divider().overlay(Tokens.line) }
+
                     }
                     row("Never looked at", "Password managers, banking sites and private windows are skipped, always.") { Label("Always on", systemImage: "lock").foregroundStyle(Tokens.ink2) }
                     row("Tools for any work", "Finder, Terminal, Mail, Calendar, System Settings and Activity Monitor are not judged: the app alone does not say whether it serves your task. A project rule, or a task that names the app, still applies.") { Label("Always on", systemImage: "wrench.and.screwdriver").foregroundStyle(Tokens.ink2) }
                 }
-                group("Appearance", in: .general) {
+                group("Appearance", .general) {
                     row("Show in the notch", "A ring and the time while a session runs. On a Mac without a notch it is a small pill under the menu bar.") {
                         Toggle("", isOn: Binding(get: { c.prefs.showNotch }, set: { c.prefs.showNotch = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
                 }
-                group("Shortcut", in: .general) {
+                group("Shortcut", .general) {
                     row("Start or pause from anywhere", "Press Control, Option and F. With no session it opens the start sheet on the project you worked on last. During a session it pauses or resumes.") {
                         Text("\u{2303}\u{2325}F").font(Tokens.rounded(14, .semibold)).foregroundStyle(Tokens.ink2)
                     }
                 }
-                group("Screen reading", in: .reading) {
+                group("Screen reading", .reading) {
                     row("Read the words on screen", "While a session runs, Focus takes a picture of the window every few seconds, reads the words on it on this Mac, and shows you the picture on Today. The model gets the words, not the picture. Needs Screen Recording. Nothing is saved. Private and never-judged windows are skipped.") {
                         Toggle("", isOn: Binding(get: { c.prefs.readScreen }, set: { c.prefs.readScreen = $0; if $0 { c.onRequestPreviewAccess?() } })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
@@ -207,7 +223,7 @@ struct SettingsView: View {
                     }
                 }
                 if c.updateSource != nil {
-                    group("Updates", in: .general) {
+                    group("Updates", .general) {
                         row("Offer new builds from this Mac", "When a newer build appears in the project's build folder, Focus offers to restart into it between sessions. Nothing is downloaded and the network is not used; it never restarts by itself.") {
                             Toggle("", isOn: Binding(get: { c.prefs.offerUpdates }, set: { c.prefs.offerUpdates = $0; if $0 { c.onCheckUpdates?() } })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                         }
@@ -218,7 +234,7 @@ struct SettingsView: View {
                         }
                     }
                 }
-                group("Privacy", in: .general) {
+                group("Privacy", .privacy) {
                     row("Where the work happens", "The judge is Apple's on-device model. There is no account.") { Text("On this Mac").foregroundStyle(Tokens.ink2) }
                     row("Your data", "\(store.projects.count) projects, \(store.sessions.count) sessions and \(store.review.count) review moments.") {
                         HStack {
@@ -227,9 +243,10 @@ struct SettingsView: View {
                         }
                     }
                 }
-            }
-            .frame(maxWidth: 760, alignment: .leading)
         }
+        .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .tint(Tokens.accent)
         .confirmationDialog("Delete everything?", isPresented: $confirmDelete) {
             Button("Delete everything", role: .destructive) { store.deleteEverything() }
         } message: { Text("Projects, sessions, rules and review moments are removed from this Mac. This cannot be undone.") }
@@ -247,42 +264,39 @@ struct SettingsView: View {
         Toggle("", isOn: Binding(get: { c.prefs[keyPath: key] }, set: { c.prefs[keyPath: key] = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
     }
 
-    /// A row of capsule choices in the same vocabulary as the tone picker.
-    func segmented<T: Identifiable & Equatable>(_ items: [T], selection: Binding<T>, title: KeyPath<T, String>) -> some View {
-        HStack(spacing: 6) {
-            ForEach(items) { item in
-                let on = selection.wrappedValue == item
-                Button(item[keyPath: title]) { selection.wrappedValue = item }.buttonStyle(ChoiceStyle(on: on))
-            }
+    /// A native segmented control: the system draws the sliding selection.
+    func segmented<T: Identifiable & Hashable>(_ items: [T], selection: Binding<T>, title: KeyPath<T, String>) -> some View {
+        Picker("", selection: selection) {
+            ForEach(items) { Text($0[keyPath: title]).tag($0) }
         }
+        .pickerStyle(.segmented).labelsHidden().fixedSize()
     }
 
     func opt(_ p: Preset, _ title: String, _ text: String) -> some View {
         let on = c.prefs.preset == p
         return Button { c.prefs.preset = p } label: {
             VStack(alignment: .leading, spacing: 4) { Text(title).font(Tokens.text(13.5, .semibold)); Text(text).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true) }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading).padding(12)
-                .background(RoundedRectangle(cornerRadius: 12).fill(on ? Tokens.accentSoft : Tokens.control))
-                .overlay { if on { RoundedRectangle(cornerRadius: 12).strokeBorder(Tokens.accent, lineWidth: 1.5) } }
-        }.buttonStyle(.plain).accessibilityAddTraits(on ? .isSelected : [])
-    }
-
-    @ViewBuilder func group<V: View>(_ title: String, in tab: SettingsTab, @ViewBuilder _ content: () -> V) -> some View {
-        if self.tab == tab {
-            VStack(alignment: .leading, spacing: 10) {
-                SectionTitle(text: title)
-                VStack(spacing: 0) { content() }
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous)).modifier(CardSurface(radius: 16))
-            }
+                .frame(maxWidth: .infinity, alignment: .leading).padding(12)
+                .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(on ? Tokens.accentSoft : Tokens.control))
+                .overlay { RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Tokens.accent.opacity(on ? 1 : 0), lineWidth: 1.5) }
+                .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
+        .buttonStyle(.plain).accessibilityAddTraits(on ? .isSelected : [])
+        .motion(Motion.out(0.2), value: on)
     }
 
+    /// A section of the form, shown only on its own page of the sidebar.
+    @ViewBuilder func group<V: View>(_ title: String, _ on: SettingsPage, @ViewBuilder _ content: () -> V) -> some View {
+        if page == on { Section { content() } header: { Text(title) } }
+    }
+
+    /// A settings row as Droppy and System Settings draw it: the title, a small info button that holds the explanation, and the
+    /// control on the right. Nothing to read unless you ask.
     func row<V: View>(_ title: String, _ help: String, @ViewBuilder _ trailing: () -> V) -> some View {
         HStack(spacing: 18) {
-            VStack(alignment: .leading, spacing: 2) { Text(title).font(Tokens.text(13.5, .semibold)); Text(help).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true) }
+            HStack(spacing: 6) { Text(title); InfoButton(text: help) }
             Spacer(minLength: 12); trailing().fixedSize().layoutPriority(2)
         }
-        .padding(.horizontal, 16).padding(.vertical, 12).overlay(alignment: .top) { Divider().overlay(Tokens.line) }
     }
 
     func export() {
@@ -292,6 +306,33 @@ struct SettingsView: View {
     }
 }
 
-enum SettingsTab: String, CaseIterable, Hashable {
-    case nudges = "Nudges and cues", rhythm = "Rhythm and progress", reading = "What Focus reads", general = "General"
+/// The grey line under a setting: its first sentence, so the form scans at a glance. The rest of the explanation is in the tooltip
+/// and read by VoiceOver, so nothing is hidden from anyone who wants it.
+private struct Caption: View {
+    let text: String
+    var body: some View {
+        Text(Self.first(text)).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            .help(text).accessibilityLabel(text)
+    }
+    static func first(_ s: String) -> String {
+        guard let r = s.range(of: #"(?<=[a-z0-9)\x{201D}])\.\s"#, options: .regularExpression) else { return s }
+        return String(s[..<r.lowerBound]) + "."
+    }
+}
+
+/// The circled "i" after a setting's name. Clicking it shows the whole explanation in a popover; VoiceOver reads it as the hint.
+private struct InfoButton: View {
+    let text: String
+    @State private var shown = false
+    var body: some View {
+        Button { shown.toggle() } label: {
+            Image(systemName: "info.circle.fill").font(.system(size: 12)).foregroundStyle(.tertiary)
+        }
+        .buttonStyle(.plain)
+        .help(text)
+        .accessibilityLabel("About this setting").accessibilityHint(text)
+        .popover(isPresented: $shown, arrowEdge: .bottom) {
+            Text(text).font(.callout).fixedSize(horizontal: false, vertical: true).frame(width: 280, alignment: .leading).padding(14)
+        }
+    }
 }

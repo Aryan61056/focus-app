@@ -23,8 +23,7 @@ struct NudgeCard: View {
             }
         }
         .padding(20).frame(width: 340)
-        .background(RoundedRectangle(cornerRadius: 24).fill(.regularMaterial))
-        .overlay { RoundedRectangle(cornerRadius: 24).strokeBorder(Tokens.line) }
+        .glassSurface(RoundedRectangle(cornerRadius: 24, style: .continuous), fallback: Tokens.window)
         .shadow(color: .black.opacity(0.2), radius: 20, y: 10)
         .accessibilityElement(children: .contain)
     }
@@ -41,8 +40,7 @@ struct CheckInCard: View {
             Button("Yes, this is part of it") { c.answerCheckIn(onTask: true) }.buttonStyle(FocusButtonStyle(.secondary, expand: true))
         }
         .padding(20).frame(width: 340)
-        .background(RoundedRectangle(cornerRadius: 24).fill(.regularMaterial))
-        .overlay { RoundedRectangle(cornerRadius: 24).strokeBorder(Tokens.line) }
+        .glassSurface(RoundedRectangle(cornerRadius: 24, style: .continuous), fallback: Tokens.window)
         .shadow(color: .black.opacity(0.2), radius: 20, y: 10)
         .accessibilityElement(children: .contain)
     }
@@ -66,8 +64,7 @@ struct RhythmCard: View {
                 }
             }
             .padding(20).frame(width: 340)
-            .background(RoundedRectangle(cornerRadius: 24).fill(.regularMaterial))
-            .overlay { RoundedRectangle(cornerRadius: 24).strokeBorder(Tokens.line) }
+            .glassSurface(RoundedRectangle(cornerRadius: 24, style: .continuous), fallback: Tokens.window)
             .shadow(color: .black.opacity(0.2), radius: 20, y: 10)
             .accessibilityElement(children: .contain)
         }
@@ -86,8 +83,7 @@ struct ReentryCard: View {
                 Button("Save") { c.saveNextStep(text) }.buttonStyle(FocusButtonStyle(.primary, small: true)).disabled(text.isEmpty) }
         }
         .padding(18).frame(width: 340)
-        .background(RoundedRectangle(cornerRadius: 20).fill(.regularMaterial))
-        .overlay { RoundedRectangle(cornerRadius: 20).strokeBorder(Tokens.line) }
+        .glassSurface(RoundedRectangle(cornerRadius: 20, style: .continuous), fallback: Tokens.window)
         .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
     }
 }

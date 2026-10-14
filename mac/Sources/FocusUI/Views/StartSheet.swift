@@ -66,6 +66,10 @@ public struct StartSheet: View {
             }
         }
         .padding(24).frame(width: 480)
+        // The sheet grows and shrinks as lines come and go (the coach, the length picker, the hint), never jumps.
+        .motion(Motion.out(0.24), value: c.sharpened)
+        .motion(Motion.out(0.24), value: timed)
+        .motion(Motion.out(0.24), value: parsed.minutes)
         .onChange(of: task) { _, _ in if c.sharpened.value != nil || c.sharpened == .failed { c.clearSharpened() } }
         .onDisappear { c.clearSharpened() }
         .onAppear {

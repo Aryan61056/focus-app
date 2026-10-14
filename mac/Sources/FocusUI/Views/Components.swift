@@ -6,11 +6,13 @@ struct Panel<Content: View>: View {
     var tinted = false
     @ViewBuilder var content: Content
     var body: some View {
+        // A grouped section, as Droppy's and System Settings' forms draw them: a quiet rounded card a step lighter than the window.
         if tinted {
-            content.padding(.horizontal, 20).padding(.vertical, 18).frame(maxWidth: .infinity, alignment: .leading)
-                .background(RoundedRectangle(cornerRadius: Tokens.radiusCard, style: .continuous).fill(Tokens.well))
+            content.padding(.horizontal, 14).padding(.vertical, 13).frame(maxWidth: .infinity, alignment: .leading)
+                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Tokens.accent.opacity(0.1)))
+                .overlay { RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Tokens.cardEdge) }
         } else {
-            Tile(padding: 20) { content }
+            Tile(padding: 14) { content }
         }
     }
 }
@@ -23,24 +25,25 @@ struct Tile<Content: View>: View {
         content
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .modifier(CardSurface(radius: 18))
+            .modifier(CardSurface(radius: 10))
     }
 }
 
 struct CardSurface: ViewModifier {
-    var radius: CGFloat = 18
-    var fill: Color = Tokens.window2
+    var radius: CGFloat = 10
+    var fill: Color = Tokens.card
     @Environment(\.colorScheme) private var scheme
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+        // Flat, as Droppy's grouped cards are: the fill and a hairline carry it, with only a whisper of shadow in light mode.
         content
-            .background(shape.fill(fill).shadow(color: .black.opacity(scheme == .dark ? 0 : 0.05), radius: 10, y: 3)
-                .shadow(color: .black.opacity(scheme == .dark ? 0 : 0.04), radius: 1, y: 1))
-            .overlay { shape.strokeBorder(Tokens.line, lineWidth: scheme == .dark ? 1 : 0.5) }
+            .background(shape.fill(fill).shadow(color: .black.opacity(scheme == .dark ? 0 : 0.03), radius: 1, y: 1))
+            .overlay { shape.strokeBorder(Tokens.cardEdge) }
     }
 }
 
-/// Every screen's title block: a large rounded title, one quiet line under it, and at most one action on the right.
+/// Every screen's title block: one quiet line and at most one action on the right. The title itself sits in the toolbar, as in
+/// Droppy, so it is not repeated in the page; it stays here for VoiceOver.
 struct PageHeader<Trailing: View>: View {
     var title: String
     var subtitle: String?
@@ -48,12 +51,14 @@ struct PageHeader<Trailing: View>: View {
     var body: some View {
         HStack(alignment: .center, spacing: 16) {
             VStack(alignment: .leading, spacing: 5) {
-                Text(title).font(Tokens.rounded(28, .semibold)).accessibilityAddTraits(.isHeader)
                 if let subtitle { Text(subtitle).font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true) }
             }
             Spacer(minLength: 16)
             trailing
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(.isHeader)
     }
 }
 extension PageHeader where Trailing == EmptyView {
@@ -130,7 +135,7 @@ struct EmptyState<Action: View>: View {
             action
         }
         .padding(.vertical, 44).padding(.horizontal, 24).frame(maxWidth: .infinity)
-        .modifier(CardSurface(radius: 18))
+        .modifier(CardSurface(radius: 10))
         .accessibilityElement(children: .contain)
     }
 }
@@ -169,18 +174,20 @@ struct StateChip: View {
     var label: String, ring: RingState, on = true
     var body: some View {
         HStack(spacing: 6) {
-            RingView(ring, color: on ? Tokens.accent : Tokens.ink).frame(width: 14, height: 14)
-            Text(label).font(Tokens.text(12.5, .semibold))
+            LiveRing(ring, color: on ? Tokens.accent : Tokens.ink).frame(width: 14, height: 14)
+            Text(label).font(Tokens.text(12.5, .semibold)).contentTransition(.interpolate)
         }
         .padding(.leading, 6).padding(.trailing, 10).frame(height: 24)
         .background(Capsule().fill(on ? Tokens.accentSoft : Tokens.control))
+        .motion(Motion.notchSettle, value: label)
+        .motion(Motion.out(0.3), value: on)
         .accessibilityElement(children: .ignore).accessibilityLabel(label)
     }
 }
 
 struct SectionTitle: View {
     var text: String
-    var body: some View { Text(text).font(Tokens.text(15, .semibold)).accessibilityAddTraits(.isHeader) }
+    var body: some View { Text(text).font(Tokens.text(13, .semibold)).padding(.leading, 9).accessibilityAddTraits(.isHeader) }
 }
 
 /// Offscreen snapshots (ImageRenderer) cannot draw ScrollView content, so the snapshot tool turns scrolling off.

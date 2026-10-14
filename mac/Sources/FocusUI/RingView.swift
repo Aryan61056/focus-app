@@ -8,6 +8,12 @@ public enum RingState: Equatable, Sendable {
     /// A closed ring with a tick: a quick return or a goal reached. Shape, not color, carries it.
     case done
     case progress(Double)
+
+    /// The ring's shape, ignoring how far a progress arc has run. A new shape is worth a transition; a second of progress is not.
+    public var shape: Int {
+        switch self { case .on: return 0; case .unsure: return 1; case .drift: return 2; case .paused: return 3; case .breakTime: return 4; case .done: return 5; case .progress: return 6 }
+    }
+    var fraction: Double { if case .progress(let f) = self { return min(max(f, 0), 1) }; return 0 }
 }
 
 public struct RingView: View {
@@ -50,12 +56,79 @@ public struct RingView: View {
                     p.addLine(to: CGPoint(x: c.x + r * 0.46, y: c.y - r * 0.32))
                 }
                 ctx.stroke(tick, with: .color(color), style: StrokeStyle(lineWidth: lw, lineCap: .round, lineJoin: .round))
-            case .progress(let f):
+            case .progress:
                 ctx.stroke(circle, with: .color(Tokens.track), style: style)
-                if f > 0 { ctx.stroke(arc(from: -90, sweep: 360 * min(max(f, 0), 1)), with: .color(color), style: style) }
             }
         }
+        // The arc is a shape on top, not part of the Canvas, so it can sweep between ticks instead of jumping.
+        .overlay { if case .progress = state { arc } }
         .aspectRatio(1, contentMode: .fit)
         .accessibilityHidden(true)  // the surrounding label says the state in words
     }
+
+    private var arc: some View {
+        GeometryReader { g in
+            let s = min(g.size.width, g.size.height)
+            ProgressArc(fraction: state.fraction).stroke(color, style: StrokeStyle(lineWidth: s * 2.25 / 18, lineCap: .round))
+        }
+    }
+}
+
+/// The timed arc: same radius as the Canvas ring (6/18 of the side), from twelve o'clock, clockwise. Animatable, so it sweeps.
+struct ProgressArc: Shape {
+    var fraction: Double
+    var animatableData: Double { get { fraction } set { fraction = newValue } }
+    func path(in rect: CGRect) -> Path {
+        guard fraction > 0 else { return Path() }
+        let s = min(rect.width, rect.height), r = s * 6 / 18
+        return Path { p in p.addArc(center: CGPoint(x: rect.midX, y: rect.midY), radius: r, startAngle: .degrees(-90), endAngle: .degrees(-90 + 360 * fraction), clockwise: false) }
+    }
+}
+
+/// RingView that moves: a new shape blurs in over the old one, like an SF Symbol replace, and a timed arc sweeps second by second.
+/// Reduce Motion keeps a short cross-fade and lets the arc step.
+public struct LiveRing: View {
+    var state: RingState
+    var color: Color
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    public init(_ state: RingState, color: Color = Tokens.ink) { self.state = state; self.color = color }
+
+    public var body: some View {
+        ZStack {
+            RingView(state, color: color)
+                .id(state.shape)
+                .transition(reduceMotion ? .opacity : AnyTransition(.blurReplace).combined(with: .scale(scale: 0.8)))
+        }
+        // A change of state gives the ring a small pop, so the eye catches it out of the corner.
+        .keyframeAnimator(initialValue: 1.0, trigger: state.shape) { content, scale in
+            content.scaleEffect(reduceMotion ? 1 : scale)
+        } keyframes: { _ in
+            SpringKeyframe(1.14, duration: 0.16, spring: .init(duration: 0.16, bounce: 0))
+            SpringKeyframe(1, duration: 0.5, spring: .init(duration: 0.5, bounce: 0.35))
+        }
+        .animation(reduceMotion ? Motion.reduced : Motion.notchSettle, value: state.shape)
+        .animation(reduceMotion ? nil : Motion.tick, value: state.fraction)
+        .animation(Motion.out(0.3), value: color)
+    }
+}
+
+/// A slow, faint glow behind a ring while you are on task: the app breathing with you. It fades away the moment you drift, so it only
+/// ever means one thing. Reduce Motion: a still glow.
+public struct RingGlow: View {
+    var on: Bool
+    var color: Color
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    public init(on: Bool, color: Color) { self.on = on; self.color = color }
+    public var body: some View {
+        ZStack {
+            if on {
+                Group {
+                    if reduceMotion { halo(up: true) } else { PhaseAnimator([false, true]) { halo(up: $0) } animation: { _ in .easeInOut(duration: 2.6) } }
+                }
+                .transition(.opacity.animation(Motion.out(0.5)))
+            }
+        }
+        .accessibilityHidden(true)
+    }
+    func halo(up: Bool) -> some View { Circle().fill(color).blur(radius: 14).scaleEffect(up ? 1.1 : 0.88).opacity(up ? 0.3 : 0.12) }
 }

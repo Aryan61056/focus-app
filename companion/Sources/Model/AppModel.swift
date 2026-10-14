@@ -28,19 +28,35 @@ final class AppModel {
     /// Bumped on a successful pairing, for a haptic.
     private(set) var pairedCount = 0
 
+    /// One model for the whole process, so a Shortcuts action that wakes the app reads the same state the screens do.
+    static let shared = AppModel()
+
+    /// Bumped each time the guard sends the person back to Focus; the screen that welcomes them back listens to it.
+    private(set) var guardCount = 0
+    var showingGuard = false
+
     let client = LinkClient()
+    /// The apps the person chose to cover while they work.
+    let blocker = DistractionBlocker()
     @ObservationIgnored private let store: PairedMacStore
     @ObservationIgnored private let demo = DemoMac()
     @ObservationIgnored private let liveActivity = LiveActivityController()
     @ObservationIgnored private let pickup = PickupReminder()
+    @ObservationIgnored private let guardCache = GuardCache()
+    @ObservationIgnored private let guardLog = GuardLog()
+    /// When the guard last ran and what it decided. Empty until a Shortcuts automation has fired once.
+    private(set) var lastGuard: (at: Date, outcome: GuardOutcome)?
+    /// True once the Mac has said how things stand on this connection, so the clock can be trusted whatever its age.
+    @ObservationIgnored private var heardThisConnection = false
     @ObservationIgnored private var nextCommandID: UInt32 = 1
     @ObservationIgnored private var noticeTask: Task<Void, Never>?
 
     init(store: PairedMacStore = .keychain, demo startInDemo: Bool = false) {
         self.store = store
         mac = store.load()
+        lastGuard = guardLog.last()
         client.onMessage = { [weak self] in self?.receive($0) }
-        client.onConnected = { [weak self] in self?.client.send(.requestState); self?.client.send(.requestInsights) }
+        client.onConnected = { [weak self] in self?.heardThisConnection = false; self?.client.send(.requestState); self?.client.send(.requestInsights) }
         demo.onState = { [weak self] in self?.apply($0) }
         demo.onInsights = { [weak self] in self?.insights = $0 }
         demo.onResult = { [weak self] r in if case .refused(let why) = r { self?.show(why) } }
@@ -171,7 +187,7 @@ final class AppModel {
     // MARK: incoming
     private func receive(_ m: LinkMessage) {
         switch m {
-        case .state(let s): apply(s)
+        case .state(let s): heardThisConnection = true; apply(s)
         case .insights(let i): insights = i
         case .result(_, .refused(let why)): show(why)
         case .result, .command, .requestState, .requestInsights: break
@@ -186,8 +202,32 @@ final class AppModel {
         if s.phase == .drifting, clock.state.phase != .drifting { driftCount += 1 }
         if s.isActive, !clock.state.isActive { pickup.askPermissionIfNeeded() }
         clock = SessionClock(state: s, receivedAt: .now)
+        if !isDemo { guardCache.save(clock) }
         liveActivity.sync(clock)
+        blocker.sync(s, canBlock: !isDemo)
     }
+
+    // MARK: guard
+    /// Should opening a distracting app bounce the person back to Focus? Asks the Mac if it can be reached in a moment, and
+    /// otherwise trusts the last thing it said, as long as that is recent. Leans toward "yes" when unsure: that is the point.
+    func guardCheck(now: Date = .now, record: Bool = true) async -> GuardOutcome {
+        let outcome = await decideGuard()
+        if record { guardLog.record(outcome); lastGuard = guardLog.last() }
+        return outcome
+    }
+
+    private func decideGuard() async -> GuardOutcome {
+        guard blocker.enabled else { return .switchedOff }
+        guard !isDemo else { return .demo }
+        guard mac != nil else { return .notPaired }
+        let deadline = Date().addingTimeInterval(GuardRules.patience)
+        while !(connection == .connected && heardThisConnection), Date() < deadline { try? await Task.sleep(for: .milliseconds(100)) }
+        let live = connection == .connected && heardThisConnection
+        guard let known = live ? clock : guardCache.load() else { return .noSession }
+        return GuardRules.shouldBounce(known, live: live, now: Date()) ? .sentBack : .noSession
+    }
+
+    func showGuard() { guardCount += 1; showingGuard = true }
 
     func show(_ text: String) {
         notice = text

@@ -73,11 +73,16 @@ struct ActiveSessionView: View {
                 Text(d).font(.subheadline).foregroundStyle(Palette.ink2).multilineTextAlignment(.center).transition(.opacity)
             }
             if let note = s.note { Text(note).font(.subheadline.weight(.medium)).foregroundStyle(Palette.ink).transition(.opacity) }
+            if model.blocker.shielding {
+                Label("\(model.blocker.count) covered", systemImage: "shield.lefthalf.filled")
+                    .font(.footnote.weight(.medium)).foregroundStyle(Palette.ink2).transition(.opacity)
+            }
             if let n = model.notice { Text(n).font(.footnote).foregroundStyle(Palette.ink2).transition(.opacity) }
         }
         .frame(minHeight: 72, alignment: .top)
         .motion(Motion.settle, value: s.phase)
         .motion(Motion.settle, value: s.note)
+        .motion(Motion.settle, value: model.blocker.shielding)
         .motion(Motion.settle, value: model.notice)
     }
 

@@ -69,14 +69,19 @@ extension DayStatsTests {
 
 @MainActor
 final class NotchTests: XCTestCase {
-    func testRestIsJustTheEarsAndOpenGrowsDownNeverSideways() {
+    /// Droppy's proportions (owner asked for them, 2026-10-13): hover widens the ears a little, a click opens a wide card.
+    func testRestIsJustTheEarsHoverWidensAndOpenIsAWideCard() {
         let rest = NotchLayout.size(.rest, notchWidth: 200, notchHeight: 32)
         XCTAssertEqual(rest.height, 32)
         XCTAssertEqual(rest.width, 200 + 2 * NotchLayout.ear)
+        let peek = NotchLayout.size(.peek, notchWidth: 200, notchHeight: 32)
+        XCTAssertGreaterThan(peek.width, rest.width)
+        XCTAssertLessThanOrEqual(peek.height - rest.height, 4, "hover widens; it barely grows down")
         let open = NotchLayout.size(.open, notchWidth: 200, notchHeight: 32)
-        XCTAssertGreaterThan(open.height, rest.height)
-        XCTAssertGreaterThanOrEqual(open.width, rest.width)
-        XCTAssertLessThanOrEqual(open.width, 340, "it grows down; width barely changes")
+        XCTAssertGreaterThan(open.height, peek.height + 80)
+        XCTAssertGreaterThanOrEqual(open.width, peek.width)
+        let box = NotchLayout.panelSize(notchWidth: 200, notchHeight: 32)
+        XCTAssertGreaterThanOrEqual(box.width, open.width); XCTAssertGreaterThanOrEqual(box.height, open.height)
     }
 
     func testNoNotchGivesAFloatingPill() {

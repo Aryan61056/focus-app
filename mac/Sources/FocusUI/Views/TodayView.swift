@@ -8,6 +8,7 @@ import FocusBrain
 struct TodayView: View {
     @Bindable var c: SessionController
     @Binding var showStart: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var width: CGFloat = 900
 
     var body: some View {
@@ -20,6 +21,8 @@ struct TodayView: View {
 
     var content: some View {
         VStack(alignment: .leading, spacing: 22) {
+            // Droppy heads its pages with a picture: here a live copy of the notch over the app's artwork.
+            HeroBanner(caption: Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide))) { NotchPreviewPill(c: c) }
             if c.isActive { LiveHeader(c: c) } else { DashHeader(c: c) }
             if let n = notice { NoticeRow(notice: n, c: c) }
             if !hasSide {
@@ -164,7 +167,11 @@ struct LiveHeader: View {
     @Bindable var c: SessionController
     var body: some View {
         HStack(alignment: .center, spacing: 20) {
-            RingView(c.ringState, color: c.ringColor).frame(width: 76, height: 76)
+            // The live ring: its arc sweeps with the clock, a change of state blurs in, and it breathes while you are on task.
+            TimelineView(.periodic(from: .now, by: 1)) { _ in
+                LiveRing(c.ringState, color: c.ringColor).frame(width: 76, height: 76)
+                    .background { RingGlow(on: c.ringColor == Tokens.accent && !c.isPaused, color: Tokens.accent).padding(-6) }
+            }
             VStack(alignment: .leading, spacing: 8) {
                 Text(c.taskName).font(Tokens.rounded(28, .semibold)).lineLimit(2)
                 HStack(spacing: 8) {
@@ -172,19 +179,26 @@ struct LiveHeader: View {
                     if let m = c.moment { MomentLine(moment: m) }
                     if let note = statusNote { Text(note).font(Tokens.text(13)).foregroundStyle(Tokens.ink2).lineLimit(1) }
                 }
-                .animation(.easeOut(duration: 0.2), value: c.moment)
+                .motion(Motion.notchSettle, value: c.moment)
             }
             Spacer(minLength: 16)
             VStack(alignment: .trailing, spacing: 10) {
                 TimelineView(.periodic(from: .now, by: 1)) { _ in
+                    let t = c.clockText()
                     VStack(alignment: .trailing, spacing: 0) {
-                        Text(c.clockText()).font(Tokens.rounded(34, .semibold)).monospacedDigit()
+                        Text(t).font(Tokens.rounded(34, .semibold)).monospacedDigit()
+                            .contentTransition(.numericText(countsDown: c.mode == .timed)).motion(Motion.out(0.3), value: t)
                         Text(c.mode == .timed ? "left" : "elapsed").font(Tokens.text(12)).foregroundStyle(Tokens.ink2)
                     }
                 }
                 HStack(spacing: 8) {
-                    if c.isPaused { Button("Resume") { c.act(.resume) }.buttonStyle(FocusButtonStyle(.secondary)) }
-                    else { Button("Pause") { c.act(.pause) }.buttonStyle(FocusButtonStyle(.secondary)) }
+                    // One button that changes its word, so the pointer that just paused is already on Resume.
+                    Button { c.act(c.isPaused ? .resume : .pause) } label: {
+                        Label(c.isPaused ? "Resume" : "Pause", systemImage: c.isPaused ? "play.fill" : "pause.fill")
+                            .contentTransition(.symbolEffect(.replace))
+                    }
+                    .buttonStyle(FocusButtonStyle(.secondary))
+                    .motion(Motion.out(0.2), value: c.isPaused)
                     Menu("Break") {
                         ForEach([5, 10, 15], id: \.self) { m in Button("\(m) minutes") { c.act(.breakTime, minutes: m) } }
                     }.menuStyle(.button).buttonStyle(FocusButtonStyle(.secondary)).fixedSize()
