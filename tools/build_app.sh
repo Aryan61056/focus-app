@@ -28,6 +28,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
   <key>NSPrincipalClass</key><string>NSApplication</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSAppleEventsUsageDescription</key><string>Focus can switch your browser to the tab you were working in, or close the tab you were warned about, when you turn that on. It sends nothing anywhere.</string>
+  <key>NSLocalNetworkUsageDescription</key><string>Focus talks to your iPhone on your Wi-Fi so the phone can show and control your session. It only listens after you turn on Session, iPhone.</string>
+  <key>NSBonjourServices</key><array><string>_focuslink._tcp</string></array>
   <key>NSScreenCaptureUsageDescription</key><string>Focus shows you a small picture of the window it is reading. The picture stays in memory and is never saved.</string>
 </dict></plist>
 PLIST

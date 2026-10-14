@@ -1,0 +1,18 @@
+# Focus for iPhone (companion)
+
+Shows the Mac app's session on your phone, lets you start, pause and end it from there, and keeps the task on your lock
+screen. It talks to the Mac directly over your Wi-Fi (`../core/link`): no account and no server.
+
+```bash
+brew install xcodegen          # once
+cd companion && xcodegen generate
+open FocusCompanion.xcodeproj  # run on an iPhone simulator, or set your Team under Signing to run on a phone
+(cd ../core/link && swift test)                      # link tests, including real loopback sockets
+xcodebuild -project FocusCompanion.xcodeproj -scheme FocusCompanion \
+  -destination 'platform=iOS Simulator,name=iPhone 18 Pro' test CODE_SIGNING_ALLOWED=NO
+```
+
+No Mac handy? **Mac tab > Demo mode** runs a pretend Mac. Launch flags for screenshots: `-demo`, `-demo-session`, `-tab insights|mac`.
+
+Layout: `Sources/Design` (palette, motion, ring), `Sources/Model` (state, clock, Keychain, demo Mac), `Sources/Views`,
+`LiveActivity/` (lock screen and Dynamic Island), `Shared/` (attributes used by both).

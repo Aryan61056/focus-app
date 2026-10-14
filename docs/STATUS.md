@@ -179,3 +179,9 @@ Early on I did not drive your screen (synthetic events sent to the process do no
 - **Now.** Every "Back to task" (shield, banner, check-in, menu bar, notch) also switches the browser to the page Focus last read as on task, when that is a different page in the same browser and both addresses are known. It follows the existing "switch tabs" setting (renamed "Switch back to your tab"; on by default), is skipped in practice mode, and the ladder's own step does not switch twice. No new stored data: it uses the page Focus already holds in memory for the session. Option B (pinned task pages per project) is not built, by the owner's choice.
 - **Limits:** one remembered page (the last on-task one); same browser only; needs the browser's Automation permission (macOS asks once; refused means the app comes forward as before); Chrome-family and Comet scripts are unchanged and still unrun against a live browser.
 - **Verified:** 308 tests (it switches from the distracting page to the on-task one, does nothing when already there, does nothing with the setting off, one switch per ladder round); privacy scan clean. **Not verified live:** the switch in a real browser, including through the shield.
+
+## iPhone companion and Mac link (Aarav and Claude, 2026-10-13; branch `aarav/companion`, not pushed)
+- New: `companion/` (iPhone app), `core/link/` (encrypted local-network link), `mac/Sources/FocusLink/` (Mac side, Session > iPhone..., **off by default**). Details, security design,
+  the decision it needs from the owner, and what is and is not verified: **`docs/COMPANION.md`**.
+- Existing files touched: `mac/Package.swift`, `FocusApp.swift` (9 lines), `tools/build_app.sh` (2 plist keys). Full Mac suite still passes (0 failures); the Rust brain is untouched.
+

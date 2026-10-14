@@ -20,8 +20,13 @@ let package = Package(
         .library(name: "FocusUI", targets: ["FocusUI"]),
         .library(name: "FocusSense", targets: ["FocusSense"]),
         .executable(name: "focus-sense-check", targets: ["focus-sense-check"]),
+        .library(name: "FocusLink", targets: ["FocusLink"]),
         .executable(name: "focus-app", targets: ["focus-app"]),
         .executable(name: "focus-snapshot", targets: ["focus-snapshot"]),
+    ],
+    dependencies: [
+        // How the iPhone companion talks to this app: local network only, see ../core/link and docs/COMPANION.md.
+        .package(path: "../core/link"),
     ],
     targets: [
         .target(name: "FocusJudge", swiftSettings: [.swiftLanguageMode(.v5)]),
@@ -36,11 +41,13 @@ let package = Package(
         .executableTarget(name: "brain-sim", dependencies: ["BrainSim"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .target(name: "FocusUI", dependencies: ["FocusBrain", "FocusJudge"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .target(name: "FocusSense", dependencies: ["FocusUI"], swiftSettings: [.swiftLanguageMode(.v5)]),
+        .target(name: "FocusLink", dependencies: ["FocusUI", "FocusBrain", .product(name: "FocusLinkNet", package: "link")], swiftSettings: [.swiftLanguageMode(.v5)]),
         .executableTarget(name: "focus-sense-check", dependencies: ["FocusSense"], swiftSettings: [.swiftLanguageMode(.v5)]),
-        .executableTarget(name: "focus-app", dependencies: ["FocusUI", "FocusSense"], swiftSettings: [.swiftLanguageMode(.v5)]),
+        .executableTarget(name: "focus-app", dependencies: ["FocusUI", "FocusSense", "FocusLink"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .executableTarget(name: "focus-snapshot", dependencies: ["FocusUI"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .testTarget(name: "FocusUITests", dependencies: ["FocusUI", "FocusBrain", "FocusJudge"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .testTarget(name: "FocusSenseTests", dependencies: ["FocusSense", "FocusUI", "FocusJudge"], swiftSettings: [.swiftLanguageMode(.v5)]),
+        .testTarget(name: "FocusLinkBridgeTests", dependencies: ["FocusLink", "FocusUI", "FocusJudge", .product(name: "FocusLinkNet", package: "link")], swiftSettings: [.swiftLanguageMode(.v5)]),
         .testTarget(name: "FocusBrainTests", dependencies: ["FocusBrain", "BrainTraces", "BrainSim"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .testTarget(name: "FocusJudgeTests", dependencies: ["FocusJudge"], swiftSettings: [.swiftLanguageMode(.v5)]),
     ]
