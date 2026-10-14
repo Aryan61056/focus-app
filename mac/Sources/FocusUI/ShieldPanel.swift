@@ -83,7 +83,7 @@ struct ShieldCard: View {
                 .disabled(shield.checking || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             if shield.checking { ProgressView().controlSize(.small); Text("Reading the window").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
         }
-        Text("\(shield.attemptsLeft) \(shield.attemptsLeft == 1 ? "try" : "tries") left. A wrong answer costs something, and two lock explaining for \(Int(Shield.lockSeconds(after: c.overrideLocks) / 60)) minutes.")
+        Text("\(shield.attemptsLeft) \(shield.attemptsLeft == 1 ? "try" : "tries") left. A wrong answer costs something, and two lock explaining for \(Int(Shield.lockSeconds(after: c.overrideLocks) / 60)) minutes. An accepted explanation covers this page only, for \(Int(Shield.passSeconds(afterClaims: c.claimsAccepted) / 60)) minutes (explanation \(c.claimsAccepted + 1) of \(Shield.claimCap)).")
             .font(Tokens.text(12)).foregroundStyle(Tokens.ink2)
     }
 

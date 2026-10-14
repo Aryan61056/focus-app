@@ -178,15 +178,76 @@ final class ShieldTests: XCTestCase {
         XCTAssertEqual(judge.calls, before, "the model was never asked")
     }
 
-    func testAnExplanationTheWindowSupportsOpensItAndTeachesFocus() async {
+    func testAnExplanationTheWindowSupportsOpensThatPageForAWhileAndTeachesNothing() async {
         let c = make()
         await toThePauseScreen(c); await openTheForm(c)
         c.submitExplanation(good); await c.waitForJudgments()
         XCTAssertNil(c.shield); XCTAssertFalse(c.gateOpen)
         XCTAssertEqual(c.escalationStep, .warned, "the climb ends")
-        XCTAssertFalse(c.learnedRules.isEmpty, "That was fine is recorded for the window")
+        XCTAssertTrue(c.learnedRules.isEmpty, "an explanation never becomes a lasting rule")
+        XCTAssertTrue(c.pageHasPass(video)); XCTAssertEqual(c.claimsAccepted, 1)
         await advance(c, to: t + 40)
         XCTAssertNotEqual(c.presence.state, "interrupted")
+    }
+
+    // an explanation is not a free pass
+    let video2 = WindowSnapshot(app: "Safari", title: "other clip youtube", url: "https://youtube.com/watch?v=2")
+
+    func testAnAcceptedExplanationCoversThatPageOnlyNotTheRestOfTheSite() async {
+        let c = make()
+        await toThePauseScreen(c); await openTheForm(c)
+        c.submitExplanation(good); await c.waitForJudgments()
+        XCTAssertTrue(c.pageHasPass(video))
+        XCTAssertFalse(c.pageHasPass(video2), "another video on the same site is another page")
+        c.windowChanged(video2)
+        await advance(c, to: t + 60)
+        XCTAssertEqual(c.presence.state, "interrupted", "the next video is judged and flagged as before")
+        c.windowChanged(video)
+        await advance(c, to: t + 30)
+        XCTAssertNotEqual(c.presence.state, "interrupted", "the explained page is still accepted")
+    }
+
+    func testThePassRunsOutAndThePageIsReadAgainOnItsOwn() async {
+        let c = make()
+        await toThePauseScreen(c); await openTheForm(c)
+        c.submitExplanation(good); await c.waitForJudgments()
+        let accepted = t
+        await advance(c, to: accepted + Shield.passSeconds(afterClaims: 0) - 30)
+        XCTAssertNotEqual(c.presence.state, "interrupted")
+        await advance(c, to: accepted + Shield.passSeconds(afterClaims: 0) + 5)
+        XCTAssertFalse(c.pageHasPass(video))
+        await advance(c, to: t + 120)
+        XCTAssertEqual(c.presence.state, "interrupted", "after the few minutes it is flagged again")
+    }
+
+    func testEachExplanationBuysLessAndMustClearAHigherBar() {
+        XCTAssertEqual([0, 1, 2, 3, 4].map { Shield.passSeconds(afterClaims: $0) }, [480, 300, 180, 120, 120])
+        XCTAssertEqual([0, 1, 2, 3, 9].map { Shield.minConfidence(afterClaims: $0) }, [80, 85, 90, 95, 95])
+    }
+
+    func testTheSameExplanationPastedForAnotherPageIsRefusedWithoutCostingATry() async {
+        let c = make()
+        await toThePauseScreen(c); await openTheForm(c)
+        c.submitExplanation(good); await c.waitForJudgments()
+        await advance(c, to: t + Shield.passSeconds(afterClaims: 0) + 5)
+        c.windowChanged(video2)
+        await advance(c, to: t + 200)
+        XCTAssertNotNil(c.shield)
+        if c.shield?.kind != .claim { _ = c.claimOnTask() }
+        hold(c); await advance(c, to: t + 1)
+        let before = c.shield?.attemptsLeft
+        c.submitExplanation(good.replacingOccurrences(of: "problem four", with: "problem five")); await c.waitForJudgments()
+        XCTAssertEqual(c.shield?.message, OverrideClaim.reusedMessage)
+        XCTAssertEqual(c.shield?.attemptsLeft, before)
+    }
+
+    func testThereIsACapOnExplanationsInASession() async {
+        let c = make()
+        await toThePauseScreen(c); await openTheForm(c)
+        c.claimsAcceptedForTesting(Shield.claimCap)
+        c.submitExplanation(good); await c.waitForJudgments()
+        XCTAssertEqual(c.shield?.message, CueCopy.claimsUsedUp(Shield.claimCap))
+        XCTAssertEqual(c.claimsAccepted, Shield.claimCap)
     }
 
     func testNothingElseOnThePauseScreenGetsYouThroughWithoutBeingChecked() async {
@@ -286,7 +347,7 @@ final class ShieldTests: XCTestCase {
         hold(c)
         XCTAssertEqual(c.shield?.asking, true)
         c.submitExplanation(good); await c.waitForJudgments()
-        XCTAssertNil(c.shield); XCTAssertFalse(c.learnedRules.isEmpty)
+        XCTAssertNil(c.shield); XCTAssertTrue(c.learnedRules.isEmpty); XCTAssertTrue(c.pageHasPass(video))
     }
 
     func testTheCheckInsYesAndTheBannersPartOfItGoThroughTheSameCheck() async {

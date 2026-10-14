@@ -103,7 +103,13 @@ public final class SessionController {
     @ObservationIgnored var headsUpAt: Double?
     @ObservationIgnored var bannerHidden = false
     @ObservationIgnored var blockedSites: [String: String] = [:]
-    @ObservationIgnored var passUntil: [String: Double] = [:]
+    /// Pages whose explanation Focus accepted, with when each stops counting. A page is one window key plus its exact title, so another video
+    /// on the same site is a different page. Session only: nothing here is saved or becomes a rule.
+    @ObservationIgnored var passedPages: [String: Double] = [:]
+    /// Explanations accepted this session. Each one buys less time and the next must clear a higher bar; there is a cap (Shield.claimCap).
+    public internal(set) var claimsAccepted = 0
+    @ObservationIgnored var acceptedClaimWords: [Set<String>] = []
+    @ObservationIgnored var pendingClaimWords: Set<String> = []
     @ObservationIgnored var frictionQuietUntil = 0.0
     /// How many times each site has been covered this session. A site you keep coming back to waits longer and is acted on sooner.
     @ObservationIgnored var frictionStrikes: [String: Int] = [:]
@@ -514,6 +520,13 @@ public final class SessionController {
             previewHeld = "On your never-judged list. Not captured."; previewFrame = nil
             record(Reading(at: now(), date: date(), key: Keys.window(w), app: w.app, title: "", call: .unsure, source: .skipped, reason: "Personal messages, music and blank pages are not judged."))
             send(.windowChange(WindowChangeInput(windowKey: Keys.window(w), siteKey: Keys.site(w), ruleLabel: .unsure)))
+            return
+        }
+        if let until = passedPages[pageKey(w)], until > now() {
+            // You explained this exact page and Focus accepted it for a short while. A rule for this page only, never saved.
+            record(Reading(at: now(), date: date(), key: Keys.window(w), app: w.app, title: w.title, call: .on, source: .rule,
+                           reason: "You explained this page and Focus accepted it for a few minutes. Then it reads it again on its own."))
+            send(.windowChange(WindowChangeInput(windowKey: Keys.window(w), siteKey: Keys.site(w), ruleLabel: .onTask)))
             return
         }
         if hit == nil, prefs.matchTaskWords, case let shared = Rules.sharedTaskWords(m), !shared.isEmpty {
