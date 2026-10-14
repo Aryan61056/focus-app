@@ -51,42 +51,82 @@ struct ReadingSplit: View {
 }
 
 
-/// The picture Focus took of the window it is reading, with plain words about what it is for.
-/// The model never sees this picture: it reads the app, the window title and the page or file address.
+/// The picture Focus took of the window it is reading, large, in a fixed frame so the card does not jump as pictures arrive.
+/// Every state fills the same frame: the picture, a reason it is not shown, or an invitation to turn screen reading on.
+/// The model never sees this picture: it reads the app, the window title and the page or file address, plus the words if screen reading is on.
 struct PreviewCard: View {
     @Bindable var c: SessionController
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if !c.prefs.readScreen {
-                Text("Let Focus look at the window. It reads the words on screen to judge, and shows you the picture here. Nothing is saved.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
-                Button("Turn on screen reading") { c.prefs.readScreen = true; c.onRequestPreviewAccess?() }.buttonStyle(FocusButtonStyle(.plain, small: true))
-            } else if let held = c.previewHeld {
-                note("eye.slash", held)
-            } else if c.previewAccess == .denied {
-                note("lock", "Allow Screen Recording for Focus in System Settings so it can look at the window.")
-                Button("Open System Settings") { c.onRequestPreviewAccess?() }.buttonStyle(FocusButtonStyle(.plain, small: true))
-            } else if let f = c.previewFrame {
-                Image(decorative: f.image, scale: 2).resizable().aspectRatio(CGFloat(f.image.width) / CGFloat(max(1, f.image.height)), contentMode: .fit)
-                    .frame(maxWidth: .infinity)
-                    .clipShape(RoundedRectangle(cornerRadius: 8)).overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Tokens.line))
-                    .accessibilityLabel("Picture of the \(f.app) window")
-                Text(c.screenText.isEmpty ? "Reading the words in this picture on your Mac."
-                     : "Read \(c.screenWordCount) words on this Mac. The model sees the words, not the picture. Nothing is saved, and it is gone when the session ends.")
-                    .font(Tokens.text(11.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
-                if !c.screenText.isEmpty {
-                    DisclosureGroup("Words Focus read") {
-                        Text(String(c.screenText.prefix(600)).replacingOccurrences(of: "\n", with: " "))
-                            .font(Tokens.text(11.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
-                            .frame(maxWidth: .infinity, alignment: .leading).textSelection(.enabled)
-                    }.font(Tokens.text(12))
-                }
-            } else {
-                note("photo", "Waiting for a picture. Switch to a window and it appears here.")
-            }
-            if c.prefs.readScreen { Button("Turn screen reading off") { c.prefs.readScreen = false }.buttonStyle(FocusButtonStyle(.plain, small: true)) }
+        VStack(alignment: .leading, spacing: 10) {
+            Color.clear.aspectRatio(16 / 10, contentMode: .fit).frame(maxWidth: .infinity).overlay { frame }
+            caption
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    var shape: RoundedRectangle { RoundedRectangle(cornerRadius: 14, style: .continuous) }
+
+    @ViewBuilder var frame: some View {
+        if c.prefs.readScreen, c.previewHeld == nil, c.previewAccess != .denied, let f = c.previewFrame {
+            ZStack(alignment: .bottomLeading) {
+                Color.black.opacity(0.04)
+                Image(decorative: f.image, scale: 2).resizable().aspectRatio(contentMode: .fit)
+                Label("Live", systemImage: "circle.fill").font(Tokens.text(11.5, .semibold)).labelStyle(.titleAndIcon)
+                    .symbolRenderingMode(.palette).foregroundStyle(.white, Tokens.accent)
+                    .padding(.horizontal, 8).frame(height: 22).background(Capsule().fill(.black.opacity(0.55))).padding(10)
+                    .accessibilityHidden(true)
+            }
+            .clipShape(shape).overlay(shape.strokeBorder(Tokens.line))
+            .accessibilityElement().accessibilityLabel("Picture of the \(f.app) window, taken on this Mac")
+            .id(f.id).transition(.opacity)
+        } else {
+            VStack(spacing: 12) {
+                Image(systemName: symbol).font(.system(size: 22, weight: .medium)).foregroundStyle(Tokens.ink2)
+                Text(message).font(Tokens.text(13)).foregroundStyle(Tokens.ink2).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: 300)
+                if !c.prefs.readScreen {
+                    Button("Show the window here") { c.prefs.readScreen = true; c.onRequestPreviewAccess?() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+                } else if c.previewAccess == .denied {
+                    Button("Open System Settings") { c.onRequestPreviewAccess?() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+                }
+            }
+            .padding(20).frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(shape.fill(Tokens.well))
+            .overlay(shape.strokeBorder(Tokens.line, style: StrokeStyle(lineWidth: 1, dash: [5, 4])))
+        }
+    }
+
+    var symbol: String {
+        if !c.prefs.readScreen { return "eye" }
+        if c.previewHeld != nil { return "eye.slash" }
+        if c.previewAccess == .denied { return "lock" }
+        return "photo"
+    }
+    var message: String {
+        if !c.prefs.readScreen { return "Let Focus show you the window it is reading. It also reads the words on screen to judge. Nothing is saved." }
+        if let held = c.previewHeld { return held }
+        if c.previewAccess == .denied { return "Allow Screen Recording for Focus in System Settings so it can look at the window." }
+        return "Waiting for a picture. Switch to a window and it appears here."
+    }
+
+    @ViewBuilder var caption: some View {
+        if c.prefs.readScreen {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text(c.previewFrame == nil || c.screenText.isEmpty ? "The model sees the words, never the picture. Nothing is saved."
+                     : "Read \(c.screenWordCount) words on this Mac. The model sees the words, never the picture. Gone when the session ends.")
+                    .font(Tokens.text(12)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 8)
+                Button("Turn off") { c.prefs.readScreen = false }.buttonStyle(FocusButtonStyle(.plain, small: true))
+            }
+            if !c.screenText.isEmpty, c.previewFrame != nil {
+                DisclosureGroup("Words Focus read") {
+                    Text(String(c.screenText.prefix(600)).replacingOccurrences(of: "\n", with: " "))
+                        .font(Tokens.text(11.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading).textSelection(.enabled)
+                }.font(Tokens.text(12))
+            }
+        }
     }
 
     func note(_ symbol: String, _ text: String) -> some View {

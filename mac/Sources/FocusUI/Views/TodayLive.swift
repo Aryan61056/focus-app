@@ -9,6 +9,7 @@ struct SeeingCard: View {
     @Bindable var c: SessionController
     @State private var pinned: UUID?
     @State private var showAll = false
+    @State private var width: CGFloat = 800
 
     var shown: Reading? { pinned.flatMap { id in c.readings.first { $0.id == id } } ?? c.latest }
 
@@ -17,16 +18,18 @@ struct SeeingCard: View {
             VStack(alignment: .leading, spacing: 20) {
                 header
                 if let r = shown {
-                    HStack(alignment: .top, spacing: 24) {
-                        VStack(alignment: .leading, spacing: 18) {
-                            windowLine(r)
-                            verdict(r)
-                            steps(r)
+                    // The picture sits beside the call when there is room, so you see what Focus saw and what it concluded together.
+                    if width >= 720 {
+                        HStack(alignment: .top, spacing: 24) {
+                            decision(r).frame(maxWidth: .infinity, alignment: .leading)
+                            if pinned == nil { PreviewCard(c: c).frame(width: min(440, width * 0.46)) }
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        if c.prefs.readScreen { PreviewCard(c: c).frame(width: 250) }
+                    } else {
+                        VStack(alignment: .leading, spacing: 18) {
+                            decision(r)
+                            if pinned == nil { PreviewCard(c: c) }
+                        }
                     }
-                    if !c.prefs.readScreen { screenRow }
                     if c.readings.count > 1 {
                         ReadingsStrip(readings: c.readings, pinned: $pinned)
                         allReadings
@@ -41,6 +44,7 @@ struct SeeingCard: View {
             }
         }
         .animation(.easeOut(duration: 0.2), value: shown?.id)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
         .onChange(of: c.isActive) { _, on in if !on { pinned = nil } }
     }
 
@@ -62,6 +66,14 @@ struct SeeingCard: View {
             }
         }
     }
+    func decision(_ r: Reading) -> some View {
+        VStack(alignment: .leading, spacing: 18) {
+            windowLine(r)
+            verdict(r)
+            steps(r)
+        }
+    }
+
     static func ago(_ s: Double) -> String { s < 5 ? "Checked just now" : "Checked \(Int(s)) s ago" }
 
     func windowLine(_ r: Reading) -> some View {
@@ -116,16 +128,6 @@ struct SeeingCard: View {
             Text(title).font(Tokens.text(12.5, .semibold))
         }
         .help(help).accessibilityElement(children: .ignore).accessibilityLabel("\(title). \(help)")
-    }
-
-    var screenRow: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "eye").foregroundStyle(Tokens.ink2)
-            Text("Screen reading is off. Turn it on and Focus also reads the words in the window.").font(Tokens.text(13)).foregroundStyle(Tokens.ink2)
-                .help("It takes a picture of the front window, reads its words on this Mac and shows you the picture here. The model sees the words, not the picture, and nothing is saved.")
-            Spacer(minLength: 8)
-            Button("Turn on") { c.prefs.readScreen = true; c.onRequestPreviewAccess?() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
-        }
     }
 
     var allReadings: some View {
