@@ -48,7 +48,7 @@ struct ShieldCard: View {
         Text(CueCopy.shieldBody(shield.kind, tone: c.prefs.nudgeTone, task: c.taskName, longDetour: c.longDetour))
             .font(Tokens.text(14)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
         if c.longDetour && shield.kind == .pause { Button(NudgeCopy.breakButton()) { c.takeNudgeBreak() }.buttonStyle(FocusButtonStyle(.primary, expand: true)) }
-        Button("Back to task") { c.shieldBackToTask() }.buttonStyle(FocusButtonStyle(c.longDetour && shield.kind == .pause ? .secondary : .primary, expand: true))
+        backToTask(secondary: c.longDetour && shield.kind == .pause)
         TimelineView(.periodic(from: .now, by: 0.25)) { _ in
             let lock = c.overrideLockRemaining
             VStack(alignment: .leading, spacing: 8) {
@@ -77,7 +77,7 @@ struct ShieldCard: View {
                 Text(m).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink).fixedSize(horizontal: false, vertical: true)
             }.accessibilityElement(children: .combine)
         }
-        Button("Back to task") { c.shieldBackToTask() }.buttonStyle(FocusButtonStyle(.primary, expand: true))
+        backToTask(secondary: false)
         HStack(spacing: 10) {
             Button("Check my answer", action: send).buttonStyle(FocusButtonStyle(.secondary, expand: true))
                 .disabled(shield.checking || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -88,6 +88,83 @@ struct ShieldCard: View {
     }
 
     func send() { c.submitExplanation(text) }
+
+    /// Back to task: one press, or, if the user switched on holding in Settings, a short press and hold. Never behind a wait or a lock.
+    @ViewBuilder func backToTask(secondary: Bool) -> some View {
+        if c.prefs.holdToReturn {
+            VStack(alignment: .leading, spacing: 6) {
+                HoldPad(c: c).frame(height: 36)
+                Text(CueCopy.backHoldLine()).font(Tokens.text(12)).foregroundStyle(Tokens.ink2)
+            }
+        } else {
+            Button("Back to task") { c.shieldBackToTask() }.buttonStyle(FocusButtonStyle(secondary ? .secondary : .primary, expand: true))
+        }
+    }
+}
+
+/// Press and hold to go back to the task. Native AppKit, not a SwiftUI gesture: mouse down and up reach it directly, even when
+/// Focus is not the active app, and a test can drive it. The fill shows the hold; letting go starts over.
+struct HoldPad: NSViewRepresentable {
+    var c: SessionController
+    func makeNSView(context: Context) -> HoldPadView { HoldPadView(c: c) }
+    func updateNSView(_ v: HoldPadView, context: Context) { v.c = c }
+}
+
+final class HoldPadView: NSView {
+    var c: SessionController
+    private var timer: Timer?
+    private(set) var pressed = false
+    init(c: SessionController) {
+        self.c = c
+        super.init(frame: NSRect(x: 0, y: 0, width: 200, height: 36))
+        wantsLayer = true
+        setAccessibilityRole(.button)
+        setAccessibilityLabel("Hold to go back to task")
+        setAccessibilityHelp("Takes \(Int(Shield.backHoldSeconds)) seconds of holding. With VoiceOver, activating it starts the hold for you.")
+    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    override var acceptsFirstResponder: Bool { true }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+    override var mouseDownCanMoveWindow: Bool { false }
+
+    override func mouseDown(with event: NSEvent) { press() }
+    override func mouseUp(with event: NSEvent) { release() }
+    override func viewDidMoveToWindow() { super.viewDidMoveToWindow(); if window == nil { release() } }
+
+    /// VoiceOver cannot hold a mouse button, so activating the button starts the same hold and it runs its course.
+    override func accessibilityPerformPress() -> Bool { c.beginBackHold(); startRedraw(); return true }
+
+    func press() { pressed = true; c.beginBackHold(); startRedraw(); needsDisplay = true }
+    func release() { pressed = false; c.endBackHold(); stopRedrawIfIdle(); needsDisplay = true }
+
+    private func startRedraw() {
+        guard timer == nil else { return }
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { guard let self else { return }; self.c.updateBackHold(); self.needsDisplay = true; self.stopRedrawIfIdle() }
+        }
+    }
+    private func stopRedrawIfIdle() { if c.backHoldStart == nil { timer?.invalidate(); timer = nil } }
+
+    override func draw(_ dirtyRect: NSRect) {
+        let r = bounds, radius = Tokens.radiusControl
+        let dark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        let ink = dark ? NSColor(srgbRed: 0.93, green: 0.95, blue: 0.94, alpha: 1) : NSColor(srgbRed: 0.09, green: 0.11, blue: 0.09, alpha: 1)
+        let track = NSBezierPath(roundedRect: r, xRadius: radius, yRadius: radius)
+        ink.withAlphaComponent(0.1).setFill(); track.fill()
+        let p = CGFloat(c.backHoldProgress())
+        if p > 0 {
+            NSGraphicsContext.saveGraphicsState(); track.addClip()
+            (dark ? NSColor(srgbRed: 0.47, green: 0.84, blue: 0.62, alpha: 0.55) : NSColor(srgbRed: 0.106, green: 0.459, blue: 0.282, alpha: 0.28)).setFill()
+            NSRect(x: 0, y: 0, width: r.width * p, height: r.height).fill()
+            NSGraphicsContext.restoreGraphicsState()
+        }
+        ink.withAlphaComponent(0.14).setStroke(); track.lineWidth = 1; track.stroke()
+        let label = (p > 0 ? "Keep holding" : "Hold to go back to task") as NSString
+        let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 13, weight: .semibold), .foregroundColor: ink]
+        let size = label.size(withAttributes: attrs)
+        label.draw(at: NSPoint(x: r.midX - size.width / 2, y: r.midY - size.height / 2), withAttributes: attrs)
+    }
 }
 
 struct ProgressBar: View {
@@ -172,7 +249,7 @@ public final class ShieldController {
 
     private func makePanel() -> ShieldPanel {
         let p = ShieldPanel()
-        p.onEscape = { [weak self] in self?.c.shieldBackToTask() }
+        p.onEscape = { [weak self] in if self?.c.prefs.holdToReturn != true { self?.c.shieldBackToTask() } }
         let blur = NSVisualEffectView(); blur.material = .fullScreenUI; blur.blendingMode = .behindWindow; blur.state = .active
         let host = NSHostingView(rootView: ShieldContent(c: c))
         host.sizingOptions = []; host.safeAreaRegions = []

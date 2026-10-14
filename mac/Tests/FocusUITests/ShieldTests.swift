@@ -299,6 +299,69 @@ final class ShieldTests: XCTestCase {
         XCTAssertNotNil(c.shield?.message)
     }
 
+    // the optional hold to go back
+    func testGoingBackIsOneStepUnlessHoldingIsSwitchedOn() async {
+        XCTAssertFalse(noWords().holdToReturn, "off by default")
+        let c = make()
+        await toThePauseScreen(c)
+        c.shieldBackToTask()
+        XCTAssertNil(c.backHoldStart)
+    }
+
+    func testWithHoldingOnBackToTaskNeedsAFullHoldAndLettingGoStartsOver() async {
+        let c = make { $0.prefs.holdToReturn = true }
+        await toThePauseScreen(c)
+        c.beginBackHold(); t += 2
+        XCTAssertEqual(c.backHoldProgress(), 2 / Shield.backHoldSeconds, accuracy: 0.01)
+        c.endBackHold()
+        XCTAssertEqual(c.backHoldProgress(), 0)
+        c.updateBackHold()
+        XCTAssertNotNil(c.shield, "a short hold does not go back")
+        c.beginBackHold(); t += Shield.backHoldSeconds - 0.1; c.updateBackHold()
+        XCTAssertNotNil(c.shield, "not quite long enough")
+        t += 0.2; c.updateBackHold()
+        XCTAssertNil(c.backHoldStart)
+        XCTAssertNil(c.shield, "a full hold goes back to the task")
+    }
+
+    func testTheHoldToGoBackStillWorksDuringTheLockAndExplainingStaysOnePress() async {
+        let c = make { $0.prefs.holdToReturn = true }
+        await toThePauseScreen(c)
+        c.openExplanation()
+        XCTAssertEqual(c.shield?.asking, true, "explaining never needs a hold")
+        c.submitExplanation(bluff); await c.waitForJudgments()
+        c.submitExplanation(bluff + " again"); await c.waitForJudgments()
+        XCTAssertGreaterThan(c.overrideLockRemaining, 0)
+        c.beginBackHold(); t += Shield.backHoldSeconds + 0.1; c.updateBackHold()
+        XCTAssertNil(c.shield, "the way out is never locked")
+    }
+
+    /// The hold is a native control, so a real mouse down and up reach it through the real panel.
+    func testAMouseHoldOnTheRealButtonInTheRealPanelGoesBack() async throws {
+        _ = NSApplication.shared
+        guard NSScreen.main != nil else { throw XCTSkip("no screen") }
+        let c = make { $0.prefs.holdToReturn = true }
+        await c.waitForJudgments()
+        let sc = ShieldController(controller: c); sc.start(); defer { sc.stop() }
+        c.debugShowShield(.claim)
+        try await Task.sleep(nanoseconds: 400_000_000)
+        let panel = try XCTUnwrap(sc.panelsForTesting.first)
+        func find(_ v: NSView) -> HoldPadView? { if let h = v as? HoldPadView { return h }; for s in v.subviews { if let h = find(s) { return h } }; return nil }
+        let pad = try XCTUnwrap(find(try XCTUnwrap(panel.contentView)), "the hold button is in the panel")
+        let centre = pad.convert(NSPoint(x: pad.bounds.midX, y: pad.bounds.midY), to: nil)
+        func event(_ type: NSEvent.EventType) -> NSEvent {
+            NSEvent.mouseEvent(with: type, location: centre, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: panel.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: type == .leftMouseDown ? 1 : 0)!
+        }
+        panel.sendEvent(event(.leftMouseDown))
+        XCTAssertNotNil(c.backHoldStart, "mouse down starts the hold")
+        panel.sendEvent(event(.leftMouseUp))
+        XCTAssertNil(c.backHoldStart, "mouse up ends it")
+        panel.sendEvent(event(.leftMouseDown))
+        t += Shield.backHoldSeconds + 0.2
+        c.updateBackHold()
+        XCTAssertNil(c.shield, "holding long enough goes back to the task")
+    }
+
     // one-click claims
     func testThatWasFineOnAWindowFocusFlaggedNeedsAnExplanationNowNotAClick() async {
         let c = make()

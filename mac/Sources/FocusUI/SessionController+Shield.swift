@@ -132,12 +132,32 @@ extension SessionController {
             frictionStrikes[Keys.site(w)] = nil
         }
         if counted { claimsAccepted += 1 }
-        shield = nil; checkIn = nil; escalationGate = false
+        shield = nil; backHoldStart = nil; checkIn = nil; escalationGate = false
         clearEscalation()
         headsUpAt = nil; driftWatch.clearReadings()
         // Tell the brain this page is fine by rule, which ends the interruption without teaching it anything.
         if let w = currentWindow { windowChanged(w) }
         refreshBanner(now())
+    }
+
+    // MARK: the hold to go back (opt-in)
+    /// Pressing Back to task when holding is switched on. Never blocked by a lock or a wait: it is the way out.
+    public func beginBackHold() {
+        guard shield != nil, backHoldStart == nil else { return }
+        backHoldStart = now()
+    }
+    public func endBackHold() { backHoldStart = nil }
+    /// 0 to 1 while the button is held.
+    public func backHoldProgress() -> Double {
+        guard let h = backHoldStart else { return 0 }
+        return min(1, max(0, (now() - h) / Shield.backHoldSeconds))
+    }
+    /// Called a few times a second while the button is held: a full hold goes back to the task.
+    public func updateBackHold() {
+        guard shield != nil else { backHoldStart = nil; return }
+        guard backHoldStart != nil, backHoldProgress() >= 1 else { return }
+        backHoldStart = nil
+        shieldBackToTask()
     }
 
     // MARK: explaining
@@ -213,6 +233,7 @@ extension SessionController {
     /// "Back to task": always available, never waits. Brings the task app forward and gives the task a moment to arrive before asking again.
     public func shieldBackToTask() {
         let kind = shield?.kind
+        backHoldStart = nil
         if kind == .pause { escalationGate = false }
         if kind != .pause { shield = nil }
         blockCurrentSite()

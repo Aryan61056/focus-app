@@ -69,6 +69,8 @@ public final class Preferences {
     public var speakNudges: Bool { didSet { defaults.set(speakNudges, forKey: "speakNudges") } }
     /// After a pause screen, opening the same site again asks for a short hold or a typed reason.
     public var frictionReturn: Bool { didSet { defaults.set(frictionReturn, forKey: "frictionReturn") } }
+    /// On the pause, cover and claim screens, "Back to task" asks for a short press and hold, as a way to commit to going back. Off by default.
+    public var holdToReturn: Bool { didSet { defaults.set(holdToReturn, forKey: "holdToReturn") } }
     /// Scheduled prompts: a check-in at an interval, or a work-and-break rhythm.
     public var rhythm: Rhythm { didSet { defaults.set(rhythm.rawValue, forKey: "rhythm") } }
     public var checkInMinutes: Int { didSet { defaults.set(checkInMinutes, forKey: "checkInMinutes") } }
@@ -108,6 +110,7 @@ public final class Preferences {
         hapticTap = defaults.object(forKey: "hapticTap") as? Bool ?? true
         speakNudges = defaults.object(forKey: "speakNudges") as? Bool ?? false
         frictionReturn = defaults.object(forKey: "frictionReturn") as? Bool ?? true
+        holdToReturn = defaults.object(forKey: "holdToReturn") as? Bool ?? false
         rhythm = Rhythm(rawValue: defaults.string(forKey: "rhythm") ?? "") ?? .off
         checkInMinutes = defaults.object(forKey: "checkInMinutes") as? Int ?? 25
         paceMatters = defaults.object(forKey: "paceMatters") as? Bool ?? true

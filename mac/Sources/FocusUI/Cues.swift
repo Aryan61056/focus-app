@@ -110,6 +110,8 @@ public struct Shield: Equatable, Sendable {
     /// The first lock lasts this long and each later one doubles, up to half an hour. Explaining itself never waits; a bad explanation is what costs time.
     public static let lockSeconds = 300.0
     public static func lockSeconds(after locks: Int) -> Double { min(1800, lockSeconds * pow(2, Double(max(0, locks)))) }
+    /// With "hold to go back" on, press and hold Back to task this long. Letting go starts over.
+    public static let backHoldSeconds = 3.0
     /// How long a cover may sit unanswered before Focus acts on the site.
     public static let frictionIdle = 30.0
     /// How long an accepted explanation holds for that one page: 8 minutes, then 5, 3 and 2. The more you lean on it, the less it buys.
@@ -241,6 +243,7 @@ public enum CueCopy {
         switch a { case .close: return "Focus closed the tab."; case .hide: return "Focus hid the app."; case .switchAway: return "Focus switched you back." }
     }
     public static func claimsUsedUp(_ n: Int) -> String { "You have used all \(n) explanations for this session. Go back to the task." }
+    public static func backHoldLine() -> String { "You turned on holding to go back. Hold for \(Int(Shield.backHoldSeconds)) seconds." }
     public static func explainLine() -> String { "If this really is part of your task, say how. Focus checks your words against the window. Opening this costs nothing; a wrong answer does." }
     public static func lockedLine(_ seconds: Int) -> String {
         let m = (seconds + 59) / 60

@@ -111,6 +111,9 @@ struct SettingsView: View {
                     row("Explaining a flagged window", "Saying \u{201C}That was fine\u{201D} about a window Focus read as off topic asks you to explain it, with no wait and no hold: one button, then type. Focus checks your words against the window itself with both of its judges, and your words alone never pass it. An accepted explanation covers that one page, not the site, for 8 minutes, then 5, 3 and 2 for later ones, and it never becomes a saved rule. Each later one must clear a higher bar, a pasted repeat is refused, and a session allows 8. A wrong answer is acted on at once (the app is hidden, or on Strict the tab is closed), and two lock explaining for 5 minutes, then 10, 20 and 30. A project rule that says never is final.") {
                         Label("Always on", systemImage: "lock").foregroundStyle(Tokens.ink2)
                     }
+                    row("Hold to go back to your task", "Off by default. When on, \u{201C}Back to task\u{201D} on the pause, cover and claim screens asks you to press and hold for 3 seconds, as a small commitment to going back. Escape no longer skips it. It is never behind a wait or a lock, and explaining a window stays one press.") {
+                        toggle(\.holdToReturn)
+                    }
                     row("Tint the menu bar ring", "A warm tint for a heads-up or a prompt, and a slow pulse while you are away. The ring's shape shows the state either way.") {
                         toggle(\.menuBarCue)
                     }

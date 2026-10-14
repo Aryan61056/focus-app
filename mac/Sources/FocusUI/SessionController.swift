@@ -96,6 +96,8 @@ public final class SessionController {
     /// After a pause screen, the same site asks for a short hold or a typed reason before it opens again.
     public internal(set) var shield: Shield?
     @ObservationIgnored var overrideLockedUntil: Double?
+    /// When the hold on "Back to task" began, if it is being held.
+    public internal(set) var backHoldStart: Double?
     /// A scheduled prompt: a check-in at an interval, or a break after a block of work.
     public internal(set) var rhythmPrompt: RhythmPrompt?
     @ObservationIgnored var driftWatch = DriftWatch()
