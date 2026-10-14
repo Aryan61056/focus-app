@@ -2,6 +2,7 @@ import SwiftUI
 import FocusUI
 import FocusJudge
 import FocusSense
+import FocusLink
 import AppKit
 import AVFoundation
 
@@ -42,6 +43,7 @@ struct FocusApp: App {
     @State private var shield: ShieldController?
     @State private var cueClock: CueClock?
     @State private var voice = Voice()
+    @State private var phoneLink = PhoneLink()
     @Environment(\.openWindow) private var openWindow
 
     var body: some Scene {
@@ -81,6 +83,8 @@ struct FocusApp: App {
                     controller.onHaptic = { Haptics.play($0) }
                     controller.onSpeak = { voice.say($0) }
                     controller.onDockBounce = { if !NSApp.isActive { NSApp.requestUserAttention(.informationalRequest) } }
+                    // The iPhone link stays off until turned on in Session > iPhone, and never runs in the scripted demo.
+                    if ProcessInfo.processInfo.environment["FOCUS_DEMO"] != "1" { phoneLink.attach(controller) }
                     controller.onBringBackToApp = { name in
                         NSWorkspace.shared.runningApplications.first { $0.localizedName == name && $0.activationPolicy == .regular }?.activate()
                     }
@@ -122,6 +126,8 @@ struct FocusApp: App {
                     .keyboardShortcut("p", modifiers: [.command, .shift]).disabled(!controller.isActive)
                 Button("End session") { controller.end() }
                     .keyboardShortcut("e", modifiers: [.command, .shift]).disabled(!controller.isActive)
+                Divider()
+                Button("iPhone\u{2026}") { NSApp.activate(ignoringOtherApps: true); openWindow(id: "iphone") }
             }
             CommandGroup(after: .sidebar) {
                 ForEach(Array(AppSection.allCases.enumerated()), id: \.element) { i, s in
@@ -130,6 +136,9 @@ struct FocusApp: App {
                 }
             }
         }
+
+        Window("iPhone", id: "iphone") { PhoneLinkView(link: phoneLink) }
+            .windowResizability(.contentSize)
 
         MenuBarExtra {
             MenuBarContent(controller: controller) {
