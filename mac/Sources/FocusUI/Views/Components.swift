@@ -11,6 +11,19 @@ struct Panel<Content: View>: View {
     }
 }
 
+/// The one surface the dashboard uses: a softly raised area with a hairline edge. Sections that are not worth a surface sit directly on the window.
+struct Tile<Content: View>: View {
+    var padding: CGFloat = 22
+    @ViewBuilder var content: Content
+    var body: some View {
+        content
+            .padding(padding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Tokens.window2))
+            .overlay { RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Tokens.line) }
+    }
+}
+
 struct StateChip: View {
     var label: String, ring: RingState, on = true
     var body: some View {

@@ -8,10 +8,10 @@ struct AskPanel: View {
     @FocusState private var focused: Bool
 
     var body: some View {
-        Panel {
+        Group {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 10) {
-                    Text("Ask Focus").font(Tokens.text(15, .semibold)).accessibilityAddTraits(.isHeader)
+                    Text("Ask Focus").font(Tokens.text(14, .semibold)).accessibilityAddTraits(.isHeader)
                     AITag()
                     Spacer()
                 }
@@ -33,7 +33,7 @@ struct AskPanel: View {
                 case .working:
                     HStack(spacing: 8) { ThinkingDot(); Text("Reading this session's notes on this Mac").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
                 case .failed:
-                    Text("Focus could not answer that. Try rephrasing it, or look at Recent readings above.").font(Tokens.text(13)).foregroundStyle(Tokens.ink2)
+                    Text("Focus could not answer that. Try rephrasing it, or open All readings above.").font(Tokens.text(13)).foregroundStyle(Tokens.ink2)
                 case .ready(let a):
                     VStack(alignment: .leading, spacing: 8) {
                         Text(a).font(Tokens.text(14)).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
@@ -44,8 +44,6 @@ struct AskPanel: View {
                     .accessibilityElement(children: .combine)
                 case .idle: EmptyView()
                 }
-                Text("Answers come from this session's readings, kept in memory only. The model can be wrong.")
-                    .font(Tokens.text(12)).foregroundStyle(Tokens.ink2)
             }
         }
     }
