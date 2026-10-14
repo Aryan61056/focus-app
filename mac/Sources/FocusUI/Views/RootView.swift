@@ -31,6 +31,8 @@ public struct RootView: View {
     @State private var forward: [SidebarItem] = []
     @State private var travelling = false
     @State private var columns = NavigationSplitViewVisibility.all
+    /// The project picked inside the Projects screen's own list.
+    @State private var listProject: UUID?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(controller: SessionController, selection: AppSection = .today) { self.c = controller; self._selection = State(initialValue: selection) }
@@ -116,7 +118,7 @@ public struct RootView: View {
                         if let st = c.store, let p = st.project(id) { ProjectDetail(c: c, store: st, project: p, confirmDelete: $confirmDelete).id(id) }
                         else { ComingNext(section: .projects) }
                     case .section(.today): TodayView(c: c, showStart: $showStart)
-                    case .section(.projects): if let st = c.store { ProjectsView(c: c, store: st) } else { ComingNext(section: selection) }
+                    case .section(.projects): if let st = c.store { ProjectsView(c: c, store: st, selected: $listProject) } else { ComingNext(section: selection) }
                     case .section(.history): if let st = c.store { HistoryView(store: st) } else { ComingNext(section: selection) }
                     case .section(.review) where !c.showsReview: TodayView(c: c, showStart: $showStart)
                     case .section(.review): if let st = c.store { ReviewView(c: c, store: st) } else { ComingNext(section: selection) }
@@ -137,7 +139,9 @@ public struct RootView: View {
                 // One centred column, as wide as Droppy's, so every page reads the same way on any window size.
                 .frame(maxWidth: selection == .settings ? 700 : 720)
                 .padding(.horizontal, selection == .settings ? 0 : 24).padding(.top, selection == .settings ? 0 : 12).padding(.bottom, selection == .settings ? 0 : 24)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                // A page taller than the window scrolls inside itself; it must never make the split view (and so the window) taller.
+                .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .top)
+                .clipped()
 
             // The card has its own animation scope. An animation on the whole content (the old veil fade, then the card fade) made every
             // change that landed with it, such as a session ending, cross-fade the old and new screens over each other.
@@ -238,7 +242,10 @@ struct SourceList: View {
             if !projects.isEmpty {
                 Section("Projects") {
                     ForEach(projects) { p in
-                        Label { Text(p.name).lineLimit(1) } icon: { ProjectTile(name: p.name) }.tag(SidebarItem.project(p.id))
+                        Label { Text(p.name).lineLimit(1) } icon: { ProjectTile(name: p.name) }
+                            // The project the running session belongs to.
+                            .badge(c.isActive && c.projectId == p.id ? Text("Now").foregroundStyle(Tokens.accent) : nil)
+                            .tag(SidebarItem.project(p.id))
                     }
                 }
             }
@@ -251,7 +258,10 @@ struct SourceList: View {
     }
 
     func row(_ s: AppSection) -> some View {
-        Label { Text(s.rawValue) } icon: { IconTile(symbol: s.tileSymbol, color: s.tileColor) }.tag(SidebarItem.section(s))
+        Label { Text(s.rawValue) } icon: { IconTile(symbol: s.tileSymbol, color: s.tileColor) }
+            // Moments still waiting for an answer, as a count on Review. The tag goes last so the row stays selectable.
+            .badge(s == .review ? (c.store?.openReviewCount ?? 0) : 0)
+            .tag(SidebarItem.section(s))
     }
 }
 
@@ -405,5 +415,26 @@ struct ComingNext: View {
             Text(section.rawValue).font(Tokens.rounded(26, .semibold))
             Text("This screen is designed (see docs/design/app.html) but not built yet.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
         }
+    }
+}
+
+
+/// A selectable row with a soft fill when selected or hovered (History uses it for its session list).
+struct SidebarRow<Label: View>: View {
+    var selected: Bool
+    var small = false
+    var action: () -> Void
+    @ViewBuilder var label: Label
+    @State private var hover = false
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) { label }
+                .font(Tokens.text(small ? 13 : 13.5, selected ? .semibold : .regular))
+                .padding(.horizontal, 10).frame(height: small ? 30 : 32)
+                .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(selected ? Tokens.control : (hover ? Tokens.control.opacity(0.5) : .clear)))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain).onHover { hover = $0 }
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }

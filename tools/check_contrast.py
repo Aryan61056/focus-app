@@ -27,6 +27,8 @@ def main() -> int:
         pairs = [("ink on window", "ink", win, 4.5), ("ink2 on window", "ink2", win, 4.5), ("ink2 on window2", "ink2", flat("window2"), 4.5),
                  ("ink2 on sidebar", "ink2", flat("sidebar"), 4.5), ("ink2 on control", "ink2", ctl, 4.5), ("ink on control", "ink", ctl, 4.5),
                  ("ink on control hover", "ink", hov, 4.5), ("ink on accentSoft", "ink", flat("accentSoft"), 4.5),
+                 ("accentInk on accentSoft (selected choice)", "accentInk", flat("accentSoft"), 4.5), ("ink2 on well", "ink2", flat("well"), 4.5),
+                 ("ink2 on control over card", "ink2", over(tk["control"][0], tk["control"][1], flat("window2")), 4.5),
                  ("accent ring on window (non-text)", "accent", win, 3.0), ("onAccent on accent (primary button)", "onAccent", flat("accent"), 4.5)]
         for label, fg, bg, need in pairs:
             r = ratio(tk[fg][0], bg); ok = r >= need; bad += not ok

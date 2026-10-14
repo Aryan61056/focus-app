@@ -5,52 +5,75 @@ import SwiftUI
 struct InsightsView: View {
     @Bindable var c: SessionController
     @Bindable var store: DataStore
+    @State private var width: CGFloat = 900
+    /// Side by side when there is room, stacked when the window is narrow.
+    var wide: Bool { width >= 860 }
 
     var body: some View {
         let t = store.readTotals
         let a = store.agreement
         Scroller {
-            VStack(alignment: .leading, spacing: 20) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Worked out on this Mac from your own sessions.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
-                }
+            VStack(alignment: .leading, spacing: 22) {
+                PageHeader(title: "Insights", subtitle: "Worked out on this Mac from your own sessions.")
                 if t.total == 0 {
-                    EmptyState(title: "Nothing to show yet", text: "After a session, this shows what Focus read, how often it was sure, and how often you agreed with it.")
+                    EmptyState(symbol: "chart.bar", title: "Nothing to show yet", text: "After a session, this shows when you focus best, how quickly you get back on task, and how often you agreed with Focus.")
                 } else {
                     if let share = DayStats.morningShare(DayStats.heat(store.sessions)) {
-                        Text("Mornings are your strongest time: \(share)% of your focused minutes fall before noon.").font(Tokens.rounded(19, .semibold)).fixedSize(horizontal: false, vertical: true).frame(maxWidth: 620, alignment: .leading)
+                        Text("Mornings are your strongest time: \(share)% of your focused minutes fall before noon.")
+                            .font(Tokens.rounded(20, .semibold)).fixedSize(horizontal: false, vertical: true).frame(maxWidth: 640, alignment: .leading)
                     }
-                    Panel {
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack(alignment: .firstTextBaseline) { Text("When you focus").font(Tokens.text(15, .semibold)); Spacer(); Text("on-task time by hour and day").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
-                            Heatmap(grid: DayStats.heat(store.sessions))
-                        }
+                    if wide {
+                        HStack(alignment: .top, spacing: 18) { heat; if c.prefs.showProgress { ProgressInsights(store: store).frame(width: 360) } }
+                    } else {
+                        VStack(alignment: .leading, spacing: 18) { heat; if c.prefs.showProgress { ProgressInsights(store: store) } }
                     }
-                    .frame(maxWidth: 560)
-                    if c.prefs.showProgress { ProgressInsights(store: store).frame(maxWidth: 560) }
-                    Panel {
-                        VStack(alignment: .leading, spacing: 14) {
-                            Text("How well Focus is reading you").font(Tokens.text(15, .semibold)).accessibilityAddTraits(.isHeader)
-                            Text(a.answered == 0 ? "You have not answered any Review moments yet, so there is nothing to compare with." : "You agreed with \(a.agreed) of \(a.answered) calls.")
-                                .font(Tokens.rounded(19, .semibold))
-                            ReadingSplit(stats: t)
-                            HStack(spacing: 18) { legend("On task", t.onTask); legend("Not sure", t.unsure); legend("Off topic", t.offTask) }
-                            VStack(spacing: 0) {
-                                fact("Readings", "\(t.total)")
-                                fact("Read by the model", "\(t.model)")
-                                fact("Settled by your rules", "\(t.rule)")
-                                if t.skipped > 0 { fact("Left alone (never-judged list)", "\(t.skipped)") }
-                                fact("Sessions", "\(store.sessions.count)")
-                            }
-                            Text(a.answered == 0 ? "Answers in Review show whether Focus's calls match yours." : "The agreement figure counts only the \(a.answered) answers you gave in Review. That is a small sample, so read it loosely.")
-                                .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .frame(maxWidth: 560)
+                    reading(t, a)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
         }.scrollIndicators(.hidden)
+    }
+
+    var heat: some View {
+        Panel {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .firstTextBaseline) { Text("When you focus").font(Tokens.text(15, .semibold)); Spacer(); Text("On-task time by hour and day").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
+                Heatmap(grid: DayStats.heat(store.sessions))
+            }
+        }
+    }
+
+    func reading(_ t: ReadStats, _ a: (agreed: Int, answered: Int)) -> some View {
+        Panel {
+            if wide {
+                HStack(alignment: .top, spacing: 36) { readingSummary(t, a).frame(maxWidth: .infinity, alignment: .leading); readingFacts(t).frame(width: 320) }
+            } else {
+                VStack(alignment: .leading, spacing: 14) { readingSummary(t, a); readingFacts(t) }
+            }
+        }
+    }
+
+    func readingSummary(_ t: ReadStats, _ a: (agreed: Int, answered: Int)) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("How well Focus is reading you").font(Tokens.text(15, .semibold)).accessibilityAddTraits(.isHeader)
+            Text(a.answered == 0 ? "You have not answered any Review moments yet, so there is nothing to compare with." : "You agreed with \(a.agreed) of \(a.answered) calls.")
+                .font(Tokens.rounded(19, .semibold)).fixedSize(horizontal: false, vertical: true)
+            ReadingSplit(stats: t)
+            HStack(spacing: 18) { legend("On task", t.onTask); legend("Not sure", t.unsure); legend("Off topic", t.offTask) }
+            Text(a.answered == 0 ? "Answers in Review show whether Focus's calls match yours." : "The agreement figure counts only the \(a.answered) answers you gave in Review. That is a small sample, so read it loosely.")
+                .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    func readingFacts(_ t: ReadStats) -> some View {
+        VStack(spacing: 0) {
+            fact("Readings", "\(t.total)")
+            fact("Read by the model", "\(t.model)")
+            fact("Settled by your rules", "\(t.rule)")
+            if t.skipped > 0 { fact("Left alone (never-judged list)", "\(t.skipped)") }
+            fact("Sessions", "\(store.sessions.count)")
+        }
     }
 
     func legend(_ t: String, _ n: Int) -> some View { Text("\(t) \(n)").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }

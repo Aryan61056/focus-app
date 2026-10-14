@@ -1,62 +1,6 @@
 import SwiftUI
 import FocusBrain
 
-/// Quiet rewards on Today: how far into the day's goal, the week with rest days, the best stretch. PRODUCT.md principle 6 limits it:
-/// nothing is taken away, a missed day is a rest day, and no line ever says a streak is at risk. Hidden entirely when progress is off.
-struct ProgressPanel: View {
-    @Bindable var c: SessionController
-    @Bindable var store: DataStore
-
-    var body: some View {
-        if c.prefs.showProgress, c.prefs.dailyGoalMinutes > 0 {
-            let goal = Rewards.Goal(seconds: c.todayOnTaskSeconds(), goalSeconds: Double(c.prefs.dailyGoalMinutes) * 60)
-            let streak = Rewards.streak(store.sessions, today: .now)
-            // The running session is not saved yet: its minutes count toward the goal, but the week only marks today once it is saved.
-            Panel {
-                VStack(alignment: .leading, spacing: 16) {
-                    HStack(alignment: .firstTextBaseline) {
-                        SectionTitle(text: "Today's goal")
-                        Spacer()
-                        Text(goal.reached ? "Reached" : "\(goal.minutes) of \(goal.goalMinutes) min").font(Tokens.text(12.5, .semibold)).foregroundStyle(Tokens.ink2).monospacedDigit()
-                    }
-                    GoalBar(goal: goal)
-                    if let pace = c.paceLine {
-                        HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            RingView(c.pressure >= .behind ? .drift : .on, color: c.pressure >= .behind ? Tokens.ink : Tokens.accent).frame(width: 14, height: 14)
-                            Text(pace).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
-                        }
-                        .accessibilityElement(children: .combine)
-                    }
-                    if !store.sessions.isEmpty {
-                        Divider().overlay(Tokens.line)
-                        HStack(alignment: .center, spacing: 18) {
-                            WeekStrip(week: streak.week)
-                            Spacer(minLength: 12)
-                            VStack(alignment: .trailing, spacing: 2) {
-                                Text(streakLine(streak)).font(Tokens.text(13, .semibold))
-                                Text(restLine(streak)).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
-                            }
-                        }
-                    }
-                    let best = Rewards.bestStretch(store.sessions, on: .now)
-                    if best >= Rewards.notableStretch {
-                        Text("Longest stretch today: \(Rewards.duration(best)) without a slip.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
-                    }
-                }
-            }
-            .accessibilityElement(children: .contain)
-        }
-    }
-
-    func streakLine(_ s: Rewards.Streak) -> String {
-        s.current == 0 ? "Ready when you are" : (s.current == 1 ? "1 focus day" : "\(s.current) focus days in a row")
-    }
-    func restLine(_ s: Rewards.Streak) -> String {
-        s.current == 0 ? "A focus day is \(Int(Rewards.focusDaySeconds / 60)) minutes on task."
-            : "Rest days keep it going: \(Rewards.restDaysPerWeek - s.restUsed) of \(Rewards.restDaysPerWeek) left this week."
-    }
-}
-
 /// A plain bar with the goal in words beside it. Shape and text carry the state; the fill is accent, the track is neutral.
 struct GoalBar: View {
     var goal: Rewards.Goal

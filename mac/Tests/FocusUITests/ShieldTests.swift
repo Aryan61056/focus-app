@@ -119,11 +119,9 @@ final class ShieldTests: XCTestCase {
         await advance(c, to: warned + 101)
         XCTAssertEqual(c.shield?.kind, .pause)
     }
-    /// Press and hold for the full time, then let the controller finish it.
-    func hold(_ c: SessionController, seconds: Double = Shield.holdSeconds + 0.1) {
-        c.beginShieldHold(); t += seconds; c.updateShieldHold()
-    }
-    /// After the hold, with the form open.
+    /// The explain button: opens the form at once.
+    func hold(_ c: SessionController) { c.openExplanation() }
+    /// With the form open.
     func openTheForm(_ c: SessionController) async {
         hold(c)
         XCTAssertEqual(c.shield?.asking, true)
@@ -178,15 +176,76 @@ final class ShieldTests: XCTestCase {
         XCTAssertEqual(judge.calls, before, "the model was never asked")
     }
 
-    func testAnExplanationTheWindowSupportsOpensItAndTeachesFocus() async {
+    func testAnExplanationTheWindowSupportsOpensThatPageForAWhileAndTeachesNothing() async {
         let c = make()
         await toThePauseScreen(c); await openTheForm(c)
         c.submitExplanation(good); await c.waitForJudgments()
         XCTAssertNil(c.shield); XCTAssertFalse(c.gateOpen)
         XCTAssertEqual(c.escalationStep, .warned, "the climb ends")
-        XCTAssertFalse(c.learnedRules.isEmpty, "That was fine is recorded for the window")
+        XCTAssertTrue(c.learnedRules.isEmpty, "an explanation never becomes a lasting rule")
+        XCTAssertTrue(c.pageHasPass(video)); XCTAssertEqual(c.claimsAccepted, 1)
         await advance(c, to: t + 40)
         XCTAssertNotEqual(c.presence.state, "interrupted")
+    }
+
+    // an explanation is not a free pass
+    let video2 = WindowSnapshot(app: "Safari", title: "other clip youtube", url: "https://youtube.com/watch?v=2")
+
+    func testAnAcceptedExplanationCoversThatPageOnlyNotTheRestOfTheSite() async {
+        let c = make()
+        await toThePauseScreen(c); await openTheForm(c)
+        c.submitExplanation(good); await c.waitForJudgments()
+        XCTAssertTrue(c.pageHasPass(video))
+        XCTAssertFalse(c.pageHasPass(video2), "another video on the same site is another page")
+        c.windowChanged(video2)
+        await advance(c, to: t + 60)
+        XCTAssertEqual(c.presence.state, "interrupted", "the next video is judged and flagged as before")
+        c.windowChanged(video)
+        await advance(c, to: t + 30)
+        XCTAssertNotEqual(c.presence.state, "interrupted", "the explained page is still accepted")
+    }
+
+    func testThePassRunsOutAndThePageIsReadAgainOnItsOwn() async {
+        let c = make()
+        await toThePauseScreen(c); await openTheForm(c)
+        c.submitExplanation(good); await c.waitForJudgments()
+        let accepted = t
+        await advance(c, to: accepted + Shield.passSeconds(afterClaims: 0) - 30)
+        XCTAssertNotEqual(c.presence.state, "interrupted")
+        await advance(c, to: accepted + Shield.passSeconds(afterClaims: 0) + 5)
+        XCTAssertFalse(c.pageHasPass(video))
+        await advance(c, to: t + 120)
+        XCTAssertEqual(c.presence.state, "interrupted", "after the few minutes it is flagged again")
+    }
+
+    func testEachExplanationBuysLessAndMustClearAHigherBar() {
+        XCTAssertEqual([0, 1, 2, 3, 4].map { Shield.passSeconds(afterClaims: $0) }, [480, 300, 180, 120, 120])
+        XCTAssertEqual([0, 1, 2, 3, 9].map { Shield.minConfidence(afterClaims: $0) }, [80, 85, 90, 95, 95])
+    }
+
+    func testTheSameExplanationPastedForAnotherPageIsRefusedWithoutCostingATry() async {
+        let c = make()
+        await toThePauseScreen(c); await openTheForm(c)
+        c.submitExplanation(good); await c.waitForJudgments()
+        await advance(c, to: t + Shield.passSeconds(afterClaims: 0) + 5)
+        c.windowChanged(video2)
+        await advance(c, to: t + 200)
+        XCTAssertNotNil(c.shield)
+        if c.shield?.kind != .claim { _ = c.claimOnTask() }
+        hold(c); await advance(c, to: t + 1)
+        let before = c.shield?.attemptsLeft
+        c.submitExplanation(good.replacingOccurrences(of: "problem four", with: "problem five")); await c.waitForJudgments()
+        XCTAssertEqual(c.shield?.message, OverrideClaim.reusedMessage)
+        XCTAssertEqual(c.shield?.attemptsLeft, before)
+    }
+
+    func testThereIsACapOnExplanationsInASession() async {
+        let c = make()
+        await toThePauseScreen(c); await openTheForm(c)
+        c.claimsAcceptedForTesting(Shield.claimCap)
+        c.submitExplanation(good); await c.waitForJudgments()
+        XCTAssertEqual(c.shield?.message, CueCopy.claimsUsedUp(Shield.claimCap))
+        XCTAssertEqual(c.claimsAccepted, Shield.claimCap)
     }
 
     func testNothingElseOnThePauseScreenGetsYouThroughWithoutBeingChecked() async {
@@ -212,50 +271,79 @@ final class ShieldTests: XCTestCase {
         c.shieldBackToTask(); XCTAssertNil(c.shield)
     }
 
-    // the hold
-    func testTheHoldNeedsNoWaitAndLettingGoStartsOver() async {
+    // opening the form
+    func testExplainingOpensAtOnceWithNoHoldOrWait() async {
         let c = make()
         await toThePauseScreen(c)
         XCTAssertEqual(c.shieldWaitRemaining(), 0)
-        c.beginShieldHold(); t += 3
-        XCTAssertEqual(c.shieldHoldProgress(), 0.6, accuracy: 0.01)
-        c.endShieldHold()
-        XCTAssertEqual(c.shieldHoldProgress(), 0, "letting go starts over")
-        c.updateShieldHold()
         XCTAssertEqual(c.shield?.asking, false)
-        c.beginShieldHold(); t += 4.9; c.updateShieldHold()
-        XCTAssertEqual(c.shield?.asking, false, "not quite five seconds")
-        t += 0.2; c.updateShieldHold()
-        XCTAssertEqual(c.shield?.asking, true)
+        c.openExplanation()
+        XCTAssertEqual(c.shield?.asking, true, "one press, no hold")
     }
 
-    func testAnExplanationCannotBeOpenedWithoutTheHold() async {
+    func testSubmittingWithoutOpeningTheFormDoesNothing() async {
         let c = make()
         await toThePauseScreen(c)
-        c.openExplanation()
-        XCTAssertEqual(c.shield?.asking, false)
         c.submitExplanation(good); await c.waitForJudgments()
         XCTAssertNotNil(c.shield, "submitting without opening the form does nothing")
         XCTAssertEqual(c.presence.state, "interrupted")
     }
 
-    func testTheHoldIsNotAvailableDuringTheLock() async {
+    func testTheFormDoesNotOpenDuringTheLock() async {
         let c = make()
         await toThePauseScreen(c); await openTheForm(c)
         c.submitExplanation(bluff); await c.waitForJudgments()
         c.submitExplanation(bluff + " again"); await c.waitForJudgments()
-        c.beginShieldHold()
-        XCTAssertNil(c.shieldHoldStart)
+        c.openExplanation()
+        XCTAssertEqual(c.shield?.asking, false)
+        XCTAssertNotNil(c.shield?.message)
     }
 
-    /// The hold is a native control, so a real mouse down and up reach it through the real panel. A SwiftUI gesture could not be driven this way.
-    func testAMouseHoldOnTheRealButtonInTheRealPanelOpensTheForm() async throws {
+    // the optional hold to go back
+    func testGoingBackIsOneStepUnlessHoldingIsSwitchedOn() async {
+        XCTAssertFalse(noWords().holdToReturn, "off by default")
+        let c = make()
+        await toThePauseScreen(c)
+        c.shieldBackToTask()
+        XCTAssertNil(c.backHoldStart)
+    }
+
+    func testWithHoldingOnBackToTaskNeedsAFullHoldAndLettingGoStartsOver() async {
+        let c = make { $0.prefs.holdToReturn = true }
+        await toThePauseScreen(c)
+        c.beginBackHold(); t += 2
+        XCTAssertEqual(c.backHoldProgress(), 2 / Shield.backHoldSeconds, accuracy: 0.01)
+        c.endBackHold()
+        XCTAssertEqual(c.backHoldProgress(), 0)
+        c.updateBackHold()
+        XCTAssertNotNil(c.shield, "a short hold does not go back")
+        c.beginBackHold(); t += Shield.backHoldSeconds - 0.1; c.updateBackHold()
+        XCTAssertNotNil(c.shield, "not quite long enough")
+        t += 0.2; c.updateBackHold()
+        XCTAssertNil(c.backHoldStart)
+        XCTAssertNil(c.shield, "a full hold goes back to the task")
+    }
+
+    func testTheHoldToGoBackStillWorksDuringTheLockAndExplainingStaysOnePress() async {
+        let c = make { $0.prefs.holdToReturn = true }
+        await toThePauseScreen(c)
+        c.openExplanation()
+        XCTAssertEqual(c.shield?.asking, true, "explaining never needs a hold")
+        c.submitExplanation(bluff); await c.waitForJudgments()
+        c.submitExplanation(bluff + " again"); await c.waitForJudgments()
+        XCTAssertGreaterThan(c.overrideLockRemaining, 0)
+        c.beginBackHold(); t += Shield.backHoldSeconds + 0.1; c.updateBackHold()
+        XCTAssertNil(c.shield, "the way out is never locked")
+    }
+
+    /// The hold is a native control, so a real mouse down and up reach it through the real panel.
+    func testAMouseHoldOnTheRealButtonInTheRealPanelGoesBack() async throws {
         _ = NSApplication.shared
         guard NSScreen.main != nil else { throw XCTSkip("no screen") }
-        let c = make()
+        let c = make { $0.prefs.holdToReturn = true }
         await c.waitForJudgments()
         let sc = ShieldController(controller: c); sc.start(); defer { sc.stop() }
-        c.debugShowShield(.claim)   // the wait is already over
+        c.debugShowShield(.claim)
         try await Task.sleep(nanoseconds: 400_000_000)
         let panel = try XCTUnwrap(sc.panelsForTesting.first)
         func find(_ v: NSView) -> HoldPadView? { if let h = v as? HoldPadView { return h }; for s in v.subviews { if let h = find(s) { return h } }; return nil }
@@ -264,15 +352,14 @@ final class ShieldTests: XCTestCase {
         func event(_ type: NSEvent.EventType) -> NSEvent {
             NSEvent.mouseEvent(with: type, location: centre, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: panel.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: type == .leftMouseDown ? 1 : 0)!
         }
-        XCTAssertTrue(panel.contentView?.hitTest(panel.contentView!.convert(centre, from: nil)) is HoldPadView, "a click on that spot lands on the button")
         panel.sendEvent(event(.leftMouseDown))
-        XCTAssertNotNil(c.shieldHoldStart, "mouse down starts the hold")
+        XCTAssertNotNil(c.backHoldStart, "mouse down starts the hold")
         panel.sendEvent(event(.leftMouseUp))
-        XCTAssertNil(c.shieldHoldStart, "mouse up ends it")
+        XCTAssertNil(c.backHoldStart, "mouse up ends it")
         panel.sendEvent(event(.leftMouseDown))
-        t += Shield.holdSeconds + 0.2
-        c.updateShieldHold()
-        XCTAssertEqual(c.shield?.asking, true, "five seconds with the button down opens the form")
+        t += Shield.backHoldSeconds + 0.2
+        c.updateBackHold()
+        XCTAssertNil(c.shield, "holding long enough goes back to the task")
     }
 
     // one-click claims
@@ -286,7 +373,7 @@ final class ShieldTests: XCTestCase {
         hold(c)
         XCTAssertEqual(c.shield?.asking, true)
         c.submitExplanation(good); await c.waitForJudgments()
-        XCTAssertNil(c.shield); XCTAssertFalse(c.learnedRules.isEmpty)
+        XCTAssertNil(c.shield); XCTAssertTrue(c.learnedRules.isEmpty); XCTAssertTrue(c.pageHasPass(video))
     }
 
     func testTheCheckInsYesAndTheBannersPartOfItGoThroughTheSameCheck() async {

@@ -1,4 +1,5 @@
 import Foundation
+import FocusJudge
 
 // Everything around the warning that is not the warning itself: the heads-up before it, the small banner over the window you drifted into,
 // the cues outside the app (menu bar, Dock, trackpad, voice), the friction before going back, the scheduled rhythm, and how hard Focus
@@ -97,8 +98,6 @@ public struct Shield: Equatable, Sendable {
     public var since: Double
     /// Explaining opens at this time. Until then only "Back to task" works.
     public var waitUntil: Double
-    /// The hold has been completed, so the explanation form may open.
-    public var held = false
     /// The explanation form is open.
     public var asking = false
     /// The on-device model is reading the window against the explanation.
@@ -111,12 +110,16 @@ public struct Shield: Equatable, Sendable {
     /// The first lock lasts this long and each later one doubles, up to half an hour. Explaining itself never waits; a bad explanation is what costs time.
     public static let lockSeconds = 300.0
     public static func lockSeconds(after locks: Int) -> Double { min(1800, lockSeconds * pow(2, Double(max(0, locks)))) }
+    /// With "hold to go back" on, press and hold Back to task this long. Letting go starts over.
+    public static let backHoldSeconds = 3.0
     /// How long a cover may sit unanswered before Focus acts on the site.
     public static let frictionIdle = 30.0
-    /// Press and hold this long to open the explanation form. Letting go starts over.
-    public static let holdSeconds = 5.0
-    /// A verified window stays open for this long without asking again.
-    public static let passSeconds = 600.0
+    /// How long an accepted explanation holds for that one page: 8 minutes, then 5, 3 and 2. The more you lean on it, the less it buys.
+    public static func passSeconds(afterClaims n: Int) -> Double { [480, 300, 180, 120][min(max(0, n), 3)] }
+    /// The model must be at least this sure the page serves the task: 80, then 85, 90, up to 95 for later explanations.
+    public static func minConfidence(afterClaims n: Int) -> Int { min(95, Verification.minConfidence + 5 * max(0, n)) }
+    /// Explanations Focus will accept in one session. After that, the only way back is the task.
+    public static let claimCap = 8
 }
 
 // MARK: scheduled rhythm
@@ -239,7 +242,9 @@ public enum CueCopy {
     public static func punishment(_ a: EnforceAction) -> String {
         switch a { case .close: return "Focus closed the tab."; case .hide: return "Focus hid the app."; case .switchAway: return "Focus switched you back." }
     }
-    public static func holdLine() -> String { "Press and hold for \(Int(Shield.holdSeconds)) seconds, then explain how it helps. Focus checks your words against the window." }
+    public static func claimsUsedUp(_ n: Int) -> String { "You have used all \(n) explanations for this session. Go back to the task." }
+    public static func backHoldLine() -> String { "You turned on holding to go back. Hold for \(Int(Shield.backHoldSeconds)) seconds." }
+    public static func explainLine() -> String { "If this really is part of your task, say how. Focus checks your words against the window. Opening this costs nothing; a wrong answer does." }
     public static func lockedLine(_ seconds: Int) -> String {
         let m = (seconds + 59) / 60
         return "Focus could not verify this. Explaining is locked for \(m) \(m == 1 ? "minute" : "minutes"). Going back to the task works now."

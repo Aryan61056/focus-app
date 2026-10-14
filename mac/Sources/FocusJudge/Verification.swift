@@ -19,7 +19,7 @@ public enum Verification {
         return String(String.UnicodeScalarView(one.unicodeScalars.prefix(280)))
     }
 
-    public static func verify(_ m: Moment, claim: String, with judge: Judge) async -> Result {
+    public static func verify(_ m: Moment, claim: String, with judge: Judge, minConfidence: Int = Verification.minConfidence) async -> Result {
         if Rules.isSensitive(m) { return Result(why: .sensitive, reason: "A private window. Focus does not read it.") }
         if let hit = Rules.stage1(m), hit.label == .offTask { return Result(why: .ruleSaysNever, reason: "You told Focus this never counts for the project.") }
         let said = clean(claim)

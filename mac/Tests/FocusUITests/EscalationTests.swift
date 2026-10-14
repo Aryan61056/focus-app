@@ -89,7 +89,7 @@ final class EscalationTests: XCTestCase {
         XCTAssertEqual(hidden, ["Safari", "Safari"], "and again every two minutes while you stay away")
     }
 
-    func testExplainingNeedsTheHoldButNoWaitAndBackToTaskIsAlwaysThere() async {
+    func testExplainingNeedsNeitherAHoldNorAWaitAndBackToTaskIsAlwaysThere() async {
         let c = make()
         let warned = await driftUntilWarned(c)
         await advance(c, to: warned + 101)
@@ -97,9 +97,7 @@ final class EscalationTests: XCTestCase {
         XCTAssertEqual(c.shield?.kind, .pause)
         XCTAssertEqual(c.shieldWaitRemaining(), 0, "no wait before explaining")
         c.leaveGate(fine: true)
-        XCTAssertEqual(c.shield?.asking, false, "the old one-click That was fine does not open the form")
-        c.beginShieldHold(); t += 5.1; c.updateShieldHold()
-        XCTAssertEqual(c.shield?.asking, true, "the hold alone opens the form")
+        XCTAssertEqual(c.shield?.asking, true, "That was fine goes straight to the explanation form, with no hold")
         c.leaveGate(fine: false)
         XCTAssertFalse(c.gateOpen, "Back to task is always available")
         XCTAssertNil(c.shield)
@@ -227,6 +225,35 @@ final class TabEnforcementTests: XCTestCase {
         while c.presence.state != "interrupted" && t < 300 { await advance(c, to: t + 1) }
         XCTAssertEqual(c.presence.state, "interrupted")
         return t
+    }
+
+    func testBackToTaskGoesToTheTabYouWereWorkingIn() async {
+        let c = make(preset: .standard)
+        _ = await warned(c)
+        c.act(.backToTask)
+        XCTAssertEqual(switched.count, 1)
+        XCTAssertEqual(switched.first?.0, video.url); XCTAssertEqual(switched.first?.1, on.url)
+    }
+
+    func testBackToTaskLeavesTheTabAloneWhenYouAreAlreadyOnIt() async {
+        let c = make(preset: .standard)
+        await advance(c, to: 20)
+        c.act(.backToTask)
+        XCTAssertTrue(switched.isEmpty)
+    }
+
+    func testBackToTaskDoesNotSwitchTabsWhenThatIsSwitchedOff() async {
+        let c = make(preset: .standard) { $0.prefs.switchTabs = false }
+        _ = await warned(c)
+        c.act(.backToTask)
+        XCTAssertTrue(switched.isEmpty)
+    }
+
+    func testTheLadderStepStillSwitchesOnlyOncePerRound() async {
+        let c = make(preset: .standard)
+        let w = await warned(c)
+        await advance(c, to: w + 260)
+        XCTAssertEqual(switched.count, 1, "the step's own switch, not a second one from the return")
     }
 
     func testPureChoice() {

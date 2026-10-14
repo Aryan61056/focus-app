@@ -10,8 +10,15 @@ import AVFoundation
 struct FocusApp: App {
     // FOCUS_DEMO=1 runs a scripted session against an in-memory store, so demo data never reaches the real store file.
     @State private var controller = ProcessInfo.processInfo.environment["FOCUS_DEMO"] == "1"
-        ? SessionController(judge: ScriptedJudge(markers: [("youtube", .off), ("Calc", .on), ("khanacademy", .on)]), store: DataStore())
+        ? SessionController(judge: ScriptedJudge(markers: [("youtube", .off), ("Calc", .on), ("khanacademy", .on)]), store: DataStore(),
+                            prefs: Preferences(defaults: Self.demoDefaults()))
         : Self.makeController()
+    /// Demo settings live in their own suite, wiped at each launch, so a demo run never changes the real app's settings.
+    static func demoDefaults() -> UserDefaults {
+        let name = "focus-app.demo"
+        UserDefaults.standard.removePersistentDomain(forName: name)
+        return UserDefaults(suiteName: name) ?? .standard
+    }
     /// FOCUS_TEST_STORE=<folder> keeps the real judge and real sensing but uses a throwaway store and settings,
     /// so testing never adds sessions to the owner's history.
     static func makeController() -> SessionController {
@@ -138,6 +145,7 @@ struct FocusApp: App {
                         .init(after: 150, window: WindowSnapshot(app: "Notes", title: "Calc homework")),
                     ])
                     demo = d
+                    SampleData.seedIfRequested(controller.store); DemoPreview.startIfRequested(controller)
                     SelfShot.scheduleIfRequested(); SelfShot.runActions(controller)
                     // FOCUS_DEMO_NOSESSION=1 leaves the app idle so the start flow can be driven (tools and screenshots).
                     if ProcessInfo.processInfo.environment["FOCUS_DEMO_NOSESSION"] == "1" { return }

@@ -5,14 +5,10 @@ struct ReviewView: View {
     @Bindable var c: SessionController
     @Bindable var store: DataStore
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text("Moments Focus would have nudged you about, and why. Your answers teach it what counts.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
-                    Spacer()
-                    let a = store.agreement
-                    if a.answered > 0 { Text("Agreed with you on \(a.agreed) of \(a.answered)").font(Tokens.text(13)).foregroundStyle(Tokens.ink2) }
-                }
+        VStack(alignment: .leading, spacing: 22) {
+            let a = store.agreement
+            PageHeader(title: "Review", subtitle: "Moments Focus would have nudged you about, and why. Your answers teach it what counts.") {
+                if a.answered > 0 { Text("Agreed with you on \(a.agreed) of \(a.answered)").font(Tokens.text(13)).foregroundStyle(Tokens.ink2) }
             }
             if c.prefs.practiceActive {
                 Panel(tinted: true) {
@@ -30,9 +26,17 @@ struct ReviewView: View {
             let open = store.review.filter { $0.answer == nil }
             SectionTitle(text: open.isEmpty ? "All caught up" : "\(open.count) moment\(open.count == 1 ? "" : "s") to look at")
             if open.isEmpty {
-                EmptyState(title: "Nothing to review", text: "When practice mode sees something it would have nudged about, it lands here. Nothing is shown or sent while you work.")
+                EmptyState(symbol: "checkmark", title: "Nothing to review", text: "When practice mode sees something it would have nudged about, it lands here. Nothing is shown or sent while you work.")
             } else {
-                Scroller { VStack(spacing: 0) { ForEach(open) { m in moment(m); Divider().overlay(Tokens.line) } } }
+                Scroller {
+                    VStack(spacing: 0) {
+                        ForEach(Array(open.enumerated()), id: \.element.id) { i, m in
+                            if i > 0 { Divider().overlay(Tokens.line) }
+                            moment(m)
+                        }
+                    }
+                    .padding(.horizontal, 16).modifier(CardSurface(radius: 16))
+                }
             }
             Spacer(minLength: 0)
         }

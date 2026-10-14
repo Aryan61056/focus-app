@@ -14,7 +14,7 @@ extension SessionController {
             if shield?.kind != .pause {
                 let w = currentWindow
                 var s = Shield(kind: .pause, app: w?.app ?? "", siteKey: w.map(Keys.site) ?? "", since: now(), waitUntil: now())
-                if let old = shield { s.asking = old.asking; s.held = old.held; s.message = old.message; s.attemptsLeft = old.attemptsLeft }
+                if let old = shield { s.asking = old.asking; s.message = old.message; s.attemptsLeft = old.attemptsLeft }
                 shield = s
             }
         } else if shield?.kind == .pause { shield = nil }
@@ -37,7 +37,7 @@ extension SessionController {
         if let s = shield, s.kind != .pause, s.siteKey != site { shield = nil }
         let t = now()
         guard prefs.frictionReturn, !shadow, shield == nil, t >= frictionQuietUntil, blockedSites[site] != nil, checkIn == nil else { return }
-        if let u = passUntil[site], t < u { return }
+        if pageHasPass(w) { return }
         let strikes = (frictionStrikes[site] ?? 0) + 1
         frictionStrikes[site] = strikes
         shield = Shield(kind: .friction, app: w.app, siteKey: site, since: t, waitUntil: t)
@@ -76,6 +76,15 @@ extension SessionController {
         return nil
     }
 
+    /// "Back to task" in a browser: when the page in front is not the one you were last working on, go to that page. Bringing the app
+    /// forward does nothing when the distraction is another tab of the same browser, which is the usual case. Only a browser tab Focus can
+    /// name by address, only the same browser, never in practice, and it follows the "switch tabs" setting.
+    func returnToTaskTab() {
+        guard prefs.switchTabs, !shadow, !ladderReturning, let w = currentWindow, let t = lastOnTask,
+              Enforcement.isBrowser(w.app), t.app == w.app, !t.url.isEmpty, !w.url.isEmpty, t.url != w.url else { return }
+        _ = onSwitchTab?(w, t)
+    }
+
     // MARK: claims
     /// Saying "this window is part of the task". A window Focus has read as off topic needs an explanation that checks out;
     /// anything else is taken at its word, as before.
@@ -90,7 +99,7 @@ extension SessionController {
     /// "That was fine", "Yes, this is part of it", "This is part of it". Returns true when it was accepted at once.
     @discardableResult public func claimOnTask() -> Bool {
         guard isActive else { return false }
-        guard claimNeedsVerification else { acceptClaim(); return true }
+        guard claimNeedsVerification else { acceptClaim(counted: false); return true }
         let t = now()
         if shield == nil {
             let w = currentWindow
@@ -100,41 +109,70 @@ extension SessionController {
         return false
     }
 
-    /// The claim passed (or never needed to): Focus learns the window, the climb ends, and the site opens for ten minutes.
-    func acceptClaim() {
-        if let s = shield { passUntil[s.siteKey] = now() + Shield.passSeconds; blockedSites[s.siteKey] = nil; frictionStrikes[s.siteKey] = nil }
-        if let w = currentWindow { passUntil[Keys.site(w)] = now() + Shield.passSeconds }
-        shield = nil; shieldHoldStart = nil; checkIn = nil; escalationGate = false
-        act(.thatWasFine)
+    /// What counts as the same page: the window key (app, site and path) plus the exact title, with a leading "(3)" notification count dropped.
+    /// A different video on the same site has a different title, so a pass for one page never covers the next.
+    func pageKey(_ w: WindowSnapshot) -> String {
+        var title = w.title.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ").lowercased()
+        if title.hasPrefix("("), let close = title.firstIndex(of: ")"), title[title.index(after: title.startIndex)..<close].allSatisfy(\.isNumber) {
+            title = String(title[title.index(after: close)...]).trimmingCharacters(in: .whitespaces)
+        }
+        return Keys.window(w) + "|" + Keys.fnv(String(title.prefix(200)))
+    }
+    func pageHasPass(_ w: WindowSnapshot) -> Bool { (passedPages[pageKey(w)] ?? 0) > now() }
+
+    /// When a pass runs out on the page you are on, Focus reads it again as if it had never been explained.
+    func expirePasses(_ t: Double) {
+        guard isActive, !passedPages.isEmpty else { return }
+        let expired = passedPages.filter { $0.value <= t }.map(\.key)
+        guard !expired.isEmpty else { return }
+        let here = currentWindow.map(pageKey)
+        for k in expired { passedPages[k] = nil }
+        if let here, expired.contains(here), let w = currentWindow { windowChanged(w) }
+    }
+
+    func rememberClaim() { if !pendingClaimWords.isEmpty { acceptedClaimWords.append(pendingClaimWords) } }
+
+    /// The claim passed. Only this page is accepted, only for a few minutes, only in this session, and nothing is learned: the project's
+    /// rules are not touched, so one explanation never turns into "that site is fine". `counted` is false for a window Focus had not
+    /// flagged, which needed no explanation.
+    func acceptClaim(counted: Bool = true) {
+        if let w = currentWindow {
+            passedPages[pageKey(w)] = now() + Shield.passSeconds(afterClaims: claimsAccepted)
+            frictionStrikes[Keys.site(w)] = nil
+        }
+        if counted { claimsAccepted += 1 }
+        shield = nil; backHoldStart = nil; checkIn = nil; escalationGate = false
         clearEscalation()
-        headsUpAt = nil; driftWatch.clearReadings(); refreshBanner(now())
+        headsUpAt = nil; driftWatch.clearReadings()
+        // Tell the brain this page is fine by rule, which ends the interruption without teaching it anything.
+        if let w = currentWindow { windowChanged(w) }
+        refreshBanner(now())
     }
 
-    // MARK: the hold
-    /// Pressing the hold button. It only counts when explaining is not locked.
-    public func beginShieldHold() {
-        guard let s = shield, !s.asking, !s.checking, shieldWaitRemaining() == 0, overrideLockRemaining == 0, shieldHoldStart == nil else { return }
-        shieldHoldStart = now()
+    // MARK: the hold to go back (opt-in)
+    /// Pressing Back to task when holding is switched on. Never blocked by a lock or a wait: it is the way out.
+    public func beginBackHold() {
+        guard shield != nil, backHoldStart == nil else { return }
+        backHoldStart = now()
     }
-    public func endShieldHold() { shieldHoldStart = nil }
+    public func endBackHold() { backHoldStart = nil }
     /// 0 to 1 while the button is held.
-    public func shieldHoldProgress() -> Double {
-        guard let h = shieldHoldStart else { return 0 }
-        return min(1, max(0, (now() - h) / Shield.holdSeconds))
+    public func backHoldProgress() -> Double {
+        guard let h = backHoldStart else { return 0 }
+        return min(1, max(0, (now() - h) / Shield.backHoldSeconds))
     }
-    /// Called a few times a second while the shield is up: a full hold lets the explanation form open.
-    public func updateShieldHold() {
-        guard shield != nil else { shieldHoldStart = nil; return }
-        guard shieldHoldStart != nil, shieldHoldProgress() >= 1, var s = shield else { return }
-        shieldHoldStart = nil
-        s.held = true
-        shield = s
-        openExplanation()
+    /// Called a few times a second while the button is held: a full hold goes back to the task.
+    public func updateBackHold() {
+        guard shield != nil else { backHoldStart = nil; return }
+        guard backHoldStart != nil, backHoldProgress() >= 1 else { return }
+        backHoldStart = nil
+        shieldBackToTask()
     }
 
-    /// Opens the form. It needs the hold to be done and no lock.
+    // MARK: explaining
+    /// Opens the form straight away: telling Focus you were on task is not a punishment. Only a lock stops it, and only wrong answers cause one.
     public func openExplanation() {
-        guard var s = shield, !s.asking, s.held else { return }
+        guard var s = shield, !s.asking, !s.checking else { return }
         if shieldWaitRemaining() > 0 { return }
         if overrideLockRemaining > 0 { s.message = CueCopy.lockedLine(Int(overrideLockRemaining.rounded(.up))); shield = s; return }
         s.asking = true; s.message = nil
@@ -145,7 +183,11 @@ extension SessionController {
         guard var s = shield, s.asking, !s.checking, isActive else { return }
         if overrideLockRemaining > 0 { return }
         let w = currentWindow
+        if claimsAccepted >= Shield.claimCap { s.message = CueCopy.claimsUsedUp(Shield.claimCap); shield = s; return }
         if let issue = OverrideClaim.assess(raw, window: w) { s.message = issue.message; shield = s; return }   // a local problem costs no attempt
+        // The same explanation again for another page is a pasted one: say what is in this window instead.
+        let words = OverrideClaim.content(OverrideClaim.tidy(raw))
+        if acceptedClaimWords.contains(where: { OverrideClaim.similarity($0, words) >= 0.6 }) { s.message = OverrideClaim.reusedMessage; shield = s; return }
         guard prefs.useModel, let w else {
             s.message = prefs.useModel ? "Focus cannot see a window to check. Go back to your task." : "The on-device model is switched off in Settings, so Focus cannot check this. Go back to your task."
             shield = s; return
@@ -153,8 +195,10 @@ extension SessionController {
         s.checking = true; s.message = nil
         shield = s
         let m = moment(w), claim = OverrideClaim.tidy(raw), judge = self.judge, key = Keys.window(w)
+        let bar = Shield.minConfidence(afterClaims: claimsAccepted)
+        pendingClaimWords = OverrideClaim.content(claim)
         tasks.append(Task { [weak self] in
-            let r = await Verification.verify(m, claim: claim, with: judge)
+            let r = await Verification.verify(m, claim: claim, with: judge, minConfidence: bar)
             self?.finishExplanation(r, windowKey: key)
         })
     }
@@ -163,14 +207,14 @@ extension SessionController {
         guard var s = shield, s.checking else { return }
         // You moved to another window while Focus was reading: that answer is about a window you are no longer in.
         if let w = currentWindow, Keys.window(w) != windowKey { s.checking = false; shield = s; return }
-        if r.passed { acceptClaim(); return }
+        if r.passed { rememberClaim(); acceptClaim(); return }
         s.checking = false
         s.attemptsLeft -= 1
         if s.attemptsLeft <= 0 {
             let secs = Shield.lockSeconds(after: overrideLocks)
             overrideLocks += 1
             overrideLockedUntil = now() + secs
-            s.asking = false; s.held = false; s.attemptsLeft = Shield.attempts
+            s.asking = false; s.attemptsLeft = Shield.attempts
             s.message = CueCopy.lockedLine(Int(secs))
         } else {
             let n = s.attemptsLeft
@@ -198,8 +242,8 @@ extension SessionController {
     /// "Back to task": always available, never waits. Brings the task app forward and gives the task a moment to arrive before asking again.
     public func shieldBackToTask() {
         let kind = shield?.kind
+        backHoldStart = nil
         if kind == .pause { escalationGate = false }
-        shieldHoldStart = nil
         if kind != .pause { shield = nil }
         blockCurrentSite()
         frictionQuietUntil = now() + 25
@@ -209,6 +253,9 @@ extension SessionController {
 }
 
 extension SessionController {
+    /// Test only: pretends this many explanations were accepted.
+    func claimsAcceptedForTesting(_ n: Int) { claimsAccepted = n }
+
     /// Demo and test only: locks explaining, as two wrong answers would.
     public func debugLock() { overrideLockedUntil = now() + Shield.lockSeconds(after: overrideLocks) }
 
@@ -216,7 +263,7 @@ extension SessionController {
     public func debugShowShield(_ kind: Shield.Kind, app: String = "Safari", site: String = "safari|youtube.com", wait: Double = 0,
                                 asking: Bool = false, checking: Bool = false, message: String? = nil, attemptsLeft: Int = Shield.attempts) {
         var s = Shield(kind: kind, app: app, siteKey: site, since: now() - (wait > 0 ? wait / 3 : 0), waitUntil: now() + wait)
-        s.asking = asking; s.held = asking; s.checking = checking; s.message = message; s.attemptsLeft = attemptsLeft
+        s.asking = asking; s.checking = checking; s.message = message; s.attemptsLeft = attemptsLeft
         shield = s
     }
 }

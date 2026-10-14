@@ -83,7 +83,7 @@ struct SettingsView: View {
                         }
                     }
                     if c.prefs.escalate {
-                        row("Switch tabs first", "The first time the last step runs on a browser, Focus switches to the tab you were last working in instead of only hiding the app. Works with Safari, Chrome, Brave, Edge and Comet. macOS asks once for permission to control the browser; if you say no, Focus hides the app instead.") {
+                        row("Switch back to your tab", "\u{201C}Back to task\u{201D} in a browser takes you to the tab you were last working in, and the first time the last step runs Focus does the same instead of only hiding the app. Works with Safari, Chrome, Brave, Edge and Comet. macOS asks once for permission to control the browser; if you say no, Focus hides the app instead.") {
                             toggle(\.switchTabs)
                         }
                         row("Close the tab on Strict", "On the Strict preset, later rounds of the last step close the tab you were warned about, not the whole browser. Only tabs Focus can name, never private windows or apps on your never-judged list. Closing can lose unsaved work in that tab, so the banner says so first.") {
@@ -120,8 +120,11 @@ struct SettingsView: View {
                     row("Cover a flagged site when it opens again", "After a pause screen, the same site is covered whenever you open it again: 20 seconds the first time, then 40 and 60. If you sit behind the cover without going back or explaining, Focus acts on the site as the last step does (it switches tabs, hides the app, or on Strict closes the tab). Going back to the task is always one click.") {
                         toggle(\.frictionReturn)
                     }
-                    row("Explaining a flagged window", "Saying \u{201C}That was fine\u{201D} about a window Focus read as off topic asks you to explain it, with no wait: press and hold, then type. Focus checks your words against the window itself with both of its judges, and your words alone never pass it. A wrong answer is acted on at once (the app is hidden, or on Strict the tab is closed), and two lock explaining for 5 minutes, then 10, 20 and 30. A project rule that says never is final.") {
+                    row("Explaining a flagged window", "Saying \u{201C}That was fine\u{201D} about a window Focus read as off topic asks you to explain it, with no wait and no hold: one button, then type. Focus checks your words against the window itself with both of its judges, and your words alone never pass it. An accepted explanation covers that one page, not the site, for 8 minutes, then 5, 3 and 2 for later ones, and it never becomes a saved rule. Each later one must clear a higher bar, a pasted repeat is refused, and a session allows 8. A wrong answer is acted on at once (the app is hidden, or on Strict the tab is closed), and two lock explaining for 5 minutes, then 10, 20 and 30. A project rule that says never is final.") {
                         Label("Always on", systemImage: "lock").foregroundStyle(Tokens.ink2)
+                    }
+                    row("Hold to go back to your task", "Off by default. When on, \u{201C}Back to task\u{201D} on the pause, cover and claim screens asks you to press and hold for 3 seconds, as a small commitment to going back. Escape no longer skips it. It is never behind a wait or a lock, and explaining a window stays one press.") {
+                        toggle(\.holdToReturn)
                     }
                     row("Tint the menu bar ring", "A warm tint for a heads-up or a prompt, and a slow pulse while you are away. The ring's shape shows the state either way.") {
                         toggle(\.menuBarCue)

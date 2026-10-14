@@ -37,74 +37,38 @@ struct DayTrack: View {
     }
 }
 
+/// Seven days as slim columns on a baseline, today in full accent and the rest softer, with the hours above each so no axis is needed.
 struct WeekBars: View {
     var days: [(day: Date, hours: Double)]
     var body: some View {
         let top = max(2, (days.map(\.hours).max() ?? 0).rounded(.up))
-        HStack(alignment: .bottom, spacing: 10) {
-            ForEach(Array(days.enumerated()), id: \.offset) { i, d in
-                VStack(spacing: 6) {
-                    ZStack(alignment: .bottom) {
-                        RoundedRectangle(cornerRadius: 6).fill(Tokens.control).frame(height: 88)
-                        RoundedRectangle(cornerRadius: 6).fill(Tokens.accent.opacity(i == days.count - 1 ? 1 : 0.55)).frame(height: max(d.hours > 0 ? 4 : 0, 88 * d.hours / top))
+        VStack(spacing: 0) {
+            HStack(alignment: .bottom, spacing: 10) {
+                ForEach(Array(days.enumerated()), id: \.offset) { i, d in
+                    let today = i == days.count - 1
+                    VStack(spacing: 6) {
+                        Text(d.hours > 0 ? Self.short(d.hours) : "").font(Tokens.rounded(11.5, today ? .semibold : .medium))
+                            .foregroundStyle(today ? Tokens.ink : Tokens.ink2).monospacedDigit()
+                        UnevenRoundedRectangle(topLeadingRadius: 6, topTrailingRadius: 6, style: .continuous)
+                            .fill(Tokens.accent.opacity(today ? 1 : 0.5))
+                            .frame(maxWidth: 34).frame(height: max(d.hours > 0 ? 4 : 0, 76 * d.hours / top))
                     }
-                    Text(d.day.formatted(.dateTime.weekday(.abbreviated))).font(Tokens.text(11.5, i == days.count - 1 ? .semibold : .regular)).foregroundStyle(i == days.count - 1 ? Tokens.ink : Tokens.ink2)
-                }.frame(maxWidth: .infinity)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("\(d.day.formatted(.dateTime.weekday(.wide))): \(durationText(d.hours * 3600)) on task")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("\(d.day.formatted(.dateTime.weekday(.wide))): \(durationText(d.hours * 3600)) on task")
+                }
             }
+            .frame(height: 100)
+            Rectangle().fill(Tokens.track).frame(height: 1)
+            HStack(spacing: 10) {
+                ForEach(Array(days.enumerated()), id: \.offset) { i, d in
+                    let today = i == days.count - 1
+                    Text(d.day.formatted(.dateTime.weekday(.abbreviated))).font(Tokens.text(11.5, today ? .semibold : .regular))
+                        .foregroundStyle(today ? Tokens.ink : Tokens.ink2).frame(maxWidth: .infinity)
+                }
+            }
+            .padding(.top, 6).accessibilityHidden(true)
         }
     }
-}
-
-/// Today below the session: your day on a clock, the projects you can pick up, and the week.
-struct TodayExtras: View {
-    @Bindable var c: SessionController
-    @Bindable var store: DataStore
-    var body: some View {
-        let today = Date.now
-        let slices = DayStats.slices(store.sessions, on: today)
-        let total = DayStats.total(store.sessions, on: today)
-        VStack(alignment: .leading, spacing: 24) {
-            if total.sessions > 0 {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(alignment: .firstTextBaseline) { SectionTitle(text: "Your day"); Spacer(); Text("hours of the day").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
-                    DayTrack(slices: slices, range: DayStats.axis(for: slices), nowHour: DayStats.hourOfDay(today, .current))
-                    Text("\(durationText(total.onTaskSeconds)) on task across \(total.sessions) session\(total.sessions == 1 ? "" : "s"). \(total.slips == 0 ? "No slips." : (total.slips == 1 ? "One slip." : "\(total.slips) slips."))")
-                        .font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
-                }
-            }
-            if !store.projects.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    SectionTitle(text: "Projects")
-                    VStack(spacing: 0) {
-                        ForEach(Array(store.projects.prefix(4))) { p in
-                            let sessions = store.sessions(for: p.id)
-                            HStack(spacing: 14) {
-                                VStack(alignment: .leading, spacing: 1) {
-                                    Text(p.name).font(Tokens.text(13.5, .semibold)).lineLimit(1)
-                                    if !p.nextStep.isEmpty { Text("Next: \(p.nextStep)").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).lineLimit(1) }
-                                }
-                                Spacer()
-                                Text(sessions.first.map { $0.start.formatted(.relative(presentation: .named)) } ?? "No sessions yet").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
-                                Text(durationText(sessions.reduce(0) { $0 + $1.onTaskSeconds })).font(Tokens.text(12.5)).monospacedDigit().frame(width: 76, alignment: .trailing)
-                                Button("Continue") { c.begin(task: p.name, projectId: p.id, autoTick: true) }.buttonStyle(FocusButtonStyle(.secondary, small: true)).disabled(c.isActive)
-                            }
-                            .padding(.vertical, 10)
-                            Divider().overlay(Tokens.line)
-                        }
-                    }
-                }
-            }
-            let week = DayStats.week(store.sessions, endingOn: today)
-            if week.contains(where: { $0.hours > 0 }) {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(alignment: .firstTextBaseline) { SectionTitle(text: "This week"); Spacer(); Text("hours on task").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
-                    WeekBars(days: week).frame(maxWidth: 520)
-                    let best = week.max { $0.hours < $1.hours }!
-                    Text("\(durationText(week.reduce(0) { $0 + $1.hours } * 3600)) on task. \(best.day.formatted(.dateTime.weekday(.wide))) was your longest day.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
-                }
-            }
-        }
-    }
+    static func short(_ h: Double) -> String { h < 1 ? "\(Int((h * 60).rounded()))m" : String(format: "%.1fh", h) }
 }

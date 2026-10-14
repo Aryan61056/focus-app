@@ -17,8 +17,15 @@ public enum OverrideClaim {
         }
     }
 
+    public static let reusedMessage = "That is the same explanation as an earlier one. Say what is in this window."
     /// Every message, for the copy tests.
-    public static var messagesForTesting: [String] { [Issue.tooShort, .repetitive, .notAboutWindow, .injected].map(\.message) }
+    public static var messagesForTesting: [String] { [Issue.tooShort, .repetitive, .notAboutWindow, .injected].map(\.message) + [reusedMessage] }
+
+    /// Share of the words two explanations have in common (0 to 1).
+    static func similarity(_ a: Set<String>, _ b: Set<String>) -> Double {
+        let all = a.union(b)
+        return all.isEmpty ? 0 : Double(a.intersection(b).count) / Double(all.count)
+    }
 
     public static let minWords = 8, minCharacters = 40, maxCharacters = 280
 

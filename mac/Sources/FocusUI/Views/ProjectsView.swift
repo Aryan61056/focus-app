@@ -4,24 +4,23 @@ import FocusJudge
 struct ProjectsView: View {
     @Bindable var c: SessionController
     @Bindable var store: DataStore
-    @State private var selected: UUID?
+    @Binding var selected: UUID?
     @State private var confirmDelete = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            HStack(alignment: .bottom) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("What each project is about. Focus reads this to decide what counts, and keeps it between sessions.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
-                }
-                Spacer()
+        VStack(alignment: .leading, spacing: 22) {
+            PageHeader(title: "Projects", subtitle: "What each project is about. Focus reads this to decide what counts, and keeps it between sessions.") {
                 Button { let p = store.addProject(name: "New project"); selected = p.id } label: { Label("New project", systemImage: "plus") }
-                    .buttonStyle(FocusButtonStyle(.plain))
+                    .buttonStyle(FocusButtonStyle(.secondary))
             }
             if store.projects.isEmpty {
-                EmptyState(title: "No projects yet", text: "Start a session and Focus makes a project from what you type. Or add one now and tell it what counts.")
+                EmptyState(symbol: "folder", title: "No projects yet", text: "Start a session and Focus makes a project from what you type. Or add one now and tell it what counts.") {
+                    Button("New project") { let p = store.addProject(name: "New project"); selected = p.id }.buttonStyle(FocusButtonStyle(.primary))
+                }
             } else {
-                HStack(alignment: .top, spacing: 28) {
-                    VStack(spacing: 4) { ForEach(store.projects) { p in row(p) } }.frame(width: 260)
+                HStack(alignment: .top, spacing: 22) {
+                    VStack(spacing: 2) { ForEach(store.projects) { p in row(p) } }
+                        .padding(6).frame(width: 250).modifier(CardSurface(radius: 16))
                     if let p = store.project(selected ?? store.projects.first?.id) { ProjectDetail(c: c, store: store, project: p, confirmDelete: $confirmDelete) }
                 }
             }
@@ -32,17 +31,18 @@ struct ProjectsView: View {
 
     func row(_ p: Project) -> some View {
         let on = (selected ?? store.projects.first?.id) == p.id
-        let last = store.sessions(for: p.id).first
-        return Button { selected = p.id } label: {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(p.name).font(Tokens.text(13.5, .semibold)).lineLimit(1)
-                Text(last.map { $0.start.formatted(.relative(presentation: .named)) } ?? "No sessions yet").font(Tokens.text(12)).foregroundStyle(Tokens.ink2)
+        let sessions = store.sessions(for: p.id)
+        let live = c.isActive && c.projectId == p.id
+        return SidebarRow(selected: on, action: { selected = p.id }) {
+            RingView(live ? c.ringState : (sessions.isEmpty ? .unsure : .on), color: live || on ? Tokens.accent : Tokens.ink2).frame(width: 16, height: 16)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(p.name).font(Tokens.text(13.5, on ? .semibold : .medium)).lineLimit(1)
+                Text(live ? "In a session now" : (sessions.first.map { $0.start.formatted(.relative(presentation: .named)) } ?? "No sessions yet"))
+                    .font(Tokens.text(12)).foregroundStyle(Tokens.ink2).lineLimit(1)
             }
-            .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 12).padding(.vertical, 9)
-            .background(RoundedRectangle(cornerRadius: 10).fill(on ? Tokens.control : .clear))
-            .overlay { if on { RoundedRectangle(cornerRadius: 10).strokeBorder(Tokens.accent, lineWidth: 1.5) } }
-            .contentShape(Rectangle())
-        }.buttonStyle(.plain).accessibilityAddTraits(on ? .isSelected : [])
+            Spacer(minLength: 0)
+        }
+        .frame(height: 50)
     }
 }
 
@@ -68,18 +68,23 @@ struct ProjectDetail: View {
                         .buttonStyle(FocusButtonStyle(.primary)).disabled(c.isActive)
                 }
                 field("What Focus should know about this project", help: "Focus compares every window with this and your task. A sentence or two of detail helps more than any list. It stays on this Mac.") {
-                    TextEditor(text: binding.context).font(Tokens.text(13.5)).scrollContentBackground(.hidden).frame(height: 78).padding(6)
-                        .background(RoundedRectangle(cornerRadius: 10).fill(Tokens.control))
+                    ZStack(alignment: .topLeading) {
+                        if binding.wrappedValue.context.isEmpty {
+                            Text("For example: writing the methods chapter. The survey tool, Zotero and the stats docs count.")
+                                .font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2.opacity(0.8)).padding(.horizontal, 11).padding(.vertical, 8).allowsHitTesting(false)
+                        }
+                        TextEditor(text: binding.context).font(Tokens.text(13.5)).scrollContentBackground(.hidden).padding(.horizontal, 6).padding(.vertical, 8)
+                    }
+                    .frame(height: 92).wellField(height: nil)
                 }
-                field("Next step", help: nil) {
-                    TextField("One small thing", text: binding.nextStep).textFieldStyle(.plain).padding(.horizontal, 12).frame(height: 36)
-                        .background(RoundedRectangle(cornerRadius: 10).fill(Tokens.control))
+                field("Next step", help: "Shown when you start this project again.") {
+                    TextField("One small thing", text: binding.nextStep).font(Tokens.text(13.5)).wellField()
                 }
                 AskFocusBox(c: c, project: store.project(project.id) ?? project)
                 RulesDisclosure(profile: binding.profile)
                 HStack { Spacer(); Button("Delete project") { confirmDelete = true }.buttonStyle(FocusButtonStyle(.plain, small: true)) }
             }
-            .padding(.trailing, 4)
+            .padding(24).modifier(CardSurface(radius: 18))
         }
         .confirmationDialog("Delete \(project.name)?", isPresented: $confirmDelete) {
             Button("Delete project", role: .destructive) { store.deleteProject(project.id) }
@@ -88,7 +93,7 @@ struct ProjectDetail: View {
 
     func field<V: View>(_ title: String, help: String?, @ViewBuilder _ content: () -> V) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(Tokens.text(12.5, .semibold)); content()
+            Text(title).font(Tokens.text(13, .semibold)); content()
             if let help { Text(help).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
         }
     }
@@ -143,16 +148,6 @@ struct FlowRow: Layout {
     }
 }
 
-struct EmptyState: View {
-    var title: String, text: String
-    var body: some View {
-        Panel(tinted: true) {
-            VStack(alignment: .leading, spacing: 6) { Text(title).font(Tokens.rounded(17, .semibold)); Text(text).font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2) }
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-}
-
 /// Try the judge on a window you describe. Shows the call and the reason, so the AI's thinking is something you can poke at.
 struct AskFocusBox: View {
     @Bindable var c: SessionController
@@ -188,8 +183,7 @@ struct AskFocusBox: View {
         }
     }
     func field(_ prompt: String, _ text: Binding<String>) -> some View {
-        TextField(prompt, text: text).textFieldStyle(.plain).font(Tokens.text(13)).padding(.horizontal, 10).frame(height: 32)
-            .background(RoundedRectangle(cornerRadius: 9).fill(Tokens.window))
+        TextField(prompt, text: text).font(Tokens.text(13)).wellField(height: 32, raised: true)
             .onSubmit { ask() }
     }
     func ask() {
@@ -225,6 +219,6 @@ struct RulesDisclosure: View {
                 Text(n + never == 0 ? "Optional. None set" : "Optional. \(n) that count, \(never) never").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
             }
         }
-        .padding(14).overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(Tokens.line) }
+        .padding(14).background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Tokens.well))
     }
 }

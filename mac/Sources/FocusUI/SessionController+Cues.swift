@@ -11,9 +11,9 @@ extension SessionController {
 
     func resetCues() {
         lastOnTask = nil; lastEnforce = nil
-        banner = nil; shield = nil; shieldHoldStart = nil; overrideLockedUntil = nil; rhythmPrompt = nil
+        banner = nil; shield = nil; backHoldStart = nil; overrideLockedUntil = nil; rhythmPrompt = nil
         driftWatch.reset(); headsUpAt = nil; bannerHidden = false
-        blockedSites = [:]; passUntil = [:]; frictionQuietUntil = 0; frictionStrikes = [:]; lastFrictionEnforce = -1000; explainStrikes = 0; overrideLocks = 0; lastPulseAt = -1000
+        blockedSites = [:]; passedPages = [:]; claimsAccepted = 0; acceptedClaimWords = []; frictionQuietUntil = 0; frictionStrikes = [:]; lastFrictionEnforce = -1000; explainStrikes = 0; overrideLocks = 0; lastPulseAt = -1000
         workSeconds = 0; lastWorkTick = nil; workBlocks = 0; lastSpokeAt = nil; warnedPressure = .steady
     }
 
@@ -108,10 +108,10 @@ extension SessionController {
         refreshBanner(t)
         tickRhythm(t)
         syncShield()
-        updateShieldHold()
         if shield == nil, t - lastFrictionCheck >= 5, let w = currentWindow { lastFrictionCheck = t; updateFriction(w) }
         enforceOnIdleFriction(t)
         pulseHaptics(t)
+        expirePasses(t)
     }
 
     /// The trackpad keeps buzzing while you are off task, not just once: every 20 seconds after a warning (12 on Strict, and the

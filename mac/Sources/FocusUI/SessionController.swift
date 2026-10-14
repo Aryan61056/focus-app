@@ -95,15 +95,24 @@ public final class SessionController {
     public internal(set) var banner: Banner?
     /// After a pause screen, the same site asks for a short hold or a typed reason before it opens again.
     public internal(set) var shield: Shield?
-    public internal(set) var shieldHoldStart: Double?
     @ObservationIgnored var overrideLockedUntil: Double?
+    /// True while the ladder's own last step sends you back, so the step's tab choice is not repeated.
+    @ObservationIgnored var ladderReturning = false
+    /// When the hold on "Back to task" began, if it is being held.
+    public internal(set) var backHoldStart: Double?
     /// A scheduled prompt: a check-in at an interval, or a break after a block of work.
     public internal(set) var rhythmPrompt: RhythmPrompt?
     @ObservationIgnored var driftWatch = DriftWatch()
     @ObservationIgnored var headsUpAt: Double?
     @ObservationIgnored var bannerHidden = false
     @ObservationIgnored var blockedSites: [String: String] = [:]
-    @ObservationIgnored var passUntil: [String: Double] = [:]
+    /// Pages whose explanation Focus accepted, with when each stops counting. A page is one window key plus its exact title, so another video
+    /// on the same site is a different page. Session only: nothing here is saved or becomes a rule.
+    @ObservationIgnored var passedPages: [String: Double] = [:]
+    /// Explanations accepted this session. Each one buys less time and the next must clear a higher bar; there is a cap (Shield.claimCap).
+    public internal(set) var claimsAccepted = 0
+    @ObservationIgnored var acceptedClaimWords: [Set<String>] = []
+    @ObservationIgnored var pendingClaimWords: Set<String> = []
     @ObservationIgnored var frictionQuietUntil = 0.0
     /// How many times each site has been covered this session. A site you keep coming back to waits longer and is acted on sooner.
     @ObservationIgnored var frictionStrikes: [String: Int] = [:]
@@ -208,7 +217,7 @@ public final class SessionController {
     @ObservationIgnored public let store: DataStore?
     public let prefs: Preferences
     @ObservationIgnored let date: () -> Date
-    @ObservationIgnored private var projectId: UUID?
+    @ObservationIgnored public private(set) var projectId: UUID?
     @ObservationIgnored private var sessionId = UUID()
     @ObservationIgnored private var startedAt = Date()
     @ObservationIgnored private var segKind: TimelineSegment.Kind?
@@ -339,7 +348,7 @@ public final class SessionController {
                 blockCurrentSite()
                 runEnforcement(performed: enforceActions)
                 enforceActions += 1
-                act(.backToTask)   // brings the task forward
+                ladderReturning = true; act(.backToTask); ladderReturning = false   // brings the task forward
                 fire(.enforce, title: CueCopy.bannerTitle(.reminder, tone: prefs.nudgeTone, task: taskName))
                 refreshBanner(t)
             }
@@ -516,6 +525,13 @@ public final class SessionController {
             send(.windowChange(WindowChangeInput(windowKey: Keys.window(w), siteKey: Keys.site(w), ruleLabel: .unsure)))
             return
         }
+        if let until = passedPages[pageKey(w)], until > now() {
+            // You explained this exact page and Focus accepted it for a short while. A rule for this page only, never saved.
+            record(Reading(at: now(), date: date(), key: Keys.window(w), app: w.app, title: w.title, call: .on, source: .rule,
+                           reason: "You explained this page and Focus accepted it for a few minutes. Then it reads it again on its own."))
+            send(.windowChange(WindowChangeInput(windowKey: Keys.window(w), siteKey: Keys.site(w), ruleLabel: .onTask)))
+            return
+        }
         if hit == nil, prefs.matchTaskWords, case let shared = Rules.sharedTaskWords(m), !shared.isEmpty {
             var r = Reading(at: now(), date: date(), key: Keys.window(w), app: w.app, title: w.title, call: .on, source: .rule,
                             reason: "Its app name, title or address shares words with your task: \(shared.prefix(3).joined(separator: ", ")).")
@@ -633,6 +649,7 @@ public final class SessionController {
             case .bringBack(let w):
                 onBringBack?(w)
                 if let w, let app = appByWindowKey[w], !app.isEmpty { onBringBackToApp?(app) }
+                returnToTaskTab()
             case .cue: onCue?()
             case .requestJudgment(let id, _, _, let wk, _): requestJudgment(id: id, windowKey: wk, observedAt: t)
             case .summary(let a, let o, let u, let d, let i, let r):
