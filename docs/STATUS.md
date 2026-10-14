@@ -160,3 +160,10 @@ Early on I did not drive your screen (synthetic events sent to the process do no
 - Windows: nothing runnable here.
 - Whether Chrome reports page addresses through Accessibility is unknown (Safari does). Without an address, titles still work, and the matching-words rule also skips pages whose title names a video or social site.
 - Still yours to decide: product name, audience, pricing, open-sourcing, minimum OS, Mac distribution, languages.
+
+## No hold before explaining (owner, 2026-10-13: holding to say you were on task is a punishment for doing the right thing)
+- **Change.** The 5 second press-and-hold is gone (`HoldPad`, `Shield.holdSeconds`, `held`, the controller's hold functions). The pause, cover and claim screens now have one button, "Explain why this is on task", that opens the form at once. "That was fine" and the check-in's "Yes" also go straight to the form. Back to task is unchanged.
+- **What still costs something, on purpose:** only wrong answers. Two tries, a lock after two wrong ones (5 minutes, doubling), the app hidden or the tab closed on a wrong "not on task" reading, a higher bar and shorter cover for each later explanation, 8 per session. Local checks (too short, repeated words) still cost nothing. Say if the lock or the hiding should also go.
+- **Leftover:** `EscalationPlan.holdSeconds` and the pressure level's `extraHold` were already unused by the screen; I left them.
+- **Verified:** 300 tests pass (the three hold tests are replaced by tests that the form opens in one press, ignores a submit before it is open, and stays closed during a lock; the real-panel mouse-hold test is removed with the control). **Not verified live:** the new button on a real shield panel.
+

@@ -119,11 +119,9 @@ final class ShieldTests: XCTestCase {
         await advance(c, to: warned + 101)
         XCTAssertEqual(c.shield?.kind, .pause)
     }
-    /// Press and hold for the full time, then let the controller finish it.
-    func hold(_ c: SessionController, seconds: Double = Shield.holdSeconds + 0.1) {
-        c.beginShieldHold(); t += seconds; c.updateShieldHold()
-    }
-    /// After the hold, with the form open.
+    /// The explain button: opens the form at once.
+    func hold(_ c: SessionController) { c.openExplanation() }
+    /// With the form open.
     func openTheForm(_ c: SessionController) async {
         hold(c)
         XCTAssertEqual(c.shield?.asking, true)
@@ -273,67 +271,32 @@ final class ShieldTests: XCTestCase {
         c.shieldBackToTask(); XCTAssertNil(c.shield)
     }
 
-    // the hold
-    func testTheHoldNeedsNoWaitAndLettingGoStartsOver() async {
+    // opening the form
+    func testExplainingOpensAtOnceWithNoHoldOrWait() async {
         let c = make()
         await toThePauseScreen(c)
         XCTAssertEqual(c.shieldWaitRemaining(), 0)
-        c.beginShieldHold(); t += 3
-        XCTAssertEqual(c.shieldHoldProgress(), 0.6, accuracy: 0.01)
-        c.endShieldHold()
-        XCTAssertEqual(c.shieldHoldProgress(), 0, "letting go starts over")
-        c.updateShieldHold()
         XCTAssertEqual(c.shield?.asking, false)
-        c.beginShieldHold(); t += 4.9; c.updateShieldHold()
-        XCTAssertEqual(c.shield?.asking, false, "not quite five seconds")
-        t += 0.2; c.updateShieldHold()
-        XCTAssertEqual(c.shield?.asking, true)
+        c.openExplanation()
+        XCTAssertEqual(c.shield?.asking, true, "one press, no hold")
     }
 
-    func testAnExplanationCannotBeOpenedWithoutTheHold() async {
+    func testSubmittingWithoutOpeningTheFormDoesNothing() async {
         let c = make()
         await toThePauseScreen(c)
-        c.openExplanation()
-        XCTAssertEqual(c.shield?.asking, false)
         c.submitExplanation(good); await c.waitForJudgments()
         XCTAssertNotNil(c.shield, "submitting without opening the form does nothing")
         XCTAssertEqual(c.presence.state, "interrupted")
     }
 
-    func testTheHoldIsNotAvailableDuringTheLock() async {
+    func testTheFormDoesNotOpenDuringTheLock() async {
         let c = make()
         await toThePauseScreen(c); await openTheForm(c)
         c.submitExplanation(bluff); await c.waitForJudgments()
         c.submitExplanation(bluff + " again"); await c.waitForJudgments()
-        c.beginShieldHold()
-        XCTAssertNil(c.shieldHoldStart)
-    }
-
-    /// The hold is a native control, so a real mouse down and up reach it through the real panel. A SwiftUI gesture could not be driven this way.
-    func testAMouseHoldOnTheRealButtonInTheRealPanelOpensTheForm() async throws {
-        _ = NSApplication.shared
-        guard NSScreen.main != nil else { throw XCTSkip("no screen") }
-        let c = make()
-        await c.waitForJudgments()
-        let sc = ShieldController(controller: c); sc.start(); defer { sc.stop() }
-        c.debugShowShield(.claim)   // the wait is already over
-        try await Task.sleep(nanoseconds: 400_000_000)
-        let panel = try XCTUnwrap(sc.panelsForTesting.first)
-        func find(_ v: NSView) -> HoldPadView? { if let h = v as? HoldPadView { return h }; for s in v.subviews { if let h = find(s) { return h } }; return nil }
-        let pad = try XCTUnwrap(find(try XCTUnwrap(panel.contentView)), "the hold button is in the panel")
-        let centre = pad.convert(NSPoint(x: pad.bounds.midX, y: pad.bounds.midY), to: nil)
-        func event(_ type: NSEvent.EventType) -> NSEvent {
-            NSEvent.mouseEvent(with: type, location: centre, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: panel.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: type == .leftMouseDown ? 1 : 0)!
-        }
-        XCTAssertTrue(panel.contentView?.hitTest(panel.contentView!.convert(centre, from: nil)) is HoldPadView, "a click on that spot lands on the button")
-        panel.sendEvent(event(.leftMouseDown))
-        XCTAssertNotNil(c.shieldHoldStart, "mouse down starts the hold")
-        panel.sendEvent(event(.leftMouseUp))
-        XCTAssertNil(c.shieldHoldStart, "mouse up ends it")
-        panel.sendEvent(event(.leftMouseDown))
-        t += Shield.holdSeconds + 0.2
-        c.updateShieldHold()
-        XCTAssertEqual(c.shield?.asking, true, "five seconds with the button down opens the form")
+        c.openExplanation()
+        XCTAssertEqual(c.shield?.asking, false)
+        XCTAssertNotNil(c.shield?.message)
     }
 
     // one-click claims

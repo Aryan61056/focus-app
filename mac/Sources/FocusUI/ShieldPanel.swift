@@ -43,7 +43,7 @@ struct ShieldCard: View {
     }
     static let width: CGFloat = 480
 
-    // Before explaining: the task, a way back, and a press and hold to start explaining. There is no wait.
+    // Before explaining: the task, a way back, and a button that opens the explanation form at once. There is no wait and no hold.
     @ViewBuilder var waiting: some View {
         Text(CueCopy.shieldBody(shield.kind, tone: c.prefs.nudgeTone, task: c.taskName, longDetour: c.longDetour))
             .font(Tokens.text(14)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
@@ -55,8 +55,8 @@ struct ShieldCard: View {
                 if lock > 0 {
                     Text(CueCopy.lockedLine(Int(lock.rounded(.up)))).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
                 } else {
-                    HoldPad(c: c).frame(height: 36)
-                    Text(CueCopy.holdLine()).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                    Button("Explain why this is on task") { c.openExplanation() }.buttonStyle(FocusButtonStyle(.secondary, expand: true))
+                    Text(CueCopy.explainLine()).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
@@ -88,71 +88,6 @@ struct ShieldCard: View {
     }
 
     func send() { c.submitExplanation(text) }
-}
-
-/// Press and hold to open the explanation form. Native AppKit, not a SwiftUI gesture: mouse down and up reach it directly, even when
-/// Focus is not the active app, and a test can drive it. The fill shows the hold; letting go starts over.
-struct HoldPad: NSViewRepresentable {
-    var c: SessionController
-    func makeNSView(context: Context) -> HoldPadView { HoldPadView(c: c) }
-    func updateNSView(_ v: HoldPadView, context: Context) { v.c = c }
-}
-
-final class HoldPadView: NSView {
-    var c: SessionController
-    private var timer: Timer?
-    private(set) var pressed = false
-    init(c: SessionController) {
-        self.c = c
-        super.init(frame: NSRect(x: 0, y: 0, width: 200, height: 36))
-        wantsLayer = true
-        setAccessibilityRole(.button)
-        setAccessibilityLabel("Hold to explain")
-        setAccessibilityHelp("Takes \(Int(Shield.holdSeconds)) seconds of holding. With VoiceOver, activating it starts the hold for you.")
-    }
-    required init?(coder: NSCoder) { fatalError() }
-
-    override var acceptsFirstResponder: Bool { true }
-    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-    override var mouseDownCanMoveWindow: Bool { false }
-
-    override func mouseDown(with event: NSEvent) { press() }
-    override func mouseUp(with event: NSEvent) { release() }
-    override func viewDidMoveToWindow() { super.viewDidMoveToWindow(); if window == nil { release() } }
-
-    /// VoiceOver cannot hold a mouse button, so activating the button starts the same hold and it runs its course.
-    override func accessibilityPerformPress() -> Bool { c.beginShieldHold(); startRedraw(); return true }
-
-    func press() { pressed = true; c.beginShieldHold(); startRedraw(); needsDisplay = true }
-    func release() { pressed = false; c.endShieldHold(); stopRedrawIfIdle(); needsDisplay = true }
-
-    private func startRedraw() {
-        guard timer == nil else { return }
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { guard let self else { return }; self.c.updateShieldHold(); self.needsDisplay = true; self.stopRedrawIfIdle() }
-        }
-    }
-    private func stopRedrawIfIdle() { if c.shieldHoldStart == nil { timer?.invalidate(); timer = nil } }
-
-    override func draw(_ dirtyRect: NSRect) {
-        let r = bounds, radius = Tokens.radiusControl
-        let dark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        let ink = dark ? NSColor(srgbRed: 0.93, green: 0.95, blue: 0.94, alpha: 1) : NSColor(srgbRed: 0.09, green: 0.11, blue: 0.09, alpha: 1)
-        let track = NSBezierPath(roundedRect: r, xRadius: radius, yRadius: radius)
-        ink.withAlphaComponent(0.1).setFill(); track.fill()
-        let p = CGFloat(c.shieldHoldProgress())
-        if p > 0 {
-            NSGraphicsContext.saveGraphicsState(); track.addClip()
-            (dark ? NSColor(srgbRed: 0.47, green: 0.84, blue: 0.62, alpha: 0.55) : NSColor(srgbRed: 0.106, green: 0.459, blue: 0.282, alpha: 0.28)).setFill()
-            NSRect(x: 0, y: 0, width: r.width * p, height: r.height).fill()
-            NSGraphicsContext.restoreGraphicsState()
-        }
-        ink.withAlphaComponent(0.14).setStroke(); track.lineWidth = 1; track.stroke()
-        let label = (p > 0 ? "Keep holding" : "Hold to explain") as NSString
-        let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 13, weight: .semibold), .foregroundColor: ink]
-        let size = label.size(withAttributes: attrs)
-        label.draw(at: NSPoint(x: r.midX - size.width / 2, y: r.midY - size.height / 2), withAttributes: attrs)
-    }
 }
 
 struct ProgressBar: View {

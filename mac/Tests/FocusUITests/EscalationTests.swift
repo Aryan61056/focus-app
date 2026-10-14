@@ -89,7 +89,7 @@ final class EscalationTests: XCTestCase {
         XCTAssertEqual(hidden, ["Safari", "Safari"], "and again every two minutes while you stay away")
     }
 
-    func testExplainingNeedsTheHoldButNoWaitAndBackToTaskIsAlwaysThere() async {
+    func testExplainingNeedsNeitherAHoldNorAWaitAndBackToTaskIsAlwaysThere() async {
         let c = make()
         let warned = await driftUntilWarned(c)
         await advance(c, to: warned + 101)
@@ -97,9 +97,7 @@ final class EscalationTests: XCTestCase {
         XCTAssertEqual(c.shield?.kind, .pause)
         XCTAssertEqual(c.shieldWaitRemaining(), 0, "no wait before explaining")
         c.leaveGate(fine: true)
-        XCTAssertEqual(c.shield?.asking, false, "the old one-click That was fine does not open the form")
-        c.beginShieldHold(); t += 5.1; c.updateShieldHold()
-        XCTAssertEqual(c.shield?.asking, true, "the hold alone opens the form")
+        XCTAssertEqual(c.shield?.asking, true, "That was fine goes straight to the explanation form, with no hold")
         c.leaveGate(fine: false)
         XCTAssertFalse(c.gateOpen, "Back to task is always available")
         XCTAssertNil(c.shield)
