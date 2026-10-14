@@ -23,7 +23,7 @@ struct TodayView: View {
             if c.isActive { LiveHeader(c: c) } else { DashHeader(c: c) }
             if let n = notice { NoticeRow(notice: n, c: c) }
             if !hasSide {
-                VStack(alignment: .leading, spacing: 18) { main; HowDecidesButton() }
+                VStack(alignment: .leading, spacing: 18) { main; if !firstRun { HowDecidesButton() } }
             } else if wide {
                 HStack(alignment: .top, spacing: 28) {
                     main.frame(maxWidth: .infinity, alignment: .topLeading)
@@ -50,6 +50,7 @@ struct TodayView: View {
             } else {
                 if c.summary != nil { JustFinishedCard(c: c) }
                 StartCard(c: c, showStart: $showStart, intro: firstRun)
+                if firstRun { HowItWorks(c: c).fixedSize(horizontal: false, vertical: true) }
                 if let st = c.store { DaySection(store: st); WeekSection(store: st) }
             }
         }
@@ -91,8 +92,7 @@ struct NoticeRow: View {
             buttons
         }
         .padding(.horizontal, 16).padding(.vertical, 11)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Tokens.window2))
-        .overlay { RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Tokens.line) }
+        .modifier(CardSurface(radius: 14))
         .accessibilityElement(children: .contain)
     }
 
@@ -144,7 +144,7 @@ struct DashHeader: View {
     var body: some View {
         let now = c.date()
         VStack(alignment: .leading, spacing: 4) {
-            Text(Self.greeting(hour: Calendar.current.component(.hour, from: now))).font(Tokens.rounded(30, .semibold))
+            Text(Self.greeting(hour: Calendar.current.component(.hour, from: now))).font(Tokens.rounded(28, .semibold)).accessibilityAddTraits(.isHeader)
             Text(subtitle(now)).font(Tokens.text(14)).foregroundStyle(Tokens.ink2)
         }
     }

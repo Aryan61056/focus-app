@@ -133,9 +133,6 @@ public struct StartSheet: View {
     }
 
     func chip(_ label: String, on: Bool, _ action: @escaping () -> Void) -> some View {
-        Button(label, action: action).buttonStyle(.plain).font(Tokens.text(12.5, .medium)).padding(.horizontal, 12).frame(height: 28)
-            .background(Capsule().fill(on ? Tokens.accentSoft : Tokens.control))
-            .overlay { if on { Capsule().strokeBorder(Tokens.accent, lineWidth: 1.5) } }
-            .accessibilityAddTraits(on ? .isSelected : [])
+        Button(label, action: action).buttonStyle(ChoiceStyle(on: on))
     }
 }

@@ -20,14 +20,6 @@ struct StartCard: View {
     var body: some View {
         Tile(padding: 24) {
             VStack(alignment: .leading, spacing: 18) {
-                if intro {
-                    HStack(alignment: .top, spacing: 16) {
-                        Text("Tell Focus what you are working on. It compares the window in front with that, on this Mac, and nudges when you drift. When it is not sure, it does nothing.")
-                            .font(Tokens.text(14.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true).frame(maxWidth: 520, alignment: .leading)
-                        Spacer(minLength: 0)
-                        Button("Hide") { c.prefs.introSeen = true }.buttonStyle(FocusButtonStyle(.plain, small: true))
-                    }
-                }
                 VStack(alignment: .leading, spacing: 10) {
                     Text(intro ? "Your first session" : "What are you working on?").font(Tokens.text(14, .semibold))
                     HStack(spacing: 10) {
@@ -114,10 +106,7 @@ struct StartCard: View {
     }
 
     func chip(_ label: String, on: Bool, _ action: @escaping () -> Void) -> some View {
-        Button(label, action: action).buttonStyle(.plain).font(Tokens.text(12.5, .medium)).padding(.horizontal, 13).frame(height: 28)
-            .background(Capsule().fill(on ? Tokens.accentSoft : Tokens.control))
-            .overlay { if on { Capsule().strokeBorder(Tokens.accent, lineWidth: 1.5) } }
-            .accessibilityAddTraits(on ? .isSelected : [])
+        Button(label, action: action).buttonStyle(ChoiceStyle(on: on))
     }
 }
 
@@ -213,7 +202,7 @@ struct DaySection: View {
         let total = DayStats.total(store.sessions, on: today)
         if total.sessions > 0 {
             let slices = DayStats.slices(store.sessions, on: today)
-            VStack(alignment: .leading, spacing: 10) {
+            Panel { VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .firstTextBaseline) {
                     SectionTitle(text: "Your day")
                     Spacer()
@@ -221,7 +210,7 @@ struct DaySection: View {
                         .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
                 }
                 DayTrack(slices: slices, range: DayStats.axis(for: slices), nowHour: DayStats.hourOfDay(today, .current))
-            }
+            } }
         }
     }
 }
@@ -232,7 +221,7 @@ struct WeekSection: View {
         let week = DayStats.week(store.sessions, endingOn: .now)
         if week.contains(where: { $0.hours > 0 }) {
             let best = week.max { $0.hours < $1.hours }!
-            VStack(alignment: .leading, spacing: 10) {
+            Panel { VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .firstTextBaseline) {
                     SectionTitle(text: "This week")
                     Spacer()
@@ -240,7 +229,7 @@ struct WeekSection: View {
                         .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
                 }
                 WeekBars(days: week)
-            }
+            } }
         }
     }
 }
@@ -342,5 +331,36 @@ struct HowDecidesButton: View {
             Text(title).font(Tokens.text(13, .semibold))
             Text(text).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
         }
+    }
+}
+
+/// First day only: the three steps behind every call, under the start field, so the first screen explains itself without a paragraph.
+/// Gone after the first session or when hidden.
+struct HowItWorks: View {
+    @Bindable var c: SessionController
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                SectionTitle(text: "How Focus works")
+                Spacer()
+                Button("Hide") { c.prefs.introSeen = true }.buttonStyle(FocusButtonStyle(.plain, small: true))
+            }
+            HStack(alignment: .top, spacing: 14) {
+                step("text.cursor", "Say what you are working on", "One line is enough. Focus keeps it as a project for next time.")
+                step("macwindow", "It compares the window in front", "The app, the title and the page, read on this Mac. Words that match your task count at once.")
+                step("hand.raised", "Not sure does nothing", "A nudge needs two checks that agree and a drift that lasts. The model can be wrong.")
+            }
+        }
+    }
+    func step(_ symbol: String, _ title: String, _ text: String) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Image(systemName: symbol).font(.system(size: 15, weight: .medium)).foregroundStyle(Tokens.accent)
+                .frame(width: 32, height: 32).background(Circle().fill(Tokens.accentSoft)).accessibilityHidden(true)
+            Text(title).font(Tokens.text(13.5, .semibold))
+            Text(text).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(18).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Tokens.well))
+        .accessibilityElement(children: .combine)
     }
 }

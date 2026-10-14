@@ -66,8 +66,7 @@ struct SeeingCard: View {
 
     func windowLine(_ r: Reading) -> some View {
         HStack(spacing: 12) {
-            Text(String(r.appText.prefix(2))).font(Tokens.rounded(13, .semibold)).foregroundStyle(Tokens.ink2)
-                .frame(width: 38, height: 38).background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Tokens.control))
+            AppIcon(name: r.source == .sensitive ? "Private window" : r.app, size: 38)
             VStack(alignment: .leading, spacing: 1) {
                 Text(r.appText).font(Tokens.text(14, .semibold)).lineLimit(1)
                 Text(r.titleText).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).lineLimit(1)

@@ -217,7 +217,7 @@ public final class SessionController {
     @ObservationIgnored public let store: DataStore?
     public let prefs: Preferences
     @ObservationIgnored let date: () -> Date
-    @ObservationIgnored private var projectId: UUID?
+    @ObservationIgnored public private(set) var projectId: UUID?
     @ObservationIgnored private var sessionId = UUID()
     @ObservationIgnored private var startedAt = Date()
     @ObservationIgnored private var segKind: TimelineSegment.Kind?

@@ -23,6 +23,8 @@ enum SelfShot {
     static func scheduleIfRequested(after seconds: Double = 12) {
         let env = ProcessInfo.processInfo.environment
         guard env["FOCUS_DEMO"] == "1", let dir = env["FOCUS_SELFSHOT"] else { return }
+        // FOCUS_SELFSHOT_APPEARANCE=light|dark renders in that appearance whatever the system uses.
+        if let a = env["FOCUS_SELFSHOT_APPEARANCE"] { NSApp.appearance = NSAppearance(named: a == "light" ? .aqua : .darkAqua) }
         DispatchQueue.main.asyncAfter(deadline: .now() + (Double(env["FOCUS_SELFSHOT_AFTER"] ?? "") ?? seconds)) {
             try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
             for (i, w) in NSApp.windows.enumerated() where w.isVisible {

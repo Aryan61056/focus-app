@@ -17,11 +17,16 @@ public enum Tokens {
     public static let accent = Color(light: 0x1B7548, dark: 0x78D59D)
     public static let onAccent = Color(light: 0xFFFFFF, dark: 0x041B0E)
     public static let accentSoft = Color(light: 0xD9F3E2, dark: 0x1E3D2A)
+    /// Accent as text on accentSoft (a selected choice): darker in light, lighter in dark, so it clears 4.5:1.
+    public static let accentInk = Color(light: 0x125233, dark: 0xA3EBBE)
     public static let ink = Color(light: 0x161C18, dark: 0xEEF3EF)
     public static let ink2 = Color(light: 0x4D554F, dark: 0xB1BAB4)
-    public static let window = Color(light: 0xFBFDFC, dark: 0x1C211D)
-    public static let window2 = Color(light: 0xF3F7F4, dark: 0x232925)
-    public static let sidebar = Color(light: 0xECF2EE, dark: 0x141915)
+    /// Three layers, so a screen reads at a glance: the canvas, raised cards on it, and wells (fields, insets) sunk into a card.
+    /// Light: cards are white on a faintly green canvas. Dark: cards are lighter than the canvas. The sidebar is the second neutral layer.
+    public static let window = Color(light: 0xF4F7F5, dark: 0x181D19)
+    public static let window2 = Color(light: 0xFFFFFF, dark: 0x222824)
+    public static let well = Color(light: 0xEFF3F0, dark: 0x1A1F1B)
+    public static let sidebar = Color(light: 0xE9EFEB, dark: 0x121613)
     public static let line = Color(light: 0x161C18, dark: 0xFFFFFF, lightAlpha: 0.12, darkAlpha: 0.11)
     public static let control = Color(light: 0x161C18, dark: 0xFFFFFF, lightAlpha: 0.07, darkAlpha: 0.1)
     public static let controlHover = Color(light: 0x161C18, dark: 0xFFFFFF, lightAlpha: 0.12, darkAlpha: 0.17)
@@ -29,6 +34,8 @@ public enum Tokens {
 
     public static let radiusCard: CGFloat = 16
     public static let radiusControl: CGFloat = 9
+    /// The widest a screen's content gets, so lines and tables stay readable on a large display.
+    public static let contentWidth: CGFloat = 1120
     public static func rounded(_ size: CGFloat, _ weight: Font.Weight = .semibold) -> Font { .system(size: size, weight: weight, design: .rounded) }
     public static func text(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font { .system(size: size, weight: weight) }
 }

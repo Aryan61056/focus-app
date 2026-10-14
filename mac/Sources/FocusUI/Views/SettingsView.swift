@@ -7,6 +7,8 @@ struct SettingsView: View {
     @Bindable var c: SessionController
     @Bindable var store: DataStore
     @State private var confirmDelete = false
+    /// One topic at a time, so the screen is never a wall of switches.
+    @State private var tab: SettingsTab = .nudges
     var probeBusy: Bool { if case .waiting = c.probe { return true }; return false }
     var probeText: String {
         switch c.probe {
@@ -20,25 +22,17 @@ struct SettingsView: View {
     }
     var body: some View {
         Scroller {
-            VStack(alignment: .leading, spacing: 26) {
-                Text("Settings").font(Tokens.rounded(26, .semibold))
-                group("Nudges") {
+            VStack(alignment: .leading, spacing: 24) {
+                PageHeader(title: "Settings", subtitle: "Everything here stays on this Mac.")
+                ChoiceRow(items: SettingsTab.allCases, selection: $tab, title: \.rawValue)
+                group("Nudges", in: .nudges) {
                     HStack(spacing: 10) {
                         opt(.gentle, "Gentle", "One quiet note after about three minutes.")
                         opt(.standard, "Standard", "A card after about a minute, again every five.")
                         opt(.strict, "Strict", "A pause screen after 45 seconds.")
-                    }.padding(14)
+                    }.fixedSize(horizontal: false, vertical: true).padding(14)
                     row("How nudges sound", "For example \u{201C}\(c.prefs.nudgeTone.example)\u{201D}. A nudge never names what you were looking at.") {
-                        HStack(spacing: 6) {
-                            ForEach(NudgeTone.allCases) { tone in
-                                let on = c.prefs.nudgeTone == tone
-                                Button(tone.title) { c.prefs.nudgeTone = tone }.buttonStyle(.plain)
-                                    .font(Tokens.text(12.5, .semibold)).padding(.horizontal, 12).frame(height: 28)
-                                    .background(Capsule().fill(on ? Tokens.accentSoft : Tokens.control))
-                                    .overlay { if on { Capsule().strokeBorder(Tokens.accent, lineWidth: 1.5) } }
-                                    .accessibilityAddTraits(on ? .isSelected : [])
-                            }
-                        }
+                        segmented(NudgeTone.allCases, selection: Binding(get: { c.prefs.nudgeTone }, set: { c.prefs.nudgeTone = $0 }), title: \.title)
                     }
                     row("Play a soft tone with a nudge", "One short system sound when a nudge appears. Off unless you turn it on, and it never plays in practice mode.") {
                         Toggle("", isOn: Binding(get: { c.prefs.nudgeSound }, set: { c.prefs.nudgeSound = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
@@ -96,7 +90,7 @@ struct SettingsView: View {
                         Toggle("", isOn: Binding(get: { c.prefs.practiceRemoved }, set: { c.prefs.practiceRemoved = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
                 }
-                group("Cues") {
+                group("Cues", in: .nudges) {
                     row("Banner over the window you are in", "A small banner with your task, over the window you drifted into, from the warning until you are back. No sound, and it never covers the whole screen.") {
                         toggle(\.showBanner)
                     }
@@ -133,7 +127,7 @@ struct SettingsView: View {
                         }
                     }
                 }
-                group("Rhythm") {
+                group("Rhythm", in: .rhythm) {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(alignment: .firstTextBaseline) {
                             Text("Scheduled prompts").font(Tokens.text(13.5, .semibold))
@@ -151,7 +145,7 @@ struct SettingsView: View {
                         }
                     }
                 }
-                group("Progress") {
+                group("Progress", in: .rhythm) {
                     row("Show progress", "A daily goal, focus days with rest days, your longest stretch and how fast you get back on task. Nothing is ever taken away, and a missed day counts as a rest day, up to two a week. Off hides all of it.") {
                         Toggle("", isOn: Binding(get: { c.prefs.showProgress }, set: { c.prefs.showProgress = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
@@ -163,7 +157,7 @@ struct SettingsView: View {
                         }
                     }
                 }
-                group("What Focus looks at") {
+                group("What Focus looks at", in: .reading) {
                     row("Window titles", "The app name, the window title and the page or file address, from the window in front.") { Text("On").foregroundStyle(Tokens.ink2) }
                     row("Window access", c.windowAccess == .allowed ? "Focus can read window titles. Page addresses need Accessibility; titles alone also work with Screen Recording." : "Without Accessibility, Focus can only see which app is in front. Allow it in System Settings, then come back.") {
                         if c.windowAccess == .allowed { Label("Allowed", systemImage: "checkmark").foregroundStyle(Tokens.ink2) }
@@ -191,17 +185,17 @@ struct SettingsView: View {
                     row("Never looked at", "Password managers, banking sites and private windows are skipped, always.") { Label("Always on", systemImage: "lock").foregroundStyle(Tokens.ink2) }
                     row("Tools for any work", "Finder, Terminal, Mail, Calendar, System Settings and Activity Monitor are not judged: the app alone does not say whether it serves your task. A project rule, or a task that names the app, still applies.") { Label("Always on", systemImage: "wrench.and.screwdriver").foregroundStyle(Tokens.ink2) }
                 }
-                group("Appearance") {
+                group("Appearance", in: .general) {
                     row("Show in the notch", "A ring and the time while a session runs. On a Mac without a notch it is a small pill under the menu bar.") {
                         Toggle("", isOn: Binding(get: { c.prefs.showNotch }, set: { c.prefs.showNotch = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
                 }
-                group("Shortcut") {
+                group("Shortcut", in: .general) {
                     row("Start or pause from anywhere", "Press Control, Option and F. With no session it opens the start sheet on the project you worked on last. During a session it pauses or resumes.") {
                         Text("\u{2303}\u{2325}F").font(Tokens.rounded(14, .semibold)).foregroundStyle(Tokens.ink2)
                     }
                 }
-                group("Screen reading") {
+                group("Screen reading", in: .reading) {
                     row("Read the words on screen", "While a session runs, Focus takes a picture of the window every few seconds, reads the words on it on this Mac, and shows you the picture on Today. The model gets the words, not the picture. Needs Screen Recording. Nothing is saved. Private and never-judged windows are skipped.") {
                         Toggle("", isOn: Binding(get: { c.prefs.readScreen }, set: { c.prefs.readScreen = $0; if $0 { c.onRequestPreviewAccess?() } })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
@@ -213,7 +207,7 @@ struct SettingsView: View {
                     }
                 }
                 if c.updateSource != nil {
-                    group("Updates") {
+                    group("Updates", in: .general) {
                         row("Offer new builds from this Mac", "When a newer build appears in the project's build folder, Focus offers to restart into it between sessions. Nothing is downloaded and the network is not used; it never restarts by itself.") {
                             Toggle("", isOn: Binding(get: { c.prefs.offerUpdates }, set: { c.prefs.offerUpdates = $0; if $0 { c.onCheckUpdates?() } })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                         }
@@ -224,7 +218,7 @@ struct SettingsView: View {
                         }
                     }
                 }
-                group("Privacy") {
+                group("Privacy", in: .general) {
                     row("Where the work happens", "The judge is Apple's on-device model. There is no account.") { Text("On this Mac").foregroundStyle(Tokens.ink2) }
                     row("Your data", "\(store.projects.count) projects, \(store.sessions.count) sessions and \(store.review.count) review moments.") {
                         HStack {
@@ -234,7 +228,7 @@ struct SettingsView: View {
                     }
                 }
             }
-            .frame(maxWidth: 640, alignment: .leading)
+            .frame(maxWidth: 760, alignment: .leading)
         }
         .confirmationDialog("Delete everything?", isPresented: $confirmDelete) {
             Button("Delete everything", role: .destructive) { store.deleteEverything() }
@@ -258,11 +252,7 @@ struct SettingsView: View {
         HStack(spacing: 6) {
             ForEach(items) { item in
                 let on = selection.wrappedValue == item
-                Button(item[keyPath: title]) { selection.wrappedValue = item }.buttonStyle(.plain)
-                    .font(Tokens.text(12.5, .semibold)).padding(.horizontal, 12).frame(height: 28)
-                    .background(Capsule().fill(on ? Tokens.accentSoft : Tokens.control))
-                    .overlay { if on { Capsule().strokeBorder(Tokens.accent, lineWidth: 1.5) } }
-                    .accessibilityAddTraits(on ? .isSelected : [])
+                Button(item[keyPath: title]) { selection.wrappedValue = item }.buttonStyle(ChoiceStyle(on: on))
             }
         }
     }
@@ -271,16 +261,19 @@ struct SettingsView: View {
         let on = c.prefs.preset == p
         return Button { c.prefs.preset = p } label: {
             VStack(alignment: .leading, spacing: 4) { Text(title).font(Tokens.text(13.5, .semibold)); Text(text).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true) }
-                .frame(maxWidth: .infinity, alignment: .leading).padding(12)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading).padding(12)
                 .background(RoundedRectangle(cornerRadius: 12).fill(on ? Tokens.accentSoft : Tokens.control))
                 .overlay { if on { RoundedRectangle(cornerRadius: 12).strokeBorder(Tokens.accent, lineWidth: 1.5) } }
         }.buttonStyle(.plain).accessibilityAddTraits(on ? .isSelected : [])
     }
 
-    func group<V: View>(_ title: String, @ViewBuilder _ content: () -> V) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            SectionTitle(text: title)
-            VStack(spacing: 0) { content() }.clipShape(RoundedRectangle(cornerRadius: 14)).overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(Tokens.line) }
+    @ViewBuilder func group<V: View>(_ title: String, in tab: SettingsTab, @ViewBuilder _ content: () -> V) -> some View {
+        if self.tab == tab {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionTitle(text: title)
+                VStack(spacing: 0) { content() }
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous)).modifier(CardSurface(radius: 16))
+            }
         }
     }
 
@@ -297,4 +290,8 @@ struct SettingsView: View {
         let panel = NSSavePanel(); panel.nameFieldStringValue = "focus-data.json"
         if panel.runModal() == .OK, let url = panel.url { try? data.write(to: url) }
     }
+}
+
+enum SettingsTab: String, CaseIterable, Hashable {
+    case nudges = "Nudges and cues", rhythm = "Rhythm and progress", reading = "What Focus reads", general = "General"
 }

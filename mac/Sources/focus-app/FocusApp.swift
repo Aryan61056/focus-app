@@ -106,6 +106,7 @@ struct FocusApp: App {
                         .init(after: 150, window: WindowSnapshot(app: "Notes", title: "Calc homework")),
                     ])
                     demo = d
+                    SampleData.seedIfRequested(controller.store)
                     SelfShot.scheduleIfRequested(); SelfShot.runActions(controller)
                     // FOCUS_DEMO_NOSESSION=1 leaves the app idle so the start flow can be driven (tools and screenshots).
                     if ProcessInfo.processInfo.environment["FOCUS_DEMO_NOSESSION"] == "1" { return }

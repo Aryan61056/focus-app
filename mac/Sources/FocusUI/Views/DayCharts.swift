@@ -37,22 +37,38 @@ struct DayTrack: View {
     }
 }
 
+/// Seven days as slim columns on a baseline, today in full accent and the rest softer, with the hours above each so no axis is needed.
 struct WeekBars: View {
     var days: [(day: Date, hours: Double)]
     var body: some View {
         let top = max(2, (days.map(\.hours).max() ?? 0).rounded(.up))
-        HStack(alignment: .bottom, spacing: 10) {
-            ForEach(Array(days.enumerated()), id: \.offset) { i, d in
-                VStack(spacing: 6) {
-                    ZStack(alignment: .bottom) {
-                        RoundedRectangle(cornerRadius: 6).fill(Tokens.control).frame(height: 72)
-                        RoundedRectangle(cornerRadius: 6).fill(Tokens.accent.opacity(i == days.count - 1 ? 1 : 0.55)).frame(height: max(d.hours > 0 ? 4 : 0, 72 * d.hours / top))
+        VStack(spacing: 0) {
+            HStack(alignment: .bottom, spacing: 10) {
+                ForEach(Array(days.enumerated()), id: \.offset) { i, d in
+                    let today = i == days.count - 1
+                    VStack(spacing: 6) {
+                        Text(d.hours > 0 ? Self.short(d.hours) : "").font(Tokens.rounded(11.5, today ? .semibold : .medium))
+                            .foregroundStyle(today ? Tokens.ink : Tokens.ink2).monospacedDigit()
+                        UnevenRoundedRectangle(topLeadingRadius: 6, topTrailingRadius: 6, style: .continuous)
+                            .fill(Tokens.accent.opacity(today ? 1 : 0.5))
+                            .frame(maxWidth: 34).frame(height: max(d.hours > 0 ? 4 : 0, 76 * d.hours / top))
                     }
-                    Text(d.day.formatted(.dateTime.weekday(.abbreviated))).font(Tokens.text(11.5, i == days.count - 1 ? .semibold : .regular)).foregroundStyle(i == days.count - 1 ? Tokens.ink : Tokens.ink2)
-                }.frame(maxWidth: .infinity)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("\(d.day.formatted(.dateTime.weekday(.wide))): \(durationText(d.hours * 3600)) on task")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("\(d.day.formatted(.dateTime.weekday(.wide))): \(durationText(d.hours * 3600)) on task")
+                }
             }
+            .frame(height: 100)
+            Rectangle().fill(Tokens.track).frame(height: 1)
+            HStack(spacing: 10) {
+                ForEach(Array(days.enumerated()), id: \.offset) { i, d in
+                    let today = i == days.count - 1
+                    Text(d.day.formatted(.dateTime.weekday(.abbreviated))).font(Tokens.text(11.5, today ? .semibold : .regular))
+                        .foregroundStyle(today ? Tokens.ink : Tokens.ink2).frame(maxWidth: .infinity)
+                }
+            }
+            .padding(.top, 6).accessibilityHidden(true)
         }
     }
+    static func short(_ h: Double) -> String { h < 1 ? "\(Int((h * 60).rounded()))m" : String(format: "%.1fh", h) }
 }
