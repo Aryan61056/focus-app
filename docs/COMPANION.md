@@ -1,6 +1,6 @@
 # iPhone companion and the Mac link
 
-Written 2026-10-13 by Claude with Aarav. **Needs a yes from the Mac app's owner before it merges** (see "Decision needed").
+Written 2026-10-13 by Claude with Aarav, and merged to main the same day at Aarav's request. **The Mac app's owner has not yet reviewed it**: please read "Decision needed" below and revert `mac/Sources/FocusLink` plus the FocusApp.swift lines if you disagree. It is off by default, so it does nothing until a user turns it on.
 
 ## What it is
 - `companion/`: the iPhone app (SwiftUI, iOS 26, Liquid Glass). Today (ring and clock that follow the Mac; pause, break, +5 min, back to task,
