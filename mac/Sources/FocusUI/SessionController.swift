@@ -96,6 +96,8 @@ public final class SessionController {
     /// After a pause screen, the same site asks for a short hold or a typed reason before it opens again.
     public internal(set) var shield: Shield?
     @ObservationIgnored var overrideLockedUntil: Double?
+    /// True while the ladder's own last step sends you back, so the step's tab choice is not repeated.
+    @ObservationIgnored var ladderReturning = false
     /// When the hold on "Back to task" began, if it is being held.
     public internal(set) var backHoldStart: Double?
     /// A scheduled prompt: a check-in at an interval, or a break after a block of work.
@@ -346,7 +348,7 @@ public final class SessionController {
                 blockCurrentSite()
                 runEnforcement(performed: enforceActions)
                 enforceActions += 1
-                act(.backToTask)   // brings the task forward
+                ladderReturning = true; act(.backToTask); ladderReturning = false   // brings the task forward
                 fire(.enforce, title: CueCopy.bannerTitle(.reminder, tone: prefs.nudgeTone, task: taskName))
                 refreshBanner(t)
             }
@@ -647,6 +649,7 @@ public final class SessionController {
             case .bringBack(let w):
                 onBringBack?(w)
                 if let w, let app = appByWindowKey[w], !app.isEmpty { onBringBackToApp?(app) }
+                returnToTaskTab()
             case .cue: onCue?()
             case .requestJudgment(let id, _, _, let wk, _): requestJudgment(id: id, windowKey: wk, observedAt: t)
             case .summary(let a, let o, let u, let d, let i, let r):

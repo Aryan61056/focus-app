@@ -71,7 +71,7 @@ struct SettingsView: View {
                         }
                     }
                     if c.prefs.escalate {
-                        row("Switch tabs first", "The first time the last step runs on a browser, Focus switches to the tab you were last working in instead of only hiding the app. Works with Safari, Chrome, Brave, Edge and Comet. macOS asks once for permission to control the browser; if you say no, Focus hides the app instead.") {
+                        row("Switch back to your tab", "\u{201C}Back to task\u{201D} in a browser takes you to the tab you were last working in, and the first time the last step runs Focus does the same instead of only hiding the app. Works with Safari, Chrome, Brave, Edge and Comet. macOS asks once for permission to control the browser; if you say no, Focus hides the app instead.") {
                             toggle(\.switchTabs)
                         }
                         row("Close the tab on Strict", "On the Strict preset, later rounds of the last step close the tab you were warned about, not the whole browser. Only tabs Focus can name, never private windows or apps on your never-judged list. Closing can lose unsaved work in that tab, so the banner says so first.") {

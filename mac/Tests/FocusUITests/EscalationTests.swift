@@ -227,6 +227,35 @@ final class TabEnforcementTests: XCTestCase {
         return t
     }
 
+    func testBackToTaskGoesToTheTabYouWereWorkingIn() async {
+        let c = make(preset: .standard)
+        _ = await warned(c)
+        c.act(.backToTask)
+        XCTAssertEqual(switched.count, 1)
+        XCTAssertEqual(switched.first?.0, video.url); XCTAssertEqual(switched.first?.1, on.url)
+    }
+
+    func testBackToTaskLeavesTheTabAloneWhenYouAreAlreadyOnIt() async {
+        let c = make(preset: .standard)
+        await advance(c, to: 20)
+        c.act(.backToTask)
+        XCTAssertTrue(switched.isEmpty)
+    }
+
+    func testBackToTaskDoesNotSwitchTabsWhenThatIsSwitchedOff() async {
+        let c = make(preset: .standard) { $0.prefs.switchTabs = false }
+        _ = await warned(c)
+        c.act(.backToTask)
+        XCTAssertTrue(switched.isEmpty)
+    }
+
+    func testTheLadderStepStillSwitchesOnlyOncePerRound() async {
+        let c = make(preset: .standard)
+        let w = await warned(c)
+        await advance(c, to: w + 260)
+        XCTAssertEqual(switched.count, 1, "the step's own switch, not a second one from the return")
+    }
+
     func testPureChoice() {
         XCTAssertEqual(Enforcement.action(performed: 0, preset: .strict, switching: true, closing: true), .switchAway)
         XCTAssertEqual(Enforcement.action(performed: 0, preset: .strict, switching: false, closing: true), .hide, "no switching asked for: the first round hides as before")

@@ -76,6 +76,15 @@ extension SessionController {
         return nil
     }
 
+    /// "Back to task" in a browser: when the page in front is not the one you were last working on, go to that page. Bringing the app
+    /// forward does nothing when the distraction is another tab of the same browser, which is the usual case. Only a browser tab Focus can
+    /// name by address, only the same browser, never in practice, and it follows the "switch tabs" setting.
+    func returnToTaskTab() {
+        guard prefs.switchTabs, !shadow, !ladderReturning, let w = currentWindow, let t = lastOnTask,
+              Enforcement.isBrowser(w.app), t.app == w.app, !t.url.isEmpty, !w.url.isEmpty, t.url != w.url else { return }
+        _ = onSwitchTab?(w, t)
+    }
+
     // MARK: claims
     /// Saying "this window is part of the task". A window Focus has read as off topic needs an explanation that checks out;
     /// anything else is taken at its word, as before.
