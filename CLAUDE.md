@@ -54,7 +54,7 @@ Do not write "OS-enforced", "cannot reach the network" or "0 bytes sent" in any 
 - Be honest. Report failures with real output. Never say something works unless it was run. Mark anything unverified.
 - Windows: code can be written here but cannot be run on this Mac. Say so plainly. Never claim Windows behavior is verified.
 - Keep replies concise: lead with what was done and found.
-- **Ask first** before: installing toolchains (Rust, .NET, Xcode 27, a Python environment, Ollama), downloading any model
+- **Ask first** before: installing toolchains (Rust, .NET, a Python environment, Ollama), downloading any model
   (give name, source, size), sending data anywhere, pushing to a remote, publishing anything, accepting legal terms (the `fm` CLI license).
 - Test data is synthetic. Never capture the owner's real screen. Never commit screenshots or model files (`.gitignore` blocks them).
 
@@ -64,8 +64,8 @@ Do not write "OS-enforced", "cannot reach the network" or "0 bytes sent" in any 
 - The feature catalog (section 5) skips the letter I. That is harmless.
 
 ## Machine
-MacBook Pro M1 Pro, 16 GB, macOS 27.0, Xcode 26.6 (SDK 26.5), Swift 6.3.3, uv 0.11, system Python 3.9 (stdlib only for now).
-Rust 1.99 installed via Homebrew rustup (owner approved 2026-10-01); use `export PATH="/opt/homebrew/opt/rustup/bin:$PATH"`. Not installed: .NET, Ollama, Xcode 27. No confirmed Windows PC.
+MacBook Pro M1 Pro, 16 GB, macOS 27.0, Xcode 27.0 (iOS 27 SDK; the iPhone app still deploys to iOS 26), Swift 6.3.3, uv 0.11, system Python 3.9 (stdlib only for now).
+Rust 1.99 installed via Homebrew rustup (owner approved 2026-10-01); use `export PATH="/opt/homebrew/opt/rustup/bin:$PATH"`. Not installed: .NET, Ollama. No confirmed Windows PC.
 Apple on-device model is reachable through the FoundationModels framework (Swift). The `fm` CLI is licensed (owner accepted the terms on 2026-10-01). The harness still uses the framework, which gives guided generation.
 
 ## Repo layout

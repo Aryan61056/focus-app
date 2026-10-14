@@ -12,7 +12,9 @@ xcodebuild -project FocusCompanion.xcodeproj -scheme FocusCompanion \
   -destination 'platform=iOS Simulator,name=iPhone 18 Pro' test CODE_SIGNING_ALLOWED=NO
 ```
 
+**Block tab:** pick the apps that distract you and Focus covers them during a session (Screen Time). Needs a paid team and a real iPhone; see `../docs/COMPANION.md`.
+
 No Mac handy? **Mac tab > Demo mode** runs a pretend Mac. Launch flags for screenshots: `-demo`, `-demo-session`, `-tab insights|mac`.
 
 Layout: `Sources/Design` (palette, motion, ring), `Sources/Model` (state, clock, Keychain, demo Mac), `Sources/Views`,
-`LiveActivity/` (lock screen and Dynamic Island), `Shared/` (attributes used by both).
+`LiveActivity/` (lock screen and Dynamic Island), `Monitor/` and `Shield/` (Screen Time extensions), `Shared/` (attributes used by both).
