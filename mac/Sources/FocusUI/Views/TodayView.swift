@@ -4,6 +4,7 @@ import FocusBrain
 struct TodayView: View {
     @Bindable var c: SessionController
     @Binding var showStart: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Scroller { content }
@@ -11,10 +12,7 @@ struct TodayView: View {
 
     var content: some View {
         VStack(alignment: .leading, spacing: 22) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Today").font(Tokens.rounded(26, .semibold))
-                Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide))).font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
-            }
+            HeroBanner(caption: Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide))) { NotchPreviewPill(c: c) }
             // The AI's reading stays the hero while a session runs; progress follows it. Between sessions it sits right under the status.
             if c.isActive {
                 SessionPanel(c: c); ReadingPanel(c: c); progress; if c.aiAvailable { AskPanel(c: c) }
@@ -35,6 +33,7 @@ struct TodayView: View {
                         Button("Open settings") { c.onOpenModelSettings?() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
                     }
                 }
+                .transition(.rise(reduce: reduceMotion))
             }
             if c.showContextTip {
                 Panel(tinted: true) {
@@ -47,6 +46,7 @@ struct TodayView: View {
                         Button("Dismiss") { c.prefs.contextTipDismissed = true }.buttonStyle(FocusButtonStyle(.plain, small: true))
                     }
                 }
+                .transition(.rise(reduce: reduceMotion))
             }
             if c.windowAccess == .appNamesOnly {
                 Panel(tinted: true) {
@@ -58,6 +58,7 @@ struct TodayView: View {
                         Button("Open Accessibility settings") { c.onOpenAccessSettings?() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
                     }
                 }
+                .transition(.rise(reduce: reduceMotion))
             }
             if let u = c.visibleUpdate {
                 Panel(tinted: true) {
@@ -69,9 +70,10 @@ struct TodayView: View {
                         Button("Later") { c.dismissUpdate() }.buttonStyle(FocusButtonStyle(.plain, small: true))
                     }
                 }
+                .transition(.rise(reduce: reduceMotion))
             }
-            if let a = c.askResume { AwayBanner(c: c, reason: a) }
-            if c.wrapUp && c.isActive { Panel(tinted: true) { Text("Two minutes left. Extend, or wrap up when you are ready.").font(Tokens.text(13.5)) } }
+            if let a = c.askResume { AwayBanner(c: c, reason: a).transition(.rise(reduce: reduceMotion)) }
+            if c.wrapUp && c.isActive { Panel(tinted: true) { Text("Two minutes left. Extend, or wrap up when you are ready.").font(Tokens.text(13.5)) }.transition(.rise(reduce: reduceMotion)) }
             if let st = c.store { TodayExtras(c: c, store: st) }
             Spacer(minLength: 0)
         }
@@ -91,23 +93,37 @@ struct SessionPanel: View {
         Panel {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .center, spacing: 18) {
-                    RingView(c.ringState, color: c.ringColor).frame(width: 60, height: 60)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(c.taskName).font(Tokens.rounded(20, .semibold)).lineLimit(2)
+                    TimelineView(.periodic(from: .now, by: 1)) { _ in
+                        LiveRing(c.ringState, color: c.ringColor).frame(width: 72, height: 72)
+                            .background { RingGlow(on: c.ringColor == Tokens.accent && !c.isPaused, color: Tokens.accent).padding(-6) }
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(c.taskName).font(Tokens.rounded(17, .semibold)).foregroundStyle(Tokens.ink2).lineLimit(1)
+                        // The number you glance at is the biggest thing on the screen.
                         TimelineView(.periodic(from: .now, by: 1)) { _ in
-                            Text("\(c.mode == .timed ? "Timed" : "Open") session, \(c.clockText())\(c.mode == .timed ? " left" : "")")
-                                .font(Tokens.text(13)).foregroundStyle(Tokens.ink2).monospacedDigit()
+                            let t = c.clockText()
+                            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                Text(t).font(Tokens.rounded(38, .semibold)).monospacedDigit().tracking(-0.5)
+                                    .contentTransition(.numericText(countsDown: c.mode == .timed)).motion(Motion.out(0.3), value: t)
+                                if c.mode == .timed { Text("left").font(Tokens.text(14, .medium)).foregroundStyle(Tokens.ink2) }
+                            }
+                            .accessibilityElement(children: .combine)
                         }
                         HStack(spacing: 8) {
                             StateChip(label: c.presenceLabel, ring: c.ringState, on: c.ringColor == Tokens.accent)
                             if let m = c.moment { MomentLine(moment: m) }
                         }
-                        .animation(.easeOut(duration: 0.2), value: c.moment)
+                        .motion(Motion.notchSettle, value: c.moment)
                     }
                     Spacer(minLength: 12)
                     HStack(spacing: 8) {
-                        if c.isPaused { Button("Resume") { c.act(.resume) }.buttonStyle(FocusButtonStyle(.secondary)) }
-                        else { Button("Pause") { c.act(.pause) }.buttonStyle(FocusButtonStyle(.secondary)) }
+                        // One button that changes its word, so the pointer that just paused is already on Resume.
+                        Button { c.act(c.isPaused ? .resume : .pause) } label: {
+                            Label(c.isPaused ? "Resume" : "Pause", systemImage: c.isPaused ? "play.fill" : "pause.fill")
+                                .contentTransition(.symbolEffect(.replace))
+                        }
+                        .buttonStyle(FocusButtonStyle(.secondary))
+                        .motion(Motion.out(0.2), value: c.isPaused)
                         Menu("Take a break") {
                             ForEach([5, 10, 15], id: \.self) { m in Button("\(m) minutes") { c.act(.breakTime, minutes: m) } }
                         }.menuStyle(.button).buttonStyle(FocusButtonStyle(.secondary)).fixedSize()
@@ -115,19 +131,22 @@ struct SessionPanel: View {
                     }
                 }
                 Divider().overlay(Tokens.line).padding(.top, 14)
-                HStack(spacing: 8) {
+                // Always a visible sign of what Focus is doing (principle 5), in a few words.
+                HStack(spacing: 7) {
                     if c.isPaused {
-                        Image(systemName: "pause").foregroundStyle(Tokens.ink2)
-                        Text("Paused. Focus will not nudge you until you resume.")
+                        Image(systemName: "pause.circle")
+                        Text("Paused. No nudges until you resume.")
                     } else if c.shadow {
-                        Image(systemName: "eye").foregroundStyle(Tokens.ink2)
-                        Text(c.shadowMarks == 0 ? "Practice mode: Focus is watching but will not interrupt you."
-                             : "Practice mode: \(c.shadowMarks) moment\(c.shadowMarks == 1 ? "" : "s") to review later.")
+                        Image(systemName: "eye")
+                        Text(c.shadowMarks == 0 ? "Practice: watching, no nudges" : "Practice: \(c.shadowMarks) moment\(c.shadowMarks == 1 ? "" : "s") to review")
                     } else {
-                        Text(c.prefs.readScreen ? "Focus reads app names, window titles and the words on screen, on this Mac." : "Focus reads app names and window titles on this Mac.")
+                        Image(systemName: "eye")
+                        Text(c.prefs.readScreen ? "Reading window titles and on-screen words, on this Mac" : "Reading window titles, on this Mac")
                     }
                 }
                 .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).padding(.top, 12)
+                .contentTransition(.opacity)
+                .motion(Motion.out(0.24), value: c.isPaused)
             }
         }
     }
@@ -141,9 +160,9 @@ struct IntroPanel: View {
         Panel {
             VStack(alignment: .leading, spacing: 14) {
                 Text("Stay on what you meant to do").font(Tokens.rounded(24, .semibold))
-                Text("Tell Focus what you are working on. It compares the window in front with that task, on this Mac, and nudges gently when you drift. When it is not sure, it does nothing.")
+                Text("Say what you are working on. Focus nudges you, gently, when you drift. When it is not sure, it stays quiet.")
                     .font(Tokens.text(14.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true).frame(maxWidth: 520, alignment: .leading)
-                if !c.prefs.practiceRemoved { Text("Your first sessions are practice: Focus watches and learns, and does not interrupt. You can turn nudges on from the start screen or in Settings.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true).frame(maxWidth: 520, alignment: .leading) }
+                if !c.prefs.practiceRemoved { Text("Your first sessions are practice: it watches, it does not interrupt.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true).frame(maxWidth: 520, alignment: .leading) }
                 HStack(spacing: 10) {
                     Button("Start a session") { c.prefs.introSeen = true; showStart = true }.buttonStyle(FocusButtonStyle(.primary)).keyboardShortcut("n")
                     Button("Skip intro") { c.prefs.introSeen = true }.buttonStyle(FocusButtonStyle(.plain))
@@ -183,7 +202,7 @@ struct IdlePanel: View {
                     Text(sentence(s)).font(Tokens.text(14)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
                 } else {
                     Text("No session running").font(Tokens.rounded(20, .semibold))
-                    Text("Tell Focus what you are working on and it will keep an eye out for drift.").font(Tokens.text(14)).foregroundStyle(Tokens.ink2)
+                    Text("Say what you are working on. Focus keeps watch.").font(Tokens.text(14)).foregroundStyle(Tokens.ink2)
                 }
                 if c.summary != nil, let h = c.highlight { HighlightLine(highlight: h) }
                 if c.summary != nil { RecapBlock(c: c) }
@@ -192,7 +211,7 @@ struct IdlePanel: View {
                 if c.summary != nil, c.askLoudness {
                     Divider().overlay(Tokens.line).padding(.vertical, 4)
                     Text("How was that?").font(Tokens.text(14, .semibold))
-                    Text("Focus spoke up during this session. This sets how readily it does.").font(Tokens.text(13)).foregroundStyle(Tokens.ink2)
+                    Text("Sets how readily Focus speaks up.").font(Tokens.text(13)).foregroundStyle(Tokens.ink2)
                     HStack(spacing: 8) {
                         Button("Too quiet") { c.prefs.answerLoudness(.tooQuiet) }.buttonStyle(FocusButtonStyle(.plain, small: true))
                         Button("About right") { c.prefs.answerLoudness(.aboutRight) }.buttonStyle(FocusButtonStyle(.plain, small: true))

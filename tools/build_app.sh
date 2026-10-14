@@ -9,6 +9,10 @@ swift build -c release --product focus-app 2>&1 | tail -1
 APP=".build/Focus.app"
 rm -rf "$APP"; mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp ".build/release/focus-app" "$APP/Contents/MacOS/focus-app"
+# SwiftPM records SDK 14 (the deployment target) in the binary, and macOS then draws the app in its old-design compatibility mode:
+# no Liquid Glass toolbar, sidebar or controls. Stamp the SDK it was really built with.
+SDK_VERSION="$(xcrun --show-sdk-version)"
+vtool -set-build-version macos 14.0 "$SDK_VERSION" -replace -output "$APP/Contents/MacOS/focus-app" "$APP/Contents/MacOS/focus-app"
 T="$(mktemp -d)"
 swiftc -o "$T/make_icon" ../tools/make_icon.swift 2>/dev/null && "$T/make_icon" "$T/AppIcon.iconset" && iconutil -c icns "$T/AppIcon.iconset" -o "$APP/Contents/Resources/AppIcon.icns" || echo "icon skipped"
 cat > "$APP/Contents/Info.plist" <<'PLIST'

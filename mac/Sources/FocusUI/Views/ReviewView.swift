@@ -7,7 +7,6 @@ struct ReviewView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Review").font(Tokens.rounded(26, .semibold))
                 HStack(alignment: .firstTextBaseline) {
                     Text("Moments Focus would have nudged you about, and why. Your answers teach it what counts.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
                     Spacer()

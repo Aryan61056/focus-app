@@ -35,12 +35,15 @@ extension Reading {
 /// The product's centrepiece while a session runs: what Focus sees, what it concluded and why.
 struct ReadingPanel: View {
     @Bindable var c: SessionController
+    /// The how and why sit behind one disclosure, so the panel reads at a glance: what is in front, and what Focus thinks of it.
+    @State private var showWhy = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Panel {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text("What Focus is reading").font(Tokens.text(15, .semibold)).accessibilityAddTraits(.isHeader)
+                    Text("What Focus sees").font(Tokens.text(15, .semibold)).accessibilityAddTraits(.isHeader)
                     if c.latest?.source == .model { AITag().padding(.leading, 4) }
                     if c.isJudging { HStack(spacing: 6) { ThinkingDot(); Text("Reading now").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) } .padding(.leading, 6) }
                     Spacer()
@@ -54,30 +57,53 @@ struct ReadingPanel: View {
                     if c.prefs.readScreen {
                         HStack(alignment: .top, spacing: 18) {
                             PreviewCard(c: c).frame(width: 290)
-                            VStack(alignment: .leading, spacing: 12) { seen(r); verdict(r); steps(r, vertical: true) }
+                            VStack(alignment: .leading, spacing: 12) { seen(r); verdict(r) }
                         }
                     } else {
                         HStack(alignment: .top, spacing: 14) {
-                            VStack(alignment: .leading, spacing: 12) { seen(r); PreviewCard(c: c) }.frame(width: 290)
+                            seen(r).frame(width: 290)
                             verdict(r)
                         }
                         .fixedSize(horizontal: false, vertical: true)
-                        steps(r, vertical: false)
                     }
-                    if c.readings.count > 1 { recent }
+                    whyToggle
+                    if showWhy {
+                        VStack(alignment: .leading, spacing: 16) {
+                            steps(r, vertical: false)
+                            if !c.prefs.readScreen { PreviewCard(c: c) }
+                            if c.readings.count > 1 { recent }
+                            Text("Focus uses Apple's on-device model, and it can be wrong. When it is not sure it does nothing. It speaks up only after two checks agree and the drift lasts.")
+                                .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                        }
+                        .transition(.rise(reduce: reduceMotion))
+                    }
                 } else {
                     HStack(spacing: 12) {
                         RingView(.unsure, color: Tokens.ink).frame(width: 30, height: 30)
                         Text("Waiting for the first window. Switch to what you are working on and Focus reads it.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
                     }
                 }
-                Text("Focus uses Apple's on-device model, and it can be wrong. When it is not sure it does nothing. It speaks up only after two checks agree and the drift lasts.")
-                    .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
             }
         }
+        .motion(Motion.out(0.28), value: showWhy)
     }
 
-    func ago(_ s: Double) -> String { s < 5 ? "Checked just now" : "Checked \(Int(s)) seconds ago" }
+    /// One quiet control for the detail: why, the recent readings, screen reading. The chevron turns as it opens.
+    var whyToggle: some View {
+        Button { showWhy.toggle() } label: {
+            HStack(spacing: 6) {
+                Text(showWhy ? "Hide details" : "Why, and recent readings").contentTransition(.interpolate)
+                Image(systemName: "chevron.down").font(.system(size: 10, weight: .bold))
+                    .rotationEffect(.degrees(showWhy ? -180 : 0))
+            }
+            .font(Tokens.text(12.5, .medium)).foregroundStyle(Tokens.ink2)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(showWhy ? "Hide details" : "Show why, and recent readings")
+    }
+
+    func ago(_ s: Double) -> String { s < 5 ? "Just now" : (s < 60 ? "\(Int(s)) s ago" : "\(Int(s / 60)) min ago") }
 
     func seen(_ r: Reading) -> some View {
         HStack(spacing: 12) {
@@ -164,11 +190,11 @@ struct HowFocusDecides: View {
             VStack(alignment: .leading, spacing: 14) {
                 Text("How Focus decides").font(Tokens.text(15, .semibold)).accessibilityAddTraits(.isHeader)
                 HStack(alignment: .top, spacing: 18) {
-                    item("1", "It reads the window", "The app, the window title and the page or file address, on this Mac. With screen reading on, the words on screen too. Nothing is recorded or saved.")
-                    item("2", "It compares with your task", "Plus what you wrote about the project. A window that shares words with your task counts at once; the rest the model judges by meaning, with no list of sites.")
-                    item("3", "It waits to be sure", "On task, not sure or off topic. Not sure does nothing, and a nudge needs two checks that agree and a drift that lasts.")
+                    item("1", "It reads the window", "App and title, on this Mac. Nothing is saved.")
+                    item("2", "It compares with your task", "By meaning, with no list of sites.")
+                    item("3", "It waits to be sure", "Not sure means it stays quiet.")
                 }
-                Text("It runs on Apple's on-device model and can be wrong. Rules you set are optional and only add certainty.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
+                Text("On-device model. It can be wrong.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
             }
         }
     }
@@ -208,7 +234,7 @@ struct PreviewCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if !c.prefs.readScreen {
-                Text("Let Focus look at the window. It reads the words on screen to judge, and shows you the picture here. Nothing is saved.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                Text("Let Focus read the words on screen too. Nothing is saved.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
                 Button("Turn on screen reading") { c.prefs.readScreen = true; c.onRequestPreviewAccess?() }.buttonStyle(FocusButtonStyle(.plain, small: true))
             } else if let held = c.previewHeld {
                 note("eye.slash", held)

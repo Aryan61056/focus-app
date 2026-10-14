@@ -38,6 +38,12 @@ struct FocusApp: App {
     @State private var previewWatcher: PreviewWatcher?
     @State private var hotKey = GlobalHotKey()
     @State private var updater: Updater?
+
+    init() {
+        // Focus lives in the menu bar and the notch and watches a session with its window closed, so macOS must never quit it
+        // for having no window on screen (automatic termination quit it about 25 s after the window was hidden).
+        ProcessInfo.processInfo.disableAutomaticTermination("Focus watches your session from the menu bar and the notch.")
+    }
     @State private var veil: VeilController?
     @State private var banner: BannerController?
     @State private var shield: ShieldController?
@@ -103,6 +109,28 @@ struct FocusApp: App {
                         else { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); controller.requestStart() }
                     }
                     if notch == nil { let n = NotchPanelController(controller: controller); notch = n; n.start() }
+                    // FOCUS_DEMO_NOTCH="peek@4,open@6,peek@9,rest@11" drives the notch on a timeline (demo only), so its motion can be
+                    // recorded frame by frame without moving the real pointer.
+                    if ProcessInfo.processInfo.environment["FOCUS_DEMO"] == "1", let script = ProcessInfo.processInfo.environment["FOCUS_DEMO_NOTCH"], let n = notch {
+                        for step in script.split(separator: ",") {
+                            let parts = step.split(separator: "@"); guard parts.count == 2, let at = Double(parts[1]) else { continue }
+                            let what = String(parts[0])
+                            DispatchQueue.main.asyncAfter(deadline: .now() + at) {
+                                switch what {
+                                case "drop": n.setHoverForTesting(true); n.setDropTargetedForTesting(true)
+                                case "landed":
+                                    n.setDropTargetedForTesting(false); n.setExpandedForTesting(true)
+                                    // FOCUS_DEMO_TRAY: a list of files (made for the demo, never the user's) to put on the shelf.
+                                    let paths = (ProcessInfo.processInfo.environment["FOCUS_DEMO_TRAY"] ?? "").split(separator: ":").map(String.init)
+                                    NotchTray.shared.add(paths.map { URL(fileURLWithPath: $0) })
+                                case "peek": n.setExpandedForTesting(false); n.setHoverForTesting(true)
+                                case "open": n.setHoverForTesting(true); n.setExpandedForTesting(true)
+                                case "tray", "widgets", "home": n.setTabForTesting(NotchTab(rawValue: what) ?? .home)
+                                default: n.setExpandedForTesting(false); n.setHoverForTesting(false)
+                                }
+                            }
+                        }
+                    }
                     guard ProcessInfo.processInfo.environment["FOCUS_DEMO"] == "1", demo == nil else { return }
                     let d = DemoSenses(controller: controller, script: [
                         .init(after: 0.5, window: WindowSnapshot(app: "Notes", title: "Calc homework")),
@@ -118,6 +146,7 @@ struct FocusApp: App {
                 }
         }
         .defaultSize(width: 1240, height: 800)
+        .windowToolbarStyle(.unified)
         .commands {
             CommandMenu("Session") {
                 Button("Start session\u{2026}") { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); controller.requestStart() }

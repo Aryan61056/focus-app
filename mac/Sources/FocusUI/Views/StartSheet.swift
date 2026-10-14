@@ -66,6 +66,10 @@ public struct StartSheet: View {
             }
         }
         .padding(24).frame(width: 480)
+        // The sheet grows and shrinks as lines come and go (the coach, the length picker, the hint), never jumps.
+        .motion(Motion.out(0.24), value: c.sharpened)
+        .motion(Motion.out(0.24), value: timed)
+        .motion(Motion.out(0.24), value: parsed.minutes)
         .onChange(of: task) { _, _ in if c.sharpened.value != nil || c.sharpened == .failed { c.clearSharpened() } }
         .onDisappear { c.clearSharpened() }
         .onAppear {
@@ -135,7 +139,8 @@ public struct StartSheet: View {
     func chip(_ label: String, on: Bool, _ action: @escaping () -> Void) -> some View {
         Button(label, action: action).buttonStyle(.plain).font(Tokens.text(12.5, .medium)).padding(.horizontal, 12).frame(height: 28)
             .background(Capsule().fill(on ? Tokens.accentSoft : Tokens.control))
-            .overlay { if on { Capsule().strokeBorder(Tokens.accent, lineWidth: 1.5) } }
+            .overlay { Capsule().strokeBorder(Tokens.accent.opacity(on ? 1 : 0), lineWidth: 1.5) }
+            .motion(Motion.out(0.18), value: on)
             .accessibilityAddTraits(on ? .isSelected : [])
     }
 }

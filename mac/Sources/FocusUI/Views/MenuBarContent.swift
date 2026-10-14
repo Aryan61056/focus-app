@@ -11,13 +11,16 @@ public struct MenuBarContent: View {
         VStack(alignment: .leading, spacing: 0) {
             if c.isActive {
                 HStack(spacing: 10) {
-                    RingView(c.ringState, color: c.ringColor).frame(width: 30, height: 30)
+                    TimelineView(.periodic(from: .now, by: 1)) { _ in LiveRing(c.ringState, color: c.ringColor).frame(width: 30, height: 30) }
                     VStack(alignment: .leading, spacing: 0) {
                         Text(c.taskName).font(Tokens.rounded(15)).lineLimit(1)
                         Text("\(c.presenceLabel) · \(c.mode == .timed ? "Timed" : "Open") session").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
                     }
                     Spacer()
-                    TimelineView(.periodic(from: .now, by: 1)) { _ in Text(c.clockText()).font(Tokens.rounded(15)).monospacedDigit() }
+                    TimelineView(.periodic(from: .now, by: 1)) { _ in
+                        let t = c.clockText()
+                        Text(t).font(Tokens.rounded(15)).monospacedDigit().contentTransition(.numericText(countsDown: c.mode == .timed)).motion(Motion.out(0.3), value: t)
+                    }
                 }.padding(10)
                 if let r = c.latest, !c.isPaused {
                     HStack(spacing: 8) {
@@ -52,6 +55,21 @@ public struct MenuBarContent: View {
 
     func item(_ title: String, _ action: @escaping () -> Void) -> some View {
         Button(action: action) { HStack { Text(title); Spacer() }.padding(.horizontal, 10).frame(height: 30).contentShape(Rectangle()) }
-            .buttonStyle(.plain).font(Tokens.text(13.5))
+            .buttonStyle(MenuRowStyle()).font(Tokens.text(13.5))
+    }
+}
+
+/// A menu row that lights under the pointer, as a real menu does, so you can see what a click will hit.
+struct MenuRowStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View { Inner(configuration: configuration) }
+    struct Inner: View {
+        let configuration: Configuration
+        @State private var hover = false
+        var body: some View {
+            configuration.label
+                .background(RoundedRectangle(cornerRadius: 6).fill(configuration.isPressed ? Tokens.controlHover : (hover ? Tokens.control : .clear)))
+                .animation(Motion.hover, value: hover)
+                .onHover { hover = $0 }
+        }
     }
 }

@@ -66,7 +66,7 @@ struct GoalBar: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(Tokens.track)
                 Capsule().fill(Tokens.accent).frame(width: max(goal.fraction > 0 ? 8 : 0, g.size.width * goal.fraction))
-                    .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: goal.fraction)
+                    .animation(reduceMotion ? nil : Motion.out(0.5), value: goal.fraction)
             }
         }
         .frame(height: 8)
@@ -118,7 +118,7 @@ struct MomentLine: View {
         }
         .padding(.leading, 8).padding(.trailing, 12).frame(height: 28)
         .background(Capsule().fill(Tokens.accentSoft))
-        .transition(.opacity)
+        .transition(.asymmetric(insertion: .opacity.combined(with: .scale(scale: 0.9, anchor: .leading)), removal: .opacity))
         .accessibilityElement(children: .ignore).accessibilityLabel(moment.text)
     }
 }

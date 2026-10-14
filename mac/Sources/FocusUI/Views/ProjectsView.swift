@@ -11,7 +11,6 @@ struct ProjectsView: View {
         VStack(alignment: .leading, spacing: 20) {
             HStack(alignment: .bottom) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Projects").font(Tokens.rounded(26, .semibold))
                     Text("What each project is about. Focus reads this to decide what counts, and keeps it between sessions.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
                 }
                 Spacer()

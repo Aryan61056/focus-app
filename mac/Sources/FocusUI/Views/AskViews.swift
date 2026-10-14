@@ -44,7 +44,7 @@ struct AskPanel: View {
                     .accessibilityElement(children: .combine)
                 case .idle: EmptyView()
                 }
-                Text("Answers come from this session's readings, kept in memory only. The model can be wrong.")
+                Text("From this session only. It can be wrong.")
                     .font(Tokens.text(12)).foregroundStyle(Tokens.ink2)
             }
         }

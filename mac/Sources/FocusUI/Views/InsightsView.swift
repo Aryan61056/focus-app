@@ -12,7 +12,6 @@ struct InsightsView: View {
         Scroller {
             VStack(alignment: .leading, spacing: 20) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Insights").font(Tokens.rounded(26, .semibold))
                     Text("Worked out on this Mac from your own sessions.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
                 }
                 if t.total == 0 {

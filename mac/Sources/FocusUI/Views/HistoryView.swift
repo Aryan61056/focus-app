@@ -6,7 +6,6 @@ struct HistoryView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("History").font(Tokens.rounded(26, .semibold))
                 Text("Every session, kept on this Mac. Delete any of them at any time.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
             }
             if store.sessions.isEmpty {

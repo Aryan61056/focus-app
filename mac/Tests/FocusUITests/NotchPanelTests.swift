@@ -53,6 +53,9 @@ final class NotchPanelTests: XCTestCase {
 
         c.end(); await spin()
         XCTAssertFalse(panel.isShowing, "hidden when the session ends")
+        XCTAssertTrue(panel.anyWindowVisibleForTesting, "it tucks back into the notch before the window goes")
+        await spin(NotchPanelController.tuckSeconds + 0.2)
+        XCTAssertFalse(panel.anyWindowVisibleForTesting, "and the window is gone once the tuck is done")
     }
 }
 
