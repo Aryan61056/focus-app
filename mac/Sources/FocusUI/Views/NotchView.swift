@@ -171,16 +171,24 @@ public struct NotchView: View {
     static let accent = Tokens.Notch.accent
     static let track = Color.white.opacity(0.16)
 
-    /// A nudge opens the notch once; otherwise a click opens it and hover peeks. The gate (strict pause screen) is not shown here.
+    /// One drift, one popup. The banner over your window carries the nudge, and the notch opening to the same words at the same time
+    /// overlapped it under the menu bar. So the notch opens to a nudge only when the banner is off in Settings; otherwise its ring turns amber.
+    /// The gate (strict pause screen) is never shown here.
+    public static func opensToNudge(_ c: SessionController) -> Bool {
+        guard !c.prefs.showBanner else { return false }
+        return c.checkIn != nil || c.rhythmPrompt != nil || (c.surface.map { $0.kind != "gate" } ?? false)
+    }
+
+    /// A nudge opens the notch once (see `opensToNudge`); otherwise a click opens it and hover peeks.
     public static func mode(for c: SessionController, hover: Bool, expanded: Bool = false, dropping: Bool = false) -> NotchMode {
         if dropping { return .open }   // a file on its way gets the tray, even over a nudge; the nudge is back once it lands
-        if c.checkIn != nil || c.rhythmPrompt != nil { return .nudge }
-        if let s = c.surface, s.kind != "gate" { return .nudge }
+        if opensToNudge(c) { return .nudge }
         if expanded { return .open }
         return hover ? .peek : .rest
     }
     public var mode: NotchMode { forced ?? Self.mode(for: c, hover: model.hover, expanded: model.expanded, dropping: model.dropTargeted) }
-    var tint: Color { c.ringColor == Tokens.accent ? Self.accent : Self.ink }
+    /// Green on task, amber once a slip is called (the banner's color), white otherwise; drifting stays white, since it may be nothing.
+    var tint: Color { c.ringColor == Tokens.accent ? Self.accent : c.presence.state == "interrupted" ? Tokens.Notch.slip : Self.ink }
     var hasNotch: Bool { notchWidth > 0 }
     var big: Bool { mode == .open || mode == .nudge }
     /// The ears are wide: under the pointer, or while a change of state is announced.

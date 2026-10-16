@@ -259,6 +259,9 @@ extension SessionController {
     /// Demo and test only: locks explaining, as two wrong answers would.
     public func debugLock() { overrideLockedUntil = now() + Shield.lockSeconds(after: overrideLocks) }
 
+    /// Test only: puts up a banner of this kind as it would appear.
+    func debugShowBanner(_ kind: Banner.Kind, at t: Double) { banner = Banner(kind: kind, at: t) }
+
     /// Demo and test only: shows a shield as if it had just appeared.
     public func debugShowShield(_ kind: Shield.Kind, app: String = "Safari", site: String = "safari|youtube.com", wait: Double = 0,
                                 asking: Bool = false, checking: Bool = false, message: String? = nil, attemptsLeft: Int = Shield.attempts) {

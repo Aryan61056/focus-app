@@ -14,6 +14,7 @@ final class ShieldPanel: NSPanel {
         level = .screenSaver
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         isMovable = false; hidesOnDeactivate = false; ignoresMouseEvents = false
+        canHide = false   // Command-H and Hide Others must not be a way past the shield
     }
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }

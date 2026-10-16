@@ -6,7 +6,7 @@ import FocusUI
 @MainActor
 enum SelfShot {
     /// FOCUS_DEMO_ACTIONS="section:settings,start" runs these on the controller after 3 s (demo only), in place of clicks and keys I cannot send:
-    /// section:<today|projects|history|insights|review|settings>, page:<settings page>, text:<1 to 1.5>, pause, nonotch, hide, start (opens the start sheet), readscreen (turns screen reading on), veil (the whole-screen gray fade, 10 s).
+    /// section:<today|projects|history|insights|review|settings>, page:<settings page>, text:<1 to 1.5>, pause, nonotch, hide, start (opens the start sheet), readscreen (turns screen reading on), veil (the whole-screen gray fade, 10 s), nogray (no whole-screen gray).
     static func runActions(_ controller: SessionController) {
         let env = ProcessInfo.processInfo.environment
         guard env["FOCUS_DEMO"] == "1", let list = env["FOCUS_DEMO_ACTIONS"] else { return }
@@ -21,6 +21,7 @@ enum SelfShot {
                 else if a == "hide" { NSApp.hide(nil) }   // the window out of sight, as during most of a session
                 else if a == "nonotch" { controller.prefs.showNotch = false }   // for measuring what the notch costs
                 else if a == "veil" { controller.previewVeil() }   // the whole-screen gray, so its windows can be listed
+                else if a == "nogray" { controller.prefs.screenGrayscale = false }   // keep the real display in color while panels are checked
             }
         }
     }
@@ -38,7 +39,13 @@ enum SelfShot {
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + (Double(env["FOCUS_SELFSHOT_AFTER"] ?? "") ?? seconds)) {
             try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
-            for (i, w) in NSApp.windows.enumerated() where w.isVisible {
+            // What was there, so a missing image can be told from a window that was not on screen.
+            let listing = NSApp.windows.enumerated().map { i, w in
+                "\(i) \(type(of: w)) visible=\(w.isVisible) canHide=\(w.canHide) number=\(w.windowNumber) occluded=\(!w.occlusionState.contains(.visible)) frame=\(Int(w.frame.width))x\(Int(w.frame.height))"
+            }.joined(separator: "\n")
+            try? listing.write(toFile: "\(dir)/windows.txt", atomically: true, encoding: .utf8)
+            // While the app is hidden AppKit reports every window as not visible, even the panels that stay on screen (canHide off).
+            for (i, w) in NSApp.windows.enumerated() where w.isVisible || (!w.canHide && w.windowNumber > 0 && w.occlusionState.contains(.visible)) {
                 // A focused text field's editor keeps the views around it from drawing offscreen, so drop focus first.
                 w.makeFirstResponder(nil); w.contentView?.layoutSubtreeIfNeeded(); w.displayIfNeeded()
                 guard let v = w.contentView, let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds) else { continue }
@@ -49,7 +56,10 @@ enum SelfShot {
                 // The window server's copy of this app's own window: draws glass, text fields and sheets that cacheDisplay skips.
                 // Only this process's windows; no other window or screen content is read.
                 for (j, x) in ([w] + (w.attachedSheet.map { [$0] } ?? [])).enumerated() {
-                    if let img = ownWindowImage(CGWindowID(x.windowNumber)), let png = NSBitmapImageRep(cgImage: img).representation(using: .png, properties: [:]) {
+                    // Status item windows report numbers that are not window IDs (negative, or 2^32 and up); converting one trapped and
+                    // ended the render before it reached the notch and banner panels.
+                    guard let id = CGWindowID(exactly: x.windowNumber), id > 0 else { continue }
+                    if let img = ownWindowImage(id), let png = NSBitmapImageRep(cgImage: img).representation(using: .png, properties: [:]) {
                         try? png.write(to: URL(fileURLWithPath: "\(dir)/server-\(i)\(j == 0 ? "" : "-sheet")-\(Int(x.frame.width))x\(Int(x.frame.height)).png"))
                     }
                 }

@@ -51,6 +51,8 @@ final class BannerPanel: NSPanel {
         level = .statusBar
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         isMovable = false; hidesOnDeactivate = false
+        // Hiding Focus (Command-H, or Hide Others from another app) hides its main window, never a nudge.
+        canHide = false
     }
     override var canBecomeKey: Bool { false }
 }
@@ -195,6 +197,7 @@ public final class BannerController {
     public init(controller: SessionController) { self.c = controller }
     public var isShowing: Bool { panel?.isVisible ?? false }
     var frameForTesting: NSRect? { panel?.frame }
+    var sizeForTesting: CGSize { size }
 
     public func start() { guard !running else { return }; running = true; track() }
     public func stop() { running = false; follow?.invalidate(); follow = nil; panel?.orderOut(nil) }
@@ -216,8 +219,9 @@ public final class BannerController {
             h.sizingOptions = []; h.safeAreaRegions = []
             p.contentView = h; host = h
         }
-        // The height follows the title (one or two lines); measured here, outside any layout pass, and applied by the panel frame.
-        let fit = host?.fittingSize ?? .zero
+        // The height follows the title (one or two lines). The panel's own hosting view does not size itself (sizingOptions is empty,
+        // so its fittingSize is not the content's), so a throwaway controller measures the view, outside any layout pass.
+        let fit = NSHostingController(rootView: view).sizeThatFits(in: CGSize(width: BannerView.width + 2 * CueLayout.margin, height: 1000))
         size = CGSize(width: BannerView.width + 2 * CueLayout.margin, height: max(fit.height, 80))
         let arriving = !p.isVisible || shownKind == nil
         shownKind = b.kind

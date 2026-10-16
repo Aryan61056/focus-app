@@ -205,7 +205,7 @@ public final class NotchPanelController {
     private func track() {
         guard running else { return }
         withObservationTracking {
-            _ = c.isActive; _ = c.prefs.showNotch; _ = c.surface; _ = c.checkIn; _ = c.rhythmPrompt
+            _ = c.isActive; _ = c.prefs.showNotch; _ = c.prefs.showBanner; _ = c.surface; _ = c.checkIn; _ = c.rhythmPrompt
             for slot in slots.values { _ = slot.model.hover; _ = slot.model.expanded; _ = slot.model.dropTargeted }
         } onChange: { [weak self] in
             // Hop off the observation callback, then apply on the next turn of the run loop, never inside a layout pass.
@@ -231,8 +231,8 @@ public final class NotchPanelController {
     }
 
     func refresh() {
-        // The notch preference is about the resting ring. A nudge always shows here, so it reaches you when Focus is in the background.
-        let nudging = (c.surface.map { $0.kind != "gate" } ?? false) || c.checkIn != nil || c.rhythmPrompt != nil
+        // The notch preference is about the resting ring. With the banner off, a nudge shows here even so, so it still reaches you.
+        let nudging = NotchView.opensToNudge(c)
         let screens = NSScreen.screens
         guard running, c.isActive, c.prefs.showNotch || nudging,
               let hi = Self.homeIndex(notchWidths: screens.map { Self.geometry($0).width }) else { hideAll(); return }
@@ -322,6 +322,8 @@ public final class NotchPanelController {
         p.level = .statusBar
         p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         p.isMovable = false; p.hidesOnDeactivate = false
+        // Hiding Focus (Command-H, or Hide Others from another app) hid the notch and every nudge in it for the rest of the session.
+        p.canHide = false
         return p
     }
 }

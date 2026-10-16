@@ -99,7 +99,10 @@ final class NotchTests: XCTestCase {
         XCTAssertEqual(NotchView(controller: c, notchWidth: 200, notchHeight: 32).mode, .rest)
         c.windowChanged(WindowSnapshot(app: "Browser", title: "youtube clip", url: "https://youtube.com/watch?v=1"))
         while c.surface == nil && t < 300 { t += 1; c.tick(); await c.waitForJudgments() }
-        XCTAssertEqual(NotchView(controller: c, notchWidth: 200, notchHeight: 32).mode, .nudge)
+        XCTAssertNotNil(c.banner, "the banner carries the nudge over the window")
+        XCTAssertEqual(NotchView(controller: c, notchWidth: 200, notchHeight: 32).mode, .rest, "one popup per drift: the notch stays at rest")
+        c.prefs.showBanner = false
+        XCTAssertEqual(NotchView(controller: c, notchWidth: 200, notchHeight: 32).mode, .nudge, "with the banner off, the notch opens to the nudge")
     }
 }
 

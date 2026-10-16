@@ -101,3 +101,46 @@ final class PopupCopyTests: XCTestCase {
         XCTAssertEqual(CueCopy.bannerTitle(.rhythm, tone: .neutral, task: "Calc homework", rhythm: .breakDue(minutes: 5)), "Time for a 5 minute break")
     }
 }
+
+/// Hiding Focus (Command-H, or Hide Others from another app) hid every panel with the main window: the notch, the banner, the gray and
+/// the shield vanished for the rest of the session. Found 2026-10-16 when the demo's "hide" action left nothing to render.
+@MainActor
+final class PanelsSurviveHidingTests: XCTestCase {
+    func testNoFloatingPanelHidesWithTheApp() {
+        XCTAssertFalse(BannerPanel().canHide, "banner")
+        XCTAssertFalse(ShieldPanel().canHide, "shield")
+        XCTAssertFalse(VeilPanel().canHide, "gray")
+        let c = SessionController(judge: CountingJudge { _ in Verdict(label: .onTask) }, store: DataStore(), prefs: noWords())
+        XCTAssertFalse(NotchPanelController(controller: c).makePanel().canHide, "notch")
+    }
+}
+
+/// The banner's panel must be as tall as what it shows, for every kind and after switching kinds (it used to fall to its 80 pt floor,
+/// clipping the buttons, once the heads-up turned into the reminder: the hosting view's fittingSize is not the content's).
+@MainActor
+final class BannerSizeTests: XCTestCase {
+    func testThePanelFitsEveryKindAndKeepsFittingAfterASwitch() async {
+        var t = 0.0
+        let c = SessionController(judge: CountingJudge { _ in Verdict(label: .onTask) }, store: DataStore(), prefs: noWords(), now: { t })
+        c.windowChanged(WindowSnapshot(app: "Notes", title: "Calc homework"))
+        c.begin(task: "Calc homework", preset: .standard, shadow: false)
+        let b = BannerController(controller: c)
+        b.start()
+        var heights: [CGFloat] = []
+        for kind in [Banner.Kind.early, .reminder, .checkIn, .early] {
+            c.debugShowBanner(kind, at: t); t += 1
+            await Task.yield(); b.refresh()
+            heights.append(b.sizeForTesting.height)
+        }
+        b.stop()
+        for h in heights { XCTAssertGreaterThan(h, 110, "title, a line of what Focus saw and the buttons, plus the shadow margin") }
+        XCTAssertEqual(heights.first!, heights.last!, accuracy: 0.5, "the same kind measures the same after other kinds")
+        let long = SessionController(judge: CountingJudge { _ in Verdict(label: .onTask) }, store: DataStore(), prefs: noWords(), now: { t })
+        long.windowChanged(WindowSnapshot(app: "Notes", title: "x"))
+        long.begin(task: "Write the methods and results sections of the pendulum lab report for physics", preset: .standard, shadow: false)
+        let lb = BannerController(controller: long); lb.start()
+        long.debugShowBanner(.reminder, at: t); lb.refresh()
+        XCTAssertGreaterThan(lb.sizeForTesting.height, heights[1] + 10, "a long task wraps to two lines and the panel grows")
+        lb.stop()
+    }
+}

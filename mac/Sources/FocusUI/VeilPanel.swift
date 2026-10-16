@@ -31,6 +31,7 @@ final class VeilPanel: NSPanel {
         level = .mainMenu
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         ignoresMouseEvents = true; isMovable = false; hidesOnDeactivate = false
+        canHide = false   // hiding Focus does not lift the gray
         let v = NSView(); v.wantsLayer = true
         wash.backgroundColor = NSColor(white: 0.3, alpha: 1).cgColor; wash.opacity = 0
         if let backdrop { v.layer!.addSublayer(backdrop) }
