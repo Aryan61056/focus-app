@@ -79,6 +79,10 @@ struct SessionDrawer: View {
                 Text(session.task).font(Tokens.rounded(18, .semibold))
                 Text("\(session.start.formatted(.dateTime.weekday().day().month().hour().minute())) · \(durationText(session.activeSeconds)) · \(session.timed ? "Timed" : "Open")")
                     .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
+                if let goal = session.goal {
+                    Label(goal, systemImage: session.goalDone == true ? "checkmark.circle.fill" : "arrow.forward.circle")
+                        .font(Tokens.text(13)).foregroundStyle(Tokens.ink2).help(session.goalDone == true ? "Marked done" : "Carried forward or not marked yet")
+                }
                 Text(sessionSentence(session)).font(Tokens.text(14))
                 MiniTimeline(segments: session.segments, height: 22)
                 if let r = session.reads, r.total > 0 {

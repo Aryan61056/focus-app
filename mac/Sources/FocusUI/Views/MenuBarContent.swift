@@ -42,7 +42,13 @@ public struct MenuBarContent: View {
                 item("End session") { c.end() }
             } else {
                 Text("No session running").font(Tokens.rounded(15)).padding(10)
+                if c.shortSessionOffer {
+                    item("Keep going") { c.keepGoing() }
+                    item("Finish five minutes") { c.finishFiveMinutes() }
+                    Divider().padding(.vertical, 4)
+                }
                 item("Start a session") { c.requestStart(); openApp() }
+                item("Just five minutes") { c.startDraft.length = .five; c.requestStart(); openApp() }
             }
             if c.visibleUpdate != nil {
                 Divider().padding(.vertical, 4)

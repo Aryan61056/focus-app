@@ -114,7 +114,7 @@ struct NoticeRow: View {
     var text: String {
         switch notice {
         case .resume(let r): return r == "meeting" ? "Your meeting looks over. Pick up where you left off?" : "Welcome back. Pick up where you left off?"
-        case .wrapUp: return "Two minutes left. Extend, or wrap up when you are ready."
+        case .wrapUp: return c.sessionDeadline == nil ? "Two minutes left. Extend, or wrap up when you are ready." : "Two minutes left. Wrap up when you are ready."
         case .modelOff(let why): return "\(why) Until then Focus will not nudge you."
         case .access: return "Allow Accessibility so Focus can read window titles."
         case .update: return "A newer build is ready. Restarting takes a few seconds."

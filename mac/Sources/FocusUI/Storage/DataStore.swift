@@ -55,6 +55,16 @@ public final class DataStore {
     public func deleteSession(_ id: UUID) { sessions.removeAll { $0.id == id }; review.removeAll { $0.sessionId == id }; save() }
     public func sessions(for project: UUID) -> [SessionRecord] { sessions.filter { $0.projectId == project } }
 
+    public func resolveGoal(for id: UUID, done: Bool) {
+        guard let i = sessions.firstIndex(where: { $0.id == id }), let goal = sessions[i].goal else { return }
+        sessions[i].goalDone = done
+        if let p = projects.firstIndex(where: { $0.id == sessions[i].projectId }) {
+            if !done { projects[p].carriedGoal = goal }
+            else if projects[p].carriedGoal == goal { projects[p].carriedGoal = nil }
+        }
+        save()
+    }
+
     // MARK: review queue
     public func addReview(_ m: ReviewMoment) { review.insert(m, at: 0); if review.count > 200 { review.removeLast() }; save() }
     public func answerReview(_ id: UUID, _ answer: String) { if let i = review.firstIndex(where: { $0.id == id }) { review[i].answer = answer; review[i].reason = nil; save() } }

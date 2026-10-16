@@ -191,6 +191,11 @@ struct FocusApp: App {
                 Button("Close example") { controller.closeExample() }.disabled(controller.example == nil)
             }
             CommandMenu("Session") {
+                Button("Keep going") { controller.keepGoing() }.disabled(!controller.shortSessionOffer)
+                Button("Finish five minutes") { controller.finishFiveMinutes() }.disabled(!controller.shortSessionOffer)
+                Button("Mark result done") { controller.resolveSessionGoal(done: true) }.disabled(controller.isActive || controller.sessionGoal.isEmpty || controller.goalDisposition != nil)
+                Button("Carry result forward") { controller.resolveSessionGoal(done: false) }.disabled(controller.isActive || controller.sessionGoal.isEmpty || controller.goalDisposition != nil)
+                Divider()
                 Button("Park a thought") { controller.onParkThought?() }
                     .keyboardShortcut(KeyEquivalent(Character(controller.prefs.parkingShortcut.key)), modifiers: controller.prefs.parkingShortcut.modifiers)
                 Button("I'm stuck") { controller.requestNextActions(); controller.requestSection(.today); NSApp.activate(ignoringOtherApps: true); openWindow(id: "main") }

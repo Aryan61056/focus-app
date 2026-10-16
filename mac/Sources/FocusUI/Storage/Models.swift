@@ -7,6 +7,7 @@ public struct Project: Codable, Identifiable, Equatable, Sendable {
     public var name: String
     public var context = ""
     public var nextStep = ""
+    public var carriedGoal: String?
     public var profile = ProjectProfile()
     public var createdAt = Date()
     public init(name: String) { self.name = name }
@@ -51,6 +52,8 @@ public struct SessionRecord: Codable, Identifiable, Equatable, Sendable {
     public var shadowMarks: Int
     public var segments: [TimelineSegment]
     public var note = ""
+    public var goal: String?
+    public var goalDone: Bool?
     public var reads: ReadStats?
     /// Seconds it took to get back on task after each confirmed drift. Counts only, like everything else saved.
     public var returns: [Double]?

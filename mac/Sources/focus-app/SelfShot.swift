@@ -26,6 +26,14 @@ enum SelfShot {
                     controller.act(.breakTime, minutes: 5)
                 }
                 else if a == "parked" { controller.store?.park("Ask about the synthetic lab materials"); controller.store?.park("Pick up a notebook"); controller.act(.breakTime, minutes: 5) }
+                else if a == "start-until" {
+                    controller.startDraft.task = "Lab report"; controller.startDraft.length = .until
+                    controller.startDraft.done = "Write the methods section"; controller.startDraft.extras = true; controller.requestStart()
+                }
+                else if a == "goal-finished" {
+                    if controller.isActive { controller.end() }
+                    controller.begin(task: "Lab report", goal: "Write the methods section"); controller.end()
+                }
                 else if a == "start" { controller.requestStart() }
                 else if a == "readscreen" { controller.prefs.readScreen = true }
                 else if a == "veil" { controller.previewVeil() }   // the whole-screen gray, so its windows can be listed
