@@ -24,6 +24,12 @@ public protocol Assistant: Sendable {
     func sharpen(task: String, context: String) async -> Sharpened?
     func recap(facts: String) async -> Recap?
     func answer(question: String, facts: String) async -> String?
+    func nextActions(task: String, context: String) async -> [String]?
+}
+
+/// Existing assistants can decline this optional capability without changing judging behavior.
+extension Assistant {
+    public func nextActions(task: String, context: String) async -> [String]? { nil }
 }
 
 /// Used when the model is unavailable and in tests that do not care about AI text.
@@ -71,6 +77,28 @@ public enum AssistantText {
     """
 }
 
+/// A relevance guard, not a scientific correctness check. Unrelated example leakage is never offered.
+public enum NextActionFilter {
+    public static func actions(_ raw: [String], task: String, context: String) -> [String] {
+        func stems(_ value: String) -> Set<String> {
+            var words = Set(Rules.words(value).map { String($0.prefix(4)) })
+            for word in value.lowercased().split(whereSeparator: { !$0.isLetter }) where ["q", "k", "x"].contains(String(word)) { words.insert(String(word)) }
+            return words
+        }
+        let subject = stems(task + " " + context)
+        var accepted: [String] = [], seen: [Set<String>] = []
+        for text in raw {
+            let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            let terms = stems(clean)
+            guard !clean.isEmpty, !terms.isDisjoint(with: subject) else { continue }
+            guard !seen.contains(where: { Double($0.intersection(terms).count) / Double(max(1, $0.union(terms).count)) > 0.7 }) else { continue }
+            accepted.append(String(clean.prefix(150))); seen.append(terms)
+            if accepted.count == 3 { break }
+        }
+        return accepted
+    }
+}
+
 #if canImport(FoundationModels)
 @available(macOS 26.0, *)
 public struct AppleAssistant: Assistant {
@@ -94,6 +122,24 @@ public struct AppleAssistant: Assistant {
     struct AnswerOutput {
         @Guide(description: "At most three short sentences answering the question from the facts")
         var answer: String
+    }
+
+    @Generable
+    struct NextActionsOutput {
+        @Guide(description: "One to three distinct concrete next actions, each under 16 words")
+        var actions: [String]
+    }
+
+    /// Only user-authored task/context enters this prompt; no session readings, titles, URLs or OCR.
+    public func rawNextActions(task: String, context: String) async -> [String]? {
+        let facts = "Task: \(Prompts.oneLine(String(task.prefix(240))))\nProject context: \(Prompts.oneLine(String(context.prefix(600))))"
+        return await run(PromptText.stuckV1, AssistantText.block(facts), NextActionsOutput.self)?.actions
+    }
+
+    public func nextActions(task: String, context: String) async -> [String]? {
+        guard let raw = await rawNextActions(task: task, context: context) else { return nil }
+        let actions = NextActionFilter.actions(raw.map { Self.clean($0, max: 150) }, task: task, context: context)
+        return actions.isEmpty ? nil : actions
     }
 
     public init() {}

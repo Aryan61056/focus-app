@@ -48,8 +48,12 @@ struct TodayView: View {
     @ViewBuilder var main: some View {
         VStack(alignment: .leading, spacing: 26) {
             if c.isActive {
-                SeeingCard(c: c)
-                if c.aiAvailable { AskPanel(c: c) }
+                if c.stuckShown { StuckCard(c: c).transition(.opacity) }
+                else {
+                    HStack { Button("I'm stuck") { c.requestNextActions() }.buttonStyle(FocusButtonStyle(.secondary, small: true)).help("Find a smaller next action"); Spacer() }
+                    SeeingCard(c: c)
+                }
+                if c.aiAvailable && !c.stuckShown { AskPanel(c: c) }
             } else {
                 if c.summary != nil { JustFinishedCard(c: c) }
                 StartCard(c: c, showStart: $showStart, intro: firstRun)
@@ -173,7 +177,7 @@ struct LiveHeader: View {
                     .background { RingGlow(on: c.ringColor == Tokens.accent && !c.isPaused, color: Tokens.accent).padding(-6) }
             }
             VStack(alignment: .leading, spacing: 8) {
-                Text(c.taskName).font(Tokens.rounded(28, .semibold)).lineLimit(2)
+                Text(c.taskName).font(Tokens.rounded(28, .semibold)).lineLimit(2).contentTransition(.opacity).motion(Motion.notchSettle, value: c.taskName)
                 HStack(spacing: 8) {
                     StateChip(label: c.presenceLabel, ring: c.ringState, on: c.ringColor == Tokens.accent)
                     if let m = c.moment { MomentLine(moment: m) }

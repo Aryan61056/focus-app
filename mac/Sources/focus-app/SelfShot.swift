@@ -1,5 +1,6 @@
 import AppKit
 import FocusUI
+import FocusJudge
 
 /// Developer tool, only with FOCUS_DEMO=1 and FOCUS_SELFSHOT=<folder>: after a few seconds, draws this app's own windows (the main window
 /// and the notch panel, with scripted demo data) to PNG files and quits. It renders views, it does not capture the screen, so it needs no permission.
@@ -18,6 +19,7 @@ enum SelfShot {
                     let parts = a.split(separator: ":")
                     if parts.count == 2, let step = Int(parts[1]) { controller.example?.select(step) }
                 }
+                else if a == "stuck" { controller.assistant = ExampleAssistant(); controller.requestNextActions() }
                 else if a == "start" { controller.requestStart() }
                 else if a == "readscreen" { controller.prefs.readScreen = true }
                 else if a == "veil" { controller.previewVeil() }   // the whole-screen gray, so its windows can be listed
@@ -41,5 +43,14 @@ enum SelfShot {
             }
             NSApp.terminate(nil)
         }
+    }
+}
+
+private struct ExampleAssistant: Assistant {
+    func sharpen(task: String, context: String) async -> Sharpened? { nil }
+    func recap(facts: String) async -> Recap? { nil }
+    func answer(question: String, facts: String) async -> String? { nil }
+    func nextActions(task: String, context: String) async -> [String]? {
+        ["Choose u and dv for the first calculus integral.", "Differentiate your chosen calculus expression.", "Write the calculus rule beside your working."]
     }
 }

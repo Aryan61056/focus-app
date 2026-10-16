@@ -55,7 +55,12 @@ public final class SessionController {
     // UI state (everything the views read)
     public var example: GuidedExample?
     public private(set) var isActive = false
-    public private(set) var taskName = ""
+    public internal(set) var taskName = ""
+    public internal(set) var nextActions = AIState<[String]>.idle
+    public internal(set) var stuckShown = false
+    @ObservationIgnored var nextActionsTask: Task<Void, Never>?
+    @ObservationIgnored var nextActionsTimeout: Task<Void, Never>?
+    @ObservationIgnored var nextActionsGeneration = 0
     public private(set) var mode = Mode.open
     public private(set) var presence = Presence(state: "off", reason: nil)
     public private(set) var veilTarget = 0
@@ -249,6 +254,19 @@ public final class SessionController {
     }
 
     // MARK: session
+    /// A new user-approved goal preserves elapsed time while invalidating evidence about the previous one.
+    public func changeTask(to action: String) {
+        let text = action.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard isActive, !text.isEmpty else { return }
+        cancelNextActions()
+        tasks.forEach { $0.cancel() }; tasks = []
+        taskName = String(text.prefix(240)); readings = []
+        clearEscalation(); driftWatch.reset(); headsUpAt = nil; banner = nil; shield = nil
+        blockedSites = [:]; passedPages = [:]; lastOnTask = nil
+        send(.taskChanged)
+        if let window = currentWindow { windowChanged(window) }
+    }
+
     public func begin(task: String, mode: Mode = .open, duration: Double? = nil, preset: Preset? = nil,
                       shadow: Bool? = nil, project: ProjectProfile = ProjectProfile(), projectId: UUID? = nil, autoTick: Bool = false) {
         guard !isActive else { return }
@@ -259,7 +277,7 @@ public final class SessionController {
             pid = p.id; profile = p.profile
             if !p.context.isEmpty { profile.context = p.context }   // the judge reads profile.context; Projects edits Project.context
         }
-        closeExample()
+        closeExample(); cancelNextActions()
         let shadow = prefs.practiceRemoved ? false : (shadow ?? prefs.practiceActive)
         self.project = profile; self.projectId = pid; self.shadow = shadow
         sessionId = UUID(); startedAt = date(); segments = []; segKind = nil; segStart = now()
@@ -671,6 +689,7 @@ public final class SessionController {
                 prefs.sessionFinished(wasPractice: shadow)
                 startRecap()
                 previewFrame = nil; previewHeld = nil; screenText = ""
+                cancelNextActions()
                 isActive = false; clearEscalation(); resetCues(); veilTarget = 0; manualNextStep = false; surface = nil; reentryOpen = false; askResume = nil; wrapUp = false
                 timer?.invalidate(); timer = nil
             }
@@ -714,6 +733,7 @@ public final class SessionController {
         tasks.append(Task { [weak self] in
             let j = await Pipeline.judge(m, with: judge, useRules: false, minOffConfidence: minConfidence)
             self?.judging = max(0, (self?.judging ?? 1) - 1)
+            guard !Task.isCancelled else { return }
             self?.deliver(j, id: id, observedAt: observedAt, windowKey: windowKey, contentKey: content, sawScreen: sawScreen)
         })
     }

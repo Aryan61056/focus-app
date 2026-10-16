@@ -179,6 +179,8 @@ struct FocusApp: App {
                 Button("Close example") { controller.closeExample() }.disabled(controller.example == nil)
             }
             CommandMenu("Session") {
+                Button("I'm stuck") { controller.requestNextActions(); controller.requestSection(.today); NSApp.activate(ignoringOtherApps: true); openWindow(id: "main") }
+                    .keyboardShortcut("i", modifiers: [.command, .shift]).disabled(!controller.isActive)
                 Button("Start session\u{2026}") { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); controller.requestStart() }
                     .keyboardShortcut("n").disabled(controller.isActive)
                 Button(controller.isPaused ? "Resume" : "Pause") { controller.act(controller.isPaused ? .resume : .pause) }
