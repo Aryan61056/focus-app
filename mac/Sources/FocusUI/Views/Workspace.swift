@@ -242,8 +242,8 @@ struct ActivityLog: View {
                 HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
                     icon(e.kind).frame(width: 16)
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(e.title).font(Tokens.text(.body)).lineLimit(1)
-                        Text("\(e.detail) \u{00B7} \(e.date.formatted(.dateTime.hour().minute()))").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(1)
+                        Text(e.title).font(Tokens.text(.body)).lineLimit(2)
+                        Text("\(e.detail) \u{00B7} \(e.date.formatted(.dateTime.hour().minute()))").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(2)
                     }
                 }
                 .padding(.vertical, Space.xs)
@@ -324,17 +324,18 @@ struct CanBeWrong: View {
 /// A page with the Focus panel at its right: the page scrolls on its own and the panel keeps a fixed width. On a narrow window the
 /// panel goes under the page instead, so nothing is hidden.
 struct PanelLayout<Main: View, Side: View>: View {
-    var panelWidth: CGFloat = 272
+    var panelWidth: CGFloat = 264
     @ViewBuilder var main: Main
     @ViewBuilder var side: Side
     @State private var width: CGFloat = 1000
     var body: some View {
         Group {
-            if width >= 820 {
+            if width >= 700 {
                 HStack(spacing: 0) {
                     main.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     Rectangle().fill(Tokens.line).frame(width: 1)
-                    side.frame(width: panelWidth).frame(maxHeight: .infinity, alignment: .top)
+                    // A little wider at larger text sizes, so its lines and buttons still fit.
+                    side.frame(width: panelWidth * (1 + (TextScale.shared.factor - 1) * 0.6)).frame(maxHeight: .infinity, alignment: .top)
                 }
             } else {
                 VStack(spacing: 0) {
