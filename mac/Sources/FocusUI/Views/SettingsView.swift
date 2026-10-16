@@ -39,6 +39,12 @@ struct SettingsView: View {
     }
     var body: some View {
         Form {
+                if page == .general {
+                    Section("Getting started") {
+                        Button("See how it works") { c.showExample() }.disabled(c.isActive)
+                            .help("A guided example with made-up windows. No permissions needed.")
+                    }
+                }
                 if page == .nudges {
                     // Droppy heads its pages with a picture of the feature: here, a nudge as the notch shows it, in the tone you picked.
                     Section {

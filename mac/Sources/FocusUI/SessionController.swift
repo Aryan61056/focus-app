@@ -53,6 +53,7 @@ public struct SessionSummary: Equatable, Sendable {
 @MainActor @Observable
 public final class SessionController {
     // UI state (everything the views read)
+    public var example: GuidedExample?
     public private(set) var isActive = false
     public private(set) var taskName = ""
     public private(set) var mode = Mode.open
@@ -158,7 +159,7 @@ public final class SessionController {
     /// Menu commands (View > Today, Projects, ...) ask the window to switch section. The serial makes repeated requests distinct.
     public private(set) var sectionRequest: (section: AppSection, serial: Int)?
     public func requestSection(_ s: AppSection) { sectionRequest = (s, (sectionRequest?.serial ?? 0) + 1) }
-    public func requestStart() { startRequests += 1 }
+    public func requestStart() { closeExample(); startRequests += 1 }
     public private(set) var judgeStatus = JudgeStatus.unknown
     public func setJudgeStatus(_ s: JudgeStatus) { if judgeStatus != s { judgeStatus = s } }
     @ObservationIgnored public var onOpenModelSettings: (() -> Void)?
@@ -258,6 +259,7 @@ public final class SessionController {
             pid = p.id; profile = p.profile
             if !p.context.isEmpty { profile.context = p.context }   // the judge reads profile.context; Projects edits Project.context
         }
+        closeExample()
         let shadow = prefs.practiceRemoved ? false : (shadow ?? prefs.practiceActive)
         self.project = profile; self.projectId = pid; self.shadow = shadow
         sessionId = UUID(); startedAt = date(); segments = []; segKind = nil; segStart = now()

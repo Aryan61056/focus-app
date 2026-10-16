@@ -40,6 +40,7 @@ struct FocusApp: App {
         w.setFrame(f, display: true)
     }
     @State private var demo: DemoSenses?
+    @State private var exampleNotch: NotchPanelController?
     @State private var notch: NotchPanelController?
     @State private var sense: SenseCoordinator?
     @State private var previewWatcher: PreviewWatcher?
@@ -58,6 +59,7 @@ struct FocusApp: App {
     @State private var voice = Voice()
     @State private var phoneLink = PhoneLink()
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.dismissWindow) private var dismissWindow
 
     var body: some Scene {
         Window("Focus", id: "main") {
@@ -153,9 +155,29 @@ struct FocusApp: App {
                     d.start()
                 }
         }
+        .onChange(of: controller.example != nil) { _, shown in
+            if shown, let example = controller.example {
+                let panel = NotchPanelController(controller: example.controller)
+                exampleNotch = panel; panel.start(); openWindow(id: "example")
+            } else { exampleNotch?.stop(); exampleNotch = nil; dismissWindow(id: "example") }
+        }
         .defaultSize(width: 1240, height: 800)
         .windowToolbarStyle(.unified)
         .commands {
+            CommandGroup(replacing: .help) {
+                Button("See how it works") { controller.showExample() }
+                    .keyboardShortcut("d", modifiers: [.command, .shift]).disabled(controller.isActive)
+            }
+            CommandMenu("Example") {
+                Button("Previous scene") { if let e = controller.example { e.select(e.step - 1) } }
+                    .keyboardShortcut(.leftArrow, modifiers: [.command, .option]).disabled(controller.example == nil || controller.example?.step == 0)
+                Button("Next scene") { if let e = controller.example { e.select(e.step == 3 ? 0 : e.step + 1) } }
+                    .keyboardShortcut(.rightArrow, modifiers: [.command, .option]).disabled(controller.example == nil)
+                Button(controller.example?.playing == true ? "Pause playback" : "Autoplay") {
+                    if let e = controller.example { e.playing ? e.pause() : e.autoplay() }
+                }.keyboardShortcut("p", modifiers: [.command, .option]).disabled(controller.example == nil)
+                Button("Close example") { controller.closeExample() }.disabled(controller.example == nil)
+            }
             CommandMenu("Session") {
                 Button("Start session\u{2026}") { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); controller.requestStart() }
                     .keyboardShortcut("n").disabled(controller.isActive)
@@ -176,6 +198,14 @@ struct FocusApp: App {
 
         Window("iPhone", id: "iphone") { PhoneLinkView(link: phoneLink) }
             .windowResizability(.contentSize)
+
+        Window("See how Focus works", id: "example") {
+            if let example = controller.example {
+                GuidedExampleView(example: example) { controller.closeExample() }
+            }
+        }
+        .defaultSize(width: 780, height: 720)
+        .windowResizability(.contentMinSize)
 
         MenuBarExtra {
             MenuBarContent(controller: controller) {

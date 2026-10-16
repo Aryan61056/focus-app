@@ -13,6 +13,11 @@ enum SelfShot {
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             for a in list.split(separator: ",").map(String.init) {
                 if a.hasPrefix("section:"), let s = AppSection.allCases.first(where: { $0.rawValue.lowercased() == a.dropFirst(8).lowercased() }) { controller.requestSection(s) }
+                else if a.hasPrefix("example") {
+                    controller.showExample()
+                    let parts = a.split(separator: ":")
+                    if parts.count == 2, let step = Int(parts[1]) { controller.example?.select(step) }
+                }
                 else if a == "start" { controller.requestStart() }
                 else if a == "readscreen" { controller.prefs.readScreen = true }
                 else if a == "veil" { controller.previewVeil() }   // the whole-screen gray, so its windows can be listed

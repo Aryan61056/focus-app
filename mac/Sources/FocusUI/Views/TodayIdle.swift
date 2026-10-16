@@ -35,6 +35,10 @@ struct StartCard: View {
                     }
                     hint
                 }
+                if intro {
+                    Button("See how it works") { c.showExample() }
+                        .buttonStyle(FocusButtonStyle(.plain, small: true)).help("Try an example with made-up windows")
+                }
                 modeRow
                 pickUp
                 if c.prefs.practiceActive && !intro {
