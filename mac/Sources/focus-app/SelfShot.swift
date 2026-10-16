@@ -20,6 +20,12 @@ enum SelfShot {
                     if parts.count == 2, let step = Int(parts[1]) { controller.example?.select(step) }
                 }
                 else if a == "stuck" { controller.assistant = ExampleAssistant(); controller.requestNextActions() }
+                else if a == "park" || a == "park-long" { controller.onParkThought?() }
+                else if a == "parked-all" {
+                    for i in 1...12 { controller.store?.park("Synthetic thought \(i): ask about the lab materials") }
+                    controller.act(.breakTime, minutes: 5)
+                }
+                else if a == "parked" { controller.store?.park("Ask about the synthetic lab materials"); controller.store?.park("Pick up a notebook"); controller.act(.breakTime, minutes: 5) }
                 else if a == "start" { controller.requestStart() }
                 else if a == "readscreen" { controller.prefs.readScreen = true }
                 else if a == "veil" { controller.previewVeil() }   // the whole-screen gray, so its windows can be listed

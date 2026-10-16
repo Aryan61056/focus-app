@@ -45,6 +45,8 @@ struct FocusApp: App {
     @State private var sense: SenseCoordinator?
     @State private var previewWatcher: PreviewWatcher?
     @State private var hotKey = GlobalHotKey()
+    @State private var parkingHotKey = GlobalHotKey()
+    @State private var parkingPanel: ParkingPanelController?
     @State private var updater: Updater?
 
     init() {
@@ -60,6 +62,12 @@ struct FocusApp: App {
     @State private var phoneLink = PhoneLink()
     @Environment(\.openWindow) private var openWindow
     @Environment(\.dismissWindow) private var dismissWindow
+
+    private func registerParkingShortcut() {
+        let key = controller.prefs.parkingShortcut
+        let registered = parkingHotKey.register(keyCode: key.keyCode, modifiers: key.carbonModifiers) { controller.onParkThought?() }
+        controller.parkingShortcutError = registered ? nil : "That shortcut is in use. Choose another, or use Session > Park a thought."
+    }
 
     var body: some Scene {
         Window("Focus", id: "main") {
@@ -113,6 +121,9 @@ struct FocusApp: App {
                     if updater == nil, ProcessInfo.processInfo.environment["FOCUS_DEMO"] != "1" { let u = Updater(controller: controller); updater = u; u.start() }
                     controller.setJudgeStatus(DefaultJudge.status())
                     Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in MainActor.assumeIsolated { controller.setJudgeStatus(DefaultJudge.status()) } }
+                    if parkingPanel == nil { parkingPanel = ParkingPanelController(controller: controller) }
+                    controller.onParkThought = { parkingPanel?.show() }
+                    registerParkingShortcut()
                     hotKey.register {
                         if controller.isActive { controller.act(controller.isPaused ? .resume : .pause) }
                         else { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); controller.requestStart() }
@@ -155,6 +166,7 @@ struct FocusApp: App {
                     d.start()
                 }
         }
+        .onChange(of: controller.prefs.parkingShortcut) { _, _ in registerParkingShortcut() }
         .onChange(of: controller.example != nil) { _, shown in
             if shown, let example = controller.example {
                 let panel = NotchPanelController(controller: example.controller)
@@ -179,6 +191,8 @@ struct FocusApp: App {
                 Button("Close example") { controller.closeExample() }.disabled(controller.example == nil)
             }
             CommandMenu("Session") {
+                Button("Park a thought") { controller.onParkThought?() }
+                    .keyboardShortcut(KeyEquivalent(Character(controller.prefs.parkingShortcut.key)), modifiers: controller.prefs.parkingShortcut.modifiers)
                 Button("I'm stuck") { controller.requestNextActions(); controller.requestSection(.today); NSApp.activate(ignoringOtherApps: true); openWindow(id: "main") }
                     .keyboardShortcut("i", modifiers: [.command, .shift]).disabled(!controller.isActive)
                 Button("Start session\u{2026}") { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); controller.requestStart() }

@@ -62,6 +62,8 @@ public final class SessionController {
     @ObservationIgnored var nextActionsTimeout: Task<Void, Never>?
     @ObservationIgnored var nextActionsGeneration = 0
     public private(set) var mode = Mode.open
+    public var onParkThought: (() -> Void)?
+    public var parkingShortcutError: String?
     public private(set) var presence = Presence(state: "off", reason: nil)
     public private(set) var veilTarget = 0
     public private(set) var veilDuration = 0

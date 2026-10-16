@@ -49,6 +49,7 @@ public struct MenuBarContent: View {
                 item("Restart to update") { c.installUpdate() }
             }
             Divider().padding(.vertical, 4)
+            item("Park a thought") { c.onParkThought?() }
             item("Open Focus", openApp)
         }
         .padding(8).frame(width: 296)

@@ -48,14 +48,16 @@ struct TodayView: View {
     @ViewBuilder var main: some View {
         VStack(alignment: .leading, spacing: 26) {
             if c.isActive {
-                if c.stuckShown { StuckCard(c: c).transition(.opacity) }
+                if c.presence.reason == "break", let store = c.store, !store.thoughts.isEmpty { ParkingLotCard(store: store) }
+                else if c.stuckShown { StuckCard(c: c).transition(.opacity) }
                 else {
                     HStack { Button("I'm stuck") { c.requestNextActions() }.buttonStyle(FocusButtonStyle(.secondary, small: true)).help("Find a smaller next action"); Spacer() }
                     SeeingCard(c: c)
                 }
-                if c.aiAvailable && !c.stuckShown { AskPanel(c: c) }
+                if c.aiAvailable && !c.stuckShown && c.presence.reason != "break" { AskPanel(c: c) }
             } else {
                 if c.summary != nil { JustFinishedCard(c: c) }
+                if let store = c.store, !store.thoughts.isEmpty { ParkingLotCard(store: store) }
                 StartCard(c: c, showStart: $showStart, intro: firstRun)
                 if firstRun { HowItWorks(c: c).fixedSize(horizontal: false, vertical: true) }
                 if let st = c.store { DaySection(store: st); WeekSection(store: st) }

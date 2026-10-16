@@ -213,6 +213,10 @@ struct SettingsView: View {
                     }
                 }
                 group("Shortcut", .general) {
+                    Picker("Park a thought", selection: Binding(get: { c.prefs.parkingShortcut }, set: { c.prefs.parkingShortcut = $0 })) {
+                        ForEach(ParkingShortcut.allCases) { Text($0.label).tag($0) }
+                    }.help("Open the thought input from any app")
+                    if let error = c.parkingShortcutError { Text(error).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
                     row("Start or pause from anywhere", "Press Control, Option and F. With no session it opens the start sheet on the project you worked on last. During a session it pauses or resumes.") {
                         Text("\u{2303}\u{2325}F").font(Tokens.rounded(14, .semibold)).foregroundStyle(Tokens.ink2)
                     }

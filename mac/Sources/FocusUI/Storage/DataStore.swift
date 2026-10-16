@@ -9,6 +9,7 @@ public final class DataStore {
     public private(set) var projects: [Project] = []
     public private(set) var sessions: [SessionRecord] = []
     public private(set) var review: [ReviewMoment] = []
+    public private(set) var thoughts: [ParkedThought] = []
     @ObservationIgnored private let url: URL?
 
     public init(url: URL? = nil) {
@@ -21,7 +22,7 @@ public final class DataStore {
             try? FileManager.default.moveItem(at: url, to: aside)
             return
         }
-        projects = f.projects; sessions = f.sessions; review = f.review
+        projects = f.projects; sessions = f.sessions; review = f.review; thoughts = f.thoughts ?? []
     }
 
     public static var defaultURL: URL {
@@ -30,10 +31,10 @@ public final class DataStore {
         return dir.appendingPathComponent("store.json")
     }
 
-    func save() {
-        guard let url else { return }
-        guard let data = try? JSONEncoder.store.encode(StoreFile(projects: projects, sessions: sessions, review: review)) else { return }
-        try? data.write(to: url, options: [.atomic])
+    @discardableResult func save() -> Bool {
+        guard let url else { return true }
+        guard let data = try? JSONEncoder.store.encode(StoreFile(projects: projects, sessions: sessions, review: review, thoughts: thoughts)) else { return false }
+        do { try data.write(to: url, options: [.atomic]); return true } catch { return false }
     }
 
     // MARK: projects
@@ -90,9 +91,23 @@ public final class DataStore {
 
     static func add(_ v: String, to list: inout [String]) { if !list.contains(where: { $0.caseInsensitiveCompare(v) == .orderedSame }) { list.append(v) } }
 
+    @discardableResult public func park(_ text: String) -> Bool {
+        let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, text.count <= 2000 else { return false }
+        thoughts.append(ParkedThought(text: text))
+        guard save() else { thoughts.removeLast(); return false }; return true
+    }
+    public func completeThought(_ id: UUID, completed: Bool) {
+        guard let index = thoughts.firstIndex(where: { $0.id == id }) else { return }
+        thoughts[index].completed = completed; save()
+    }
+    public func clearThoughts(completedOnly: Bool = false) {
+        if completedOnly { thoughts.removeAll { $0.completed } } else { thoughts = [] }; save()
+    }
+
     // MARK: data ownership
-    public func deleteEverything() { projects = []; sessions = []; review = []; save() }
-    public func exportJSON() -> Data? { try? JSONEncoder.store.encode(StoreFile(projects: projects, sessions: sessions, review: review)) }
+    public func deleteEverything() { projects = []; sessions = []; review = []; thoughts = []; save() }
+    public func exportJSON() -> Data? { try? JSONEncoder.store.encode(StoreFile(projects: projects, sessions: sessions, review: review, thoughts: thoughts)) }
 }
 
 extension JSONEncoder { static var store: JSONEncoder { let e = JSONEncoder(); e.dateEncodingStrategy = .iso8601; e.outputFormatting = [.prettyPrinted, .sortedKeys]; return e } }

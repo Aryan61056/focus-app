@@ -91,4 +91,5 @@ struct StoreFile: Codable {
     var projects: [Project] = []
     var sessions: [SessionRecord] = []
     var review: [ReviewMoment] = []
+    var thoughts: [ParkedThought]?
 }

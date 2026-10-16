@@ -8,6 +8,7 @@ import FocusJudge
 @MainActor @Observable
 public final class Preferences {
     public static let practiceSessions = 3
+    public var parkingShortcut: ParkingShortcut { didSet { defaults.set(parkingShortcut.rawValue, forKey: "parkingShortcut") } }
     @ObservationIgnored private let defaults: UserDefaults
     public var preset: Preset { didSet { defaults.set(preset.rawValue, forKey: "preset") } }
     public var practiceSessionsLeft: Int { didSet { defaults.set(practiceSessionsLeft, forKey: "practiceLeft") } }
@@ -81,6 +82,7 @@ public final class Preferences {
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        parkingShortcut = ParkingShortcut(rawValue: defaults.string(forKey: "parkingShortcut") ?? "") ?? .controlOptionP
         preset = Preset(rawValue: defaults.string(forKey: "preset") ?? "") ?? .standard
         skipPersonal = defaults.object(forKey: "skipPersonal") as? Bool ?? true
         neverJudgedApps = defaults.stringArray(forKey: "neverJudgedApps") ?? Rules.defaultNeverJudgedApps
