@@ -9,19 +9,38 @@ public struct MenuBarContent: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            // The same halftone art as Today's banner, with the session on a black pill, so the menu opens onto the app's own look.
+            ZStack {
+                Halftone(pattern: .ridge(phase: 2.6), ripple: .oncePerLaunch("menubar"))
+                if c.isActive {
+                    HStack(spacing: 10) {
+                        TimelineView(.periodic(from: .now, by: 1)) { _ in LiveRing(c.ringState, color: c.ringColor == Tokens.accent ? NotchView.accent : NotchView.ink).frame(width: 22, height: 22) }
+                        Text(c.taskName).font(Tokens.rounded(14.5)).lineLimit(1).frame(maxWidth: 120, alignment: .leading)
+                        Spacer(minLength: 4)
+                        TimelineView(.periodic(from: .now, by: 1)) { _ in
+                            let t = c.clockText()
+                            Text(t).font(Tokens.rounded(14.5)).monospacedDigit().foregroundStyle(NotchView.ink2)
+                                .contentTransition(.numericText(countsDown: c.mode == .timed)).motion(Motion.out(0.3), value: t)
+                        }
+                    }
+                    .foregroundStyle(NotchView.ink).padding(.leading, 12).padding(.trailing, 16).frame(width: 252, height: 44)
+                    .background(Capsule().fill(.black)).overlay { Capsule().strokeBorder(PillEdge.gradient, lineWidth: 1) }
+                    .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
+                    .allowsHitTesting(false)
+                    .accessibilityElement(children: .ignore).accessibilityLabel("\(c.taskName), \(c.presenceLabel)")
+                } else {
+                    Text("No session running").font(Tokens.rounded(14.5)).foregroundStyle(NotchView.ink)
+                        .padding(.horizontal, 20).frame(height: 44)
+                        .background(Capsule().fill(.black)).overlay { Capsule().strokeBorder(PillEdge.gradient, lineWidth: 1) }
+                        .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
+                        .allowsHitTesting(false)
+                }
+            }
+            .frame(height: 84).clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .padding(.bottom, 6)
             if c.isActive {
-                HStack(spacing: 10) {
-                    TimelineView(.periodic(from: .now, by: 1)) { _ in LiveRing(c.ringState, color: c.ringColor).frame(width: 30, height: 30) }
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(c.taskName).font(Tokens.rounded(15)).lineLimit(1)
-                        Text("\(c.presenceLabel) · \(c.mode == .timed ? "Timed" : "Open") session").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
-                    }
-                    Spacer()
-                    TimelineView(.periodic(from: .now, by: 1)) { _ in
-                        let t = c.clockText()
-                        Text(t).font(Tokens.rounded(15)).monospacedDigit().contentTransition(.numericText(countsDown: c.mode == .timed)).motion(Motion.out(0.3), value: t)
-                    }
-                }.padding(10)
+                Text("\(c.presenceLabel) · \(c.mode == .timed ? "Timed" : "Open") session").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
+                    .padding(.horizontal, 10).padding(.bottom, 6)
                 if let r = c.latest, !c.isPaused {
                     HStack(spacing: 8) {
                         RingView(r.ring, color: r.tint).frame(width: 14, height: 14)
@@ -41,7 +60,6 @@ public struct MenuBarContent: View {
                 if c.mode == .timed { item("Extend 5 minutes") { c.act(.extend, minutes: 5) } }
                 item("End session") { c.end() }
             } else {
-                Text("No session running").font(Tokens.rounded(15)).padding(10)
                 if c.shortSessionOffer {
                     item("Keep going") { c.keepGoing() }
                     item("Finish five minutes") { c.finishFiveMinutes() }

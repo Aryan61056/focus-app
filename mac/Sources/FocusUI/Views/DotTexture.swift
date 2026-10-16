@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// A regular grid of small dots, drawn once. `Equatable` and wrapped in `.equatable()` by every caller, so SwiftUI never redraws it
-/// while a mask, a scale or a position around it moves. That is what makes the texture free to put behind many surfaces.
+/// while a mask, a scale or a position around it moves. Used as the printed texture inside chart bars.
 struct DotGrid: View, Equatable {
     var color: Color = Tokens.ink
     var step: CGFloat = 7
@@ -27,54 +27,7 @@ struct DotGrid: View, Equatable {
     }
 }
 
-/// The website's micro dot texture for surfaces: a faint grid that fades out from one corner, and, under the pointer, a soft pool of
-/// accent-colored dots that follows it with a little weight. Reduce Motion keeps the grid and drops the pool. Nothing is drawn per frame.
-struct DotTexture: ViewModifier {
-    var radius: CGFloat = 10
-    /// The corner the grid is strongest at.
-    var from: UnitPoint = .topTrailing
-    var strength = 1.0
-    var spotlight = true
-    @State private var pointer: CGPoint?
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    func body(content: Content) -> some View {
-        content
-            .background {
-                ZStack {
-                    DotGrid(opacity: 0.12 * strength).equatable()
-                        .mask(RadialGradient(colors: [.black, .black.opacity(0)], center: from, startRadius: 0, endRadius: 360))
-                    if spotlight && !reduceMotion {
-                        DotGrid(color: Tokens.accent, step: 7, radius: 1.1, opacity: 0.85).equatable()
-                            .mask {
-                                GeometryReader { _ in
-                                    Circle().fill(RadialGradient(colors: [.white, .white.opacity(0)], center: .center, startRadius: 0, endRadius: 80))
-                                        .frame(width: 160, height: 160)
-                                        .position(pointer ?? .zero)
-                                        .opacity(pointer == nil ? 0 : 1)
-                                }
-                            }
-                            .animation(Motion.glide, value: pointer)
-                    }
-                }
-                .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
-            }
-            .onContinuousHover { phase in
-                guard spotlight, !reduceMotion else { return }
-                switch phase {
-                case .active(let p): pointer = p
-                case .ended: pointer = nil
-                }
-            }
-    }
-}
-
 extension View {
-    /// The micro dot texture behind a card. See `DotTexture`.
-    func dotTexture(radius: CGFloat = 10, from: UnitPoint = .topTrailing, strength: Double = 1, spotlight: Bool = true) -> some View {
-        modifier(DotTexture(radius: radius, from: from, strength: strength, spotlight: spotlight))
-    }
-
     /// Wipes the view in from the leading edge once, as a chart draws itself. Replays when the screen is opened again.
     func sweepIn(delay: Double = 0, duration: Double = 0.7) -> some View { modifier(SweepIn(delay: delay, duration: duration)) }
 }

@@ -28,6 +28,19 @@ extension HalftonePattern {
         return crest1 * crest1 * 1.1 + crest2 * crest2 * 0.9 + (hill1 > 0 ? 0.3 + 0.25 * sin(u * 40 + v * 23) * sin(u * 11) : 0)
     }
 
+    /// The hero's hills again with the ridges moved along, so a page's banner is clearly the same art but not a copy of Today's.
+    static func ridge(phase: Double) -> HalftonePattern {
+        HalftonePattern(
+            background: Gradient(colors: [Color(red: 0.03, green: 0.22, blue: 0.16), Color(red: 0.05, green: 0.40, blue: 0.27), Color(red: 0.10, green: 0.55, blue: 0.36)]),
+            stars: true) { u, v in
+            let a = CGFloat(phase)
+            let hill1 = v - (0.70 - 0.2 * sin(u * 4.4 + a) - 0.05 * sin(u * 11 + a))
+            let hill2 = v - (0.34 + 0.2 * cos(u * 3.0 + a * 1.7) + 0.04 * sin(u * 15 + a))
+            let crest1 = max(0, 1 - abs(hill1) * 5), crest2 = max(0, 1 - abs(hill2) * 5.5)
+            return crest1 * crest1 * 1.1 + crest2 * crest2 * 0.9 + (hill1 > 0 ? 0.28 + 0.22 * sin(u * 38 + v * 21) * sin(u * 9 + a) : 0)
+        }
+    }
+
     /// The nudge: green light rising from the foot of the notch, brightest low and toward the middle, so the words above stay clear.
     static let nudge = HalftonePattern(step: 5, maxDot: 3, color: NotchView.accent, opacity: 0.22...0.85, origin: UnitPoint(x: 0.5, y: 0), rippleSpan: 0.55) { u, v in
         let rise = pow(max(0, (v - 0.22) / 0.78), 1.25)

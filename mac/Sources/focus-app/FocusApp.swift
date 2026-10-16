@@ -159,7 +159,7 @@ struct FocusApp: App {
                     ])
                     demo = d
                     SampleData.seedIfRequested(controller.store); DemoPreview.startIfRequested(controller)
-                    SelfShot.scheduleIfRequested(); SelfShot.runActions(controller)
+                    SelfShot.scheduleIfRequested(); SelfShot.runActions(controller); SelfShot.showMenuIfRequested(controller)
                     // FOCUS_DEMO_NOSESSION=1 leaves the app idle so the start flow can be driven (tools and screenshots).
                     if ProcessInfo.processInfo.environment["FOCUS_DEMO_NOSESSION"] == "1" { return }
                     controller.begin(task: "Calc homework", preset: ProcessInfo.processInfo.environment["FOCUS_DEMO_STRICT"] == "1" ? .strict : .standard, shadow: false, autoTick: true)

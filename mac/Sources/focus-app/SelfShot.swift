@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 import FocusUI
 import FocusJudge
 
@@ -39,6 +40,14 @@ enum SelfShot {
                 else if a == "veil" { controller.previewVeil() }   // the whole-screen gray, so its windows can be listed
             }
         }
+    }
+
+    /// FOCUS_DEMO_MENU=1 (demo only) shows the menu bar popover's content in an ordinary window, since a status item cannot be clicked from here.
+    static func showMenuIfRequested(_ controller: SessionController) {
+        guard ProcessInfo.processInfo.environment["FOCUS_DEMO"] == "1", ProcessInfo.processInfo.environment["FOCUS_DEMO_MENU"] == "1" else { return }
+        let host = NSHostingController(rootView: MenuBarContent(controller: controller) {}.background(Color(nsColor: .windowBackgroundColor)))
+        let w = NSWindow(contentViewController: host)
+        w.title = "Menu"; w.styleMask = [.titled]; w.setFrameOrigin(NSPoint(x: 80, y: 120)); w.makeKeyAndOrderFront(nil)
     }
 
     static func scheduleIfRequested(after seconds: Double = 12) {

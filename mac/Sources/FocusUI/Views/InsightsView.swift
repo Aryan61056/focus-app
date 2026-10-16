@@ -18,6 +18,8 @@ struct InsightsView: View {
                 if t.total == 0 {
                     EmptyState(symbol: "chart.bar", title: "Nothing to show yet", text: "After a session, this shows when you focus best, how quickly you get back on task, and how often you agreed with Focus.")
                 } else {
+                    PageBanner(key: "insights", symbol: "chart.bar.fill", text: durationText(store.sessions.reduce(0) { $0 + $1.onTaskSeconds }) + " on task",
+                               detail: "across \(store.sessions.count) session\(store.sessions.count == 1 ? "" : "s")", phase: 1.4)
                     if let share = DayStats.morningShare(DayStats.heat(store.sessions)) {
                         Text("Mornings are your strongest time: \(share)% of your focused minutes fall before noon.")
                             .font(Tokens.rounded(20, .semibold)).fixedSize(horizontal: false, vertical: true).frame(maxWidth: 640, alignment: .leading)
@@ -38,7 +40,7 @@ struct InsightsView: View {
     var heat: some View {
         Panel {
             VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .firstTextBaseline) { Text("When you focus").font(Tokens.text(15, .semibold)); Spacer(); Text("On-task time by hour and day").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
+                Text("When you focus").font(Tokens.text(15, .semibold)).accessibilityAddTraits(.isHeader)
                 Heatmap(grid: DayStats.heat(store.sessions))
             }
         }
@@ -68,11 +70,11 @@ struct InsightsView: View {
 
     func readingFacts(_ t: ReadStats) -> some View {
         VStack(spacing: 0) {
-            fact("Readings", "\(t.total)")
-            fact("Read by the model", "\(t.model)")
-            fact("Settled by your rules", "\(t.rule)")
+            fact("Readings", count: t.total)
+            fact("Read by the model", count: t.model)
+            fact("Settled by your rules", count: t.rule)
             if t.skipped > 0 { fact("Left alone (never-judged list)", "\(t.skipped)") }
-            fact("Sessions", "\(store.sessions.count)")
+            fact("Sessions", count: store.sessions.count)
         }
     }
 
@@ -82,6 +84,26 @@ struct InsightsView: View {
             Divider().overlay(Tokens.line)
             HStack { Text(k).foregroundStyle(Tokens.ink2); Spacer(); Text(v).monospacedDigit() }.font(Tokens.text(13)).padding(.vertical, 8)
         }
+    }
+    func fact(_ k: String, count: Int) -> some View {
+        VStack(spacing: 0) {
+            Divider().overlay(Tokens.line)
+            HStack { Text(k).foregroundStyle(Tokens.ink2); Spacer(); CountText(value: count) }.font(Tokens.text(13)).padding(.vertical, 8)
+        }
+    }
+}
+
+/// A whole number that counts up from zero the first time it appears, with digits that roll. Shows the number at once with Reduce Motion.
+struct CountText: View {
+    var value: Int
+    @State private var shown = SnapshotMode.on
+    @Environment(\.accessibilityReduceMotion) private var shownAtOnce
+    var body: some View {
+        let v = shown || shownAtOnce ? value : 0
+        Text("\(v)").monospacedDigit().contentTransition(.numericText(value: Double(v)))
+            .animation(.smooth(duration: 0.9), value: v)
+            .onAppear { shown = true }
+            .accessibilityLabel("\(value)")
     }
 }
 
@@ -129,8 +151,35 @@ struct Heatmap: View {
                     }
                 }
             }
+            // One line that answers the grid: the dot under the pointer, or the best hour when nothing is hovered. Beside it, what size means.
+            HStack(spacing: 12) {
+                Text(readout(peak))
+                    .font(Tokens.text(12.5, .medium)).foregroundStyle(Tokens.ink).lineLimit(1)
+                    .contentTransition(.interpolate).animation(reduceMotion ? nil : Motion.hover, value: readout(peak))
+                Spacer(minLength: 8)
+                Text("Less").font(Tokens.text(11.5)).foregroundStyle(Tokens.ink2)
+                HStack(spacing: 5) {
+                    ForEach([0.0, 0.25, 0.5, 0.75, 1.0], id: \.self) { f in
+                        Circle().fill(Tokens.accent.opacity(f == 0 ? 0.3 : 0.35 + 0.65 * sqrt(f))).frame(width: 4 + 11 * sqrt(f), height: 4 + 11 * sqrt(f)).frame(width: 15, height: 15)
+                    }
+                }
+                Text("More").font(Tokens.text(11.5)).foregroundStyle(Tokens.ink2)
+            }
+            .padding(.top, 12).padding(.leading, 36)
+            .accessibilityElement(children: .ignore).accessibilityLabel(readout(peak))
         }
         .onAppear { shown = true }
+    }
+
+    func readout(_ peak: Double) -> String {
+        if let h = hover {
+            let v = grid[h.day][h.hour]
+            return v > 0 ? "\(Self.days[h.day]) \(h.hour):00 · \(Int(v / 60)) min on task" : "\(Self.days[h.day]) \(h.hour):00 · nothing yet"
+        }
+        var best: (Int, Int, Double)?
+        for d in 0..<7 { for hr in 8..<20 where grid[d][hr] > (best?.2 ?? 0) { best = (d, hr, grid[d][hr]) } }
+        guard let b = best else { return "Hover a dot to see the minutes" }
+        return "Best hour: \(Self.days[b.0]) \(b.1):00 · \(Int(b.2 / 60)) min on task"
     }
 }
 

@@ -196,13 +196,7 @@ struct SessionToolbarPill: View {
 /// The window's own surface: the system's plain window gray, as Droppy's pages sit on, so the grouped cards on top read as cards.
 struct WindowBackdrop: View {
     var body: some View {
-        ZStack {
-            if SnapshotMode.on { Tokens.window } else { Color(nsColor: .windowBackgroundColor).ignoresSafeArea() }
-            // The same micro dots as the cards, a little stronger, thinning out from the top so the gutters beside the page are not empty.
-            DotGrid(step: 8, radius: 0.8, opacity: 0.1).equatable()
-                .mask(RadialGradient(colors: [.black, .black.opacity(0)], center: .top, startRadius: 40, endRadius: 620))
-                .ignoresSafeArea()
-        }
+        if SnapshotMode.on { Tokens.window } else { Color(nsColor: .windowBackgroundColor).ignoresSafeArea() }
     }
 }
 
