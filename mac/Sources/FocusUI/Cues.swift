@@ -271,7 +271,6 @@ public enum CueCopy {
     }
     public static func claimsUsedUp(_ n: Int) -> String { "You have used all \(n) explanations for this session. Go back to the task." }
     public static func backHoldLine() -> String { "\(Int(Shield.backHoldSeconds)) seconds. Letting go starts over." }
-    public static func explainLine() -> String { "If this really is part of your task, say how. Focus checks your words against the window. Opening this costs nothing; a wrong answer does." }
     public static func lockedLine(_ seconds: Int) -> String {
         let m = (seconds + 59) / 60
         return "Focus could not verify this. Explaining is locked for \(m) \(m == 1 ? "minute" : "minutes"). Going back to the task works now."

@@ -127,7 +127,8 @@ struct SessionTimeline: View {
 
     var body: some View {
         let parts = Self.stretches(readings, start: start, now: now)
-        let span = max(60, (end ?? now) - start)
+        // An open session fills to now, so the right edge is always "now"; a timed one is drawn against its planned length.
+        let span = max(1, (end ?? now) - start)
         VStack(alignment: .leading, spacing: Space.xxs) {
             GeometryReader { g in
                 ZStack(alignment: .leading) {
@@ -164,9 +165,8 @@ struct SessionTimeline: View {
         .contentShape(Rectangle())
     }
     func label(_ p: Stretch) -> String {
-        let mins = max(1, Int(((p.to - p.from) / 60).rounded()))
         let what: String = { switch p.call { case .on?: return "On task"; case .unsure?: return "Not sure"; case .off?: return "Off topic"; case nil: return "Before the first window" } }()
-        return "\(what), \(mins) min from \(clock(p.from))"
+        return "\(what), \(SessionCounts.minutes(p.to - p.from)) from \(clock(p.from))"
     }
     /// Wall-clock time of a point on the session's clock.
     func clock(_ t: Double) -> String { Date().addingTimeInterval(t - now).formatted(.dateTime.hour().minute()) }

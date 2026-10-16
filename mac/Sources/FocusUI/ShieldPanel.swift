@@ -51,7 +51,7 @@ struct ShieldCard: View {
                 Button(NudgeCopy.breakButton()) { c.takeNudgeBreak() }.buttonStyle(ShieldButtonStyle(.primary))
             }
             backToTask(primary: !(c.longDetour && shield.kind == .pause))
-            TimelineView(.periodic(from: .now, by: 0.25)) { _ in
+            TimelineView(.everySecond) { _ in
                 let lock = c.overrideLockRemaining
                 if lock > 0 {
                     HStack(spacing: 6) {
@@ -148,9 +148,11 @@ struct ShieldRing: View {
                         Image(systemName: "sparkle").font(Tokens.symbol(22, .semibold)).foregroundStyle(Tokens.slip)
                     }
                 }
+                // Inside the clock, so VoiceOver reads the time now, not the minute the shield appeared.
+                .accessibilityElement().accessibilityLabel("Time away from the task, \(SessionCounts.minutes(s))")
             }
         }
-        .accessibilityElement().accessibilityLabel("Time away from the task, \(Int(c.offTopicSecondsNow() / 60)) minutes")
+        .accessibilityElement(children: .contain)
     }
 }
 
