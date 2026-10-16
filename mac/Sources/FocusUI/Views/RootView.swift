@@ -23,7 +23,8 @@ public struct RootView: View {
     @Bindable var c: SessionController
     @State var selection: AppSection
     @State private var showStart = false
-    @State private var settingsPage = SettingsPage.nudges
+    /// FOCUS_DEMO_PAGE=Notch (demo only) opens Settings on that page, so a capture can show it.
+    @State private var settingsPage = ProcessInfo.processInfo.environment["FOCUS_DEMO"] == "1" ? (SettingsPage(rawValue: ProcessInfo.processInfo.environment["FOCUS_DEMO_PAGE"] ?? "") ?? .nudges) : .nudges
     @State private var projectID: UUID?
     @State private var confirmDelete = false
     /// Where you have been and where Back would take you back from, for the toolbar's back and forward buttons.

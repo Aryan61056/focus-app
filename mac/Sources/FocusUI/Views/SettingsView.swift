@@ -5,18 +5,18 @@ import AppKit
 
 /// Settings split into pages, each its own row in the sidebar, the way System Settings and Droppy lay them out.
 public enum SettingsPage: String, CaseIterable, Identifiable, Hashable, Sendable {
-    case general = "General", nudges = "Nudges", cues = "Cues", rhythm = "Rhythm and goals", reading = "What Focus reads", privacy = "Privacy"
+    case general = "General", nudges = "Nudges", cues = "Cues", notch = "Notch", rhythm = "Rhythm and goals", reading = "What Focus reads", privacy = "Privacy"
     public var id: String { rawValue }
     var symbol: String {
         switch self {
         case .general: return "gearshape.fill"; case .nudges: return "hand.wave.fill"; case .cues: return "bell.badge.fill"
-        case .rhythm: return "metronome.fill"; case .reading: return "eye.fill"; case .privacy: return "hand.raised.fill"
+        case .notch: return "rectangle.topthird.inset.filled"; case .rhythm: return "metronome.fill"; case .reading: return "eye.fill"; case .privacy: return "hand.raised.fill"
         }
     }
     var color: Color {
         switch self {
         case .general: return .gray; case .nudges: return Color(red: 0.16, green: 0.62, blue: 0.38); case .cues: return .red
-        case .rhythm: return .orange; case .reading: return .blue; case .privacy: return .indigo
+        case .notch: return .teal; case .rhythm: return .orange; case .reading: return .blue; case .privacy: return .indigo
         }
     }
 }
@@ -50,6 +50,34 @@ struct SettingsView: View {
                     Section {
                         HeroBanner(caption: "A nudge in the notch", pulse: c.prefs.nudgeTone.example.hashValue) { NudgePreviewPill(text: c.prefs.nudgeTone.example) }
                             .listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
+                    }
+                }
+                group("Widgets on the notch", .notch) {
+                    // Everything here is worked out on this Mac. The notch only shows these; none of them is a button.
+                    ForEach(NotchWidget.allCases) { w in
+                        HStack(spacing: 12) {
+                            WidgetIcon(widget: w, size: 28)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(w.title)
+                                Text(w.detail).font(Tokens.text(12)).foregroundStyle(Tokens.ink2)
+                            }
+                            Spacer(minLength: 12)
+                            Toggle("", isOn: Binding(get: { c.prefs.notchWidgetList.contains(w) }, set: { _ in withAnimation(Motion.notchSettle) { c.prefs.toggleNotchWidget(w) } }))
+                                .labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
+                        }
+                        .padding(.vertical, 2)
+                        .accessibilityElement(children: .combine)
+                    }
+                    Text("Up to \(NotchWidget.onHomeLimit) show on the notch's Home page at once. Turning on a third replaces the one that has been there longest. You can also pick them from the Widgets page in the open notch.")
+                        .font(Tokens.text(12)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                }
+                group("Your own line", .notch) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("What the My line widget says")
+                        TextField("A reminder for yourself", text: Binding(get: { c.prefs.notchNote }, set: { c.prefs.notchNote = String($0.prefix(90)) }))
+                            .wellField()
+                        Text("\(c.prefs.notchNote.count) of 90. Shown on the notch only while a session runs and My line is on.")
+                            .font(Tokens.text(12)).foregroundStyle(Tokens.ink2).monospacedDigit()
                     }
                 }
                 group("Nudges", .nudges) {
