@@ -15,6 +15,19 @@ A sweep of the Mac app for moments that should move, gated the way `find-animati
 | 7 | `TodayIdle.swift` first-run steps | Three cards at once | Delight (first run) | Once | Arrive in reading order, 60 ms apart, 8 pt rise, ease-out 0.42 s. |
 | 8 | `ReviewView.swift` | Answered moment vanished | Spatial consistency | Occasional | The row fades and settles out (scale 0.98 from top); the rows below close up with `Motion.notchSettle`. |
 
+## Second pass: the halftone everywhere it earns a place (2026-10-15)
+
+`Halftone.swift` turns the hero's dot field into one native component with patterns: `hills` (hero), `nudge`, `rings`, `bloom`. Each ripples out from its origin when it arrives, can swell under the pointer, and redraws only while moving.
+
+| # | Where | Before | Purpose | Frequency | Motion |
+|---|---|---|---|---|---|
+| 9 | `NotchView.swift` nudge | 100 pt-tall glass card, mostly empty, muddy grey over busy windows, ring and time stranded in the ears | State indication; spatial consistency | A few per day | Redesigned: 72 pt solid black, one row (ring in a lit well, the question plus "M:SS into this session", the green pill). The band empties as it does for the open card. Green halftone light rises from the foot and ripples out of the hardware notch as it opens (0.55 s across, dots grow 0.7 s). |
+| 10 | `Components.swift` `EmptyState` | Flat card | Delight (empty state, rare) | Rare | Printed accent rings spread from the symbol as the page arrives, then rest and swell under the pointer. |
+| 11 | `TodayIdle.swift` session finished | Flat card | Delight (completion) | A few per day | Accent light blooms in from the card's empty top-right corner, away from the text, and settles faint. |
+| 12 | `CuePanels.swift` reminder banner | Glass primary button drawn grey (glass in a never-key panel renders inactive) | Craft | A few per day | Solid green pill, the same `PillStyle` as the notch. |
+
+Rejected in this pass: halftone behind every page header (navigation is tens per day, and functional pages should not shimmer); the ripple on the open notch card (you open it by clicking, often); dots behind reading/verdict cards (information you read).
+
 ## Rejected
 
 - **Parking-lot panel open** (`ParkingLot.swift`). Keyboard-initiated (a global hotkey). It stays instant, like Raycast.

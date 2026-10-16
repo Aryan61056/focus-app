@@ -62,38 +62,46 @@ struct JustFinishedCard: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         if let s = c.summary {
-            Tile {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Image(systemName: "checkmark.circle").font(.system(size: 17, weight: .semibold)).foregroundStyle(Tokens.accent)
-                            .modifier(DrawOn(hidden: !drawn && !reduceMotion))
-                            .accessibilityHidden(true)
-                        Text("Session finished").font(Tokens.rounded(18, .semibold))
-                        Spacer()
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Image(systemName: "checkmark.circle").font(.system(size: 17, weight: .semibold)).foregroundStyle(Tokens.accent)
+                        .modifier(DrawOn(hidden: !drawn && !reduceMotion))
+                        .accessibilityHidden(true)
+                    Text("Session finished").font(Tokens.rounded(18, .semibold))
+                    Spacer()
+                }
+                .task { try? await Task.sleep(for: .milliseconds(220)); drawn = true }
+                Text(sentence(s)).font(Tokens.text(14)).foregroundStyle(Tokens.ink2)
+                if let h = c.highlight { HighlightLine(highlight: h) }
+                if c.shortSessionOffer {
+                    HStack {
+                        Button("Keep going") { c.keepGoing() }.buttonStyle(FocusButtonStyle(.primary, small: true))
+                        Button("Finish") { c.finishFiveMinutes() }.buttonStyle(FocusButtonStyle(.plain, small: true))
                     }
-                    .task { try? await Task.sleep(for: .milliseconds(220)); drawn = true }
-                    Text(sentence(s)).font(Tokens.text(14)).foregroundStyle(Tokens.ink2)
-                    if let h = c.highlight { HighlightLine(highlight: h) }
-                    if c.shortSessionOffer {
-                        HStack {
-                            Button("Keep going") { c.keepGoing() }.buttonStyle(FocusButtonStyle(.primary, small: true))
-                            Button("Finish") { c.finishFiveMinutes() }.buttonStyle(FocusButtonStyle(.plain, small: true))
-                        }
-                    } else { SessionGoalResult(c: c) }
-                    if !c.shortSessionOffer && (c.sessionGoal.isEmpty || c.goalDisposition != nil) { RecapBlock(c: c) }
-                    if !c.shortSessionOffer && (c.sessionGoal.isEmpty || c.goalDisposition != nil), let p = c.projectForNote { PickUpNote(c: c, project: p) }
-                    if c.askLoudness && !c.shortSessionOffer && (c.sessionGoal.isEmpty || c.goalDisposition != nil) {
-                        Divider().overlay(Tokens.line)
-                        HStack(spacing: 8) {
-                            Text("Was Focus too loud?").font(Tokens.text(13, .semibold))
-                            Spacer()
-                            Button("Too quiet") { c.prefs.answerLoudness(.tooQuiet) }.buttonStyle(FocusButtonStyle(.plain, small: true))
-                            Button("About right") { c.prefs.answerLoudness(.aboutRight) }.buttonStyle(FocusButtonStyle(.plain, small: true))
-                            Button("Too loud") { c.prefs.answerLoudness(.tooLoud) }.buttonStyle(FocusButtonStyle(.plain, small: true))
-                        }
+                } else { SessionGoalResult(c: c) }
+                if !c.shortSessionOffer && (c.sessionGoal.isEmpty || c.goalDisposition != nil) { RecapBlock(c: c) }
+                if !c.shortSessionOffer && (c.sessionGoal.isEmpty || c.goalDisposition != nil), let p = c.projectForNote { PickUpNote(c: c, project: p) }
+                if c.askLoudness && !c.shortSessionOffer && (c.sessionGoal.isEmpty || c.goalDisposition != nil) {
+                    Divider().overlay(Tokens.line)
+                    HStack(spacing: 8) {
+                        Text("Was Focus too loud?").font(Tokens.text(13, .semibold))
+                        Spacer()
+                        Button("Too quiet") { c.prefs.answerLoudness(.tooQuiet) }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                        Button("About right") { c.prefs.answerLoudness(.aboutRight) }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                        Button("Too loud") { c.prefs.answerLoudness(.tooLoud) }.buttonStyle(FocusButtonStyle(.plain, small: true))
                     }
                 }
             }
+            .padding(22)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // Light blooms in from the card's empty corner as it arrives, the one moment in a session worth marking. It settles faint.
+            .background {
+                GeometryReader { g in
+                    Halftone(pattern: .bloom(from: UnitPoint(x: 1, y: 0), aspect: g.size.width / max(1, g.size.height)), followsPointer: false)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+            .modifier(CardSurface(radius: 10))
         }
     }
     func sentence(_ s: SessionSummary) -> String {

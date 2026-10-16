@@ -67,7 +67,12 @@ struct BannerView: View {
             if banner.kind == .early {
                 Button("This is part of it") { c.bannerPartOfIt() }.buttonStyle(FocusButtonStyle(.plain, small: true))
             }
-            Button("Back to task") { c.bannerBackToTask() }.buttonStyle(FocusButtonStyle(.primary, small: true))
+            Button { c.bannerBackToTask() } label: {
+                Text("Back to task").font(Tokens.text(12.5, .semibold)).foregroundStyle(Color(red: 0.02, green: 0.1, blue: 0.05))
+                    .padding(.horizontal, 14).frame(height: 28)
+            }
+            // The banner never takes focus, and glass in a window that is not key draws grey, so its one way forward is a solid pill.
+            .buttonStyle(PillStyle())
             Button { c.dismissBanner() } label: {
                 Image(systemName: "xmark").font(.system(size: 10, weight: .bold)).foregroundStyle(Tokens.ink2).frame(width: 24, height: 24).contentShape(Rectangle())
             }
