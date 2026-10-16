@@ -8,29 +8,52 @@ struct Panel<Content: View>: View {
     var body: some View {
         // A grouped section, as Droppy's and System Settings' forms draw them: a quiet rounded card a step lighter than the window.
         if tinted {
-            content.padding(.horizontal, 14).padding(.vertical, 13).frame(maxWidth: .infinity, alignment: .leading)
-                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Tokens.accent.opacity(0.1)))
-                .overlay { RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Tokens.cardEdge) }
+            content.padding(Space.m).frame(maxWidth: .infinity, alignment: .leading)
+                .background(RoundedRectangle(cornerRadius: Tokens.radiusCard, style: .continuous).fill(Tokens.accent.opacity(0.1)))
+                .overlay { RoundedRectangle(cornerRadius: Tokens.radiusCard, style: .continuous).strokeBorder(Tokens.cardEdge) }
         } else {
-            Tile(padding: 14) { content }
+            Tile(padding: Space.m) { content }
         }
     }
 }
 
 /// The one raised surface: a card a step above the canvas, with a hairline edge and, in light mode, a soft shadow so it lifts off the page.
 struct Tile<Content: View>: View {
-    var padding: CGFloat = 22
+    var padding: CGFloat = Space.l
     @ViewBuilder var content: Content
     var body: some View {
         content
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .modifier(CardSurface(radius: 10))
+            .modifier(CardSurface())
     }
 }
 
+/// A part of a card set into it: a well a step darker than the card (light) or the canvas (dark), never a second card with its own
+/// edge and shadow. Used for a question inside a card, the window picture's placeholder, a disclosure, a group of steps.
+struct Inset<Content: View>: View {
+    var padding: CGFloat = Space.m
+    var fill: Color = Tokens.well
+    @ViewBuilder var content: Content
+    var body: some View {
+        content.padding(padding).frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: Tokens.radiusInset, style: .continuous).fill(fill))
+    }
+}
+
+extension View {
+    /// A card that floats over the page or the screen (nudge, check-in, rhythm prompt, next step): glass, the float radius and one shadow.
+    func floatingCard(width: CGFloat = 340) -> some View {
+        padding(Space.l).frame(width: width)
+            .glassSurface(RoundedRectangle(cornerRadius: Tokens.radiusFloat, style: .continuous), fallback: Tokens.window)
+            .shadow(color: .black.opacity(0.18), radius: 18, y: 8)
+    }
+    /// At least `Tokens.minHit` square to click, whatever the glyph's size, so small icons are still easy to hit.
+    func hitTarget() -> some View { frame(minWidth: Tokens.minHit, minHeight: Tokens.minHit).contentShape(Rectangle()) }
+}
+
 struct CardSurface: ViewModifier {
-    var radius: CGFloat = 10
+    var radius: CGFloat = Tokens.radiusCard
     var fill: Color = Tokens.card
     @Environment(\.colorScheme) private var scheme
     func body(content: Content) -> some View {
@@ -49,9 +72,9 @@ struct PageHeader<Trailing: View>: View {
     var subtitle: String?
     @ViewBuilder var trailing: Trailing
     var body: some View {
-        HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 5) {
-                if let subtitle { Text(subtitle).font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true) }
+        HStack(alignment: .center, spacing: Space.m) {
+            VStack(alignment: .leading, spacing: Space.xxs) {
+                if let subtitle { Text(subtitle).font(Tokens.text(.body)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true) }
             }
             Spacer(minLength: 16)
             trailing
@@ -76,9 +99,9 @@ struct ChoiceStyle: ButtonStyle {
         @State private var hover = false
         var body: some View {
             configuration.label
-                .font(Tokens.text(12.5, .semibold))
+                .font(Tokens.text(.caption, .semibold))
                 .foregroundStyle(on ? Tokens.accentInk : Tokens.ink)
-                .padding(.horizontal, 12).frame(height: 28)
+                .padding(.horizontal, Space.s).frame(height: 28)
                 .background(Capsule().fill(on ? Tokens.accentSoft : (hover ? Tokens.controlHover : Tokens.control)))
                 .opacity(configuration.isPressed ? 0.8 : 1)
                 .contentShape(Capsule())
@@ -94,7 +117,7 @@ struct ChoiceRow<T: Hashable>: View {
     @Binding var selection: T
     var title: (T) -> String
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: Space.xs) {
             ForEach(items, id: \.self) { item in
                 Button(title(item)) { selection = item }.buttonStyle(ChoiceStyle(on: selection == item))
             }
@@ -109,9 +132,9 @@ struct WellField: ViewModifier {
     /// Inside a well (a tinted panel) a field is raised to the card color instead, so it still reads as a field.
     var raised = false
     func body(content: Content) -> some View {
-        content.textFieldStyle(.plain).padding(.horizontal, 12).frame(height: height)
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(raised ? Tokens.window2 : Tokens.well))
-            .overlay { RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(focused ? Tokens.accent : Tokens.line, lineWidth: focused ? 1.5 : 0.5) }
+        content.textFieldStyle(.plain).padding(.horizontal, Space.s).frame(height: height)
+            .background(RoundedRectangle(cornerRadius: Tokens.radiusInset, style: .continuous).fill(raised ? Tokens.window2 : Tokens.well))
+            .overlay { RoundedRectangle(cornerRadius: Tokens.radiusInset, style: .continuous).strokeBorder(focused ? Tokens.accent : Tokens.line, lineWidth: focused ? 1.5 : 0.5) }
     }
 }
 extension View {
@@ -124,18 +147,18 @@ struct EmptyState<Action: View>: View {
     var title: String, text: String
     @ViewBuilder var action: Action
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: Space.m) {
             Image(systemName: symbol).font(.system(size: 22, weight: .medium)).foregroundStyle(Tokens.accent)
                 .frame(width: 52, height: 52).background(Circle().fill(Tokens.accentSoft))
-            VStack(spacing: 6) {
-                Text(title).font(Tokens.rounded(18, .semibold))
-                Text(text).font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+            VStack(spacing: Space.xs) {
+                Text(title).font(Tokens.rounded(.title3, .semibold))
+                Text(text).font(Tokens.text(.body)).foregroundStyle(Tokens.ink2).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: 420)
             }
             action
         }
-        .padding(.vertical, 44).padding(.horizontal, 24).frame(maxWidth: .infinity)
-        .modifier(CardSurface(radius: 10))
+        .padding(.vertical, 44).padding(.horizontal, Space.xl).frame(maxWidth: .infinity)
+        .modifier(CardSurface())
         .accessibilityElement(children: .contain)
     }
 }
@@ -173,11 +196,11 @@ struct AppIcon: View {
 struct StateChip: View {
     var label: String, ring: RingState, on = true
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: Space.xs) {
             LiveRing(ring, color: on ? Tokens.accent : Tokens.ink).frame(width: 14, height: 14)
-            Text(label).font(Tokens.text(12.5, .semibold)).contentTransition(.interpolate)
+            Text(label).font(Tokens.text(.caption, .semibold)).contentTransition(.interpolate)
         }
-        .padding(.leading, 6).padding(.trailing, 10).frame(height: 24)
+        .padding(.leading, Space.xs).padding(.trailing, Space.s).frame(height: 24)
         .background(Capsule().fill(on ? Tokens.accentSoft : Tokens.control))
         .motion(Motion.notchSettle, value: label)
         .motion(Motion.out(0.3), value: on)
@@ -187,7 +210,7 @@ struct StateChip: View {
 
 struct SectionTitle: View {
     var text: String
-    var body: some View { Text(text).font(Tokens.text(13, .semibold)).padding(.leading, 9).accessibilityAddTraits(.isHeader) }
+    var body: some View { Text(text).font(Tokens.text(.body, .semibold)).padding(.leading, Space.s).accessibilityAddTraits(.isHeader) }
 }
 
 /// Offscreen snapshots (ImageRenderer) cannot draw ScrollView content, so the snapshot tool turns scrolling off.
@@ -204,8 +227,8 @@ struct Scroller<Content: View>: View {
 struct AITag: View {
     var body: some View {
         Label("On-device AI", systemImage: "sparkles").labelStyle(.titleAndIcon)
-            .font(Tokens.text(11.5, .medium)).foregroundStyle(Tokens.ink2)
-            .padding(.horizontal, 8).frame(height: 20)
+            .font(Tokens.text(.caption2, .medium)).foregroundStyle(Tokens.ink2)
+            .padding(.horizontal, Space.xs).frame(height: 20)
             .overlay { Capsule().strokeBorder(Tokens.line) }
             .accessibilityLabel("Written by the on-device model. It can be wrong.")
     }

@@ -6,15 +6,15 @@ struct DayTrack: View {
     var range: ClosedRange<Int>
     var nowHour: Double?
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: Space.xs) {
             Canvas { ctx, size in
                 let span = Double(range.upperBound - range.lowerBound)
-                ctx.fill(Path(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 10), with: .color(Tokens.control))
+                ctx.fill(Path(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: Tokens.radiusInset), with: .color(Tokens.control))
                 for s in slices {
                     let x = (s.startHour - Double(range.lowerBound)) / span * size.width
                     let w = max(2, s.hours / span * size.width)
                     switch s.kind {
-                    case .on: ctx.fill(Path(roundedRect: CGRect(x: x, y: 6, width: w, height: size.height - 12), cornerRadius: 4), with: .color(Tokens.accent))
+                    case .on: ctx.fill(Path(roundedRect: CGRect(x: x, y: 6, width: w, height: size.height - 12), cornerRadius: Tokens.radiusTiny), with: .color(Tokens.accent))
                     case .unsure:
                         var dashes = Path(); var dx = x
                         while dx < x + w { dashes.addRect(CGRect(x: dx, y: 6, width: min(3, x + w - dx), height: size.height - 12)); dx += 6 }
@@ -29,7 +29,7 @@ struct DayTrack: View {
             GeometryReader { g in
                 let span = CGFloat(range.upperBound - range.lowerBound)
                 ForEach(Array(stride(from: range.lowerBound, through: range.upperBound, by: 2)), id: \.self) { h in
-                    Text("\(h)").font(Tokens.rounded(11.5)).foregroundStyle(Tokens.ink2).position(x: min(max(CGFloat(h - range.lowerBound) / span * g.size.width, 8), g.size.width - 8), y: 8)
+                    Text("\(h)").font(Tokens.rounded(.caption2)).foregroundStyle(Tokens.ink2).position(x: min(max(CGFloat(h - range.lowerBound) / span * g.size.width, 8), g.size.width - 8), y: 8)
                 }
             }.frame(height: 16).accessibilityHidden(true)
         }
@@ -43,11 +43,11 @@ struct WeekBars: View {
     var body: some View {
         let top = max(2, (days.map(\.hours).max() ?? 0).rounded(.up))
         VStack(spacing: 0) {
-            HStack(alignment: .bottom, spacing: 10) {
+            HStack(alignment: .bottom, spacing: Space.s) {
                 ForEach(Array(days.enumerated()), id: \.offset) { i, d in
                     let today = i == days.count - 1
-                    VStack(spacing: 6) {
-                        Text(d.hours > 0 ? Self.short(d.hours) : "").font(Tokens.rounded(11.5, today ? .semibold : .medium))
+                    VStack(spacing: Space.xs) {
+                        Text(d.hours > 0 ? Self.short(d.hours) : "").font(Tokens.rounded(.caption2, today ? .semibold : .medium))
                             .foregroundStyle(today ? Tokens.ink : Tokens.ink2).monospacedDigit()
                         UnevenRoundedRectangle(topLeadingRadius: 6, topTrailingRadius: 6, style: .continuous)
                             .fill(Tokens.accent.opacity(today ? 1 : 0.5))
@@ -60,14 +60,14 @@ struct WeekBars: View {
             }
             .frame(height: 100)
             Rectangle().fill(Tokens.track).frame(height: 1)
-            HStack(spacing: 10) {
+            HStack(spacing: Space.s) {
                 ForEach(Array(days.enumerated()), id: \.offset) { i, d in
                     let today = i == days.count - 1
-                    Text(d.day.formatted(.dateTime.weekday(.abbreviated))).font(Tokens.text(11.5, today ? .semibold : .regular))
+                    Text(d.day.formatted(.dateTime.weekday(.abbreviated))).font(Tokens.text(.caption2, today ? .semibold : .regular))
                         .foregroundStyle(today ? Tokens.ink : Tokens.ink2).frame(maxWidth: .infinity)
                 }
             }
-            .padding(.top, 6).accessibilityHidden(true)
+            .padding(.top, Space.xs).accessibilityHidden(true)
         }
     }
     static func short(_ h: Double) -> String { h < 1 ? "\(Int((h * 60).rounded()))m" : String(format: "%.1fh", h) }

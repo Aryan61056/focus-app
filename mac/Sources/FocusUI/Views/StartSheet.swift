@@ -21,34 +21,33 @@ public struct StartSheet: View {
     public init(controller: SessionController, isPresented: Binding<Bool>) { self.c = controller; self._isPresented = isPresented }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("What are you working on?").font(Tokens.rounded(22, .semibold))
+        VStack(alignment: .leading, spacing: Space.s) {
+            Text("What are you working on?").font(Tokens.rounded(.title3, .semibold))
             TextField("Lab report on pendulums", text: $task)
-                .textFieldStyle(.plain).font(Tokens.text(16)).padding(.horizontal, 14).frame(height: 44)
-                .background(RoundedRectangle(cornerRadius: 12).fill(Tokens.control))
+                .font(Tokens.text(.headline)).wellField(height: 44, focused: focused)
                 .focused($focused).onSubmit(start)
                 .onExitCommand { isPresented = false }
             coach
-            if let m = parsed.minutes { Text("Timed session, \(m) minutes, on \u{201C}\(parsed.task)\u{201D}.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
+            if let m = parsed.minutes { Text("Timed session, \(m) minutes, on \u{201C}\(parsed.task)\u{201D}.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
             if let p = Self.lastProject(c.store), p.name == task, !p.nextStep.isEmpty {
-                Label("Next step: \(p.nextStep)", systemImage: "arrow.turn.down.right").font(Tokens.text(13)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                Label("Next step: \(p.nextStep)", systemImage: "arrow.turn.down.right").font(Tokens.text(.body)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
             }
             if let near = ProjectMatch.similar(to: trimmed, in: c.store?.projects ?? [], limit: 2).first {
                 // Close to an older project: offer to continue it instead of quietly starting a second one.
-                HStack(spacing: 6) {
-                    Text("Did you mean").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
+                HStack(spacing: Space.xs) {
+                    Text("Did you mean").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
                     chip("\u{201C}\(near.name)\u{201D}", on: false) { task = near.name + (parsed.minutes.map { " \($0)" } ?? "") }
-                    Text("? Pick it to continue it, or start to make a new project.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
+                    Text("? Pick it to continue it, or start to make a new project.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
                 }.lineLimit(2)
             } else if let line = Self.confirmLine(task: trimmed, project: c.store.flatMap { ProjectMatch.exact(trimmed, in: $0.projects) }) {
-                Text(line).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                Text(line).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
             } else if let recent = c.store?.projects.prefix(3), !recent.isEmpty {
-                HStack(spacing: 6) {
-                    Text("Continue").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
+                HStack(spacing: Space.xs) {
+                    Text("Continue").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
                     ForEach(Array(recent)) { p in chip(p.name, on: false) { task = p.name } }
                 }.lineLimit(1)
             }
-            HStack(spacing: 6) {
+            HStack(spacing: Space.xs) {
                 // A typed length ("essay 25") wins, so the chips show what will actually start.
                 let typed = parsed.minutes != nil
                 chip("Open", on: !timed && !typed) { timed = false }
@@ -59,9 +58,9 @@ public struct StartSheet: View {
                 }
             }
             if c.prefs.practiceActive {
-                HStack(alignment: .top, spacing: 10) {
+                HStack(alignment: .top, spacing: Space.s) {
                     Label("Practice mode: Focus watches but will not interrupt you. \(c.prefs.practiceSessionsLeft) practice session\(c.prefs.practiceSessionsLeft == 1 ? "" : "s") left.", systemImage: "eye")
-                        .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                        .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 0)
                     Button("Nudge me now") { c.prefs.turnNudgesOnNow() }.buttonStyle(FocusButtonStyle(.plain, small: true))
                 }
@@ -72,7 +71,7 @@ public struct StartSheet: View {
                 Button("Cancel") { isPresented = false }.buttonStyle(FocusButtonStyle(.plain)).keyboardShortcut(.cancelAction)
             }
         }
-        .padding(24).frame(width: 480)
+        .padding(Space.xl).frame(width: 480)
         // The sheet grows and shrinks as lines come and go (the coach, the length picker, the hint), never jumps.
         .motion(Motion.out(0.24), value: c.sharpened)
         .motion(Motion.out(0.24), value: timed)
@@ -94,21 +93,21 @@ public struct StartSheet: View {
                     .buttonStyle(FocusButtonStyle(.plain, small: true))
             }
         case .working:
-            HStack(spacing: 8) { ThinkingDot(); Text("Thinking about it on this Mac").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
+            HStack(spacing: Space.xs) { ThinkingDot(); Text("Thinking about it on this Mac").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
         case .failed:
-            Text("Focus has no suggestion right now. Your task is fine as it is.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
+            Text("Focus has no suggestion right now. Your task is fine as it is.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
         case .ready(let s):
-            VStack(alignment: .leading, spacing: 8) {
-                HStack { Text("Suggestion").font(Tokens.text(13, .semibold)); AITag() }
-                Text(s.task).font(Tokens.text(14, .medium))
-                if !s.counts.isEmpty { Text("Counts as on task: \(s.counts)").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true) }
-                HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: Space.xs) {
+                HStack { Text("Suggestion").font(Tokens.text(.body, .semibold)); AITag() }
+                Text(s.task).font(Tokens.text(.callout, .medium))
+                if !s.counts.isEmpty { Text("Counts as on task: \(s.counts)").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true) }
+                HStack(spacing: Space.xs) {
                     Button("Use this") { task = s.task; accepted = s; c.clearSharpened() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
                     Button("Keep mine") { c.clearSharpened() }.buttonStyle(FocusButtonStyle(.plain, small: true))
                 }
             }
-            .padding(12).frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 12).fill(Tokens.window2))
+            .padding(Space.s).frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: Tokens.radiusInset, style: .continuous).fill(Tokens.well))
         }
     }
 

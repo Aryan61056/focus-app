@@ -46,7 +46,7 @@ struct ReadingSplit: View {
         }.frame(height: 12).accessibilityElement().accessibilityLabel("\(stats.total) readings: \(stats.onTask) on task, \(stats.unsure) not sure, \(stats.offTask) off topic")
     }
     @ViewBuilder func bar(_ color: Color, _ n: Int, _ t: Int, _ w: CGFloat) -> some View {
-        if n > 0 { RoundedRectangle(cornerRadius: 4).fill(color).frame(width: max(4, w * CGFloat(n) / CGFloat(t) - 3)) }
+        if n > 0 { RoundedRectangle(cornerRadius: Tokens.radiusTiny).fill(color).frame(width: max(4, w * CGFloat(n) / CGFloat(t) - 3)) }
     }
 }
 
@@ -58,32 +58,32 @@ struct PreviewCard: View {
     @Bindable var c: SessionController
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: Space.s) {
             Color.clear.aspectRatio(16 / 10, contentMode: .fit).frame(maxWidth: .infinity).overlay { frame }
             caption
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    var shape: RoundedRectangle { RoundedRectangle(cornerRadius: 14, style: .continuous) }
+    var shape: RoundedRectangle { RoundedRectangle(cornerRadius: Tokens.radiusInset, style: .continuous) }
 
     @ViewBuilder var frame: some View {
         if c.prefs.readScreen, c.previewHeld == nil, c.previewAccess != .denied, let f = c.previewFrame {
             ZStack(alignment: .bottomLeading) {
                 Color.black.opacity(0.04)
                 Image(decorative: f.image, scale: 2).resizable().aspectRatio(contentMode: .fit)
-                Label("Live", systemImage: "circle.fill").font(Tokens.text(11.5, .semibold)).labelStyle(.titleAndIcon)
+                Label("Live", systemImage: "circle.fill").font(Tokens.text(.caption2, .semibold)).labelStyle(.titleAndIcon)
                     .symbolRenderingMode(.palette).foregroundStyle(.white, Tokens.accent)
-                    .padding(.horizontal, 8).frame(height: 22).background(Capsule().fill(.black.opacity(0.55))).padding(10)
+                    .padding(.horizontal, Space.xs).frame(height: 22).background(Capsule().fill(.black.opacity(0.55))).padding(Space.s)
                     .accessibilityHidden(true)
             }
             .clipShape(shape).overlay(shape.strokeBorder(Tokens.line))
             .accessibilityElement().accessibilityLabel("Picture of the \(f.app) window, taken on this Mac")
             .id(f.id).transition(.opacity)
         } else {
-            VStack(spacing: 12) {
+            VStack(spacing: Space.s) {
                 Image(systemName: symbol).font(.system(size: 22, weight: .medium)).foregroundStyle(Tokens.ink2)
-                Text(message).font(Tokens.text(13)).foregroundStyle(Tokens.ink2).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+                Text(message).font(Tokens.text(.body)).foregroundStyle(Tokens.ink2).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: 300)
                 if !c.prefs.readScreen {
                     Button("Show the window here") { c.prefs.readScreen = true; c.onRequestPreviewAccess?() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
@@ -91,7 +91,7 @@ struct PreviewCard: View {
                     Button("Open System Settings") { c.onRequestPreviewAccess?() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
                 }
             }
-            .padding(20).frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(Space.l).frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(shape.fill(Tokens.well))
             .overlay(shape.strokeBorder(Tokens.line, style: StrokeStyle(lineWidth: 1, dash: [5, 4])))
         }
@@ -112,27 +112,43 @@ struct PreviewCard: View {
 
     @ViewBuilder var caption: some View {
         if c.prefs.readScreen {
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: Space.s) {
                 Text(c.previewFrame == nil || c.screenText.isEmpty ? "The model sees the words, never the picture. Nothing is saved."
                      : "Read \(c.screenWordCount) words on this Mac. The model sees the words, never the picture. Gone when the session ends.")
-                    .font(Tokens.text(12)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                    .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 8)
                 Button("Turn off") { c.prefs.readScreen = false }.buttonStyle(FocusButtonStyle(.plain, small: true))
             }
             if !c.screenText.isEmpty, c.previewFrame != nil {
                 DisclosureGroup("Words Focus read") {
                     Text(String(c.screenText.prefix(600)).replacingOccurrences(of: "\n", with: " "))
-                        .font(Tokens.text(11.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                        .font(Tokens.text(.caption2)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading).textSelection(.enabled)
-                }.font(Tokens.text(12))
+                }.font(Tokens.text(.caption))
             }
         }
     }
 
     func note(_ symbol: String, _ text: String) -> some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: Space.xs) {
             Image(systemName: symbol).foregroundStyle(Tokens.ink2)
-            Text(text).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+            Text(text).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+/// Screen reading is off: one quiet line offering it, instead of an empty frame where a picture would be.
+struct PreviewOffer: View {
+    @Bindable var c: SessionController
+    var body: some View {
+        Inset(padding: Space.s) {
+            HStack(spacing: Space.s) {
+                Image(systemName: "eye").font(Tokens.symbol(14)).foregroundStyle(Tokens.ink2).accessibilityHidden(true)
+                Text("Focus can also show the window it reads and use the words on it. Nothing is saved.")
+                    .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: Space.s)
+                Button("Show the window here") { c.prefs.readScreen = true; c.onRequestPreviewAccess?() }.buttonStyle(FocusButtonStyle(.secondary, small: true)).fixedSize()
+            }
         }
     }
 }

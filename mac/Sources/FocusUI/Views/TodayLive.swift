@@ -15,23 +15,27 @@ struct SeeingCard: View {
 
     var body: some View {
         Tile {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: Space.l) {
                 header
                 if c.isHeld {
                     // Paused, on a break, in a call, away: nothing is being read, so the last reading is not shown as if it were current.
-                    HStack(spacing: 12) {
+                    HStack(spacing: Space.s) {
                         RingView(.paused, color: Tokens.ink).frame(width: 30, height: 30)
-                        Text(c.heldLine).font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
+                        Text(c.heldLine).font(Tokens.text(.body)).foregroundStyle(Tokens.ink2)
                     }
                 } else if let r = shown {
                     // The picture sits beside the call when there is room, so you see what Focus saw and what it concluded together.
-                    if width >= 720 {
-                        HStack(alignment: .top, spacing: 24) {
+                    // With screen reading off there is no picture to show, so the decision gets the whole card and the offer is one line.
+                    if !c.prefs.readScreen {
+                        decision(r)
+                        if pinned == nil { PreviewOffer(c: c) }
+                    } else if width >= 720 {
+                        HStack(alignment: .top, spacing: Space.xl) {
                             decision(r).frame(maxWidth: .infinity, alignment: .leading)
                             if pinned == nil { PreviewCard(c: c).frame(width: min(440, width * 0.46)) }
                         }
                     } else {
-                        VStack(alignment: .leading, spacing: 18) {
+                        VStack(alignment: .leading, spacing: Space.l) {
                             decision(r)
                             if pinned == nil { PreviewCard(c: c) }
                         }
@@ -41,12 +45,12 @@ struct SeeingCard: View {
                         allReadings
                     }
                 } else {
-                    HStack(spacing: 12) {
+                    HStack(spacing: Space.s) {
                         RingView(.unsure, color: Tokens.ink).frame(width: 30, height: 30)
-                        Text("Waiting for the first window. Switch to what you are working on.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
+                        Text("Waiting for the first window. Switch to what you are working on.").font(Tokens.text(.body)).foregroundStyle(Tokens.ink2)
                     }
                 }
-                Text("The model can be wrong. When it is not sure, Focus does nothing.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
+                Text("The model can be wrong. When it is not sure, Focus does nothing.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
             }
         }
         .animation(.easeOut(duration: 0.2), value: shown?.id)
@@ -55,25 +59,25 @@ struct SeeingCard: View {
     }
 
     var header: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text("What Focus is reading").font(Tokens.text(14, .semibold)).accessibilityAddTraits(.isHeader)
+        HStack(alignment: .firstTextBaseline, spacing: Space.s) {
+            Text("What Focus is reading").font(Tokens.text(.callout, .semibold)).accessibilityAddTraits(.isHeader)
             if shown?.source == .model { AITag() }
-            if c.isJudging { HStack(spacing: 6) { ThinkingDot(); Text("Reading now").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) } }
+            if c.isJudging { HStack(spacing: Space.xs) { ThinkingDot(); Text("Reading now").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) } }
             Spacer()
             if let r = shown {
                 if pinned != nil {
-                    Text("At \(r.date.formatted(.dateTime.hour().minute()))").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
+                    Text("At \(r.date.formatted(.dateTime.hour().minute()))").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
                     Button("Back to now") { pinned = nil }.buttonStyle(FocusButtonStyle(.plain, small: true))
                 } else {
                     TimelineView(.periodic(from: .now, by: 1)) { _ in
-                        Text(Self.ago(c.nowSeconds() - r.at)).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).monospacedDigit()
+                        Text(Self.ago(c.nowSeconds() - r.at)).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).monospacedDigit()
                     }
                 }
             }
         }
     }
     func decision(_ r: Reading) -> some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: Space.l) {
             windowLine(r)
             verdict(r)
             steps(r)
@@ -83,11 +87,11 @@ struct SeeingCard: View {
     static func ago(_ s: Double) -> String { s < 5 ? "Checked just now" : "Checked \(Int(s)) s ago" }
 
     func windowLine(_ r: Reading) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: Space.s) {
             AppIcon(name: r.source == .sensitive ? "Private window" : r.app, size: 38)
             VStack(alignment: .leading, spacing: 1) {
-                Text(r.appText).font(Tokens.text(14, .semibold)).lineLimit(1)
-                Text(r.titleText).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).lineLimit(1)
+                Text(r.appText).font(Tokens.text(.callout, .semibold)).lineLimit(1)
+                Text(r.titleText).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(1)
             }
             Spacer(minLength: 0)
         }
@@ -95,33 +99,43 @@ struct SeeingCard: View {
 
     /// The call, large, with Focus's own one-line reason.
     func verdict(_ r: Reading) -> some View {
-        HStack(alignment: .top, spacing: 16) {
+        HStack(alignment: .top, spacing: Space.m) {
             RingView(r.ring, color: r.tint).frame(width: 48, height: 48)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(r.label).font(Tokens.rounded(26, .semibold))
-                Text(r.reason).font(Tokens.text(14)).foregroundStyle(Tokens.ink).lineLimit(3).fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: Space.xxs) {
+                Text(r.label).font(Tokens.rounded(.title2, .semibold))
+                Text(r.reason).font(Tokens.text(.callout)).foregroundStyle(Tokens.ink).lineLimit(3).fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
         }
-        .padding(18).frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(r.call == .on ? Tokens.accentSoft : Tokens.control))
+        .padding(Space.l).frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: Tokens.radiusInset, style: .continuous).fill(r.call == .on ? Tokens.accentSoft : Tokens.control))
         .accessibilityElement(children: .combine)
     }
 
     /// Read, Compared, and the outcome: three labels on a line. The sentences live in the tooltips.
     func steps(_ r: Reading) -> some View {
-        HStack(spacing: 8) {
-            stepDot("Read", help: r.sawScreen ? "The app, window title, address and the words on screen." : "The app, the window title and the page or file it shows.", filled: false, r)
-            connector
-            stepDot("Compared", help: "With \u{201C}\(c.taskName)\u{201D} and what you wrote about it.", filled: false, r)
-            connector
-            stepDot(r.outcomeTitle, help: r.outcomeText, filled: true, r)
-            Spacer(minLength: 0)
+        // On one line when it fits; stacked when the card is narrow or the text is large. A label never breaks in the middle.
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: Space.xs) {
+                stepDot("Read", help: readHelp(r), filled: false, r)
+                connector
+                stepDot("Compared", help: compareHelp, filled: false, r)
+                connector
+                stepDot(r.outcomeTitle, help: r.outcomeText, filled: true, r)
+            }
+            VStack(alignment: .leading, spacing: Space.xs) {
+                stepDot("Read", help: readHelp(r), filled: false, r)
+                stepDot("Compared", help: compareHelp, filled: false, r)
+                stepDot(r.outcomeTitle, help: r.outcomeText, filled: true, r)
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
+    func readHelp(_ r: Reading) -> String { r.sawScreen ? "The app, window title, address and the words on screen." : "The app, the window title and the page or file it shows." }
+    var compareHelp: String { "With \u{201C}\(c.taskName)\u{201D} and what you wrote about it." }
     var connector: some View { Capsule().fill(Tokens.track).frame(width: 18, height: 2) }
     func stepDot(_ title: String, help: String, filled: Bool, _ r: Reading) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: Space.xs) {
             Group {
                 if filled {
                     switch r.call {
@@ -131,7 +145,7 @@ struct SeeingCard: View {
                     }
                 } else { Circle().strokeBorder(Tokens.accent, lineWidth: 2) }
             }.frame(width: 12, height: 12)
-            Text(title).font(Tokens.text(12.5, .semibold))
+            Text(title).font(Tokens.text(.caption, .semibold)).lineLimit(1).fixedSize()
         }
         .help(help).accessibilityElement(children: .ignore).accessibilityLabel("\(title). \(help)")
     }
@@ -140,21 +154,21 @@ struct SeeingCard: View {
         DisclosureGroup(isExpanded: $showAll) {
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(c.readings.prefix(12))) { r in
-                    HStack(spacing: 10) {
-                        Text(r.date.formatted(.dateTime.hour().minute())).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).monospacedDigit().frame(width: 56, alignment: .leading)
-                        Text(r.appText).font(Tokens.text(13)).lineLimit(1).frame(width: 110, alignment: .leading)
-                        HStack(spacing: 6) { RingView(r.ring, color: r.tint).frame(width: 14, height: 14); Text(r.label).font(Tokens.text(12.5, .semibold)) }.frame(width: 100, alignment: .leading)
-                        Text(r.reason).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).lineLimit(1)
+                    HStack(spacing: Space.s) {
+                        Text(r.date.formatted(.dateTime.hour().minute())).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).monospacedDigit().frame(width: 56, alignment: .leading)
+                        Text(r.appText).font(Tokens.text(.body)).lineLimit(1).frame(width: 110, alignment: .leading)
+                        HStack(spacing: Space.xs) { RingView(r.ring, color: r.tint).frame(width: 14, height: 14); Text(r.label).font(Tokens.text(.caption, .semibold)) }.frame(width: 100, alignment: .leading)
+                        Text(r.reason).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(1)
                         Spacer(minLength: 6)
-                        if r.source == .rule { Text(r.byWords ? "Matching words" : "Your rule").font(Tokens.text(11.5)).foregroundStyle(Tokens.ink2).padding(.horizontal, 8).padding(.vertical, 1).overlay { Capsule().strokeBorder(Tokens.line) } }
+                        if r.source == .rule { Text(r.byWords ? "Matching words" : "Your rule").font(Tokens.text(.caption2)).foregroundStyle(Tokens.ink2).padding(.horizontal, Space.xs).padding(.vertical, 1).overlay { Capsule().strokeBorder(Tokens.line) } }
                     }
-                    .padding(.vertical, 7).contentShape(Rectangle()).onTapGesture { pinned = r.id }
+                    .padding(.vertical, Space.xs).contentShape(Rectangle()).onTapGesture { pinned = r.id }
                     Divider().overlay(Tokens.line)
                 }
-                Text("Kept only while this session runs.").font(Tokens.text(12)).foregroundStyle(Tokens.ink2).padding(.top, 8)
-            }.padding(.top, 8)
+                Text("Kept only while this session runs.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).padding(.top, Space.xs)
+            }.padding(.top, Space.xs)
         } label: {
-            Text("All readings").font(Tokens.text(12.5, .semibold))
+            Text("All readings").font(Tokens.text(.caption, .semibold))
         }
     }
 }
@@ -166,14 +180,15 @@ struct ReadingsStrip: View {
     @Binding var pinned: UUID?
 
     var body: some View {
-        let items = Array(readings.prefix(30).reversed())
-        VStack(alignment: .leading, spacing: 8) {
+        // 24 at most, so every bar keeps a 24 point target and the strip fits the card at the smallest window.
+        let items = Array(readings.prefix(24).reversed())
+        VStack(alignment: .leading, spacing: Space.xs) {
             HStack(alignment: .firstTextBaseline) {
-                Text("Recent readings").font(Tokens.text(12.5, .semibold))
+                Text("Recent readings").font(Tokens.text(.caption, .semibold))
                 Spacer()
-                Text("Tap one to see why").font(Tokens.text(12)).foregroundStyle(Tokens.ink2)
+                Text("Tap one to see why").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
             }
-            HStack(alignment: .center, spacing: 4) {
+            HStack(alignment: .center, spacing: 2) {
                 ForEach(items) { r in
                     let selected = (pinned ?? readings.first?.id) == r.id
                     Button { pinned = (r.id == readings.first?.id) ? nil : r.id } label: { bar(r, selected: selected) }
@@ -189,7 +204,7 @@ struct ReadingsStrip: View {
     }
 
     @ViewBuilder func bar(_ r: Reading, selected: Bool) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 3, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: Tokens.radiusTiny, style: .continuous)
         ZStack {
             switch r.call {
             case .on: shape.fill(Tokens.accent).frame(width: 9, height: 26)
@@ -197,8 +212,8 @@ struct ReadingsStrip: View {
             case .off: shape.fill(Tokens.ink.opacity(0.5)).frame(width: 9, height: 12)
             }
         }
-        .frame(width: 13, height: 30)
-        .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(selected ? Tokens.control : .clear))
+        .frame(width: Tokens.minHit, height: 30)
+        .background(RoundedRectangle(cornerRadius: Tokens.radiusTiny, style: .continuous).fill(selected ? Tokens.control : .clear))
         .contentShape(Rectangle())
     }
 }
@@ -208,13 +223,13 @@ struct SessionTally: View {
     var stats: ReadStats
     var body: some View {
         Tile(padding: 20) {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("This session").font(Tokens.text(14, .semibold)).accessibilityAddTraits(.isHeader)
+            VStack(alignment: .leading, spacing: Space.m) {
+                Text("This session").font(Tokens.text(.callout, .semibold)).accessibilityAddTraits(.isHeader)
                 if stats.total == 0 {
-                    Text("No readings yet.").font(Tokens.text(13)).foregroundStyle(Tokens.ink2)
+                    Text("No readings yet.").font(Tokens.text(.body)).foregroundStyle(Tokens.ink2)
                 } else {
                     ReadingSplit(stats: stats)
-                    VStack(spacing: 8) {
+                    VStack(spacing: Space.xs) {
                         row(.on, "On task", stats.onTask)
                         row(.unsure, "Not sure", stats.unsure)
                         row(.drift, "Off topic", stats.offTask)
@@ -224,11 +239,11 @@ struct SessionTally: View {
         }
     }
     func row(_ ring: RingState, _ label: String, _ n: Int) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: Space.xs) {
             RingView(ring, color: ring == .on ? Tokens.accent : Tokens.ink).frame(width: 14, height: 14)
-            Text(label).font(Tokens.text(13))
+            Text(label).font(Tokens.text(.body))
             Spacer()
-            Text("\(n)").font(Tokens.text(13, .semibold)).monospacedDigit()
+            Text("\(n)").font(Tokens.text(.body, .semibold)).monospacedDigit()
         }
         .accessibilityElement(children: .combine)
     }

@@ -71,7 +71,7 @@ struct TrayColumn: View {
     var header: some View {
         HStack(spacing: 6) {
             Image(systemName: "tray.full.fill").font(.system(size: 11, weight: .semibold)).foregroundStyle(NotchView.ink2)
-            Text("Tray · \(tray.items.count)").font(Tokens.text(12, .semibold)).foregroundStyle(NotchView.ink2)
+            Text("Tray · \(tray.items.count)").font(Tokens.fixed(.caption, .semibold)).foregroundStyle(NotchView.ink2)
                 .contentTransition(.numericText()).motion(Motion.notchSettle, value: tray.items.count)
             Spacer(minLength: 0)
             Button("Clear") { tray.removeAll() }.buttonStyle(TrayChipStyle())
@@ -79,13 +79,14 @@ struct TrayColumn: View {
     }
 }
 
-/// The empty shelf: a dashed outline that marches slowly, and brightens with the accent as a file comes over it.
+/// The empty shelf: a dashed outline that marches, and brightens with the accent as a file comes over it.
 private struct DropZone: View {
     var targeted: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
-        TimelineView(.animation(paused: reduceMotion)) { ctx in
-            let phase = reduceMotion ? 0 : CGFloat(ctx.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 6) * (targeted ? -28 : -8))
+        // The dashes march only while a file is over the zone; an empty tray stands still, so an open notch costs no frames.
+        TimelineView(.animation(paused: reduceMotion || !targeted)) { ctx in
+            let phase = reduceMotion || !targeted ? 0 : CGFloat(ctx.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 6) * -28)
             ZStack {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(targeted ? NotchView.accent.opacity(0.12) : Color.white.opacity(0.03))
@@ -97,7 +98,7 @@ private struct DropZone: View {
                         .foregroundStyle(targeted ? NotchView.accent : NotchView.ink2)
                         .contentTransition(.symbolEffect(.replace))
                         .symbolEffect(.bounce, value: targeted)
-                    Text(targeted ? "Drop to keep it here" : "Tray").font(Tokens.text(13, .semibold))
+                    Text(targeted ? "Drop to keep it here" : "Tray").font(Tokens.fixed(.body, .semibold))
                         .foregroundStyle(targeted ? NotchView.ink : NotchView.ink2)
                         .contentTransition(.interpolate)
                 }
@@ -123,7 +124,7 @@ private struct TrayTile: View {
                 .frame(width: 46, height: 46)
                 .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
                 .shadow(color: .black.opacity(0.4), radius: 3, y: 2)
-            Text(item.name).font(Tokens.text(10.5, .medium)).foregroundStyle(NotchView.ink2)
+            Text(item.name).font(Tokens.fixed(.caption2, .medium)).foregroundStyle(NotchView.ink2)
                 .lineLimit(1).truncationMode(.middle).frame(width: 64)
         }
         .padding(5)
@@ -163,7 +164,7 @@ private struct TrayChipStyle: ButtonStyle {
         let configuration: Configuration
         @State private var hover = false
         var body: some View {
-            configuration.label.font(Tokens.text(11, .semibold)).foregroundStyle(NotchView.ink2)
+            configuration.label.font(Tokens.fixed(.caption2, .semibold)).foregroundStyle(NotchView.ink2)
                 .padding(.horizontal, 8).frame(height: 20)
                 .background(Capsule().fill(Color.white.opacity(configuration.isPressed ? 0.2 : (hover ? 0.12 : 0.06))))
                 .animation(Motion.hover, value: hover)

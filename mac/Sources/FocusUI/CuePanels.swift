@@ -62,7 +62,7 @@ struct BannerView: View {
         HStack(spacing: 12) {
             RingView(banner.kind == .early ? .unsure : .drift, color: Tokens.ink).frame(width: 20, height: 20)
             Text(banner.kind == .reminder && c.closeIsNext ? CueCopy.closeWarning : CueCopy.bannerTitle(banner.kind, tone: c.prefs.nudgeTone, task: c.taskName))
-                .font(Tokens.text(13.5, .semibold)).lineLimit(1).truncationMode(.tail)
+                .font(Tokens.fixed(.body, .semibold)).lineLimit(1).truncationMode(.tail)
             Spacer(minLength: 8)
             if banner.kind == .early {
                 Button("This is part of it") { c.bannerPartOfIt() }.buttonStyle(FocusButtonStyle(.plain, small: true))

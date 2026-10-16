@@ -15,7 +15,7 @@ public enum SettingsPage: String, CaseIterable, Identifiable, Hashable, Sendable
     }
     var color: Color {
         switch self {
-        case .general: return .gray; case .nudges: return Color(red: 0.16, green: 0.62, blue: 0.38); case .cues: return .red
+        case .general: return .gray; case .nudges: return Tokens.Art.leaf; case .cues: return .red
         case .rhythm: return .orange; case .reading: return .blue; case .privacy: return .indigo
         }
     }
@@ -48,11 +48,11 @@ struct SettingsView: View {
                     }
                 }
                 group("Nudges", .nudges) {
-                    HStack(spacing: 10) {
+                    HStack(spacing: Space.s) {
                         opt(.gentle, "Gentle", "One quiet note after about three minutes.")
                         opt(.standard, "Standard", "A card after about a minute, again every five.")
                         opt(.strict, "Strict", "A pause screen after 45 seconds.")
-                    }.padding(.vertical, 4)
+                    }.padding(.vertical, Space.xxs)
                     row("How nudges sound", "For example \u{201C}\(c.prefs.nudgeTone.example)\u{201D}. A nudge never names what you were looking at.") {
                         segmented(NudgeTone.allCases, selection: Binding(get: { c.prefs.nudgeTone }, set: { c.prefs.nudgeTone = $0 }), title: \.title)
                     }
@@ -61,17 +61,17 @@ struct SettingsView: View {
                     }
                 }
                 group("How Focus decides", .nudges) {
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: Space.xs) {
                         HStack(alignment: .firstTextBaseline) {
-                            HStack(spacing: 6) { Text("How often Focus checks"); InfoButton(text: "\(c.prefs.checkRate.detail) Each check asks the on-device model, so checking more often uses more battery. Applies from the next session.") }
+                            HStack(spacing: Space.xs) { Text("How often Focus checks"); InfoButton(text: "\(c.prefs.checkRate.detail) Each check asks the on-device model, so checking more often uses more battery. Applies from the next session.") }
                             Spacer()
                             segmented(CheckRate.allCases, selection: Binding(get: { c.prefs.checkRate }, set: { c.prefs.checkRate = $0 }), title: \.title)
                         }
                     }
 
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: Space.xs) {
                         HStack(alignment: .firstTextBaseline) {
-                            HStack(spacing: 6) { Text("How sure Focus must be"); InfoButton(text: sensitivityHelp) }
+                            HStack(spacing: Space.xs) { Text("How sure Focus must be"); InfoButton(text: sensitivityHelp) }
                             Spacer()
                             segmented(Sensitivity.allCases, selection: Binding(get: { c.prefs.sensitivity }, set: { c.prefs.sensitivity = $0 }), title: \.title)
                         }
@@ -86,7 +86,7 @@ struct SettingsView: View {
                         Toggle("", isOn: Binding(get: { c.prefs.escalate }, set: { c.prefs.escalate = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
                     row("Fade the whole screen to gray", "While you are off task, every display loses its color a little at a time, deeper the longer you stay away, and it fades back when you return. Preview shows a 10 second fade. Nothing is captured.") {
-                        HStack(spacing: 10) {
+                        HStack(spacing: Space.s) {
                             Button("Preview") { c.previewVeil() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
                             Toggle("", isOn: Binding(get: { c.prefs.screenGrayscale }, set: { c.prefs.screenGrayscale = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                         }
@@ -138,13 +138,13 @@ struct SettingsView: View {
                         toggle(\.dockBounce)
                     }
                     row("Tap the trackpad", "A silent buzz of several taps with each warning, and it repeats while you stay off task: every 20 seconds after a warning (12 on Strict), longer and stronger once the pause screen is up, and a light one every 15 seconds while Focus suspects you are drifting. The Mac gives apps one tap strength, so stronger means more taps close together. It only works on a Force Touch trackpad and only while a finger rests on it, so it is a bonus cue, not a promise.") {
-                        HStack(spacing: 10) {
+                        HStack(spacing: Space.s) {
                             Button("Try") { c.previewCue(haptic: true) }.buttonStyle(FocusButtonStyle(.secondary, small: true))
                             toggle(\.hapticTap)
                         }
                     }
                     row("Say nudges aloud", "The Mac's own voice reads the nudge, such as \u{201C}Back to your task.\u{201D} It runs on this Mac. Off by default because other people in the room can hear it, and it stays off in practice mode.") {
-                        HStack(spacing: 10) {
+                        HStack(spacing: Space.s) {
                             Button("Try") { c.previewCue(haptic: false) }.buttonStyle(FocusButtonStyle(.secondary, small: true))
                             toggle(\.speakNudges)
                         }
@@ -159,9 +159,9 @@ struct SettingsView: View {
                     }
                 }
                 group("Rhythm", .rhythm) {
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: Space.xs) {
                         HStack(alignment: .firstTextBaseline) {
-                            HStack(spacing: 6) { Text("Scheduled prompts"); InfoButton(text: c.prefs.rhythm.detail) }
+                            HStack(spacing: Space.xs) { Text("Scheduled prompts"); InfoButton(text: c.prefs.rhythm.detail) }
                             Spacer()
                             segmented(Rhythm.allCases, selection: Binding(get: { c.prefs.rhythm }, set: { c.prefs.rhythm = $0 }), title: \.title)
                         }
@@ -222,10 +222,15 @@ struct SettingsView: View {
                     row("Show in the notch", "A ring and the time while a session runs. On a Mac without a notch it is a small pill under the menu bar.") {
                         Toggle("", isOn: Binding(get: { c.prefs.showNotch }, set: { c.prefs.showNotch = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
+                    row("Text size", "How large text is in this window. The notch and the banner over other windows keep their size, because they have to fit the menu bar.") {
+                        Picker("", selection: Binding(get: { c.prefs.textScale }, set: { c.prefs.textScale = $0 })) {
+                            ForEach(TextScale.choices, id: \.factor) { Text($0.title).tag(Double($0.factor)) }
+                        }.labelsHidden().frame(width: 120)
+                    }
                 }
                 group("Shortcut", .general) {
                     row("Start or pause from anywhere", "Press Control, Option and F. With no session it opens the start sheet on the project you worked on last. During a session it pauses or resumes.") {
-                        Text("\u{2303}\u{2325}F").font(Tokens.rounded(14, .semibold)).foregroundStyle(Tokens.ink2)
+                        Text("\u{2303}\u{2325}F").font(Tokens.rounded(.callout, .semibold)).foregroundStyle(Tokens.ink2)
                     }
                 }
                 group("Screen reading", .reading) {
@@ -262,6 +267,8 @@ struct SettingsView: View {
                 }
         }
         .formStyle(.grouped)
+        // Rows and headers follow the Text size setting like the rest of the window.
+        .font(Tokens.text(.body))
         .scrollContentBackground(.hidden)
         .tint(Tokens.accent)
         .confirmationDialog("Delete everything?", isPresented: $confirmDelete) {
@@ -292,11 +299,11 @@ struct SettingsView: View {
     func opt(_ p: Preset, _ title: String, _ text: String) -> some View {
         let on = c.prefs.preset == p
         return Button { c.prefs.preset = p } label: {
-            VStack(alignment: .leading, spacing: 4) { Text(title).font(Tokens.text(13.5, .semibold)); Text(text).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true) }
-                .frame(maxWidth: .infinity, alignment: .leading).padding(12)
-                .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(on ? Tokens.accentSoft : Tokens.control))
-                .overlay { RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Tokens.accent.opacity(on ? 1 : 0), lineWidth: 1.5) }
-                .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            VStack(alignment: .leading, spacing: Space.xxs) { Text(title).font(Tokens.text(.body, .semibold)); Text(text).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true) }
+                .frame(maxWidth: .infinity, alignment: .leading).padding(Space.s)
+                .background(RoundedRectangle(cornerRadius: Tokens.radiusInset, style: .continuous).fill(on ? Tokens.accentSoft : Tokens.control))
+                .overlay { RoundedRectangle(cornerRadius: Tokens.radiusInset, style: .continuous).strokeBorder(Tokens.accent.opacity(on ? 1 : 0), lineWidth: 1.5) }
+                .contentShape(RoundedRectangle(cornerRadius: Tokens.radiusInset, style: .continuous))
         }
         .buttonStyle(.plain).accessibilityAddTraits(on ? .isSelected : [])
         .motion(Motion.out(0.2), value: on)
@@ -310,8 +317,8 @@ struct SettingsView: View {
     /// A settings row as Droppy and System Settings draw it: the title, a small info button that holds the explanation, and the
     /// control on the right. Nothing to read unless you ask.
     func row<V: View>(_ title: String, _ help: String, @ViewBuilder _ trailing: () -> V) -> some View {
-        HStack(spacing: 18) {
-            HStack(spacing: 6) { Text(title); InfoButton(text: help) }
+        HStack(spacing: Space.l) {
+            HStack(spacing: Space.xs) { Text(title); InfoButton(text: help) }
             Spacer(minLength: 12); trailing().fixedSize().layoutPriority(2)
         }
     }
@@ -323,33 +330,19 @@ struct SettingsView: View {
     }
 }
 
-/// The grey line under a setting: its first sentence, so the form scans at a glance. The rest of the explanation is in the tooltip
-/// and read by VoiceOver, so nothing is hidden from anyone who wants it.
-private struct Caption: View {
-    let text: String
-    var body: some View {
-        Text(Self.first(text)).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            .help(text).accessibilityLabel(text)
-    }
-    static func first(_ s: String) -> String {
-        guard let r = s.range(of: #"(?<=[a-z0-9)\x{201D}])\.\s"#, options: .regularExpression) else { return s }
-        return String(s[..<r.lowerBound]) + "."
-    }
-}
-
 /// The circled "i" after a setting's name. Clicking it shows the whole explanation in a popover; VoiceOver reads it as the hint.
 private struct InfoButton: View {
     let text: String
     @State private var shown = false
     var body: some View {
         Button { shown.toggle() } label: {
-            Image(systemName: "info.circle.fill").font(.system(size: 12)).foregroundStyle(.tertiary)
+            Image(systemName: "info.circle.fill").font(Tokens.symbol(12, .regular)).foregroundStyle(.tertiary).hitTarget()
         }
         .buttonStyle(.plain)
         .help(text)
         .accessibilityLabel("About this setting").accessibilityHint(text)
         .popover(isPresented: $shown, arrowEdge: .bottom) {
-            Text(text).font(.callout).fixedSize(horizontal: false, vertical: true).frame(width: 280, alignment: .leading).padding(14)
+            Text(text).font(.callout).fixedSize(horizontal: false, vertical: true).frame(width: 280, alignment: .leading).padding(Space.m)
         }
     }
 }

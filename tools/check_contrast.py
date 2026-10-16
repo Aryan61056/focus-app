@@ -33,6 +33,14 @@ def main() -> int:
         for label, fg, bg, need in pairs:
             r = ratio(tk[fg][0], bg); ok = r >= need; bad += not ok
             print(f"{mode:5} {'ok ' if ok else 'LOW'} {r:5.2f} (need {need}) {label}")
+    # The notch is black in both appearances and has its own fixed colors (Tokens.Notch).
+    src = SRC.read_text(); notch = {}
+    for name, r, g, b in re.findall(r"static let (\w+) = Color\(red: ([\d.]+), green: ([\d.]+), blue: ([\d.]+)\)", src.split("enum Notch")[1].split("}")[0]):
+        notch[name] = tuple(round(float(v) * 255) for v in (r, g, b))
+    for label, fg, bg, need in [("notch ink on black", notch["ink"], (0, 0, 0), 4.5), ("notch ink2 on black", notch["ink2"], (0, 0, 0), 4.5),
+                                ("notch accent on black (non-text)", notch["accent"], (0, 0, 0), 3.0), ("notch onAccent on accent", notch["onAccent"], notch["accent"], 4.5)]:
+        r = ratio(fg, bg); ok = r >= need; bad += not ok
+        print(f"notch {'ok ' if ok else 'LOW'} {r:5.2f} (need {need}) {label}")
     print("all pairs pass" if not bad else f"{bad} pair(s) below target")
     return 1 if bad else 0
 

@@ -148,16 +148,16 @@ public struct RootView: View {
             // change that landed with it, such as a session ending, cross-fade the old and new screens over each other.
             ZStack(alignment: .topTrailing) {
                 // Cards drop in from the corner they are pinned to and leave the same way.
-                if c.checkIn != nil { CheckInCard(c: c).padding(18).transition(.card(from: .topTrailing, reduce: reduceMotion)) }
-                else if let s = c.surface, s.kind != "gate" { NudgeCard(c: c, kind: s.kind).padding(18).transition(.card(from: .topTrailing, reduce: reduceMotion)) }
-                else if c.rhythmPrompt != nil { RhythmCard(c: c).padding(18).transition(.card(from: .topTrailing, reduce: reduceMotion)) }
+                if c.checkIn != nil { CheckInCard(c: c).padding(Space.l).transition(.card(from: .topTrailing, reduce: reduceMotion)) }
+                else if let s = c.surface, s.kind != "gate" { NudgeCard(c: c, kind: s.kind).padding(Space.l).transition(.card(from: .topTrailing, reduce: reduceMotion)) }
+                else if c.rhythmPrompt != nil { RhythmCard(c: c).padding(Space.l).transition(.card(from: .topTrailing, reduce: reduceMotion)) }
             }
             .motion(Motion.out(0.24), value: c.rhythmPrompt)
             .motion(Motion.out(0.24), value: c.surface)
             .motion(Motion.out(0.24), value: c.checkIn)
             ZStack(alignment: .topTrailing) {
                 if c.reentryOpen || c.manualNextStep {
-                    ReentryCard(c: c).padding(18).padding(.top, c.surface == nil && c.rhythmPrompt == nil ? 0 : 190)
+                    ReentryCard(c: c).padding(Space.l).padding(.top, c.surface == nil && c.rhythmPrompt == nil ? 0 : 190)
                         .transition(.card(from: .topTrailing, reduce: reduceMotion))
                 }
             }
@@ -176,12 +176,12 @@ struct SessionToolbarPill: View {
             TimelineView(.periodic(from: .now, by: 1)) { _ in
                 let t = c.clockText()
                 Button { c.requestSection(.today) } label: {
-                    HStack(spacing: 7) {
+                    HStack(spacing: Space.xs) {
                         LiveRing(c.ringState, color: c.ringColor).frame(width: 14, height: 14)
-                        Text(t).font(Tokens.text(13, .semibold)).monospacedDigit()
+                        Text(t).font(Tokens.fixed(.body, .semibold)).monospacedDigit()
                             .contentTransition(.numericText(countsDown: c.mode == .timed)).motion(Motion.out(0.3), value: t)
                     }
-                    .padding(.horizontal, 4)
+                    .padding(.horizontal, Space.xxs)
                 }
                 .help("\(c.taskName), \(c.presenceLabel)")
                 .accessibilityLabel("\(c.taskName), \(c.presenceLabel), \(t)")
@@ -228,7 +228,7 @@ struct SourceList: View {
         let pages = SettingsPage.allCases.filter { shows($0.rawValue) }
         let projects = (c.store?.projects ?? []).filter { shows($0.name) }
         List(selection: $item) {
-            SessionHeader(c: c).padding(.vertical, 4).selectionDisabled()
+            SessionHeader(c: c).padding(.vertical, Space.xxs).selectionDisabled()
                 .onTapGesture { item = .section(.today) }
             // A group with nothing matching the search is left out, heading and all.
             if !places.isEmpty { Section { ForEach(places) { s in row(s) } } }
@@ -251,7 +251,7 @@ struct SourceList: View {
                 }
             }
             if places.isEmpty && records.isEmpty && pages.isEmpty && projects.isEmpty {
-                Text("Nothing called \u{201C}\(search)\u{201D}").font(Tokens.text(12)).foregroundStyle(.secondary).selectionDisabled()
+                Text("Nothing called \u{201C}\(search)\u{201D}").font(Tokens.text(.caption)).foregroundStyle(.secondary).selectionDisabled()
             }
         }
         .listStyle(.sidebar)
@@ -268,20 +268,21 @@ struct SourceList: View {
 
 /// The top of the sidebar, where Droppy shows your account: here, the session. A big ring on a green disc, the task and how Focus
 /// reads you, or a quiet "Focus" when nothing is running.
+// The sidebar is window chrome: like the system's own rows beside it, it keeps the system size whatever the Text size setting.
 struct SessionHeader: View {
     @Bindable var c: SessionController
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: Space.s) {
             ZStack {
-                Circle().fill(LinearGradient(colors: [Color(red: 0.42, green: 0.80, blue: 0.56), Color(red: 0.16, green: 0.50, blue: 0.32)], startPoint: .top, endPoint: .bottom))
+                Circle().fill(LinearGradient(colors: Tokens.Art.disc, startPoint: .top, endPoint: .bottom))
                 TimelineView(.periodic(from: .now, by: 1)) { _ in
                     LiveRing(c.isActive ? c.ringState : .on, color: .white).frame(width: 20, height: 20)
                 }
             }
             .frame(width: 40, height: 40)
             VStack(alignment: .leading, spacing: 1) {
-                Text(c.isActive ? c.taskName : "Focus").font(Tokens.text(13.5, .semibold)).lineLimit(1)
-                Text(c.isActive ? c.presenceLabel : "No session running").font(Tokens.text(11.5)).foregroundStyle(.secondary)
+                Text(c.isActive ? c.taskName : "Focus").font(Tokens.fixed(.body, .semibold)).lineLimit(1)
+                Text(c.isActive ? c.presenceLabel : "No session running").font(Tokens.fixed(.caption2, .regular)).foregroundStyle(.secondary)
                     .contentTransition(.interpolate).motion(Motion.out(0.25), value: c.presenceLabel)
             }
             Spacer(minLength: 0)
@@ -301,7 +302,7 @@ struct ProjectTile: View {
         let color = Self.palette[abs(name.unicodeScalars.reduce(0) { $0 &* 31 &+ Int($1.value) }) % Self.palette.count]
         Text(String(name.prefix(1)).uppercased()).font(.system(size: 11, weight: .bold, design: .rounded)).foregroundStyle(.white)
             .frame(width: 20, height: 20)
-            .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(color.gradient))
+            .background(RoundedRectangle(cornerRadius: Tokens.radiusTiny + 1, style: .continuous).fill(color.gradient))
             .accessibilityHidden(true)
     }
 }
@@ -313,7 +314,7 @@ struct IconTile: View {
     var body: some View {
         Image(systemName: symbol).font(.system(size: 11, weight: .semibold)).foregroundStyle(.white)
             .frame(width: 20, height: 20)
-            .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(color.gradient))
+            .background(RoundedRectangle(cornerRadius: Tokens.radiusTiny + 1, style: .continuous).fill(color.gradient))
             .accessibilityHidden(true)
     }
 }
@@ -327,7 +328,7 @@ extension AppSection {
     }
     var tileColor: Color {
         switch self {
-        case .today: return Color(red: 0.16, green: 0.62, blue: 0.38); case .projects: return .blue; case .history: return .orange
+        case .today: return Tokens.Art.leaf; case .projects: return .blue; case .history: return .orange
         case .insights: return .purple; case .review: return .pink; case .settings: return .gray
         }
     }
@@ -344,20 +345,20 @@ struct Sidebar: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 9) { RingView(.on, color: Tokens.accent).frame(width: 20, height: 20); Text("Focus").font(Tokens.rounded(15, .semibold)) }
-                .padding(.horizontal, 8).padding(.top, 18).padding(.bottom, 14)
+            HStack(spacing: Space.s) { RingView(.on, color: Tokens.accent).frame(width: 20, height: 20); Text("Focus").font(Tokens.rounded(.callout, .semibold)) }
+                .padding(.horizontal, Space.xs).padding(.top, Space.l).padding(.bottom, Space.m)
             ForEach(AppSection.allCases.filter { $0 != .settings && ($0 != .review || c.showsReview) }) { s in row(s) }
             Spacer()
             ZStack {
                 if c.isActive {
-                    SessionCard(c: c).padding(.bottom, 10)
+                    SessionCard(c: c).padding(.bottom, Space.s)
                         .transition(reduceMotion ? .opacity : .opacity.combined(with: .offset(y: 10)).combined(with: .scale(scale: 0.97, anchor: .bottom)))
                 }
             }
             .motion(Motion.notchSettle, value: c.isActive)
             row(.settings)
         }
-        .padding(.horizontal, 10).padding(.bottom, 12)
+        .padding(.horizontal, Space.s).padding(.bottom, Space.s)
         .frame(width: 228)
         .motion(Motion.glide, value: selection)
     }
@@ -365,16 +366,16 @@ struct Sidebar: View {
     /// The selection is one shape that slides between rows; the pointer gets a fainter one of its own.
     func row(_ s: AppSection) -> some View {
         Button { selection = s } label: {
-            HStack(spacing: 10) {
+            HStack(spacing: Space.s) {
                 Image(systemName: s.symbol).frame(width: 18).foregroundStyle(selection == s ? Tokens.accent : Tokens.ink2)
                     .symbolEffect(.bounce, value: selection == s)
                 Text(s.rawValue); Spacer()
             }
-            .font(Tokens.text(13.5, selection == s ? .semibold : .regular)).padding(.horizontal, 10).frame(height: 32)
+            .font(Tokens.text(.body, selection == s ? .semibold : .regular)).padding(.horizontal, Space.s).frame(height: 32)
             .background {
                 ZStack {
-                    if hovered == s && selection != s { RoundedRectangle(cornerRadius: 8).fill(Tokens.control.opacity(0.55)).transition(.opacity) }
-                    if selection == s { RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Tokens.accentSoft).matchedGeometryEffect(id: "selection", in: pill) }
+                    if hovered == s && selection != s { RoundedRectangle(cornerRadius: Tokens.radiusRow).fill(Tokens.control.opacity(0.55)).transition(.opacity) }
+                    if selection == s { RoundedRectangle(cornerRadius: Tokens.radiusRow, style: .continuous).fill(Tokens.accentSoft).matchedGeometryEffect(id: "selection", in: pill) }
                 }
                 .animation(Motion.hover, value: hovered)
             }
@@ -391,20 +392,20 @@ private struct SessionCard: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { _ in
             let t = c.clockText()
-            HStack(spacing: 10) {
+            HStack(spacing: Space.s) {
                 LiveRing(c.ringState, color: c.ringColor).frame(width: 28, height: 28)
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(c.taskName).font(Tokens.text(13, .semibold)).lineLimit(1)
-                    Text(c.presenceLabel).font(Tokens.text(12)).foregroundStyle(Tokens.ink2)
+                    Text(c.taskName).font(Tokens.text(.body, .semibold)).lineLimit(1)
+                    Text(c.presenceLabel).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
                         .contentTransition(.interpolate).motion(Motion.out(0.25), value: c.presenceLabel)
                 }
                 Spacer()
-                Text(t).font(Tokens.rounded(14)).monospacedDigit()
+                Text(t).font(Tokens.rounded(.callout)).monospacedDigit()
                     .contentTransition(.numericText(countsDown: c.mode == .timed)).motion(Motion.out(0.3), value: t)
             }
         }
-        .padding(12).background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Tokens.window.opacity(0.7)))
-        .overlay { RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Tokens.line) }
+        .padding(Space.s).background(RoundedRectangle(cornerRadius: Tokens.radiusCard, style: .continuous).fill(Tokens.window.opacity(0.7)))
+        .overlay { RoundedRectangle(cornerRadius: Tokens.radiusCard, style: .continuous).strokeBorder(Tokens.line) }
     }
 }
 
@@ -412,9 +413,9 @@ private struct SessionCard: View {
 struct ComingNext: View {
     var section: AppSection
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(section.rawValue).font(Tokens.rounded(26, .semibold))
-            Text("This screen is designed (see docs/design/app.html) but not built yet.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
+        VStack(alignment: .leading, spacing: Space.xs) {
+            Text(section.rawValue).font(Tokens.rounded(.title2, .semibold))
+            Text("This screen is designed (see docs/design/app.html) but not built yet.").font(Tokens.text(.body)).foregroundStyle(Tokens.ink2)
         }
     }
 }
@@ -429,10 +430,10 @@ struct SidebarRow<Label: View>: View {
     @State private var hover = false
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 10) { label }
-                .font(Tokens.text(small ? 13 : 13.5, selected ? .semibold : .regular))
-                .padding(.horizontal, 10).frame(height: small ? 30 : 32)
-                .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(selected ? Tokens.control : (hover ? Tokens.control.opacity(0.5) : .clear)))
+            HStack(spacing: Space.s) { label }
+                .font(Tokens.text(.body, selected ? .semibold : .regular))
+                .padding(.horizontal, Space.s).padding(.vertical, Space.xs).frame(minHeight: small ? 30 : 32)
+                .background(RoundedRectangle(cornerRadius: Tokens.radiusRow, style: .continuous).fill(selected ? Tokens.control : (hover ? Tokens.control.opacity(0.5) : .clear)))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain).onHover { hover = $0 }

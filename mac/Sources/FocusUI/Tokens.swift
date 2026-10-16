@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Observation
 
 /// Direction B (Lichen) as native tokens. Values are the OKLCH tokens in docs/design/b-lichen.css converted to sRGB.
 extension Color {
@@ -35,12 +36,70 @@ public enum Tokens {
     public static let cardEdge = Color(light: 0x000000, dark: 0xFFFFFF, lightAlpha: 0.06, darkAlpha: 0.05)
     public static let track = Color(light: 0x161C18, dark: 0xFFFFFF, lightAlpha: 0.18, darkAlpha: 0.22)
 
-    public static let radiusCard: CGFloat = 16
-    public static let radiusControl: CGFloat = 9
+    /// The notch is always black, whatever the system appearance, so it has its own fixed colors (on black: ink 18.6:1,
+    /// ink2 10.6:1, accent 11.9:1, onAccent on accent 10.3:1; tools/check_contrast.py).
+    public enum Notch {
+        public static let ink = Color(red: 0.93, green: 0.95, blue: 0.94)
+        public static let ink2 = Color(red: 0.70, green: 0.73, blue: 0.71)
+        public static let accent = Color(red: 0.47, green: 0.84, blue: 0.62)
+        public static let onAccent = Color(red: 0.02, green: 0.1, blue: 0.05)
+        public static let track = Color.white.opacity(0.16)
+    }
+    /// Colors of drawn artwork (the page banner, the session disc in the sidebar, the notch widgets). Never used for text.
+    public enum Art {
+        public static let sky = [Color(red: 0.03, green: 0.22, blue: 0.16), Color(red: 0.05, green: 0.40, blue: 0.27), Color(red: 0.10, green: 0.55, blue: 0.36)]
+        public static let skyDark = [Color(red: 0.02, green: 0.12, blue: 0.09), Color(red: 0.04, green: 0.22, blue: 0.15), Color(red: 0.07, green: 0.31, blue: 0.21)]
+        public static let disc = [Color(red: 0.42, green: 0.80, blue: 0.56), Color(red: 0.16, green: 0.50, blue: 0.32)]
+        /// The green of the Today and Nudges tiles in the sidebar, beside the system's own blue, orange and purple.
+        public static let leaf = Color(red: 0.16, green: 0.62, blue: 0.38)
+    }
+
+    // MARK: shape
+    /// Corner radii, one step per kind of thing, so a card never sits next to a card of another radius.
+    /// Bars and heat cells, rows that light up, fields and insets inside a card, cards, and floating cards (nudge, check-in, shield).
+    public static let radiusTiny: CGFloat = 4
+    public static let radiusRow: CGFloat = 8
+    public static let radiusInset: CGFloat = 10
+    public static let radiusCard: CGFloat = 12
+    public static let radiusFloat: CGFloat = 22
+    /// Buttons drawn without glass (macOS 14 and 15) and small filled controls.
+    public static let radiusControl: CGFloat = 8
+    /// The smallest a click target gets (WCAG 2.2, 2.5.8). Icons can be smaller; their hit area is not.
+    public static let minHit: CGFloat = 24
     /// The widest a screen's content gets, so lines and tables stay readable on a large display.
     public static let contentWidth: CGFloat = 1120
-    public static func rounded(_ size: CGFloat, _ weight: Font.Weight = .semibold) -> Font { .system(size: size, weight: weight, design: .rounded) }
-    public static func text(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font { .system(size: size, weight: weight) }
+
+    // MARK: type
+    /// The one type scale. Hierarchy comes from these steps and from weight and color, never from a one-off size.
+    /// Caption2 for axis labels and badges, caption for secondary lines, body for most text, callout for a card's title, headline for
+    /// a floating card's question, title3 for a section's lead line, title2 for a screen's main line, display for the clock and goal.
+    public enum Step: CGFloat, CaseIterable, Sendable {
+        case caption2 = 11, caption = 12, body = 13, callout = 14, headline = 16, title3 = 20, title2 = 26, display = 34
+    }
+    /// SF Pro at a step, scaled by the Text size setting. Reading `TextScale.shared` inside a view body makes that view redraw when the
+    /// setting changes, so no call site needs to know about it.
+    public static func text(_ step: Step, _ weight: Font.Weight = .regular) -> Font { .system(size: step.rawValue * TextScale.shared.factor, weight: weight) }
+    /// SF Pro Rounded at a step, for numerals and the few display lines (Lichen uses the rounded face for numbers).
+    public static func rounded(_ step: Step, _ weight: Font.Weight = .semibold) -> Font { .system(size: step.rawValue * TextScale.shared.factor, weight: weight, design: .rounded) }
+    /// A symbol sized in points, scaled with the text it sits beside.
+    public static func symbol(_ size: CGFloat, _ weight: Font.Weight = .medium) -> Font { .system(size: size * TextScale.shared.factor, weight: weight) }
+    /// The notch and the over-window banner have fixed heights set by the hardware notch and the menu bar, so their text does not scale.
+    public static func fixed(_ step: Step, _ weight: Font.Weight = .regular, rounded: Bool = false) -> Font {
+        .system(size: step.rawValue, weight: weight, design: rounded ? .rounded : .default)
+    }
+}
+
+/// Space, on a 4 point grid. Inside a row 4 to 8, between parts of a card 12 to 16, card padding 20, between cards 24, page sections 32.
+public enum Space {
+    public static let xxs: CGFloat = 4, xs: CGFloat = 8, s: CGFloat = 12, m: CGFloat = 16, l: CGFloat = 20, xl: CGFloat = 24, xxl: CGFloat = 32
+}
+
+/// How much larger the app window's text is drawn (General, Text size). Observable, so views that read it through `Tokens` redraw.
+@Observable public final class TextScale: @unchecked Sendable {
+    nonisolated(unsafe) public static let shared = TextScale()
+    public var factor: CGFloat = 1
+    /// Choices offered in Settings. 150 percent is the largest the window's layouts are checked at.
+    public static let choices: [(title: String, factor: CGFloat)] = [("Default", 1), ("Large", 1.15), ("Larger", 1.3), ("Largest", 1.5)]
 }
 
 /// Motion, named for what it is for. Entering and leaving use a strong ease-out; anything that grows, follows the pointer or can be
@@ -150,7 +209,7 @@ public struct FocusButtonStyle: ButtonStyle {
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
         var body: some View {
             configuration.label
-                .font(Tokens.text(small ? 12.5 : 13, .semibold))
+                .font(Tokens.text(small ? .caption : .body, .semibold))
                 .foregroundStyle(kind == .primary ? Tokens.onAccent : Tokens.ink)
                 .frame(maxWidth: expand ? .infinity : nil)
                 .padding(.horizontal, small ? 11 : 13)

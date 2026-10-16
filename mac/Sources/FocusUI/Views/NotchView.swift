@@ -166,9 +166,9 @@ public struct NotchView: View {
         self.tray = tray ?? NotchTray()
     }
 
-    static let ink = Color(red: 0.93, green: 0.95, blue: 0.94)
-    static let ink2 = Color(red: 0.70, green: 0.73, blue: 0.71)
-    static let accent = Color(red: 0.47, green: 0.84, blue: 0.62)
+    static let ink = Tokens.Notch.ink
+    static let ink2 = Tokens.Notch.ink2
+    static let accent = Tokens.Notch.accent
     static let track = Color.white.opacity(0.16)
 
     /// A nudge opens the notch once; otherwise a click opens it and hover peeks. The gate (strict pause screen) is not shown here.
@@ -312,7 +312,7 @@ public struct NotchView: View {
             HStack(spacing: 7) {
                 ring
                 if wide {
-                    Text(flash ?? c.presenceLabel).font(Tokens.text(12, .semibold)).foregroundStyle(tint).lineLimit(1).fixedSize()
+                    Text(flash ?? c.presenceLabel).font(Tokens.fixed(.caption, .semibold)).foregroundStyle(tint).lineLimit(1).fixedSize()
                         .transition(earTransition(.leading))
                 }
             }
@@ -336,7 +336,7 @@ public struct NotchView: View {
     var rest: some View {
         HStack(spacing: 10) {
             ring.frame(width: 20)
-            Text(wide ? (flash ?? c.presenceLabel) : c.taskName).font(Tokens.text(13, wide ? .semibold : .medium)).lineLimit(1)
+            Text(wide ? (flash ?? c.presenceLabel) : c.taskName).font(Tokens.fixed(.body, wide ? .semibold : .medium)).lineLimit(1)
                 .foregroundStyle(wide ? tint : Self.ink)
                 .contentTransition(.interpolate)
             Spacer(minLength: 4)
@@ -351,7 +351,7 @@ public struct NotchView: View {
     var time: some View {
         TimelineView(.periodic(from: .now, by: 1)) { _ in
             let t = c.clockText()
-            Text(t).font(Tokens.rounded(13, .semibold)).monospacedDigit()
+            Text(t).font(Tokens.fixed(.body, .semibold, rounded: true)).monospacedDigit()
                 .contentTransition(.numericText(countsDown: c.mode == .timed))
                 .motion(Motion.out(0.3), value: t)
         }
@@ -393,10 +393,10 @@ public struct NotchView: View {
     var nudgeBody: some View {
         HStack(alignment: .center, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(nudgeText).font(Tokens.rounded(16, .semibold)).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                Text(nudgeText).font(Tokens.fixed(.headline, .semibold, rounded: true)).lineLimit(2).fixedSize(horizontal: false, vertical: true)
                 if let hint = nudgeHint {
                     // Prompts that need an answer other than going back are answered in the Focus window, not here.
-                    Text(hint).font(Tokens.text(12)).foregroundStyle(Self.ink2)
+                    Text(hint).font(Tokens.fixed(.caption, .regular)).foregroundStyle(Self.ink2)
                 }
             }
             Spacer(minLength: 8)
@@ -421,7 +421,7 @@ public struct NotchView: View {
     /// The only button on the notch. It goes the way the app wants you to go, so it is the one thing that is safe to leave here.
     func pill(_ title: String, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(title).font(Tokens.text(13, .semibold)).foregroundStyle(Color(red: 0.02, green: 0.1, blue: 0.05))
+            Text(title).font(Tokens.fixed(.body, .semibold)).foregroundStyle(Tokens.Notch.onAccent)
                 .padding(.horizontal, 18).frame(height: 32)
         }.buttonStyle(PillStyle())
     }

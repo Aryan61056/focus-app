@@ -112,8 +112,9 @@ public struct LiveRing: View {
     }
 }
 
-/// A slow, faint glow behind a ring while you are on task: the app breathing with you. It fades away the moment you drift, so it only
-/// ever means one thing. Reduce Motion: a still glow.
+/// A faint glow behind a ring while you are on task. It swells in once when you get on task and then holds still, and fades the moment
+/// you drift, so it only ever means one thing. It never loops: nothing on Today moves while nothing changes (an endless breath kept
+/// SwiftUI redrawing every frame of an idle session). Reduce Motion: it fades in without the swell.
 public struct RingGlow: View {
     var on: Bool
     var color: Color
@@ -123,7 +124,10 @@ public struct RingGlow: View {
         ZStack {
             if on {
                 Group {
-                    if reduceMotion { halo(up: true) } else { PhaseAnimator([false, true]) { halo(up: $0) } animation: { _ in .easeInOut(duration: 2.6) } }
+                    if reduceMotion { halo(up: true) }
+                    else { halo(up: true).keyframeAnimator(initialValue: 0.88, repeating: false) { v, s in v.scaleEffect(s) } keyframes: { _ in
+                        CubicKeyframe(1.1, duration: 0.9); CubicKeyframe(1, duration: 0.6)
+                    } }
                 }
                 .transition(.opacity.animation(Motion.out(0.5)))
             }
@@ -140,6 +144,6 @@ public struct RingGlow: View {
                 .frame(width: r * 3, height: r * 3)
                 .position(x: g.size.width / 2, y: g.size.height / 2)
         }
-        .scaleEffect(up ? 1.1 : 0.88).opacity(up ? 0.3 : 0.12)
+        .opacity(up ? 0.24 : 0.12)
     }
 }

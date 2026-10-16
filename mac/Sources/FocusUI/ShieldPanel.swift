@@ -27,16 +27,16 @@ struct ShieldCard: View {
     @FocusState private var typing: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: Space.m) {
+            HStack(spacing: Space.s) {
                 RingView(.drift, color: Tokens.ink).frame(width: 30, height: 30)
-                Text(CueCopy.shieldTitle(shield.kind)).font(Tokens.rounded(24, .semibold))
+                Text(CueCopy.shieldTitle(shield.kind)).font(Tokens.rounded(.title2, .semibold))
             }
             if shield.asking { asking } else { waiting }
         }
-        .padding(28).frame(width: Self.width, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 28, style: .continuous).fill(Tokens.window))
-        .overlay { RoundedRectangle(cornerRadius: 28, style: .continuous).strokeBorder(Tokens.line) }
+        .padding(Space.xxl).frame(width: Self.width, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: Tokens.radiusFloat, style: .continuous).fill(Tokens.window))
+        .overlay { RoundedRectangle(cornerRadius: Tokens.radiusFloat, style: .continuous).strokeBorder(Tokens.line) }
         .shadow(color: .black.opacity(0.3), radius: 30, y: 14)
         .foregroundStyle(Tokens.ink)
         .accessibilityElement(children: .contain)
@@ -46,17 +46,17 @@ struct ShieldCard: View {
     // Before explaining: the task, a way back, and a button that opens the explanation form at once. There is no wait and no hold.
     @ViewBuilder var waiting: some View {
         Text(CueCopy.shieldBody(shield.kind, tone: c.prefs.nudgeTone, task: c.taskName, longDetour: c.longDetour))
-            .font(Tokens.text(14)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+            .font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
         if c.longDetour && shield.kind == .pause { Button(NudgeCopy.breakButton()) { c.takeNudgeBreak() }.buttonStyle(FocusButtonStyle(.primary, expand: true)) }
         backToTask(secondary: c.longDetour && shield.kind == .pause)
         TimelineView(.periodic(from: .now, by: 0.25)) { _ in
             let lock = c.overrideLockRemaining
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: Space.xs) {
                 if lock > 0 {
-                    Text(CueCopy.lockedLine(Int(lock.rounded(.up)))).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                    Text(CueCopy.lockedLine(Int(lock.rounded(.up)))).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
                 } else {
                     Button("Explain why this is on task") { c.openExplanation() }.buttonStyle(FocusButtonStyle(.secondary, expand: true))
-                    Text(CueCopy.explainLine()).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                    Text(CueCopy.explainLine()).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
@@ -64,27 +64,27 @@ struct ShieldCard: View {
 
     // After: a short explanation, checked by Focus against the window.
     @ViewBuilder var asking: some View {
-        Text(CueCopy.shieldAsk(task: c.taskName)).font(Tokens.text(15, .semibold))
+        Text(CueCopy.shieldAsk(task: c.taskName)).font(Tokens.text(.callout, .semibold))
         TextField(CueCopy.shieldPlaceholder, text: $text, axis: .vertical)
             .textFieldStyle(.plain).lineLimit(3...5).focused($typing).onSubmit(send)
-            .padding(12).frame(minHeight: 84, alignment: .topLeading)
+            .padding(Space.s).frame(minHeight: 84, alignment: .topLeading)
             .background(RoundedRectangle(cornerRadius: Tokens.radiusControl).fill(Tokens.control))
             .disabled(shield.checking)
             .onAppear { typing = true }
         if let m = shield.message {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
                 Image(systemName: "exclamationmark.circle").foregroundStyle(Tokens.ink2)
-                Text(m).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink).fixedSize(horizontal: false, vertical: true)
+                Text(m).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink).fixedSize(horizontal: false, vertical: true)
             }.accessibilityElement(children: .combine)
         }
         backToTask(secondary: false)
-        HStack(spacing: 10) {
+        HStack(spacing: Space.s) {
             Button("Check my answer", action: send).buttonStyle(FocusButtonStyle(.secondary, expand: true))
                 .disabled(shield.checking || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            if shield.checking { ProgressView().controlSize(.small); Text("Reading the window").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
+            if shield.checking { ProgressView().controlSize(.small); Text("Reading the window").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
         }
         Text("\(shield.attemptsLeft) \(shield.attemptsLeft == 1 ? "try" : "tries") left. A wrong answer costs something, and two lock explaining for \(Int(Shield.lockSeconds(after: c.overrideLocks) / 60)) minutes. An accepted explanation covers this page only, for \(Int(Shield.passSeconds(afterClaims: c.claimsAccepted) / 60)) minutes (explanation \(c.claimsAccepted + 1) of \(Shield.claimCap)).")
-            .font(Tokens.text(12)).foregroundStyle(Tokens.ink2)
+            .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
     }
 
     func send() { c.submitExplanation(text) }
@@ -92,9 +92,9 @@ struct ShieldCard: View {
     /// Back to task: one press, or, if the user switched on holding in Settings, a short press and hold. Never behind a wait or a lock.
     @ViewBuilder func backToTask(secondary: Bool) -> some View {
         if c.prefs.holdToReturn {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: Space.xs) {
                 HoldPad(c: c).frame(height: 36)
-                Text(CueCopy.backHoldLine()).font(Tokens.text(12)).foregroundStyle(Tokens.ink2)
+                Text(CueCopy.backHoldLine()).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
             }
         } else {
             Button("Back to task") { c.shieldBackToTask() }.buttonStyle(FocusButtonStyle(secondary ? .secondary : .primary, expand: true))

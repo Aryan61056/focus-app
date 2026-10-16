@@ -4,53 +4,49 @@ struct HistoryView: View {
     @Bindable var store: DataStore
     @State private var selected: UUID?
     var body: some View {
-        VStack(alignment: .leading, spacing: 22) {
+        VStack(alignment: .leading, spacing: Space.xl) {
             PageHeader(title: "History", subtitle: "Every session, kept on this Mac. Delete any of them at any time.")
             if store.sessions.isEmpty {
                 EmptyState(symbol: "clock", title: "No sessions yet", text: "Finished sessions show up here, each with a timeline you can read at a glance: on task, not sure and off topic.")
             } else {
-                HStack(alignment: .top, spacing: 22) {
+                HStack(alignment: .top, spacing: Space.xl) {
                     Scroller {
                         VStack(alignment: .leading, spacing: 0) {
-                            header
                             ForEach(Self.days(store.sessions), id: \.day) { group in
-                                Text(Self.dayTitle(group.day)).font(Tokens.text(12, .semibold)).foregroundStyle(Tokens.ink2)
-                                    .padding(.horizontal, 12).padding(.top, 14).padding(.bottom, 4).accessibilityAddTraits(.isHeader)
+                                Text(Self.dayTitle(group.day)).font(Tokens.text(.caption, .semibold)).foregroundStyle(Tokens.ink2)
+                                    .padding(.horizontal, Space.s).padding(.top, Space.m).padding(.bottom, Space.xxs).accessibilityAddTraits(.isHeader)
                                 ForEach(group.sessions) { s in row(s) }
                             }
                         }
-                        .padding(8).modifier(CardSurface(radius: 16))
+                        .padding(.horizontal, Space.xs).padding(.bottom, Space.xs).modifier(CardSurface())
                     }
-                    if let s = store.sessions.first(where: { $0.id == (selected ?? store.sessions.first?.id) }) { SessionDrawer(store: store, session: s).frame(width: 310) }
+                    .frame(minWidth: 0, maxWidth: .infinity)
+                    if let s = store.sessions.first(where: { $0.id == (selected ?? store.sessions.first?.id) }) { SessionDrawer(store: store, session: s).frame(width: 280) }
                 }
             }
             Spacer(minLength: 0)
         }
     }
 
-    var header: some View {
-        HStack(spacing: 12) {
-            Text("Time").frame(width: 76, alignment: .leading)
-            Text("Task").frame(maxWidth: .infinity, alignment: .leading)
-            Text("Length").frame(width: 70, alignment: .trailing)
-            Text("Timeline").frame(width: 110, alignment: .leading)
-            Text("Slips").frame(width: 40, alignment: .trailing)
-        }
-        .font(Tokens.text(11.5, .medium)).foregroundStyle(Tokens.ink2).padding(.horizontal, 12).padding(.top, 6).padding(.bottom, 2)
-        .accessibilityHidden(true)
-    }
-
+    /// Two lines, so the task always has room: the task on top, the time and length under it, the timeline and slips on the right.
+    /// (Five fixed columns beside the drawer left the task about 8 points, so every row read as "...".)
     func row(_ s: SessionRecord) -> some View {
         let on = (selected ?? store.sessions.first?.id) == s.id
+        let slips = s.drifts == 0 ? "No slips" : (s.drifts == 1 ? "1 slip" : "\(s.drifts) slips")
         return SidebarRow(selected: on, action: { selected = s.id }) {
-            Text(s.start.formatted(.dateTime.hour().minute())).font(Tokens.text(13)).foregroundStyle(Tokens.ink2).monospacedDigit().frame(width: 76, alignment: .leading)
-            Text(s.task).font(Tokens.text(13.5, .semibold)).lineLimit(1).frame(maxWidth: .infinity, alignment: .leading)
-            Text(durationText(s.activeSeconds)).font(Tokens.text(13)).monospacedDigit().frame(width: 70, alignment: .trailing)
-            MiniTimeline(segments: s.segments).frame(width: 110)
-            Text(s.drifts == 0 ? "\u{2013}" : "\(s.drifts)").font(Tokens.text(13)).foregroundStyle(s.drifts == 0 ? Tokens.ink2 : Tokens.ink).monospacedDigit()
-                .frame(width: 40, alignment: .trailing).accessibilityLabel("\(s.drifts) slips")
+            VStack(alignment: .leading, spacing: 2) {
+                Text(s.task).font(Tokens.text(.body, .semibold)).lineLimit(1)
+                Text("\(s.start.formatted(.dateTime.hour().minute())) \u{00B7} \(durationText(s.activeSeconds))").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).monospacedDigit().lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .trailing, spacing: Space.xxs) {
+                MiniTimeline(segments: s.segments).frame(width: 96)
+                Text(slips).font(Tokens.text(.caption)).foregroundStyle(s.drifts == 0 ? Tokens.ink2 : Tokens.ink).monospacedDigit()
+            }
         }
-        .frame(height: 40)
+        .frame(minHeight: 52)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(s.task), \(s.start.formatted(.dateTime.hour().minute())), \(durationText(s.activeSeconds)), \(slips)")
     }
 
     /// Sessions grouped by calendar day, newest first, so a long list reads as days instead of one column of times.
@@ -75,24 +71,24 @@ struct SessionDrawer: View {
     @State private var note = ""
     var body: some View {
         Panel {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(session.task).font(Tokens.rounded(18, .semibold))
+            VStack(alignment: .leading, spacing: Space.s) {
+                Text(session.task).font(Tokens.rounded(.title3, .semibold))
                 Text("\(session.start.formatted(.dateTime.weekday().day().month().hour().minute())) · \(durationText(session.activeSeconds)) · \(session.timed ? "Timed" : "Open")")
-                    .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
-                Text(sessionSentence(session)).font(Tokens.text(14))
+                    .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
+                Text(sessionSentence(session)).font(Tokens.text(.callout))
                 MiniTimeline(segments: session.segments, height: 22)
                 if let r = session.reads, r.total > 0 {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("What Focus read").font(Tokens.text(12.5, .semibold))
+                    VStack(alignment: .leading, spacing: Space.xs) {
+                        Text("What Focus read").font(Tokens.text(.caption, .semibold))
                         ReadingSplit(stats: r)
                         Text("\(r.total) checks: \(r.onTask) on task, \(r.unsure) not sure, \(r.offTask) off topic. \(r.rule) were settled without the model (your rules and matching words)\(r.skipped > 0 ? " and \(r.skipped) were left alone." : ".")")
-                            .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                            .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
                     }
                 }
-                HStack(spacing: 14) { legend("On task", .on); legend("Unsure", .unsure); legend("Off topic", .off) }.font(Tokens.text(12)).foregroundStyle(Tokens.ink2)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Note").font(Tokens.text(12.5, .semibold))
-                    TextField("Add a note for next time", text: $note, axis: .vertical).lineLimit(2...4).padding(.vertical, 10).wellField(height: nil)
+                FlowRow(spacing: Space.s) { legend("On task", .on); legend("Unsure", .unsure); legend("Off topic", .off) }.font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
+                VStack(alignment: .leading, spacing: Space.xxs) {
+                    Text("Note").font(Tokens.text(.caption, .semibold))
+                    TextField("Add a note for next time", text: $note, axis: .vertical).font(Tokens.text(.body)).lineLimit(2...4).padding(.vertical, Space.s).wellField(height: nil)
                         .onChange(of: note) { _, v in store.setNote(v, for: session.id) }
                 }
                 Button("Delete session") { store.deleteSession(session.id) }.buttonStyle(FocusButtonStyle(.plain, small: true))
@@ -101,5 +97,5 @@ struct SessionDrawer: View {
         .onAppear { note = session.note }
         .id(session.id)
     }
-    func legend(_ t: String, _ k: TimelineSegment.Kind) -> some View { HStack(spacing: 5) { MiniTimeline(segments: [TimelineSegment(k, 1)], height: 8).frame(width: 14); Text(t) } }
+    func legend(_ t: String, _ k: TimelineSegment.Kind) -> some View { HStack(spacing: Space.xxs) { MiniTimeline(segments: [TimelineSegment(k, 1)], height: 8).frame(width: 14); Text(t).fixedSize() } }
 }

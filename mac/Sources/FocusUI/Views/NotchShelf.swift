@@ -97,8 +97,8 @@ struct SessionWidget: View {
                     .frame(width: 46, height: 46)
                     .overlay { RoundedRectangle(cornerRadius: 11, style: .continuous).strokeBorder(Color.white.opacity(0.08)) }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(c.taskName).font(Tokens.text(15, .semibold)).lineLimit(1)
-                        Text(c.presenceLabel).font(Tokens.text(12, .medium)).foregroundStyle(tint == NotchView.accent ? NotchView.accent : NotchView.ink2)
+                        Text(c.taskName).font(Tokens.fixed(.callout, .semibold)).lineLimit(1)
+                        Text(c.presenceLabel).font(Tokens.fixed(.caption, .medium)).foregroundStyle(tint == NotchView.accent ? NotchView.accent : NotchView.ink2)
                             .contentTransition(.interpolate).motion(Motion.out(0.25), value: c.presenceLabel)
                     }
                     Spacer(minLength: 6)
@@ -110,7 +110,7 @@ struct SessionWidget: View {
                     Image(systemName: "eye").font(.system(size: 10, weight: .semibold))
                     Text(c.prefs.readScreen ? "Reading titles and on-screen words, on this Mac" : "Reading window titles, on this Mac")
                 }
-                .font(Tokens.text(11.5, .medium)).foregroundStyle(NotchView.ink2).lineLimit(1)
+                .font(Tokens.fixed(.caption2, .medium)).foregroundStyle(NotchView.ink2).lineLimit(1)
                 .frame(maxWidth: .infinity)
             }
         }
@@ -133,7 +133,7 @@ struct SessionWidget: View {
                 Text(goalTarget ?? "Open").frame(minWidth: 40, alignment: .trailing)
             }
         }
-        .font(Tokens.text(11.5, .medium)).monospacedDigit().foregroundStyle(NotchView.ink2)
+        .font(Tokens.fixed(.caption2, .medium)).monospacedDigit().foregroundStyle(NotchView.ink2)
     }
 
     var goalFraction: Double? {
@@ -190,7 +190,7 @@ struct SideWidget: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 7) {
                 WidgetIcon(widget: model.widget, size: 20)
-                Text(model.widget.title).font(Tokens.text(13.5, .semibold))
+                Text(model.widget.title).font(Tokens.fixed(.body, .semibold))
                 Spacer(minLength: 0)
             }
             Spacer(minLength: 0)
@@ -228,8 +228,8 @@ struct SideWidget: View {
 
     func stat(_ value: String, _ caption: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(value).font(Tokens.rounded(20, .semibold)).monospacedDigit().lineLimit(1).minimumScaleFactor(0.7)
-            Text(caption).font(Tokens.text(11)).foregroundStyle(NotchView.ink2).lineLimit(1).truncationMode(.middle)
+            Text(value).font(Tokens.fixed(.title3, .semibold, rounded: true)).monospacedDigit().lineLimit(1).minimumScaleFactor(0.7)
+            Text(caption).font(Tokens.fixed(.caption2, .regular)).foregroundStyle(NotchView.ink2).lineLimit(1).truncationMode(.middle)
         }
     }
 }
@@ -270,7 +270,7 @@ struct ShelfWidgets: View {
                                 }
                             }
                             .scaleEffect(hovered == w && !reduceMotion ? 1.06 : 1)
-                        Text(w.title).font(Tokens.text(11.5, .semibold)).foregroundStyle(NotchView.ink)
+                        Text(w.title).font(Tokens.fixed(.caption2, .semibold)).foregroundStyle(NotchView.ink)
                     }
                     .contentShape(Rectangle())
                 }

@@ -13,19 +13,19 @@ struct InsightsView: View {
         let t = store.readTotals
         let a = store.agreement
         Scroller {
-            VStack(alignment: .leading, spacing: 22) {
+            VStack(alignment: .leading, spacing: Space.xl) {
                 PageHeader(title: "Insights", subtitle: "Worked out on this Mac from your own sessions.")
                 if t.total == 0 {
-                    EmptyState(symbol: "chart.bar", title: "Nothing to show yet", text: "After a session, this shows when you focus best, how quickly you get back on task, and how often you agreed with Focus.")
+                    EmptyState(symbol: "chart.bar", title: "Nothing to show yet", text: "After your first session, this shows when you focus best, how quickly you get back on task, and how often you agreed with Focus. Start one from Today.")
                 } else {
                     if let share = DayStats.morningShare(DayStats.heat(store.sessions)) {
                         Text("Mornings are your strongest time: \(share)% of your focused minutes fall before noon.")
-                            .font(Tokens.rounded(20, .semibold)).fixedSize(horizontal: false, vertical: true).frame(maxWidth: 640, alignment: .leading)
+                            .font(Tokens.rounded(.title3, .semibold)).fixedSize(horizontal: false, vertical: true).frame(maxWidth: 640, alignment: .leading)
                     }
                     if wide {
-                        HStack(alignment: .top, spacing: 18) { heat; if c.prefs.showProgress { ProgressInsights(store: store).frame(width: 360) } }
+                        HStack(alignment: .top, spacing: Space.l) { heat; if c.prefs.showProgress { ProgressInsights(store: store).frame(width: 360) } }
                     } else {
-                        VStack(alignment: .leading, spacing: 18) { heat; if c.prefs.showProgress { ProgressInsights(store: store) } }
+                        VStack(alignment: .leading, spacing: Space.l) { heat; if c.prefs.showProgress { ProgressInsights(store: store) } }
                     }
                     reading(t, a)
                 }
@@ -37,8 +37,8 @@ struct InsightsView: View {
 
     var heat: some View {
         Panel {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .firstTextBaseline) { Text("When you focus").font(Tokens.text(15, .semibold)); Spacer(); Text("On-task time by hour and day").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
+            VStack(alignment: .leading, spacing: Space.m) {
+                HStack(alignment: .firstTextBaseline) { Text("When you focus").font(Tokens.text(.callout, .semibold)); Spacer(); Text("On-task time by hour and day").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
                 Heatmap(grid: DayStats.heat(store.sessions))
             }
         }
@@ -47,22 +47,22 @@ struct InsightsView: View {
     func reading(_ t: ReadStats, _ a: (agreed: Int, answered: Int)) -> some View {
         Panel {
             if wide {
-                HStack(alignment: .top, spacing: 36) { readingSummary(t, a).frame(maxWidth: .infinity, alignment: .leading); readingFacts(t).frame(width: 320) }
+                HStack(alignment: .top, spacing: Space.xxl) { readingSummary(t, a).frame(maxWidth: .infinity, alignment: .leading); readingFacts(t).frame(width: 320) }
             } else {
-                VStack(alignment: .leading, spacing: 14) { readingSummary(t, a); readingFacts(t) }
+                VStack(alignment: .leading, spacing: Space.m) { readingSummary(t, a); readingFacts(t) }
             }
         }
     }
 
     func readingSummary(_ t: ReadStats, _ a: (agreed: Int, answered: Int)) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("How well Focus is reading you").font(Tokens.text(15, .semibold)).accessibilityAddTraits(.isHeader)
+        VStack(alignment: .leading, spacing: Space.m) {
+            Text("How well Focus is reading you").font(Tokens.text(.callout, .semibold)).accessibilityAddTraits(.isHeader)
             Text(a.answered == 0 ? "You have not answered any Review moments yet, so there is nothing to compare with." : "You agreed with \(a.agreed) of \(a.answered) calls.")
-                .font(Tokens.rounded(19, .semibold)).fixedSize(horizontal: false, vertical: true)
+                .font(Tokens.rounded(.title3, .semibold)).fixedSize(horizontal: false, vertical: true)
             ReadingSplit(stats: t)
-            HStack(spacing: 18) { legend("On task", t.onTask); legend("Not sure", t.unsure); legend("Off topic", t.offTask) }
+            HStack(spacing: Space.l) { legend("On task", t.onTask); legend("Not sure", t.unsure); legend("Off topic", t.offTask) }
             Text(a.answered == 0 ? "Answers in Review show whether Focus's calls match yours." : "The agreement figure counts only the \(a.answered) answers you gave in Review. That is a small sample, so read it loosely.")
-                .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -76,11 +76,11 @@ struct InsightsView: View {
         }
     }
 
-    func legend(_ t: String, _ n: Int) -> some View { Text("\(t) \(n)").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
+    func legend(_ t: String, _ n: Int) -> some View { Text("\(n) \(t.lowercased())").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
     func fact(_ k: String, _ v: String) -> some View {
         VStack(spacing: 0) {
             Divider().overlay(Tokens.line)
-            HStack { Text(k).foregroundStyle(Tokens.ink2); Spacer(); Text(v).monospacedDigit() }.font(Tokens.text(13)).padding(.vertical, 8)
+            HStack { Text(k).foregroundStyle(Tokens.ink2); Spacer(); Text(v).monospacedDigit() }.font(Tokens.text(.body)).padding(.vertical, Space.xs)
         }
     }
 }
@@ -94,14 +94,14 @@ struct Heatmap: View {
         VStack(spacing: 3) {
             HStack(spacing: 3) {
                 Text("").frame(width: 34)
-                ForEach(days, id: \.self) { Text($0).font(Tokens.text(11.5)).foregroundStyle(Tokens.ink2).frame(maxWidth: .infinity) }
+                ForEach(days, id: \.self) { Text($0).font(Tokens.text(.caption2)).foregroundStyle(Tokens.ink2).frame(maxWidth: .infinity) }
             }
             ForEach(8..<20, id: \.self) { h in
                 HStack(spacing: 3) {
-                    Text("\(h):00").font(Tokens.rounded(11.5)).foregroundStyle(Tokens.ink2).frame(width: 34, alignment: .trailing)
+                    Text("\(h):00").font(Tokens.rounded(.caption2)).foregroundStyle(Tokens.ink2).frame(width: 34, alignment: .trailing)
                     ForEach(0..<7, id: \.self) { d in
                         let v = grid[d][h]
-                        RoundedRectangle(cornerRadius: 4).fill(Tokens.control).overlay { RoundedRectangle(cornerRadius: 4).fill(Tokens.accent.opacity(0.15 + 0.85 * v / peak)).opacity(v > 0 ? 1 : 0) }
+                        RoundedRectangle(cornerRadius: Tokens.radiusTiny).fill(Tokens.control).overlay { RoundedRectangle(cornerRadius: Tokens.radiusTiny).fill(Tokens.accent.opacity(0.15 + 0.85 * v / peak)).opacity(v > 0 ? 1 : 0) }
                             .frame(height: 16)
                             .accessibilityElement().accessibilityLabel("\(days[d]) \(h):00, \(Int(v / 60)) minutes on task")
                     }
@@ -121,10 +121,10 @@ struct ProgressInsights: View {
         let best = Rewards.bestStretch(store.sessions)
         if trend != nil || best >= Rewards.notableStretch || streak.best >= 2 {
             Panel {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("Getting back on track").font(Tokens.text(15, .semibold)).accessibilityAddTraits(.isHeader)
+                VStack(alignment: .leading, spacing: Space.m) {
+                    Text("Getting back on track").font(Tokens.text(.callout, .semibold)).accessibilityAddTraits(.isHeader)
                     if let t = trend {
-                        Text(headline(t)).font(Tokens.rounded(19, .semibold)).fixedSize(horizontal: false, vertical: true)
+                        Text(headline(t)).font(Tokens.rounded(.title3, .semibold)).fixedSize(horizontal: false, vertical: true)
                     }
                     VStack(spacing: 0) {
                         if let t = trend {
@@ -136,7 +136,7 @@ struct ProgressInsights: View {
                     }
                     if trend != nil {
                         Text("A return is the time from drifting to being back on task. Practice sessions and weeks with fewer than three returns are left out.")
-                            .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                            .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
@@ -151,7 +151,7 @@ struct ProgressInsights: View {
     func fact(_ k: String, _ v: String) -> some View {
         VStack(spacing: 0) {
             Divider().overlay(Tokens.line)
-            HStack { Text(k).foregroundStyle(Tokens.ink2); Spacer(); Text(v).monospacedDigit() }.font(Tokens.text(13)).padding(.vertical, 8)
+            HStack { Text(k).foregroundStyle(Tokens.ink2); Spacer(); Text(v).monospacedDigit() }.font(Tokens.text(.body)).padding(.vertical, Space.xs)
         }
     }
 }

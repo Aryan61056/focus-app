@@ -20,20 +20,21 @@ struct TodayView: View {
     var wide: Bool { width >= 820 }
 
     var content: some View {
-        VStack(alignment: .leading, spacing: 22) {
-            // Droppy heads its pages with a picture: here a live copy of the notch over the app's artwork.
-            HeroBanner(caption: Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide))) { NotchPreviewPill(c: c) }
+        VStack(alignment: .leading, spacing: Space.xl) {
+            // Droppy heads its pages with a picture: here a copy of the notch over the app's artwork. Only between sessions: during one
+            // the live header already shows the task and the time, and the first thing on the page must be what Focus is reading.
+            if !c.isActive { HeroBanner { NotchPreviewPill(c: c) } }
             if c.isActive { LiveHeader(c: c) } else { DashHeader(c: c) }
             if let n = notice { NoticeRow(notice: n, c: c) }
             if !hasSide {
-                VStack(alignment: .leading, spacing: 18) { main; if !firstRun { HowDecidesButton() } }
+                VStack(alignment: .leading, spacing: Space.m) { main; if !firstRun { HowDecidesButton() } }
             } else if wide {
-                HStack(alignment: .top, spacing: 28) {
+                HStack(alignment: .top, spacing: Space.xl) {
                     main.frame(maxWidth: .infinity, alignment: .topLeading)
                     side.frame(width: 284, alignment: .topLeading)
                 }
             } else {
-                VStack(alignment: .leading, spacing: 26) { main; side }
+                VStack(alignment: .leading, spacing: Space.xl) { main; side }
             }
             Spacer(minLength: 0)
         }
@@ -46,7 +47,7 @@ struct TodayView: View {
     var firstRun: Bool { !c.prefs.introSeen && c.summary == nil && (c.store?.sessions.isEmpty ?? true) }
 
     @ViewBuilder var main: some View {
-        VStack(alignment: .leading, spacing: 26) {
+        VStack(alignment: .leading, spacing: Space.xl) {
             if c.isActive {
                 SeeingCard(c: c)
                 if c.aiAvailable { AskPanel(c: c) }
@@ -60,7 +61,7 @@ struct TodayView: View {
     }
 
     @ViewBuilder var side: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: Space.m) {
             if let st = c.store { GoalCluster(c: c, store: st) }
             if c.isActive { SessionTally(stats: c.stats) }
             HowDecidesButton()
@@ -89,14 +90,14 @@ struct NoticeRow: View {
     @Bindable var c: SessionController
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: Space.s) {
             Image(systemName: symbol).foregroundStyle(Tokens.ink2).frame(width: 18)
-            Text(text).font(Tokens.text(13.5)).fixedSize(horizontal: false, vertical: true).help(help)
+            Text(text).font(Tokens.text(.body)).fixedSize(horizontal: false, vertical: true).help(help)
             Spacer(minLength: 12)
             buttons
         }
-        .padding(.horizontal, 16).padding(.vertical, 11)
-        .modifier(CardSurface(radius: 14))
+        .padding(.horizontal, Space.m).padding(.vertical, Space.s)
+        .modifier(CardSurface())
         .accessibilityElement(children: .contain)
     }
 
@@ -150,9 +151,9 @@ struct DashHeader: View {
     @Bindable var c: SessionController
     var body: some View {
         let now = c.date()
-        VStack(alignment: .leading, spacing: 4) {
-            Text(Self.greeting(hour: Calendar.current.component(.hour, from: now))).font(Tokens.rounded(28, .semibold)).accessibilityAddTraits(.isHeader)
-            Text(subtitle(now)).font(Tokens.text(14)).foregroundStyle(Tokens.ink2)
+        VStack(alignment: .leading, spacing: Space.xxs) {
+            Text(Self.greeting(hour: Calendar.current.component(.hour, from: now))).font(Tokens.rounded(.title2, .semibold)).accessibilityAddTraits(.isHeader)
+            Text(subtitle(now)).font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2)
         }
     }
     func subtitle(_ now: Date) -> String {
@@ -170,32 +171,32 @@ struct DashHeader: View {
 struct LiveHeader: View {
     @Bindable var c: SessionController
     var body: some View {
-        HStack(alignment: .center, spacing: 20) {
+        HStack(alignment: .center, spacing: Space.l) {
             // The live ring: its arc sweeps with the clock, a change of state blurs in, and it breathes while you are on task.
             TimelineView(.periodic(from: .now, by: 1)) { _ in
                 LiveRing(c.ringState, color: c.ringColor).frame(width: 76, height: 76)
                     .background { RingGlow(on: c.ringColor == Tokens.accent && !c.isPaused, color: Tokens.accent).padding(-6) }
             }
-            VStack(alignment: .leading, spacing: 8) {
-                Text(c.taskName).font(Tokens.rounded(28, .semibold)).lineLimit(2)
-                HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: Space.xs) {
+                Text(c.taskName).font(Tokens.rounded(.title2, .semibold)).lineLimit(2)
+                HStack(spacing: Space.xs) {
                     StateChip(label: c.presenceLabel, ring: c.ringState, on: c.ringColor == Tokens.accent)
                     if let m = c.moment { MomentLine(moment: m) }
-                    if let note = statusNote { Text(note).font(Tokens.text(13)).foregroundStyle(Tokens.ink2).lineLimit(1) }
+                    if let note = statusNote { Text(note).font(Tokens.text(.body)).foregroundStyle(Tokens.ink2).lineLimit(1) }
                 }
                 .motion(Motion.notchSettle, value: c.moment)
             }
             Spacer(minLength: 16)
-            VStack(alignment: .trailing, spacing: 10) {
+            VStack(alignment: .trailing, spacing: Space.s) {
                 TimelineView(.periodic(from: .now, by: 1)) { _ in
                     let t = c.clockText()
                     VStack(alignment: .trailing, spacing: 0) {
-                        Text(t).font(Tokens.rounded(34, .semibold)).monospacedDigit()
+                        Text(t).font(Tokens.rounded(.display, .semibold)).monospacedDigit()
                             .contentTransition(.numericText(countsDown: c.mode == .timed)).motion(Motion.out(0.3), value: t)
-                        Text(c.mode == .timed ? "left" : "elapsed").font(Tokens.text(12)).foregroundStyle(Tokens.ink2)
+                        Text(c.mode == .timed ? "left" : "elapsed").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
                     }
                 }
-                HStack(spacing: 8) {
+                HStack(spacing: Space.xs) {
                     // One button that changes its word, so the pointer that just paused is already on Resume.
                     Button { c.act(c.isPaused ? .resume : .pause) } label: {
                         Label(c.isPaused ? "Resume" : "Pause", systemImage: c.isPaused ? "play.fill" : "pause.fill")

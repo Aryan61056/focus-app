@@ -13,19 +13,19 @@ public struct MenuBarContent: View {
                 HStack(spacing: 10) {
                     TimelineView(.periodic(from: .now, by: 1)) { _ in LiveRing(c.ringState, color: c.ringColor).frame(width: 30, height: 30) }
                     VStack(alignment: .leading, spacing: 0) {
-                        Text(c.taskName).font(Tokens.rounded(15)).lineLimit(1)
-                        Text("\(c.presenceLabel) · \(c.mode == .timed ? "Timed" : "Open") session").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
+                        Text(c.taskName).font(Tokens.fixed(.callout, .semibold, rounded: true)).lineLimit(1)
+                        Text("\(c.presenceLabel) · \(c.mode == .timed ? "Timed" : "Open") session").font(Tokens.fixed(.caption, .regular)).foregroundStyle(Tokens.ink2)
                     }
                     Spacer()
                     TimelineView(.periodic(from: .now, by: 1)) { _ in
                         let t = c.clockText()
-                        Text(t).font(Tokens.rounded(15)).monospacedDigit().contentTransition(.numericText(countsDown: c.mode == .timed)).motion(Motion.out(0.3), value: t)
+                        Text(t).font(Tokens.fixed(.callout, .semibold, rounded: true)).monospacedDigit().contentTransition(.numericText(countsDown: c.mode == .timed)).motion(Motion.out(0.3), value: t)
                     }
                 }.padding(10)
                 if let r = c.latest, !c.isPaused {
                     HStack(spacing: 8) {
                         RingView(r.ring, color: r.tint).frame(width: 14, height: 14)
-                        Text("Reading \(r.appText): \(r.call == .on ? "matches the task" : (r.call == .off ? "looks off topic" : "not sure"))").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).lineLimit(1)
+                        Text("Reading \(r.appText): \(r.call == .on ? "matches the task" : (r.call == .off ? "looks off topic" : "not sure"))").font(Tokens.fixed(.caption, .regular)).foregroundStyle(Tokens.ink2).lineLimit(1)
                     }.padding(.horizontal, 10).padding(.bottom, 6)
                 }
                 Divider().padding(.vertical, 4)
@@ -40,7 +40,7 @@ public struct MenuBarContent: View {
                 if c.mode == .timed { item("Extend 5 minutes") { c.act(.extend, minutes: 5) } }
                 item("End session") { c.end() }
             } else {
-                Text("No session running").font(Tokens.rounded(15)).padding(10)
+                Text("No session running").font(Tokens.fixed(.callout, .semibold, rounded: true)).padding(10)
                 item("Start a session") { c.requestStart(); openApp() }
             }
             if c.visibleUpdate != nil {
@@ -55,7 +55,7 @@ public struct MenuBarContent: View {
 
     func item(_ title: String, _ action: @escaping () -> Void) -> some View {
         Button(action: action) { HStack { Text(title); Spacer() }.padding(.horizontal, 10).frame(height: 30).contentShape(Rectangle()) }
-            .buttonStyle(MenuRowStyle()).font(Tokens.text(13.5))
+            .buttonStyle(MenuRowStyle()).font(Tokens.fixed(.body, .regular))
     }
 }
 

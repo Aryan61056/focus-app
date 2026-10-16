@@ -77,6 +77,8 @@ public final class Preferences {
     /// Easy in the morning, firmer when you are behind the day's goal (DayPressure).
     public var paceMatters: Bool { didSet { defaults.set(paceMatters, forKey: "paceMatters") } }
     public static let goalChoices = [30, 60, 90, 120, 180]
+    /// How large the app window's text is drawn, 1 to 1.5 (General, Text size). The notch and the over-window banner keep their size.
+    public var textScale: Double { didSet { defaults.set(textScale, forKey: "textScale"); TextScale.shared.factor = CGFloat(textScale) } }
     public var practiceActive: Bool { !practiceRemoved && practiceSessionsLeft > 0 }
 
     public init(defaults: UserDefaults = .standard) {
@@ -115,6 +117,9 @@ public final class Preferences {
         checkInMinutes = defaults.object(forKey: "checkInMinutes") as? Int ?? 25
         paceMatters = defaults.object(forKey: "paceMatters") as? Bool ?? true
         nudgeSound = defaults.object(forKey: "nudgeSound") as? Bool ?? false
+        let scale = min(1.5, max(1, defaults.object(forKey: "textScale") as? Double ?? 1))
+        textScale = scale
+        TextScale.shared.factor = CGFloat(scale)
         let removed = defaults.object(forKey: "practiceRemoved") as? Bool ?? true
         practiceRemoved = removed
         practiceSessionsLeft = removed ? 0 : (defaults.object(forKey: "practiceLeft") as? Int ?? Preferences.practiceSessions)
