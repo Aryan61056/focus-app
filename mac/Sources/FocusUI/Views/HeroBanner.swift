@@ -84,3 +84,35 @@ struct NudgePreviewPill: View {
 enum PillEdge {
     static let gradient = LinearGradient(colors: [.white.opacity(0.16), .white.opacity(0.03), .clear], startPoint: .top, endPoint: .bottom)
 }
+
+/// A slimmer banner for a page that has one number worth leading with: the same halftone art, with that number on a black pill sitting
+/// on it, the way Today's banner carries the notch. The ripple plays once per launch, so coming back to the page is quiet.
+struct PageBanner: View {
+    var key: String
+    var symbol: String
+    var text: String
+    var detail: String?
+    var phase: Double
+    var body: some View {
+        ZStack {
+            Halftone(pattern: .ridge(phase: phase), ripple: .oncePerLaunch(key))
+            HStack(spacing: 12) {
+                Image(systemName: symbol).font(.system(size: 15, weight: .semibold)).foregroundStyle(NotchView.accent)
+                    .frame(width: 34, height: 34).background(Circle().fill(Color.white.opacity(0.08)))
+                Text(text).font(Tokens.text(17, .semibold)).foregroundStyle(NotchView.ink).contentTransition(.numericText())
+                if let detail { Text(detail).font(Tokens.text(14, .medium)).foregroundStyle(NotchView.ink2) }
+            }
+            .lineLimit(1)
+            .padding(.leading, 10).padding(.trailing, 20).frame(height: 52)
+            .background(Capsule().fill(.black))
+            .overlay { Capsule().strokeBorder(PillEdge.gradient, lineWidth: 1) }
+            .shadow(color: .black.opacity(0.35), radius: 12, y: 6)
+            .shadow(color: .black.opacity(0.18), radius: 2, y: 1)
+            .allowsHitTesting(false)
+            .accessibilityElement(children: .combine)
+        }
+        .frame(height: 112)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay { RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.white.opacity(0.08)) }
+    }
+}

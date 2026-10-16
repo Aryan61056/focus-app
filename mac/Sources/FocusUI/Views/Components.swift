@@ -42,6 +42,7 @@ struct CardSurface: ViewModifier {
     }
 }
 
+
 /// Every screen's title block: one quiet line and at most one action on the right. The title itself sits in the toolbar, as in
 /// Droppy, so it is not repeated in the page; it stays here for VoiceOver.
 struct PageHeader<Trailing: View>: View {

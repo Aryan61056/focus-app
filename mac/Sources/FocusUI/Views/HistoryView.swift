@@ -84,7 +84,7 @@ struct SessionDrawer: View {
                         .font(Tokens.text(13)).foregroundStyle(Tokens.ink2).help(session.goalDone == true ? "Marked done" : "Carried forward or not marked yet")
                 }
                 Text(sessionSentence(session)).font(Tokens.text(14))
-                MiniTimeline(segments: session.segments, height: 22)
+                MiniTimeline(segments: session.segments, height: 22, animated: true)
                 if let r = session.reads, r.total > 0 {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("What Focus read").font(Tokens.text(12.5, .semibold))

@@ -17,7 +17,12 @@ struct FocusApp: App {
     static func demoDefaults() -> UserDefaults {
         let name = "focus-app.demo"
         UserDefaults.standard.removePersistentDomain(forName: name)
-        return UserDefaults(suiteName: name) ?? .standard
+        let d = UserDefaults(suiteName: name) ?? .standard
+        // FOCUS_DEMO_WIDGETS=week,streak and FOCUS_DEMO_NOTE=text pick the notch's widgets for a capture.
+        let env = ProcessInfo.processInfo.environment
+        if let w = env["FOCUS_DEMO_WIDGETS"] { d.set(w.split(separator: ",").map(String.init), forKey: "notchWidgets") }
+        if let n = env["FOCUS_DEMO_NOTE"] { d.set(n, forKey: "notchNote") }
+        return d
     }
     /// FOCUS_TEST_STORE=<folder> keeps the real judge and real sensing but uses a throwaway store and settings,
     /// so testing never adds sessions to the owner's history.
@@ -159,7 +164,7 @@ struct FocusApp: App {
                     ])
                     demo = d
                     SampleData.seedIfRequested(controller.store); DemoPreview.startIfRequested(controller)
-                    SelfShot.scheduleIfRequested(); SelfShot.runActions(controller)
+                    SelfShot.scheduleIfRequested(); SelfShot.runActions(controller); SelfShot.showMenuIfRequested(controller)
                     // FOCUS_DEMO_NOSESSION=1 leaves the app idle so the start flow can be driven (tools and screenshots).
                     if ProcessInfo.processInfo.environment["FOCUS_DEMO_NOSESSION"] == "1" { return }
                     controller.begin(task: "Calc homework", preset: ProcessInfo.processInfo.environment["FOCUS_DEMO_STRICT"] == "1" ? .strict : .standard, shadow: false, autoTick: true)

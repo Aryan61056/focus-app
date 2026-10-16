@@ -43,7 +43,7 @@ struct ReadingSplit: View {
                 bar(Tokens.ink2.opacity(0.55), stats.unsure, t, g.size.width)
                 bar(Tokens.ink.opacity(0.25), stats.offTask, t, g.size.width)
             }
-        }.frame(height: 12).accessibilityElement().accessibilityLabel("\(stats.total) readings: \(stats.onTask) on task, \(stats.unsure) not sure, \(stats.offTask) off topic")
+        }.frame(height: 12).sweepIn(duration: 0.6).accessibilityElement().accessibilityLabel("\(stats.total) readings: \(stats.onTask) on task, \(stats.unsure) not sure, \(stats.offTask) off topic")
     }
     @ViewBuilder func bar(_ color: Color, _ n: Int, _ t: Int, _ w: CGFloat) -> some View {
         if n > 0 { RoundedRectangle(cornerRadius: 4).fill(color).frame(width: max(4, w * CGFloat(n) / CGFloat(t) - 3)) }

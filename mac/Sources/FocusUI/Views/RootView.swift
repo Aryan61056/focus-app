@@ -23,7 +23,8 @@ public struct RootView: View {
     @Bindable var c: SessionController
     @State var selection: AppSection
     @State private var showStart = false
-    @State private var settingsPage = SettingsPage.nudges
+    /// FOCUS_DEMO_PAGE=Notch (demo only) opens Settings on that page, so a capture can show it.
+    @State private var settingsPage = ProcessInfo.processInfo.environment["FOCUS_DEMO"] == "1" ? (SettingsPage(rawValue: ProcessInfo.processInfo.environment["FOCUS_DEMO_PAGE"] ?? "") ?? .nudges) : .nudges
     @State private var projectID: UUID?
     @State private var confirmDelete = false
     /// Where you have been and where Back would take you back from, for the toolbar's back and forward buttons.
@@ -310,10 +311,16 @@ struct ProjectTile: View {
 struct IconTile: View {
     var symbol: String
     var color: Color
+    @State private var hover = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         Image(systemName: symbol).font(.system(size: 11, weight: .semibold)).foregroundStyle(.white)
+            .symbolEffect(.bounce, options: .speed(1.4), value: hover && !reduceMotion)
             .frame(width: 20, height: 20)
             .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(color.gradient))
+            .scaleEffect(hover && !reduceMotion ? 1.12 : 1)
+            .animation(Motion.notchSettle, value: hover)
+            .onHover { hover = $0 }
             .accessibilityHidden(true)
     }
 }
