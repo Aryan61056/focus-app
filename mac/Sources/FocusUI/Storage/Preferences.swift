@@ -20,6 +20,8 @@ public final class Preferences {
     public var readScreen: Bool { didSet { defaults.set(readScreen, forKey: "readScreen") } }
     /// First-run intro shown once; and the one "too quiet, about right, too loud" question, asked once after the first session that actually nudged.
     public var introSeen: Bool { didSet { defaults.set(introSeen, forKey: "introSeen") } }
+    /// The welcome window (what Focus does, window access, the first task) was finished or skipped.
+    public var welcomeSeen: Bool { didSet { defaults.set(welcomeSeen, forKey: "welcomeSeen") } }
     public var loudnessAsked: Bool { didSet { defaults.set(loudnessAsked, forKey: "loudnessAsked") } }
     public var contextTipDismissed: Bool { didSet { defaults.set(contextTipDismissed, forKey: "contextTipDismissed") } }
     /// A window whose title or address shares words with the task counts as on task without the model. Quiet by construction.
@@ -89,6 +91,7 @@ public final class Preferences {
         showNotch = defaults.object(forKey: "showNotch") as? Bool ?? true
         readScreen = defaults.object(forKey: "readScreen") as? Bool ?? false
         introSeen = defaults.object(forKey: "introSeen") as? Bool ?? false
+        welcomeSeen = defaults.object(forKey: "welcomeSeen") as? Bool ?? false
         loudnessAsked = defaults.object(forKey: "loudnessAsked") as? Bool ?? false
         contextTipDismissed = defaults.object(forKey: "contextTipDismissed") as? Bool ?? false
         matchTaskWords = defaults.object(forKey: "matchTaskWords") as? Bool ?? true

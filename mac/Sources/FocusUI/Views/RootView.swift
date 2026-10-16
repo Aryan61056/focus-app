@@ -61,7 +61,10 @@ public struct RootView: View {
 
     public var body: some View {
         Group {
-            if SnapshotMode.on {
+            if c.showsWelcome {
+                // A new Mac: the welcome takes the whole window until it is finished or skipped.
+                WelcomeView(c: c)
+            } else if SnapshotMode.on {
                 // ImageRenderer cannot draw a split view, so offscreen snapshots keep a plain sidebar and page.
                 HStack(spacing: 0) { Sidebar(c: c, selection: $selection).background(Tokens.sidebar); detail }
             } else {

@@ -22,6 +22,8 @@ let judge = ScriptedJudge(readings: [
 }
 
 @MainActor func render(_ c: SessionController, _ name: String, dark: Bool, selection: AppSection = .today, height: CGFloat = 800) {
+    // The screens, not the welcome a new store would open on (the welcome has its own shots under --popups).
+    c.prefs.welcomeSeen = true
     // --window: the window server draws it, so scroll views, fields and glass appear as they do in the app.
     if CommandLine.arguments.contains("--window") {
         WindowShot.shot(RootView(controller: c, selection: selection).frame(width: 1240, height: height), size: CGSize(width: 1240, height: height), name: name, dark: dark, dir: outDir)
@@ -280,6 +282,13 @@ if CommandLine.arguments.contains("--popups") { await popupShots() } else { awai
     func both<V: View>(_ name: String, _ size: CGSize, @ViewBuilder _ v: @escaping () -> V) {
         for dark in [false, true] { WindowShot.shot(v(), size: size, name: name, dark: dark, dir: outDir) }
     }
+    // The welcome on a new Mac, each step, at the window's default and smallest sizes.
+    let fresh = SessionController(judge: judge, store: DataStore(), now: { t })
+    for (name, step, asked, typed) in [("welcome-1", 0, false, ""), ("welcome-2", 1, false, ""), ("welcome-2-waiting", 1, true, ""), ("welcome-3", 2, false, ""), ("welcome-3-typed", 2, false, "Calc homework 50")] {
+        both("pop-\(name)", CGSize(width: 1240, height: 800)) { WelcomePreview.view(fresh, step: step, asked: asked, task: typed) }
+    }
+    both("pop-welcome-1-small", CGSize(width: 960, height: 600)) { WelcomePreview.view(fresh, step: 0) }
+    both("pop-welcome-2-small", CGSize(width: 960, height: 600)) { WelcomePreview.view(fresh, step: 1, asked: true) }
     // The start sheet on a name close to an older project: the hint while typing, then the question Start asks.
     let near = SessionController(judge: judge, store: DataStore(), now: { t })
     if let store = near.store { var p = store.addProject(name: "Calc homework"); p.nextStep = "Problems 12 to 20"; store.update(p) }

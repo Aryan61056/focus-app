@@ -152,6 +152,21 @@ public final class SessionController {
     public private(set) var checkedAt: Double?
     public private(set) var shadow = true
     public private(set) var windowAccess = WindowAccess.unknown
+    /// Settings, "Show the welcome again".
+    public var welcomeRequested = false
+    /// The welcome takes the window on a new Mac: never seen, no session yet and none running. Someone who already used Focus
+    /// (the intro was seen or sessions are saved) never gets it unasked.
+    public var showsWelcome: Bool {
+        guard !isActive else { return false }
+        if welcomeRequested { return true }
+        guard !prefs.welcomeSeen, !prefs.introSeen, let store, store.sessions.isEmpty else { return false }
+        return true
+    }
+    /// The welcome was finished or skipped. `explained` marks Today's "How Focus works" as seen too, since the welcome said the same.
+    public func finishWelcome(explained: Bool) {
+        prefs.welcomeSeen = true; welcomeRequested = false
+        if explained { prefs.introSeen = true }
+    }
     @ObservationIgnored public var onOpenAccessSettings: (() -> Void)?
     /// Bumped by the global hotkey: the window opens the start sheet (or pauses/resumes a running session).
     public private(set) var startRequests = 0

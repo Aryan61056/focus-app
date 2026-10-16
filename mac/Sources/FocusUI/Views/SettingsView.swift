@@ -225,6 +225,12 @@ struct SettingsView: View {
                         }.labelsHidden().frame(width: 120)
                     }
                 }
+                group("Getting started", .general) {
+                    row("Welcome", "The three steps from the first time: what Focus does, window access and your first task.") {
+                        Button("Show again") { c.welcomeRequested = true }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+                            .disabled(c.isActive).help(c.isActive ? "After this session" : "")
+                    }
+                }
                 group("Shortcut", .general) {
                     row("Start or pause from anywhere", "Press Control, Option and F. With no session it opens the start sheet on the project you worked on last. During a session it pauses or resumes.") {
                         Text("\u{2303}\u{2325}F").font(Tokens.rounded(.callout, .semibold)).foregroundStyle(Tokens.ink2)
