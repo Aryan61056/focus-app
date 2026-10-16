@@ -22,7 +22,7 @@ struct TodayView: View {
     var content: some View {
         VStack(alignment: .leading, spacing: 22) {
             // Droppy heads its pages with a picture: here a live copy of the notch over the app's artwork.
-            HeroBanner(caption: Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide)), pulse: c.isActive ? c.ringState.shape + 1 : 0) { NotchPreviewPill(c: c) }
+            HeroBanner(caption: Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide)), pulse: c.isActive ? c.ringState.shape + 1 : 0) { NotchPreviewPill(c: c, showsTime: false) }
             if c.isActive { LiveHeader(c: c) } else { DashHeader(c: c) }
             if let n = notice { NoticeRow(notice: n, c: c).transition(.rise(reduce: reduceMotion)) }
             if !hasSide {
@@ -51,8 +51,7 @@ struct TodayView: View {
                 if c.presence.reason == "break", let store = c.store, !store.thoughts.isEmpty { ParkingLotCard(store: store) }
                 else if c.stuckShown { StuckCard(c: c).transition(.opacity) }
                 else {
-                    HStack { Button("I'm stuck") { c.requestNextActions() }.buttonStyle(FocusButtonStyle(.secondary, small: true)).help("Find a smaller next action"); Spacer() }
-                    SeeingCard(c: c)
+                    SeeingCard(c: c, onStuck: c.stuckShown ? nil : { c.requestNextActions() })
                 }
                 if c.aiAvailable && !c.stuckShown && c.presence.reason != "break" { AskPanel(c: c) }
             } else {
@@ -154,14 +153,14 @@ struct DashHeader: View {
         let now = c.date()
         VStack(alignment: .leading, spacing: 4) {
             Text(Self.greeting(hour: Calendar.current.component(.hour, from: now))).font(Tokens.rounded(28, .semibold)).accessibilityAddTraits(.isHeader)
-            Text(subtitle(now)).font(Tokens.text(14)).foregroundStyle(Tokens.ink2)
+            if let sub = subtitle(now) { Text(sub).font(Tokens.text(14)).foregroundStyle(Tokens.ink2) }
         }
     }
-    func subtitle(_ now: Date) -> String {
-        let day = now.formatted(.dateTime.weekday(.wide).day().month(.wide))
-        guard let st = c.store else { return day }
+    /// The banner's caption already carries the date, so this line is only what the day has added up to.
+    func subtitle(_ now: Date) -> String? {
+        guard let st = c.store else { return nil }
         let total = DayStats.total(st.sessions, on: now)
-        return total.sessions == 0 ? day : "\(day) \u{00B7} \(durationText(total.onTaskSeconds)) on task so far"
+        return total.sessions == 0 ? nil : "\(durationText(total.onTaskSeconds)) on task so far"
     }
     static func greeting(hour: Int) -> String {
         switch hour { case 5..<12: return "Good morning"; case 12..<17: return "Good afternoon"; case 17..<22: return "Good evening"; default: return "Working late" }

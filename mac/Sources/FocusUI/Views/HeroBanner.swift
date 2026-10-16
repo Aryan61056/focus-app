@@ -31,6 +31,8 @@ struct HeroArtwork: View {
 /// The notch as it looks right now, as a black capsule: ring, task and time while a session runs.
 struct NotchPreviewPill: View {
     @Bindable var c: SessionController
+    /// Today shows the clock large right under the banner, so its pill leaves the time out.
+    var showsTime = true
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { _ in
             HStack(spacing: 12) {
@@ -41,7 +43,7 @@ struct NotchPreviewPill: View {
                 Text(c.isActive ? c.taskName : "Ready when you are").font(Tokens.text(17, .semibold)).lineLimit(1).frame(maxWidth: 190, alignment: .leading)
                     .contentTransition(.interpolate).motion(Motion.notchSettle, value: c.isActive ? c.taskName : "")
                 Spacer(minLength: 8)
-                if c.isActive {
+                if c.isActive && showsTime {
                     let t = c.clockText()
                     Text(t).font(Tokens.rounded(17, .semibold)).monospacedDigit().foregroundStyle(NotchView.ink2)
                         .contentTransition(.numericText(countsDown: c.mode == .timed)).motion(Motion.out(0.3), value: t)
@@ -49,7 +51,7 @@ struct NotchPreviewPill: View {
             }
             .foregroundStyle(NotchView.ink)
             .padding(.leading, 8).padding(.trailing, 18)
-            .frame(width: 300, height: 52)
+            .frame(width: showsTime || !c.isActive ? 300 : 250, height: 52)
             .background(Capsule().fill(.black))
             .overlay { Capsule().strokeBorder(PillEdge.gradient, lineWidth: 1) }
             .shadow(color: .black.opacity(0.35), radius: 12, y: 6)
