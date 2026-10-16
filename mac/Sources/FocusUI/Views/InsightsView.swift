@@ -14,14 +14,11 @@ struct InsightsView: View {
         let a = store.agreement
         Scroller {
             VStack(alignment: .leading, spacing: Space.xl) {
-                PageHeader(title: "Insights", subtitle: "Worked out on this Mac from your own sessions.")
                 if t.total == 0 {
-                    EmptyState(symbol: "chart.bar", title: "Nothing to show yet", text: "After your first session, this shows when you focus best, how quickly you get back on task, and how often you agreed with Focus. Start one from Today.")
+                    EmptyState(symbol: "chart.bar", title: "Nothing to show yet", text: "Insights appear after your first session. Start one from Today.")
                 } else {
-                    if let share = DayStats.morningShare(DayStats.heat(store.sessions)) {
-                        Text("Mornings are your strongest time: \(share)% of your focused minutes fall before noon.")
-                            .font(Tokens.rounded(.title3, .semibold)).fixedSize(horizontal: false, vertical: true).frame(maxWidth: 640, alignment: .leading)
-                    }
+                    // A few numbers lead; the charts carry the rest.
+                    Totals(items: headline(t, a))
                     if wide {
                         HStack(alignment: .top, spacing: Space.l) { heat; if c.prefs.showProgress { ProgressInsights(store: store).frame(width: 360) } }
                     } else {
@@ -35,10 +32,17 @@ struct InsightsView: View {
         }.scrollIndicators(.hidden)
     }
 
+    func headline(_ t: ReadStats, _ a: (agreed: Int, answered: Int)) -> [(value: String, label: String)] {
+        var out: [(value: String, label: String)] = [(durationText(store.sessions.reduce(0) { $0 + $1.activeSeconds }), "focused in all"), ("\(store.sessions.count)", "sessions")]
+        if let share = DayStats.morningShare(DayStats.heat(store.sessions)) { out.append(("\(share)%", "before noon")) }
+        if a.answered > 0 { out.append(("\(a.agreed)/\(a.answered)", "calls you agreed with")) }
+        return out
+    }
+
     var heat: some View {
         Panel {
             VStack(alignment: .leading, spacing: Space.m) {
-                HStack(alignment: .firstTextBaseline) { Text("When you focus").font(Tokens.text(.callout, .semibold)); Spacer(); Text("On-task time by hour and day").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
+                HStack(alignment: .firstTextBaseline) { Text("When you focus").font(Tokens.text(.callout, .semibold)); Spacer(); Text("by hour and day").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
                 Heatmap(grid: DayStats.heat(store.sessions))
             }
         }
@@ -56,12 +60,13 @@ struct InsightsView: View {
 
     func readingSummary(_ t: ReadStats, _ a: (agreed: Int, answered: Int)) -> some View {
         VStack(alignment: .leading, spacing: Space.m) {
-            Text("How well Focus is reading you").font(Tokens.text(.callout, .semibold)).accessibilityAddTraits(.isHeader)
-            Text(a.answered == 0 ? "You have not answered any Review moments yet, so there is nothing to compare with." : "You agreed with \(a.agreed) of \(a.answered) calls.")
-                .font(Tokens.rounded(.title3, .semibold)).fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 5) {
+                Image(systemName: "sparkles").foregroundStyle(Tokens.accent).accessibilityHidden(true)
+                Text("How Focus reads you").font(Tokens.text(.callout, .semibold))
+            }.accessibilityAddTraits(.isHeader)
             ReadingSplit(stats: t)
             HStack(spacing: Space.l) { legend("On task", t.onTask); legend("Not sure", t.unsure); legend("Off topic", t.offTask) }
-            Text(a.answered == 0 ? "Answers in Review show whether Focus's calls match yours." : "The agreement figure counts only the \(a.answered) answers you gave in Review. That is a small sample, so read it loosely.")
+            Text(a.answered == 0 ? "Answer moments in Review to compare its calls with yours." : "From \(a.answered) Review answers, a small sample.")
                 .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
         }
     }

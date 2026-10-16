@@ -2,7 +2,8 @@ import SwiftUI
 import AppKit
 import Observation
 
-/// Direction B (Lichen) as native tokens. Values are the OKLCH tokens in docs/design/b-lichen.css converted to sRGB.
+/// "Workspace" (owner, 2026-10-16): neutral grays and one green accent, amber only for a slip. Calm, not playful: color carries state,
+/// never decoration. The accent is Lichen's green, kept.
 extension Color {
     init(light: UInt32, dark: UInt32, lightAlpha: Double = 1, darkAlpha: Double = 1) {
         self.init(nsColor: NSColor(name: nil) { appearance in
@@ -20,21 +21,24 @@ public enum Tokens {
     public static let accentSoft = Color(light: 0xD9F3E2, dark: 0x1E3D2A)
     /// Accent as text on accentSoft (a selected choice): darker in light, lighter in dark, so it clears 4.5:1.
     public static let accentInk = Color(light: 0x125233, dark: 0xA3EBBE)
-    public static let ink = Color(light: 0x161C18, dark: 0xEEF3EF)
-    public static let ink2 = Color(light: 0x4D554F, dark: 0xB1BAB4)
-    /// Three layers, so a screen reads at a glance: the canvas, raised cards on it, and wells (fields, insets) sunk into a card.
-    /// Light: cards are white on a faintly green canvas. Dark: cards are lighter than the canvas. The sidebar is the second neutral layer.
-    public static let window = Color(light: 0xF4F7F5, dark: 0x181D19)
-    public static let window2 = Color(light: 0xFFFFFF, dark: 0x222824)
-    public static let well = Color(light: 0xEFF3F0, dark: 0x1A1F1B)
-    public static let sidebar = Color(light: 0xE9EFEB, dark: 0x121613)
-    public static let line = Color(light: 0x161C18, dark: 0xFFFFFF, lightAlpha: 0.12, darkAlpha: 0.11)
-    public static let control = Color(light: 0x161C18, dark: 0xFFFFFF, lightAlpha: 0.07, darkAlpha: 0.1)
-    public static let controlHover = Color(light: 0x161C18, dark: 0xFFFFFF, lightAlpha: 0.12, darkAlpha: 0.17)
+    public static let ink = Color(light: 0x1A1B1B, dark: 0xEDEEEE)
+    public static let ink2 = Color(light: 0x56595A, dark: 0xA9ADAE)
+    /// A slip (time off topic): amber marks on the timeline and in the log. Never the only sign; the shape changes too.
+    public static let slip = Color(light: 0xB86A00, dark: 0xF0B060)
+    public static let slipSoft = Color(light: 0xFBEBD2, dark: 0x3D2C12)
+    /// Three layers, so a screen reads at a glance: the canvas, raised surfaces on it, and wells (fields, the reading bar) sunk into it.
+    /// Plain neutral grays; the sidebar and the Focus panel are the second layer.
+    public static let window = Color(light: 0xF7F7F6, dark: 0x1B1B1B)
+    public static let window2 = Color(light: 0xFFFFFF, dark: 0x242424)
+    public static let well = Color(light: 0xF0F0EF, dark: 0x202020)
+    public static let sidebar = Color(light: 0xEEEEED, dark: 0x151515)
+    public static let line = Color(light: 0x1A1B1B, dark: 0xFFFFFF, lightAlpha: 0.11, darkAlpha: 0.1)
+    public static let control = Color(light: 0x1A1B1B, dark: 0xFFFFFF, lightAlpha: 0.06, darkAlpha: 0.09)
+    public static let controlHover = Color(light: 0x1A1B1B, dark: 0xFFFFFF, lightAlpha: 0.11, darkAlpha: 0.16)
     /// A grouped card on the plain window gray: white in light mode, a faint lift in dark, as native grouped forms draw them.
     public static let card = Color(light: 0xFFFFFF, dark: 0xFFFFFF, lightAlpha: 0.85, darkAlpha: 0.045)
     public static let cardEdge = Color(light: 0x000000, dark: 0xFFFFFF, lightAlpha: 0.06, darkAlpha: 0.05)
-    public static let track = Color(light: 0x161C18, dark: 0xFFFFFF, lightAlpha: 0.18, darkAlpha: 0.22)
+    public static let track = Color(light: 0x1A1B1B, dark: 0xFFFFFF, lightAlpha: 0.16, darkAlpha: 0.2)
 
     /// The notch is always black, whatever the system appearance, so it has its own fixed colors (on black: ink 18.6:1,
     /// ink2 10.6:1, accent 11.9:1, onAccent on accent 10.3:1; tools/check_contrast.py).
@@ -45,15 +49,6 @@ public enum Tokens {
         public static let onAccent = Color(red: 0.02, green: 0.1, blue: 0.05)
         public static let track = Color.white.opacity(0.16)
     }
-    /// Colors of drawn artwork (the page banner, the session disc in the sidebar, the notch widgets). Never used for text.
-    public enum Art {
-        public static let sky = [Color(red: 0.03, green: 0.22, blue: 0.16), Color(red: 0.05, green: 0.40, blue: 0.27), Color(red: 0.10, green: 0.55, blue: 0.36)]
-        public static let skyDark = [Color(red: 0.02, green: 0.12, blue: 0.09), Color(red: 0.04, green: 0.22, blue: 0.15), Color(red: 0.07, green: 0.31, blue: 0.21)]
-        public static let disc = [Color(red: 0.42, green: 0.80, blue: 0.56), Color(red: 0.16, green: 0.50, blue: 0.32)]
-        /// The green of the Today and Nudges tiles in the sidebar, beside the system's own blue, orange and purple.
-        public static let leaf = Color(red: 0.16, green: 0.62, blue: 0.38)
-    }
-
     // MARK: shape
     /// Corner radii, one step per kind of thing, so a card never sits next to a card of another radius.
     /// Bars and heat cells, rows that light up, fields and insets inside a card, cards, and floating cards (nudge, check-in, shield).

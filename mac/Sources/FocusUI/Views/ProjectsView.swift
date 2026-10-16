@@ -9,7 +9,8 @@ struct ProjectsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.xl) {
-            PageHeader(title: "Projects", subtitle: "What each project is about. Focus reads this to decide what counts, and keeps it between sessions.") {
+            HStack {
+                Spacer()
                 Button { let p = store.addProject(name: "New project"); selected = p.id } label: { Label("New project", systemImage: "plus") }
                     .buttonStyle(FocusButtonStyle(.secondary))
             }
@@ -61,7 +62,7 @@ struct ProjectDetail: View {
                     HStack(alignment: .top) { titleBlock(binding); Spacer(); startButton.fixedSize() }
                     VStack(alignment: .leading, spacing: Space.s) { titleBlock(binding); startButton.fixedSize() }
                 }
-                field("What Focus should know about this project", help: "Focus compares every window with this and your task. A sentence or two of detail helps more than any list. It stays on this Mac.") {
+                field("What Focus should know", help: "Focus compares every window with this and your task. A sentence or two of detail helps more than any list. It stays on this Mac.") {
                     ZStack(alignment: .topLeading) {
                         if binding.wrappedValue.context.isEmpty {
                             Text("For example: writing the methods chapter. The survey tool, Zotero and the stats docs count.")
@@ -75,6 +76,7 @@ struct ProjectDetail: View {
                     TextField("One small thing", text: binding.nextStep).font(Tokens.text(.body)).wellField()
                 }
                 AskFocusBox(c: c, project: store.project(project.id) ?? project)
+                recent
                 RulesDisclosure(profile: binding.profile)
                 HStack { Spacer(); Button("Delete project") { confirmDelete = true }.buttonStyle(FocusButtonStyle(.plain, small: true)) }
             }
@@ -98,10 +100,37 @@ struct ProjectDetail: View {
             .buttonStyle(FocusButtonStyle(.primary)).disabled(c.isActive)
     }
 
+    /// A field's title with its explanation as a tooltip, so the card reads as fields, not paragraphs.
     func field<V: View>(_ title: String, help: String?, @ViewBuilder _ content: () -> V) -> some View {
         VStack(alignment: .leading, spacing: Space.xs) {
-            Text(title).font(Tokens.text(.body, .semibold)); content()
-            if let help { Text(help).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
+            HStack(spacing: Space.xxs) {
+                Text(title).font(Tokens.text(.body, .semibold))
+                if let help { Image(systemName: "info.circle").font(Tokens.symbol(12, .regular)).foregroundStyle(Tokens.ink2).help(help).accessibilityLabel(help).hitTarget() }
+            }
+            content()
+        }
+    }
+
+    /// This project's last sessions as timelines, so you see how it has gone without opening History.
+    @ViewBuilder var recent: some View {
+        let n = Array(store.sessions(for: project.id).prefix(4))
+        if !n.isEmpty {
+            let longest = n.map(\.activeSeconds).max() ?? 1
+            VStack(alignment: .leading, spacing: Space.xs) {
+                Text("Recent sessions").font(Tokens.text(.body, .semibold))
+                ForEach(n) { s in
+                    HStack(spacing: Space.s) {
+                        Text(s.start.formatted(.dateTime.weekday(.abbreviated).hour().minute())).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).monospacedDigit()
+                            .frame(width: 96 * TextScale.shared.factor, alignment: .leading)
+                        GeometryReader { g in
+                            MiniTimeline(segments: s.segments, height: 10).frame(width: max(24, g.size.width * min(1, s.activeSeconds / max(1, longest)))).frame(maxHeight: .infinity)
+                        }
+                        .frame(height: 18)
+                        Text(durationText(s.activeSeconds)).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).monospacedDigit()
+                    }
+                    .accessibilityElement(children: .combine)
+                }
+            }
         }
     }
 }
@@ -191,8 +220,13 @@ struct AskFocusBox: View {
             }
         }
     }
-    var askTitle: some View { Text("Ask Focus about a window").font(Tokens.text(.caption, .semibold)).fixedSize() }
-    var askNote: some View { Text("Type anything. Nothing is read from your screen.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize() }
+    var askTitle: some View {
+        HStack(spacing: 5) {
+            Image(systemName: "sparkles").foregroundStyle(Tokens.accent).accessibilityHidden(true)
+            Text("Ask Focus about a window").font(Tokens.text(.body, .semibold))
+        }.fixedSize()
+    }
+    var askNote: some View { Text("Typed, not read from your screen").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize() }
     var askButton: some View {
         Button(asking ? "Asking" : "Ask Focus") { ask() }.buttonStyle(FocusButtonStyle(.secondary)).fixedSize()
             .disabled(asking || title.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -218,7 +252,7 @@ struct RulesDisclosure: View {
         let never = profile.alwaysOffApps.count + profile.alwaysOffDomains.count
         DisclosureGroup(isExpanded: $open) {
             VStack(alignment: .leading, spacing: Space.xxs) {
-                Text("Rules are checked first, before Focus reads anything. Most projects do not need them. Describe the project above and let Focus decide.")
+                Text("Checked before Focus reads anything. Most projects don't need them.")
                     .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true).padding(.bottom, Space.xs)
                 Text("Counts as on task").font(Tokens.text(.caption, .semibold))
                 RuleGroup(title: "Apps", symbol: "app", items: $profile.alwaysAllowApps, addLabel: "Add app")

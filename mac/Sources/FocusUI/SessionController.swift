@@ -223,6 +223,8 @@ public final class SessionController {
     @ObservationIgnored public private(set) var projectId: UUID?
     @ObservationIgnored private var sessionId = UUID()
     @ObservationIgnored private var startedAt = Date()
+    /// When this session began, on the controller's clock (`nowSeconds()`), so Today can lay the readings out along the session.
+    public private(set) var startSeconds = 0.0
     @ObservationIgnored private var segKind: TimelineSegment.Kind?
     @ObservationIgnored private var segStart = 0.0
     @ObservationIgnored private var segments: [TimelineSegment] = []
@@ -263,7 +265,7 @@ public final class SessionController {
         }
         let shadow = prefs.practiceRemoved ? false : (shadow ?? prefs.practiceActive)
         self.project = profile; self.projectId = pid; self.shadow = shadow
-        sessionId = UUID(); startedAt = date(); segments = []; segKind = nil; segStart = now()
+        sessionId = UUID(); startedAt = date(); segments = []; segKind = nil; segStart = now(); startSeconds = segStart
         taskName = task; self.mode = mode; totalSeconds = duration ?? 0
         sessionPreset = preset ?? prefs.preset; clearEscalation(); resetCues(); veilFrom = 0; veilStartedAt = now(); veilTarget = 0
         recapTask?.cancel(); recap = .idle; answer = .idle; sharpened = .idle

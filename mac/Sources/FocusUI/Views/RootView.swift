@@ -7,8 +7,8 @@ public enum AppSection: String, CaseIterable, Identifiable {
     public var id: String { rawValue }
     var symbol: String {
         switch self {
-        case .today: return "calendar"; case .projects: return "folder"; case .history: return "clock"
-        case .insights: return "chart.bar"; case .review: return "checklist"; case .settings: return "slider.horizontal.3"
+        case .today: return "sun.max"; case .projects: return "folder"; case .history: return "clock"
+        case .insights: return "chart.xyaxis.line"; case .review: return "flag"; case .settings: return "gearshape"
         }
     }
 }
@@ -51,6 +51,7 @@ public struct RootView: View {
     }
 
     var title: String {
+        if case .section(.today) = current, c.isActive { return c.taskName }
         switch current {
         case .section(let s): return s.rawValue
         case .settings(let p): return p.rawValue
@@ -61,7 +62,7 @@ public struct RootView: View {
     public var body: some View {
         Group {
             if SnapshotMode.on {
-                // ImageRenderer cannot draw a split view, so offscreen snapshots keep a plain two-pane layout.
+                // ImageRenderer cannot draw a split view, so offscreen snapshots keep a plain sidebar and page.
                 HStack(spacing: 0) { Sidebar(c: c, selection: $selection).background(Tokens.sidebar); detail }
             } else {
                 // Laid out like Droppy's window: a source list with search and a header row, the page name in the toolbar beside
@@ -90,7 +91,7 @@ public struct RootView: View {
                                 Button { travel(from: &forward, to: &back) } label: { Label("Forward", systemImage: "chevron.right") }
                                     .disabled(forward.isEmpty).keyboardShortcut("]", modifiers: .command)
                             }
-                            ToolbarItem(placement: .primaryAction) { SessionToolbarPill(c: c, showStart: $showStart) }
+                            ToolbarItemGroup(placement: .primaryAction) { SessionToolbar(c: c, showStart: $showStart) }
                         }
                 }
             }
@@ -104,6 +105,11 @@ public struct RootView: View {
         .onChange(of: c.settingsPageRequest?.serial) { _, _ in if let r = c.settingsPageRequest { go(.settings(r.page)) } }
         .onChange(of: c.startRequests) { _, _ in if !c.isActive { go(.section(.today)); showStart = true } }
         .sheet(isPresented: $showStart) { StartSheet(controller: c, isPresented: $showStart) }
+    }
+
+    /// Pages that draw the Focus panel beside themselves and so take the whole detail area.
+    var ownsLayout: Bool {
+        switch current { case .section(.today), .section(.history), .section(.review): return true; default: return false }
     }
 
     func travel(from a: inout [SidebarItem], to b: inout [SidebarItem]) {
@@ -137,9 +143,10 @@ public struct RootView: View {
                     KeyframeTrack(\.rise) { MoveKeyframe(10); SpringKeyframe(0, duration: 0.42, spring: .init(duration: 0.42, bounce: 0.1)) }
                     KeyframeTrack(\.blur) { MoveKeyframe(4); CubicKeyframe(0, duration: 0.22) }
                 }
-                // One centred column, as wide as Droppy's, so every page reads the same way on any window size.
-                .frame(maxWidth: selection == .settings ? 700 : 720)
-                .padding(.horizontal, selection == .settings ? 0 : 24).padding(.top, selection == .settings ? 0 : 12).padding(.bottom, selection == .settings ? 0 : 24)
+                // Today, History and Review lay out their own page and Focus panel across the whole window. Settings is one centred
+                // form; Projects and Insights use the width up to a readable maximum.
+                .frame(maxWidth: ownsLayout ? .infinity : (selection == .settings ? 700 : Tokens.contentWidth))
+                .padding(.horizontal, ownsLayout || selection == .settings ? 0 : Space.xl).padding(.top, ownsLayout || selection == .settings ? 0 : Space.s).padding(.bottom, ownsLayout || selection == .settings ? 0 : Space.xl)
                 // A page taller than the window scrolls inside itself; it must never make the split view (and so the window) taller.
                 .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .top)
                 .clipped()
@@ -167,8 +174,9 @@ public struct RootView: View {
     }
 }
 
-/// The one action at the right of the toolbar, as Droppy keeps one there: the running session (ring and clock), or Start.
-struct SessionToolbarPill: View {
+/// The session's controls, always in reach at the right of the toolbar: the ring and clock, Pause or Resume, Break and End. Start when
+/// nothing runs. Icons with labels for VoiceOver and tooltips, so the toolbar stays quiet.
+struct SessionToolbar: View {
     @Bindable var c: SessionController
     @Binding var showStart: Bool
     var body: some View {
@@ -187,6 +195,15 @@ struct SessionToolbarPill: View {
                 .help("\(c.taskName), \(c.presenceLabel)")
                 .accessibilityLabel("\(c.taskName), \(c.presenceLabel), \(t)")
             }
+            Button { c.act(c.isPaused ? .resume : .pause) } label: {
+                Label(c.isPaused ? "Resume" : "Pause", systemImage: c.isPaused ? "play.fill" : "pause.fill").contentTransition(.symbolEffect(.replace))
+            }
+            .help(c.isPaused ? "Resume" : "Pause")
+            Menu {
+                ForEach([5, 10, 15], id: \.self) { m in Button("\(m) minute break") { c.act(.breakTime, minutes: m) } }
+            } label: { Label("Break", systemImage: "cup.and.saucer") }
+            .help("Take a break")
+            Button { c.end() } label: { Label("End", systemImage: "stop.fill") }.help("End the session")
         } else {
             Button { showStart = true } label: { Label("Start session", systemImage: "play.fill").labelStyle(.titleAndIcon) }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
@@ -220,6 +237,7 @@ struct SourceList: View {
     @Binding var item: SidebarItem?
     var selection: AppSection
     @State private var search = ""
+    @State private var settingsOpen = true
 
     func shows(_ name: String) -> Bool { search.isEmpty || name.localizedCaseInsensitiveContains(search) }
 
@@ -229,26 +247,24 @@ struct SourceList: View {
         let pages = SettingsPage.allCases.filter { shows($0.rawValue) }
         let projects = (c.store?.projects ?? []).filter { shows($0.name) }
         List(selection: $item) {
-            SessionHeader(c: c).padding(.vertical, Space.xxs).selectionDisabled()
-                .onTapGesture { item = .section(.today) }
             // A group with nothing matching the search is left out, heading and all.
             if !places.isEmpty { Section { ForEach(places) { s in row(s) } } }
             if !records.isEmpty { Section { ForEach(records) { s in row(s) } } }
-            if !pages.isEmpty {
-                Section {
-                    ForEach(pages) { p in
-                        Label { Text(p.rawValue) } icon: { IconTile(symbol: p.symbol, color: p.color) }.tag(SidebarItem.settings(p))
-                    }
-                }
-            }
             if !projects.isEmpty {
                 Section("Projects") {
                     ForEach(projects) { p in
-                        Label { Text(p.name).lineLimit(1) } icon: { ProjectTile(name: p.name) }
+                        let now = c.isActive && c.projectId == p.id
+                        Label { Text(p.name).lineLimit(1) } icon: { ProjectDot(now: now) }
                             // The project the running session belongs to.
-                            .badge(c.isActive && c.projectId == p.id ? Text("Now").foregroundStyle(Tokens.accent) : nil)
+                            .badge(now ? Text("Now").foregroundStyle(Tokens.accent) : nil)
                             .tag(SidebarItem.project(p.id))
                     }
+                }
+            }
+            if !pages.isEmpty {
+                // Every settings page keeps its own row; the group folds away when you do not need it.
+                Section("Settings", isExpanded: $settingsOpen) {
+                    ForEach(pages) { p in Label(p.rawValue, systemImage: p.symbol).tag(SidebarItem.settings(p)) }
                 }
             }
             if places.isEmpty && records.isEmpty && pages.isEmpty && projects.isEmpty {
@@ -260,78 +276,20 @@ struct SourceList: View {
     }
 
     func row(_ s: AppSection) -> some View {
-        Label { Text(s.rawValue) } icon: { IconTile(symbol: s.tileSymbol, color: s.tileColor) }
+        Label(s.rawValue, systemImage: s.symbol)
             // Moments still waiting for an answer, as a count on Review. The tag goes last so the row stays selectable.
             .badge(s == .review ? (c.store?.openReviewCount ?? 0) : 0)
             .tag(SidebarItem.section(s))
     }
 }
 
-/// The top of the sidebar, where Droppy shows your account: here, the session. A big ring on a green disc, the task and how Focus
-/// reads you, or a quiet "Focus" when nothing is running.
-// The sidebar is window chrome: like the system's own rows beside it, it keeps the system size whatever the Text size setting.
-struct SessionHeader: View {
-    @Bindable var c: SessionController
+/// A project in the sidebar: a small ring, filled green for the project the running session belongs to.
+struct ProjectDot: View {
+    var now: Bool
     var body: some View {
-        HStack(spacing: Space.s) {
-            ZStack {
-                Circle().fill(LinearGradient(colors: Tokens.Art.disc, startPoint: .top, endPoint: .bottom))
-                TimelineView(.everySecond) { _ in
-                    LiveRing(c.isActive ? c.ringState : .on, color: .white).frame(width: 20, height: 20)
-                }
-            }
-            .frame(width: 40, height: 40)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(c.isActive ? c.taskName : "Focus").font(Tokens.fixed(.body, .semibold)).lineLimit(1)
-                Text(c.isActive ? c.presenceLabel : "No session running").font(Tokens.fixed(.caption2, .regular)).foregroundStyle(.secondary)
-                    .contentTransition(.interpolate).motion(Motion.out(0.25), value: c.presenceLabel)
-            }
-            Spacer(minLength: 0)
-        }
-        .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityHint("Shows Today")
-    }
-}
-
-/// A project's tile: its first letter on a color picked from its name, so each project keeps the same color.
-struct ProjectTile: View {
-    var name: String
-    static let palette: [Color] = [.blue, .purple, .pink, .orange, .teal, .indigo, .mint, .brown]
-    var body: some View {
-        let color = Self.palette[abs(name.unicodeScalars.reduce(0) { $0 &* 31 &+ Int($1.value) }) % Self.palette.count]
-        Text(String(name.prefix(1)).uppercased()).font(.system(size: 11, weight: .bold, design: .rounded)).foregroundStyle(.white)
-            .frame(width: 20, height: 20)
-            .background(RoundedRectangle(cornerRadius: Tokens.radiusTiny + 1, style: .continuous).fill(color.gradient))
-            .accessibilityHidden(true)
-    }
-}
-
-/// A white symbol on a small colored rounded square, the way System Settings (and Droppy) mark each section in the sidebar.
-struct IconTile: View {
-    var symbol: String
-    var color: Color
-    var body: some View {
-        Image(systemName: symbol).font(.system(size: 11, weight: .semibold)).foregroundStyle(.white)
-            .frame(width: 20, height: 20)
-            .background(RoundedRectangle(cornerRadius: Tokens.radiusTiny + 1, style: .continuous).fill(color.gradient))
-            .accessibilityHidden(true)
-    }
-}
-
-extension AppSection {
-    var tileSymbol: String {
-        switch self {
-        case .today: return "sun.max.fill"; case .projects: return "folder.fill"; case .history: return "clock.fill"
-        case .insights: return "chart.bar.fill"; case .review: return "checklist"; case .settings: return "gearshape.fill"
-        }
-    }
-    var tileColor: Color {
-        switch self {
-        case .today: return Tokens.Art.leaf; case .projects: return .blue; case .history: return .orange
-        case .insights: return .purple; case .review: return .pink; case .settings: return .gray
-        }
+        Circle().strokeBorder(now ? Tokens.accent : Tokens.ink2.opacity(0.6), lineWidth: 1.5)
+            .background(Circle().fill(now ? Tokens.accent : .clear).padding(3))
+            .frame(width: 12, height: 12).accessibilityHidden(true)
     }
 }
 

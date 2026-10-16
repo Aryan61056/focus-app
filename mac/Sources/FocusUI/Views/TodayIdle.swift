@@ -280,16 +280,17 @@ struct GoalCluster: View {
         if c.prefs.showProgress, c.prefs.dailyGoalMinutes > 0 {
             let goal = Rewards.Goal(seconds: c.todayOnTaskSeconds(), goalSeconds: Double(c.prefs.dailyGoalMinutes) * 60)
             let streak = Rewards.streak(store.sessions, today: .now)
-            Tile(padding: 20) {
-                VStack(spacing: Space.l) {
+            // Flat, in the Focus panel: a heading, the ring and the week, no card around them.
+            Group {
+                VStack(spacing: Space.m) {
                     HStack {
-                        Text("Today's goal").font(Tokens.text(.callout, .semibold)).accessibilityAddTraits(.isHeader)
+                        Text("Today's goal").font(Tokens.text(.caption, .semibold)).foregroundStyle(Tokens.ink2).accessibilityAddTraits(.isHeader)
                         Spacer()
                         Button { editing = true } label: { Image(systemName: "slider.horizontal.3").foregroundStyle(Tokens.ink2).frame(width: 28, height: 28).contentShape(Rectangle()) }
                             .buttonStyle(.plain).help("Change the daily goal").accessibilityLabel("Change the daily goal")
                             .popover(isPresented: $editing, arrowEdge: .bottom) { GoalEditor(prefs: c.prefs) }
                     }
-                    GoalRing(goal: goal).frame(width: 148, height: 148)
+                    GoalRing(goal: goal).frame(width: 120, height: 120)
                     if !store.sessions.isEmpty {
                         VStack(spacing: Space.s) {
                             WeekStrip(week: streak.week)

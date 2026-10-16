@@ -9,14 +9,8 @@ public enum SettingsPage: String, CaseIterable, Identifiable, Hashable, Sendable
     public var id: String { rawValue }
     var symbol: String {
         switch self {
-        case .general: return "gearshape.fill"; case .nudges: return "hand.wave.fill"; case .cues: return "bell.badge.fill"
-        case .rhythm: return "metronome.fill"; case .reading: return "eye.fill"; case .privacy: return "hand.raised.fill"
-        }
-    }
-    var color: Color {
-        switch self {
-        case .general: return .gray; case .nudges: return Tokens.Art.leaf; case .cues: return .red
-        case .rhythm: return .orange; case .reading: return .blue; case .privacy: return .indigo
+        case .general: return "gearshape"; case .nudges: return "hand.wave"; case .cues: return "bell"
+        case .rhythm: return "metronome"; case .reading: return "eye"; case .privacy: return "hand.raised"
         }
     }
 }
@@ -41,10 +35,13 @@ struct SettingsView: View {
     var body: some View {
         Form {
                 if page == .nudges {
-                    // Droppy heads its pages with a picture of the feature: here, a nudge as the notch shows it, in the tone you picked.
+                    // The page opens on the thing it sets: a nudge as the notch shows it, in the tone you picked. A plain black plate, no art.
                     Section {
-                        HeroBanner(caption: "A nudge in the notch") { NudgePreviewPill(text: c.prefs.nudgeTone.example) }
+                        HStack { Spacer(); NudgePreviewPill(text: c.prefs.nudgeTone.example); Spacer() }
+                            .padding(.vertical, Space.l)
+                            .background(RoundedRectangle(cornerRadius: Tokens.radiusCard, style: .continuous).fill(Color.black.opacity(0.88)))
                             .listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
+                            .accessibilityLabel("Preview of a nudge in the notch")
                     }
                 }
                 group("Nudges", .nudges) {
@@ -299,19 +296,36 @@ struct SettingsView: View {
     func opt(_ p: Preset, _ title: String, _ text: String) -> some View {
         let on = c.prefs.preset == p
         return Button { c.prefs.preset = p } label: {
-            VStack(alignment: .leading, spacing: Space.xxs) { Text(title).font(Tokens.text(.body, .semibold)); Text(text).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true) }
+            // The strength as three steps, the name under it; what it does is the tooltip, so the cards stay quiet.
+            VStack(alignment: .leading, spacing: Space.s) {
+                HStack(spacing: 3) {
+                    ForEach(0..<3, id: \.self) { i in
+                        RoundedRectangle(cornerRadius: Tokens.radiusTiny / 2).fill(i <= p.level ? Tokens.accent : Tokens.track).frame(width: 12, height: 10)
+                    }
+                }
+                Text(title).font(Tokens.text(.body, .semibold))
+            }
                 .frame(maxWidth: .infinity, alignment: .leading).padding(Space.s)
                 .background(RoundedRectangle(cornerRadius: Tokens.radiusInset, style: .continuous).fill(on ? Tokens.accentSoft : Tokens.control))
                 .overlay { RoundedRectangle(cornerRadius: Tokens.radiusInset, style: .continuous).strokeBorder(Tokens.accent.opacity(on ? 1 : 0), lineWidth: 1.5) }
                 .contentShape(RoundedRectangle(cornerRadius: Tokens.radiusInset, style: .continuous))
         }
         .buttonStyle(.plain).accessibilityAddTraits(on ? .isSelected : [])
+        .help(text).accessibilityHint(text)
         .motion(Motion.out(0.2), value: on)
     }
 
     /// A section of the form, shown only on its own page of the sidebar.
     @ViewBuilder func group<V: View>(_ title: String, _ on: SettingsPage, @ViewBuilder _ content: () -> V) -> some View {
-        if page == on { Section { content() } header: { Text(title).font(Tokens.text(.body, .semibold)) } }
+        // The groups where the AI's own behavior is set carry its sparkle, as the Focus panel does.
+        if page == on {
+            Section { content() } header: {
+                HStack(spacing: 5) {
+                    if title.contains("decides") { Image(systemName: "sparkles").foregroundStyle(Tokens.accent).accessibilityHidden(true) }
+                    Text(title).font(Tokens.text(.body, .semibold))
+                }
+            }
+        }
     }
 
     /// A settings row as Droppy and System Settings draw it: the title, a small info button that holds the explanation, and the
@@ -345,4 +359,9 @@ private struct InfoButton: View {
             Text(text).font(.callout).fixedSize(horizontal: false, vertical: true).frame(width: 280, alignment: .leading).padding(Space.m)
         }
     }
+}
+
+extension Preset {
+    /// How firm, as steps on the strength cards: one, two or three.
+    var level: Int { switch self { case .gentle: return 0; case .standard: return 1; case .strict: return 2 } }
 }

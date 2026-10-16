@@ -4,25 +4,29 @@ import FocusJudge
 /// Ask the model about this session. One question, one answer, nothing kept. It may name windows because the user is asking.
 struct AskPanel: View {
     @Bindable var c: SessionController
+    /// In the Focus panel: no heading (the panel has one) and the suggestions wrap.
+    var compact = false
     @State private var question = ""
     @FocusState private var focused: Bool
 
     var body: some View {
         Group {
             VStack(alignment: .leading, spacing: Space.s) {
-                HStack(spacing: Space.s) {
-                    Text("Ask Focus").font(Tokens.text(.callout, .semibold)).accessibilityAddTraits(.isHeader)
-                    AITag()
-                    Spacer()
+                if !compact {
+                    HStack(spacing: Space.s) {
+                        Text("Ask Focus").font(Tokens.text(.callout, .semibold)).accessibilityAddTraits(.isHeader)
+                        AITag()
+                        Spacer()
+                    }
                 }
                 HStack(spacing: Space.xs) {
-                    TextField("Why did you flag that window?", text: $question).font(Tokens.text(.callout))
+                    TextField(compact ? "Ask about this session" : "Why did you flag that window?", text: $question).font(Tokens.text(.callout))
                         .wellField(focused: focused)
                         .focused($focused).onSubmit(ask)
                     Button("Ask") { ask() }.buttonStyle(FocusButtonStyle(.secondary)).disabled(question.trimmingCharacters(in: .whitespaces).isEmpty || c.answer.isWorking)
                 }
                 if case .idle = c.answer {
-                    HStack(spacing: Space.xs) {
+                    FlowRow(spacing: Space.xs) {
                         chip("What pulled me away?")
                         chip("Why was I flagged?")
                         chip("Which windows helped?")

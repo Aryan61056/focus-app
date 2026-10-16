@@ -29,7 +29,7 @@ def main() -> int:
                  ("ink on control hover", "ink", hov, 4.5), ("ink on accentSoft", "ink", flat("accentSoft"), 4.5),
                  ("accentInk on accentSoft (selected choice)", "accentInk", flat("accentSoft"), 4.5), ("ink2 on well", "ink2", flat("well"), 4.5),
                  ("ink2 on control over card", "ink2", over(tk["control"][0], tk["control"][1], flat("window2")), 4.5),
-                 ("accent ring on window (non-text)", "accent", win, 3.0), ("onAccent on accent (primary button)", "onAccent", flat("accent"), 4.5)]
+                 ("accent ring on window (non-text)", "accent", win, 3.0), ("accent text on window", "accent", win, 4.5), ("slip mark on window (non-text)", "slip", win, 3.0), ("slip mark on window2 (non-text)", "slip", flat("window2"), 3.0), ("ink on slipSoft", "ink", flat("slipSoft"), 4.5), ("onAccent on accent (primary button)", "onAccent", flat("accent"), 4.5)]
         for label, fg, bg, need in pairs:
             r = ratio(tk[fg][0], bg); ok = r >= need; bad += not ok
             print(f"{mode:5} {'ok ' if ok else 'LOW'} {r:5.2f} (need {need}) {label}")

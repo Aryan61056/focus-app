@@ -2,71 +2,39 @@ import SwiftUI
 import FocusBrain
 
 /// Today. Two jobs, and the screen does one of them at a time.
-/// Between sessions: say what you are working on and press Return (one field, your projects one tap away, how the day is going).
-/// During a session, for a three second glance: how you are doing, what Focus is reading and why, and nothing that needs reading twice.
-/// At most one notice shows at a time, so a screen never opens with a stack of banners.
+/// Between sessions: say what you are working on and press Return, with your day and week under it.
+/// During a session, for a three second glance: Focus's bar, its call, the session as one band (TodayLiveMain).
+/// The Focus panel beside it (TodayPanel) holds what Focus did, Ask Focus and the goal. At most one notice shows at a time.
 struct TodayView: View {
     @Bindable var c: SessionController
     @Binding var showStart: Bool
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var width: CGFloat = 900
 
     var body: some View {
-        Scroller { content }
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+        PanelLayout {
+            Scroller { content.padding(.horizontal, Space.xl).padding(.top, Space.l).padding(.bottom, Space.xl).frame(maxWidth: 960, alignment: .leading) }
+        } side: {
+            TodayPanel(c: c)
+        }
     }
-
-    /// Side by side when there is room; stacked when the window is narrow.
-    var wide: Bool { width >= 820 }
 
     var content: some View {
         VStack(alignment: .leading, spacing: Space.xl) {
-            // Droppy heads its pages with a picture: here a copy of the notch over the app's artwork. Only between sessions: during one
-            // the live header already shows the task and the time, and the first thing on the page must be what Focus is reading.
-            if !c.isActive { HeroBanner { NotchPreviewPill(c: c) } }
-            if c.isActive { LiveHeader(c: c) } else { DashHeader(c: c) }
             if let n = notice { NoticeRow(notice: n, c: c) }
-            if !hasSide {
-                VStack(alignment: .leading, spacing: Space.m) { main; if !firstRun { HowDecidesButton() } }
-            } else if wide {
-                HStack(alignment: .top, spacing: Space.xl) {
-                    main.frame(maxWidth: .infinity, alignment: .topLeading)
-                    side.frame(width: 284, alignment: .topLeading)
-                }
+            if c.isActive {
+                TodayLiveMain(c: c)
             } else {
-                VStack(alignment: .leading, spacing: Space.xl) { main; side }
+                DashHeader(c: c)
+                if c.summary != nil { JustFinishedCard(c: c) }
+                StartCard(c: c, showStart: $showStart, intro: firstRun)
+                if firstRun { HowItWorks(c: c).fixedSize(horizontal: false, vertical: true) }
+                if let st = c.store, !st.sessions.isEmpty { DaySection(store: st); WeekSection(store: st) }
             }
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 
-    /// Nothing to put beside the start card on a first day, so it gets the whole width and the page stays quiet.
-    var hasSide: Bool { c.isActive || !(c.store?.sessions.isEmpty ?? true) }
-
     var firstRun: Bool { !c.prefs.introSeen && c.summary == nil && (c.store?.sessions.isEmpty ?? true) }
-
-    @ViewBuilder var main: some View {
-        VStack(alignment: .leading, spacing: Space.xl) {
-            if c.isActive {
-                SeeingCard(c: c)
-                if c.aiAvailable { AskPanel(c: c) }
-            } else {
-                if c.summary != nil { JustFinishedCard(c: c) }
-                StartCard(c: c, showStart: $showStart, intro: firstRun)
-                if firstRun { HowItWorks(c: c).fixedSize(horizontal: false, vertical: true) }
-                if let st = c.store { DaySection(store: st); WeekSection(store: st) }
-            }
-        }
-    }
-
-    @ViewBuilder var side: some View {
-        VStack(alignment: .leading, spacing: Space.m) {
-            if let st = c.store { GoalCluster(c: c, store: st) }
-            if c.isActive { SessionTally(stats: c.stats) }
-            HowDecidesButton()
-        }
-    }
 
     /// The most pressing thing to know, if any. Only one is ever shown; the rest wait until it is dealt with.
     var notice: Notice? {
@@ -164,56 +132,5 @@ struct DashHeader: View {
     }
     static func greeting(hour: Int) -> String {
         switch hour { case 5..<12: return "Good morning"; case 12..<17: return "Good afternoon"; case 17..<22: return "Good evening"; default: return "Working late" }
-    }
-}
-
-/// During a session: the ring, the task, the clock and the controls, in one row you can read from across the desk.
-struct LiveHeader: View {
-    @Bindable var c: SessionController
-    var body: some View {
-        HStack(alignment: .center, spacing: Space.l) {
-            // The live ring: its arc sweeps with the clock, a change of state blurs in, and it breathes while you are on task.
-            TimelineView(.everySecond) { _ in
-                LiveRing(c.ringState, color: c.ringColor).frame(width: 76, height: 76)
-                    .background { RingGlow(on: c.ringColor == Tokens.accent && !c.isPaused, color: Tokens.accent).padding(-6) }
-            }
-            VStack(alignment: .leading, spacing: Space.xs) {
-                Text(c.taskName).font(Tokens.rounded(.title2, .semibold)).lineLimit(2)
-                HStack(spacing: Space.xs) {
-                    StateChip(label: c.presenceLabel, ring: c.ringState, on: c.ringColor == Tokens.accent)
-                    if let m = c.moment { MomentLine(moment: m) }
-                    if let note = statusNote { Text(note).font(Tokens.text(.body)).foregroundStyle(Tokens.ink2).lineLimit(1) }
-                }
-                .motion(Motion.notchSettle, value: c.moment)
-            }
-            Spacer(minLength: 16)
-            VStack(alignment: .trailing, spacing: Space.s) {
-                TimelineView(.everySecond) { _ in
-                    let t = c.clockText()
-                    VStack(alignment: .trailing, spacing: 0) {
-                        Text(t).font(Tokens.rounded(.display, .semibold)).monospacedDigit()
-                        Text(c.mode == .timed ? "left" : "elapsed").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
-                    }
-                }
-                HStack(spacing: Space.xs) {
-                    // One button that changes its word, so the pointer that just paused is already on Resume.
-                    Button { c.act(c.isPaused ? .resume : .pause) } label: {
-                        Label(c.isPaused ? "Resume" : "Pause", systemImage: c.isPaused ? "play.fill" : "pause.fill")
-                            .contentTransition(.symbolEffect(.replace))
-                    }
-                    .buttonStyle(FocusButtonStyle(.secondary))
-                    .motion(Motion.out(0.2), value: c.isPaused)
-                    Menu("Break") {
-                        ForEach([5, 10, 15], id: \.self) { m in Button("\(m) minutes") { c.act(.breakTime, minutes: m) } }
-                    }.menuStyle(.button).buttonStyle(FocusButtonStyle(.secondary)).fixedSize()
-                    Button("End") { c.end() }.buttonStyle(FocusButtonStyle(.plain))
-                }
-            }
-        }
-    }
-    var statusNote: String? {
-        if c.isPaused { return "No nudges until you resume." }
-        if c.shadow { return c.shadowMarks == 0 ? "Practice: watching, not interrupting." : "Practice: \(c.shadowMarks) to review later." }
-        return nil
     }
 }
