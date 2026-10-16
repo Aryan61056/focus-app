@@ -40,10 +40,13 @@ struct FocusApp: App {
         w.setFrame(f, display: true)
     }
     @State private var demo: DemoSenses?
+    @State private var exampleNotch: NotchPanelController?
     @State private var notch: NotchPanelController?
     @State private var sense: SenseCoordinator?
     @State private var previewWatcher: PreviewWatcher?
     @State private var hotKey = GlobalHotKey()
+    @State private var parkingHotKey = GlobalHotKey()
+    @State private var parkingPanel: ParkingPanelController?
     @State private var updater: Updater?
 
     init() {
@@ -58,6 +61,13 @@ struct FocusApp: App {
     @State private var voice = Voice()
     @State private var phoneLink = PhoneLink()
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.dismissWindow) private var dismissWindow
+
+    private func registerParkingShortcut() {
+        let key = controller.prefs.parkingShortcut
+        let registered = parkingHotKey.register(keyCode: key.keyCode, modifiers: key.carbonModifiers) { controller.onParkThought?() }
+        controller.parkingShortcutError = registered ? nil : "That shortcut is in use. Choose another, or use Session > Park a thought."
+    }
 
     var body: some Scene {
         Window("Focus", id: "main") {
@@ -111,6 +121,9 @@ struct FocusApp: App {
                     if updater == nil, ProcessInfo.processInfo.environment["FOCUS_DEMO"] != "1" { let u = Updater(controller: controller); updater = u; u.start() }
                     controller.setJudgeStatus(DefaultJudge.status())
                     Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in MainActor.assumeIsolated { controller.setJudgeStatus(DefaultJudge.status()) } }
+                    if parkingPanel == nil { parkingPanel = ParkingPanelController(controller: controller) }
+                    controller.onParkThought = { parkingPanel?.show() }
+                    registerParkingShortcut()
                     hotKey.register {
                         if controller.isActive { controller.act(controller.isPaused ? .resume : .pause) }
                         else { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); controller.requestStart() }
@@ -153,10 +166,40 @@ struct FocusApp: App {
                     d.start()
                 }
         }
+        .onChange(of: controller.prefs.parkingShortcut) { _, _ in registerParkingShortcut() }
+        .onChange(of: controller.example != nil) { _, shown in
+            if shown, let example = controller.example {
+                let panel = NotchPanelController(controller: example.controller)
+                exampleNotch = panel; panel.start(); openWindow(id: "example")
+            } else { exampleNotch?.stop(); exampleNotch = nil; dismissWindow(id: "example") }
+        }
         .defaultSize(width: 1240, height: 800)
         .windowToolbarStyle(.unified)
         .commands {
+            CommandGroup(replacing: .help) {
+                Button("See how it works") { controller.showExample() }
+                    .keyboardShortcut("d", modifiers: [.command, .shift]).disabled(controller.isActive)
+            }
+            CommandMenu("Example") {
+                Button("Previous scene") { if let e = controller.example { e.select(e.step - 1) } }
+                    .keyboardShortcut(.leftArrow, modifiers: [.command, .option]).disabled(controller.example == nil || controller.example?.step == 0)
+                Button("Next scene") { if let e = controller.example { e.select(e.step == 3 ? 0 : e.step + 1) } }
+                    .keyboardShortcut(.rightArrow, modifiers: [.command, .option]).disabled(controller.example == nil)
+                Button(controller.example?.playing == true ? "Pause playback" : "Autoplay") {
+                    if let e = controller.example { e.playing ? e.pause() : e.autoplay() }
+                }.keyboardShortcut("p", modifiers: [.command, .option]).disabled(controller.example == nil)
+                Button("Close example") { controller.closeExample() }.disabled(controller.example == nil)
+            }
             CommandMenu("Session") {
+                Button("Keep going") { controller.keepGoing() }.disabled(!controller.shortSessionOffer)
+                Button("Finish five minutes") { controller.finishFiveMinutes() }.disabled(!controller.shortSessionOffer)
+                Button("Mark result done") { controller.resolveSessionGoal(done: true) }.disabled(controller.isActive || controller.sessionGoal.isEmpty || controller.goalDisposition != nil)
+                Button("Carry result forward") { controller.resolveSessionGoal(done: false) }.disabled(controller.isActive || controller.sessionGoal.isEmpty || controller.goalDisposition != nil)
+                Divider()
+                Button("Park a thought") { controller.onParkThought?() }
+                    .keyboardShortcut(KeyEquivalent(Character(controller.prefs.parkingShortcut.key)), modifiers: controller.prefs.parkingShortcut.modifiers)
+                Button("I'm stuck") { controller.requestNextActions(); controller.requestSection(.today); NSApp.activate(ignoringOtherApps: true); openWindow(id: "main") }
+                    .keyboardShortcut("i", modifiers: [.command, .shift]).disabled(!controller.isActive)
                 Button("Start session\u{2026}") { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); controller.requestStart() }
                     .keyboardShortcut("n").disabled(controller.isActive)
                 Button(controller.isPaused ? "Resume" : "Pause") { controller.act(controller.isPaused ? .resume : .pause) }
@@ -176,6 +219,14 @@ struct FocusApp: App {
 
         Window("iPhone", id: "iphone") { PhoneLinkView(link: phoneLink) }
             .windowResizability(.contentSize)
+
+        Window("See how Focus works", id: "example") {
+            if let example = controller.example {
+                GuidedExampleView(example: example) { controller.closeExample() }
+            }
+        }
+        .defaultSize(width: 780, height: 720)
+        .windowResizability(.contentMinSize)
 
         MenuBarExtra {
             MenuBarContent(controller: controller) {

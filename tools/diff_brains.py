@@ -31,6 +31,7 @@ def judgment(rng, t, window, label, strong_p=0.85):
 
 def special(rng):
     r = rng.random()
+    if r < 0.06: return {"TaskChanged": {}}
     if r < 0.45:
         a = {"action": rng.choice(ACTIONS)}
         if a["action"] in ("snooze", "break", "extend") and rng.random() < 0.8: a["minutes"] = rng.choice([1, 2, 5, 10])

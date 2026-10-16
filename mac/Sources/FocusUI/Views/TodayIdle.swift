@@ -8,89 +8,14 @@ struct StartCard: View {
     @Bindable var c: SessionController
     @Binding var showStart: Bool
     var intro: Bool
-    @State private var task = ""
-    @State private var timed = false
-    @State private var minutes = 50
-    @FocusState private var focused: Bool
-
-    var parsed: (task: String, minutes: Int?) { StartSheet.parse(task) }
-    var last: Project? { StartSheet.lastProject(c.store) }
-    var canStart: Bool { !parsed.task.isEmpty || last != nil }
-
     var body: some View {
         Tile(padding: 24) {
-            VStack(alignment: .leading, spacing: 18) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(intro ? "Your first session" : "What are you working on?").font(Tokens.text(14, .semibold))
-                    HStack(spacing: 10) {
-                        TextField(last?.name ?? "Lab report on pendulums", text: $task)
-                            .textFieldStyle(.plain).font(Tokens.rounded(20, .medium))
-                            .padding(.horizontal, 16).frame(height: 56)
-                            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Tokens.window))
-                            .overlay { RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(focused ? Tokens.accent : Tokens.line, lineWidth: focused ? 1.5 : 1) }
-                            .focused($focused).onSubmit(start)
-                        Button(action: start) { Text(parsed.task.isEmpty && last != nil ? "Continue" : "Start").frame(minWidth: 64) }
-                            .buttonStyle(FocusButtonStyle(.primary)).controlSize(.large).frame(height: 56)
-                            .disabled(!canStart).keyboardShortcut(.defaultAction)
-                    }
-                    hint
-                }
-                modeRow
-                pickUp
-                if c.prefs.practiceActive && !intro {
-                    HStack(spacing: 8) {
-                        Image(systemName: "eye").foregroundStyle(Tokens.ink2)
-                        Text("Practice mode: Focus watches but will not interrupt. \(c.prefs.practiceSessionsLeft) practice \(c.prefs.practiceSessionsLeft == 1 ? "session" : "sessions") left.")
-                            .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
-                        Button("Nudge me now") { c.prefs.turnNudgesOnNow() }.buttonStyle(FocusButtonStyle(.plain, small: true))
-                    }
-                }
-            }
-        }
-        .onAppear { focused = true }
-    }
-
-    /// One calm line under the field: what Return will do.
-    @ViewBuilder var hint: some View {
-        if let m = parsed.minutes {
-            Text("Return starts a \(m) minute session on \u{201C}\(parsed.task)\u{201D}.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
-        } else if parsed.task.isEmpty, let p = last {
-            Text(p.nextStep.isEmpty ? "Return continues \u{201C}\(p.name)\u{201D}." : "Return continues \u{201C}\(p.name)\u{201D}. Next: \(p.nextStep)")
-                .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).lineLimit(1)
-        } else if !parsed.task.isEmpty, c.store?.projectNamed(parsed.task) == nil, c.store?.projects.isEmpty == false {
-            Text("New project. You can describe it later under Projects.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
-        }
-    }
-
-    var modeRow: some View {
-        HStack(spacing: 8) {
-            let typed = parsed.minutes != nil
-            chip("Open", on: !timed && !typed) { timed = false }
-            chip("Timed", on: timed || typed) { timed = true }
-            if timed && !typed {
-                Picker("Length", selection: $minutes) { ForEach([25, 50, 90], id: \.self) { Text("\($0) min").tag($0) } }
-                    .pickerStyle(.menu).labelsHidden().frame(width: 96)
-            }
-            Spacer()
-            Button("More options") { showStart = true }.buttonStyle(FocusButtonStyle(.plain, small: true)).keyboardShortcut("n")
-        }
-    }
-
-    @ViewBuilder var pickUp: some View {
-        if let projects = c.store?.projects.prefix(3), !projects.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Pick up").font(Tokens.text(12.5, .medium)).foregroundStyle(Tokens.ink2)
-                HStack(spacing: 10) {
-                    ForEach(Array(projects)) { p in ProjectChip(c: c, project: p, onStart: { markSeen() }) }
-                    Spacer(minLength: 0)
-                }
+            VStack(alignment: .leading, spacing: 16) {
+                StartForm(c: c) {}
+                if intro { Button("See how it works") { c.showExample() }.buttonStyle(FocusButtonStyle(.plain, small: true)).help("Try an example with made-up windows") }
             }
         }
     }
-
-    func markSeen() { c.prefs.introSeen = true }
-
-    /// What Return does. Typed text starts that task (a trailing number makes it timed); an empty field continues the last project.
     struct Plan: Equatable { var task: String; var projectId: UUID?; var mode: Mode; var duration: Double? }
     static func plan(text: String, timed: Bool, minutes: Int, last: Project?) -> Plan? {
         let p = StartSheet.parse(text)
@@ -99,18 +24,8 @@ struct StartCard: View {
         return Plan(task: p.task, projectId: nil, mode: isTimed ? .timed : .open, duration: isTimed ? Double((p.minutes ?? minutes) * 60) : nil)
     }
 
-    func start() {
-        guard let p = Self.plan(text: task, timed: timed, minutes: minutes, last: last) else { return }
-        markSeen()
-        c.begin(task: p.task, mode: p.mode, duration: p.duration, projectId: p.projectId, autoTick: true)
-    }
-
-    func chip(_ label: String, on: Bool, _ action: @escaping () -> Void) -> some View {
-        Button(label, action: action).buttonStyle(ChoiceStyle(on: on))
-    }
 }
 
-/// A project you can pick up with one click: its name, and either the next step you left or when you last worked on it.
 struct ProjectChip: View {
     @Bindable var c: SessionController
     var project: Project
@@ -120,7 +35,7 @@ struct ProjectChip: View {
     var body: some View {
         let sessions = c.store?.sessions(for: project.id) ?? []
         let detail = project.nextStep.isEmpty ? (sessions.first.map { $0.start.formatted(.relative(presentation: .named)) } ?? "No sessions yet") : "Next: \(project.nextStep)"
-        Button { onStart(); c.begin(task: project.name, projectId: project.id, autoTick: true) } label: {
+        Button { onStart(); _ = c.startWithDraft(task: project.name, projectId: project.id) } label: {
             HStack(spacing: 10) {
                 Image(systemName: "play.fill").font(.system(size: 10, weight: .bold)).foregroundStyle(Tokens.onAccent)
                     .frame(width: 24, height: 24).background(Circle().fill(Tokens.accent))
@@ -152,9 +67,15 @@ struct JustFinishedCard: View {
                     }
                     Text(sentence(s)).font(Tokens.text(14)).foregroundStyle(Tokens.ink2)
                     if let h = c.highlight { HighlightLine(highlight: h) }
-                    RecapBlock(c: c)
-                    if let p = c.projectForNote { PickUpNote(c: c, project: p) }
-                    if c.askLoudness {
+                    if c.shortSessionOffer {
+                        HStack {
+                            Button("Keep going") { c.keepGoing() }.buttonStyle(FocusButtonStyle(.primary, small: true))
+                            Button("Finish") { c.finishFiveMinutes() }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                        }
+                    } else { SessionGoalResult(c: c) }
+                    if !c.shortSessionOffer && (c.sessionGoal.isEmpty || c.goalDisposition != nil) { RecapBlock(c: c) }
+                    if !c.shortSessionOffer && (c.sessionGoal.isEmpty || c.goalDisposition != nil), let p = c.projectForNote { PickUpNote(c: c, project: p) }
+                    if c.askLoudness && !c.shortSessionOffer && (c.sessionGoal.isEmpty || c.goalDisposition != nil) {
                         Divider().overlay(Tokens.line)
                         HStack(spacing: 8) {
                             Text("Was Focus too loud?").font(Tokens.text(13, .semibold))

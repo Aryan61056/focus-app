@@ -64,7 +64,7 @@ struct ProjectDetail: View {
                             .font(Tokens.text(13)).foregroundStyle(Tokens.ink2)
                     }
                     Spacer()
-                    Button { c.begin(task: project.name, projectId: project.id, autoTick: true) } label: { Label("Start session", systemImage: "play.fill") }
+                    Button { _ = c.startWithDraft(task: project.name, projectId: project.id) } label: { Label("Start session", systemImage: "play.fill") }
                         .buttonStyle(FocusButtonStyle(.primary)).disabled(c.isActive)
                 }
                 field("What Focus should know about this project", help: "Focus compares every window with this and your task. A sentence or two of detail helps more than any list. It stays on this Mac.") {

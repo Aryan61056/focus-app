@@ -7,6 +7,8 @@ import FocusBrain
 /// recent readings you can tap to see the reason behind any one of them.
 struct SeeingCard: View {
     @Bindable var c: SessionController
+    var showPreview = true
+    var isExample = false
     @State private var pinned: UUID?
     @State private var showAll = false
     @State private var width: CGFloat = 800
@@ -22,15 +24,15 @@ struct SeeingCard: View {
                     if width >= 720 {
                         HStack(alignment: .top, spacing: 24) {
                             decision(r).frame(maxWidth: .infinity, alignment: .leading)
-                            if pinned == nil { PreviewCard(c: c).frame(width: min(440, width * 0.46)) }
+                            if showPreview && pinned == nil { PreviewCard(c: c).frame(width: min(440, width * 0.46)) }
                         }
                     } else {
                         VStack(alignment: .leading, spacing: 18) {
                             decision(r)
-                            if pinned == nil { PreviewCard(c: c) }
+                            if showPreview && pinned == nil { PreviewCard(c: c) }
                         }
                     }
-                    if c.readings.count > 1 {
+                    if c.readings.count > 1 && !isExample {
                         ReadingsStrip(readings: c.readings, pinned: $pinned)
                         allReadings
                     }
@@ -40,7 +42,7 @@ struct SeeingCard: View {
                         Text("Waiting for the first window. Switch to what you are working on.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
                     }
                 }
-                Text("The model can be wrong. When it is not sure, Focus does nothing.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
+                if !isExample { Text("The model can be wrong. When it is not sure, Focus does nothing.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
             }
         }
         .animation(.easeOut(duration: 0.2), value: shown?.id)
@@ -51,7 +53,7 @@ struct SeeingCard: View {
     var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             Text("What Focus is reading").font(Tokens.text(14, .semibold)).accessibilityAddTraits(.isHeader)
-            if shown?.source == .model { AITag() }
+            if shown?.source == .model && !isExample { AITag() }
             if c.isJudging { HStack(spacing: 6) { ThinkingDot(); Text("Reading now").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) } }
             Spacer()
             if let r = shown {

@@ -822,3 +822,16 @@ Not yet covered, to add with the first implementation: `PowerChange`, `Sleep`/`W
 ## Addendum (2026-10-01): never-judged windows
 
 `WindowChangeInput.ruleLabel` may be `unsure`. The brain treats it as NEUTRAL evidence with source rule and issues no `RequestJudgment` for that window (same as an on_task rule for requests). It never advances past Drifting. Used for the default never-judged list (personal messaging, music, blank pages). The golden traces do not use it; `ReadingTests.NeverJudgedTests` covers it end to end.
+
+
+## Addendum (2026-10-15): choosing a smaller task within a session
+
+`TaskChanged{}` is an explicit evidence boundary when the user accepts an on-device next action. It is processed before time-driven confirmation at that event's timestamp. Close/count the previous evidence block, withdraw any old interrupt/re-entry, and reset focus to OnTask. Clear the window, cached on/refused judgments, session-only rules, last evidence/return target, streaks, in-flight request and next-check deadline. Reject subsequent callbacks with a request ID below the next request ID at this boundary. The controller cancels its old asynchronous jobs and follows with a fresh WindowChange for the current window.
+
+Preserve the session clock, start/duration, holds, accumulated statistics, interruption rate-cap history, project rules and user settings. Timed end is still evaluated after the event. No nudge for the new goal may rely on the previous task's evidence. Goal text stays in the UI/judge layer; the pure brain receives no screen or task prose.
+
+### T17 Task change invalidates cached evidence without restarting time
+
+```json
+{"trace":"T17-task-change","ignore":["Beacon","Veil","OffTopicTimer","Clock","Withdraw","ReentryPrompt","WrapUp","AskResume","ShadowMark","LearnRule","BringBack","Cue"],"steps":[{"t":0,"ev":{"SessionStart":{"mode":"Open","preset":"Standard"}},"fx":[]},{"t":0,"ev":{"WindowChange":{"windowKey":"w:work"}},"fx":[{"RequestJudgment":{"id":1,"reason":"window_change","urgency":"now","windowKey":"w:work","allowVision":true}}]},{"t":1,"ev":{"Judgment":{"requestId":1,"observedAt":0,"windowKey":"w:work","contentKey":"c:work","label":"on_task"}},"fx":[]},{"t":2,"ev":{"TaskChanged":{}},"fx":[]},{"t":2,"ev":{"WindowChange":{"windowKey":"w:work"}},"fx":[{"RequestJudgment":{"id":2,"reason":"window_change","urgency":"now","windowKey":"w:work","allowVision":true}}]},{"t":3,"ev":{"Judgment":{"requestId":1,"observedAt":2,"windowKey":"w:work","contentKey":"c:old","label":"off_task","strong":true}},"fx":[]},{"t":4,"ev":{"Judgment":{"requestId":2,"observedAt":2,"windowKey":"w:work","contentKey":"c:new","label":"on_task"}},"fx":[]},{"t":6,"ev":{"SessionEnd":{}},"fx":[{"Summary":{"activeSeconds":6,"offTopicSeconds":0,"unsureSeconds":0,"drifts":0,"interrupts":0,"refusals":0}}]}]}
+```

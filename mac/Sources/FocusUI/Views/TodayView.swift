@@ -48,10 +48,16 @@ struct TodayView: View {
     @ViewBuilder var main: some View {
         VStack(alignment: .leading, spacing: 26) {
             if c.isActive {
-                SeeingCard(c: c)
-                if c.aiAvailable { AskPanel(c: c) }
+                if c.presence.reason == "break", let store = c.store, !store.thoughts.isEmpty { ParkingLotCard(store: store) }
+                else if c.stuckShown { StuckCard(c: c).transition(.opacity) }
+                else {
+                    HStack { Button("I'm stuck") { c.requestNextActions() }.buttonStyle(FocusButtonStyle(.secondary, small: true)).help("Find a smaller next action"); Spacer() }
+                    SeeingCard(c: c)
+                }
+                if c.aiAvailable && !c.stuckShown && c.presence.reason != "break" { AskPanel(c: c) }
             } else {
                 if c.summary != nil { JustFinishedCard(c: c) }
+                if let store = c.store, !store.thoughts.isEmpty { ParkingLotCard(store: store) }
                 StartCard(c: c, showStart: $showStart, intro: firstRun)
                 if firstRun { HowItWorks(c: c).fixedSize(horizontal: false, vertical: true) }
                 if let st = c.store { DaySection(store: st); WeekSection(store: st) }
@@ -108,7 +114,7 @@ struct NoticeRow: View {
     var text: String {
         switch notice {
         case .resume(let r): return r == "meeting" ? "Your meeting looks over. Pick up where you left off?" : "Welcome back. Pick up where you left off?"
-        case .wrapUp: return "Two minutes left. Extend, or wrap up when you are ready."
+        case .wrapUp: return c.sessionDeadline == nil ? "Two minutes left. Extend, or wrap up when you are ready." : "Two minutes left. Wrap up when you are ready."
         case .modelOff(let why): return "\(why) Until then Focus will not nudge you."
         case .access: return "Allow Accessibility so Focus can read window titles."
         case .update: return "A newer build is ready. Restarting takes a few seconds."
@@ -173,7 +179,7 @@ struct LiveHeader: View {
                     .background { RingGlow(on: c.ringColor == Tokens.accent && !c.isPaused, color: Tokens.accent).padding(-6) }
             }
             VStack(alignment: .leading, spacing: 8) {
-                Text(c.taskName).font(Tokens.rounded(28, .semibold)).lineLimit(2)
+                Text(c.taskName).font(Tokens.rounded(28, .semibold)).lineLimit(2).contentTransition(.opacity).motion(Motion.notchSettle, value: c.taskName)
                 HStack(spacing: 8) {
                     StateChip(label: c.presenceLabel, ring: c.ringState, on: c.ringColor == Tokens.accent)
                     if let m = c.moment { MomentLine(moment: m) }

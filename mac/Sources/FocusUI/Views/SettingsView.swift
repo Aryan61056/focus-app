@@ -39,6 +39,12 @@ struct SettingsView: View {
     }
     var body: some View {
         Form {
+                if page == .general {
+                    Section("Getting started") {
+                        Button("See how it works") { c.showExample() }.disabled(c.isActive)
+                            .help("A guided example with made-up windows. No permissions needed.")
+                    }
+                }
                 if page == .nudges {
                     // Droppy heads its pages with a picture of the feature: here, a nudge as the notch shows it, in the tone you picked.
                     Section {
@@ -207,6 +213,10 @@ struct SettingsView: View {
                     }
                 }
                 group("Shortcut", .general) {
+                    Picker("Park a thought", selection: Binding(get: { c.prefs.parkingShortcut }, set: { c.prefs.parkingShortcut = $0 })) {
+                        ForEach(ParkingShortcut.allCases) { Text($0.label).tag($0) }
+                    }.help("Open the thought input from any app")
+                    if let error = c.parkingShortcutError { Text(error).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
                     row("Start or pause from anywhere", "Press Control, Option and F. With no session it opens the start sheet on the project you worked on last. During a session it pauses or resumes.") {
                         Text("\u{2303}\u{2325}F").font(Tokens.rounded(14, .semibold)).foregroundStyle(Tokens.ink2)
                     }

@@ -102,6 +102,7 @@ public struct Brain {
     var onStreak = 0, neutralStreak = 0
     var inFlight: InFlight?
     var nextRequestId = 1
+    var minimumRequestId = 0
     var powerConstrained = false, powerCritical = false
     var stats = Stats()
     var lastTimerSeconds = 0.0
@@ -136,7 +137,7 @@ public struct Brain {
         lastT = t
         oneShots = []
         expireInterrupt(t)
-        settle(t)
+        if case .taskChanged = event {} else { settle(t) }
         if session != nil {
             if !starting { apply(event, t) }
             settle(t)
@@ -160,7 +161,7 @@ public struct Brain {
         focus = .onTask; window = nil; block = nil; frozen = nil; returnPendingSince = nil
         lastEvidence = nil; lastOnTaskWindowKey = nil; lastResumeAt = t
         interruptOpen = nil; reentryOpen = false; interruptHistory = []; sessionRules = [:]; cache = []
-        nextCheckAt = .infinity; onStreak = 0; neutralStreak = 0; inFlight = nil; nextRequestId = 1
+        nextCheckAt = .infinity; onStreak = 0; neutralStreak = 0; inFlight = nil; nextRequestId = 1; minimumRequestId = 0
         stats = Stats(); lastTimerSeconds = 0
     }
 
@@ -381,6 +382,13 @@ public struct Brain {
         switch event {
         case .sessionStart, .tick: break
         case .sessionEnd: endSession(t)
+        case .taskChanged:
+            // Preserve the session clock/statistics, but no evidence about the old goal can judge the new one.
+            closeBlock(t); closeFrozen(); withdrawOpen()
+            focus = .onTask; window = nil; lastEvidence = nil; lastOnTaskWindowKey = nil
+            returnPendingSince = nil; lastResumeAt = t; lastTimerSeconds = 0
+            cache = []; sessionRules = [:]; inFlight = nil; nextCheckAt = .infinity
+            minimumRequestId = nextRequestId; onStreak = 0; neutralStreak = 0
         case .judgment(let j): onJudgment(j, t)
         case .windowChange(let w): onWindowChange(w, t)
         case .userAction(let a, let minutes): onUserAction(a, minutes, t)
@@ -449,6 +457,7 @@ public struct Brain {
 
     mutating func onJudgment(_ j: JudgmentInput, _ t: Double) {
         guard session != nil, let w = window else { return }
+        if let id = j.requestId, id < minimumRequestId { return }
         let isRefusal = j.flag != .none
         if isHeld {
             // Held: ignored, except an ON result still refreshes the cache (never while a sensitive window is up).

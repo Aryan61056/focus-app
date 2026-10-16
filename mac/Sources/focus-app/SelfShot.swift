@@ -1,5 +1,6 @@
 import AppKit
 import FocusUI
+import FocusJudge
 
 /// Developer tool, only with FOCUS_DEMO=1 and FOCUS_SELFSHOT=<folder>: after a few seconds, draws this app's own windows (the main window
 /// and the notch panel, with scripted demo data) to PNG files and quits. It renders views, it does not capture the screen, so it needs no permission.
@@ -13,6 +14,26 @@ enum SelfShot {
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             for a in list.split(separator: ",").map(String.init) {
                 if a.hasPrefix("section:"), let s = AppSection.allCases.first(where: { $0.rawValue.lowercased() == a.dropFirst(8).lowercased() }) { controller.requestSection(s) }
+                else if a.hasPrefix("example") {
+                    controller.showExample()
+                    let parts = a.split(separator: ":")
+                    if parts.count == 2, let step = Int(parts[1]) { controller.example?.select(step) }
+                }
+                else if a == "stuck" { controller.assistant = ExampleAssistant(); controller.requestNextActions() }
+                else if a == "park" || a == "park-long" { controller.onParkThought?() }
+                else if a == "parked-all" {
+                    for i in 1...12 { controller.store?.park("Synthetic thought \(i): ask about the lab materials") }
+                    controller.act(.breakTime, minutes: 5)
+                }
+                else if a == "parked" { controller.store?.park("Ask about the synthetic lab materials"); controller.store?.park("Pick up a notebook"); controller.act(.breakTime, minutes: 5) }
+                else if a == "start-until" {
+                    controller.startDraft.task = "Lab report"; controller.startDraft.length = .until
+                    controller.startDraft.done = "Write the methods section"; controller.startDraft.extras = true; controller.requestStart()
+                }
+                else if a == "goal-finished" {
+                    if controller.isActive { controller.end() }
+                    controller.begin(task: "Lab report", goal: "Write the methods section"); controller.end()
+                }
                 else if a == "start" { controller.requestStart() }
                 else if a == "readscreen" { controller.prefs.readScreen = true }
                 else if a == "veil" { controller.previewVeil() }   // the whole-screen gray, so its windows can be listed
@@ -36,5 +57,14 @@ enum SelfShot {
             }
             NSApp.terminate(nil)
         }
+    }
+}
+
+private struct ExampleAssistant: Assistant {
+    func sharpen(task: String, context: String) async -> Sharpened? { nil }
+    func recap(facts: String) async -> Recap? { nil }
+    func answer(question: String, facts: String) async -> String? { nil }
+    func nextActions(task: String, context: String) async -> [String]? {
+        ["Choose u and dv for the first calculus integral.", "Differentiate your chosen calculus expression.", "Write the calculus rule beside your working."]
     }
 }

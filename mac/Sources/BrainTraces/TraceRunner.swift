@@ -133,6 +133,7 @@ public enum TraceRunner {
             c.checkScale = (p["checkScale"] as? NSNumber)?.doubleValue ?? 1
             return .sessionStart(c)
         case "SessionEnd": return .sessionEnd
+        case "TaskChanged": return .taskChanged
         case "Judgment":
             var j = JudgmentInput(requestId: (p["requestId"] as? NSNumber)?.intValue, observedAt: num(p["observedAt"]),
                                   windowKey: p["windowKey"] as! String, contentKey: p["contentKey"] as? String ?? "",

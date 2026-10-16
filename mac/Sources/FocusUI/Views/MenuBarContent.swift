@@ -33,6 +33,7 @@ public struct MenuBarContent: View {
                 Menu("Take a break") { ForEach([5, 10, 15], id: \.self) { m in Button("\(m) minutes") { c.act(.breakTime, minutes: m) } } }.menuStyle(.borderlessButton).padding(.horizontal, 10).frame(height: 30)
                 Menu("Snooze") { ForEach([15, 30, 60], id: \.self) { m in Button("\(m) minutes") { c.act(.snooze, minutes: m) } } }.menuStyle(.borderlessButton).padding(.horizontal, 10).frame(height: 30)
                 Divider().padding(.vertical, 4)
+                item("I'm stuck") { c.requestNextActions(); openApp() }
                 item("Set next step") { c.manualNextStep = true; openApp() }
                 item("That was fine") { c.claimOnTask() }
                 item("Back to task") { c.act(.backToTask) }
@@ -41,13 +42,20 @@ public struct MenuBarContent: View {
                 item("End session") { c.end() }
             } else {
                 Text("No session running").font(Tokens.rounded(15)).padding(10)
+                if c.shortSessionOffer {
+                    item("Keep going") { c.keepGoing() }
+                    item("Finish five minutes") { c.finishFiveMinutes() }
+                    Divider().padding(.vertical, 4)
+                }
                 item("Start a session") { c.requestStart(); openApp() }
+                item("Just five minutes") { c.startDraft.length = .five; c.requestStart(); openApp() }
             }
             if c.visibleUpdate != nil {
                 Divider().padding(.vertical, 4)
                 item("Restart to update") { c.installUpdate() }
             }
             Divider().padding(.vertical, 4)
+            item("Park a thought") { c.onParkThought?() }
             item("Open Focus", openApp)
         }
         .padding(8).frame(width: 296)
