@@ -354,16 +354,22 @@ private struct SessionCard: View {
     var body: some View {
         TimelineView(.everySecond) { _ in
             let t = c.clockText()
-            HStack(spacing: Space.s) {
+            // The task gets the card's whole width (two lines if it needs them); the clock sits with the state underneath,
+            // where it used to squeeze even a short task name down to a few letters.
+            HStack(alignment: .center, spacing: Space.s) {
                 LiveRing(c.ringState, color: c.ringColor).frame(width: 28, height: 28)
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(c.taskName).font(Tokens.text(.body, .semibold)).lineLimit(1)
-                    Text(c.presenceLabel).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
-                        .contentTransition(.interpolate).motion(Motion.out(0.25), value: c.presenceLabel)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(c.taskName).font(Tokens.text(.body, .semibold)).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: Space.xxs) {
+                        Text(c.presenceLabel).contentTransition(.interpolate).motion(Motion.out(0.25), value: c.presenceLabel)
+                        Text("\u{00B7}")
+                        Text(t).monospacedDigit()
+                    }
+                    .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
                 }
-                Spacer()
-                Text(t).font(Tokens.rounded(.callout)).monospacedDigit()
+                Spacer(minLength: 0)
             }
+            .accessibilityElement(children: .combine)
         }
         .padding(Space.s).background(RoundedRectangle(cornerRadius: Tokens.radiusCard, style: .continuous).fill(Tokens.window.opacity(0.7)))
         .overlay { RoundedRectangle(cornerRadius: Tokens.radiusCard, style: .continuous).strokeBorder(Tokens.line) }

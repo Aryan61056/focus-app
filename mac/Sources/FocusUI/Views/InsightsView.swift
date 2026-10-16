@@ -34,7 +34,7 @@ struct InsightsView: View {
 
     func headline(_ t: ReadStats, _ a: (agreed: Int, answered: Int)) -> [(value: String, label: String)] {
         var out: [(value: String, label: String)] = [(durationText(store.sessions.reduce(0) { $0 + $1.activeSeconds }), "focused in all"), ("\(store.sessions.count)", "sessions")]
-        if let share = DayStats.morningShare(DayStats.heat(store.sessions)) { out.append(("\(share)%", "before noon")) }
+        if let morning = DayStats.morningSeconds(DayStats.heat(store.sessions)) { out.append((durationText(morning), "before noon")) }
         if a.answered > 0 { out.append(("\(a.agreed)/\(a.answered)", "calls you agreed with")) }
         return out
     }

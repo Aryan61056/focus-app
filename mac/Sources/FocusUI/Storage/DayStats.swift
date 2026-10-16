@@ -65,6 +65,12 @@ public enum DayStats {
     }
 
     /// Share of on-task time that happened before noon, or nil when there is nothing to say.
+    /// Seconds focused before noon, or nil until there is an hour of focus in all (Insights shows time, not a percentage).
+    public static func morningSeconds(_ grid: [[Double]]) -> Double? {
+        guard grid.flatMap({ $0 }).reduce(0, +) >= 3600 else { return nil }
+        return grid.flatMap { $0[0..<12] }.reduce(0, +)
+    }
+
     public static func morningShare(_ grid: [[Double]]) -> Int? {
         let all = grid.flatMap { $0 }.reduce(0, +)
         guard all >= 3600 else { return nil }

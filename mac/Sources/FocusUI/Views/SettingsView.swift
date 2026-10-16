@@ -39,7 +39,7 @@ struct SettingsView: View {
                     Section {
                         HStack { Spacer(); NudgePreviewPill(text: c.prefs.nudgeTone.example); Spacer() }
                             .padding(.vertical, Space.l)
-                            .background(RoundedRectangle(cornerRadius: Tokens.radiusCard, style: .continuous).fill(Color.black.opacity(0.88)))
+                            .background(RoundedRectangle(cornerRadius: Tokens.radiusCard, style: .continuous).fill(Color(white: 0.16)))
                             .listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
                             .accessibilityLabel("Preview of a nudge in the notch")
                     }

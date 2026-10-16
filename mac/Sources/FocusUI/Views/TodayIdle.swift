@@ -108,10 +108,11 @@ struct StartCard: View {
         if let projects = c.store?.projects.prefix(3), !projects.isEmpty {
             VStack(alignment: .leading, spacing: Space.xs) {
                 Text("Pick up").font(Tokens.text(.caption, .medium)).foregroundStyle(Tokens.ink2)
-                HStack(spacing: Space.s) {
+                // The chips share the row and match heights, so a longer project name wraps instead of being cut to a few letters.
+                HStack(alignment: .top, spacing: Space.s) {
                     ForEach(Array(projects)) { p in ProjectChip(c: c, project: p, onStart: { markSeen() }) }
-                    Spacer(minLength: 0)
                 }
+                .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -162,16 +163,17 @@ struct ProjectChip: View {
                 Image(systemName: "play.fill").font(.system(size: 10, weight: .bold)).foregroundStyle(Tokens.onAccent)
                     .frame(width: 24, height: 24).background(Circle().fill(Tokens.accent))
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(project.name).font(Tokens.text(.body, .semibold)).lineLimit(1)
+                    Text(project.name).font(Tokens.text(.body, .semibold)).lineLimit(2).fixedSize(horizontal: false, vertical: true)
                     Text(detail).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(1)
                 }
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, Space.s).frame(maxWidth: 230, minHeight: 46)
+            .padding(.horizontal, Space.s).padding(.vertical, Space.xs).frame(maxWidth: .infinity, minHeight: 46, maxHeight: .infinity)
             .background(RoundedRectangle(cornerRadius: Tokens.radiusInset, style: .continuous).fill(hover ? Tokens.controlHover : Tokens.control))
             .contentShape(RoundedRectangle(cornerRadius: Tokens.radiusInset, style: .continuous))
         }
         .buttonStyle(.plain).onHover { hover = $0 }.disabled(c.isActive)
+        .help(project.name)
         .accessibilityLabel("Continue \(project.name)").accessibilityHint(detail)
     }
 }

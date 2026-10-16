@@ -188,7 +188,8 @@ struct SessionCounts: View {
         }
         .accessibilityElement(children: .combine)
     }
-    static func minutes(_ s: Double) -> String { s < 60 ? "\(Int(s)) s" : (s < 3600 ? "\(Int(s / 60))m" : "\(Int(s / 3600))h \(Int(s.truncatingRemainder(dividingBy: 3600) / 60))m") }
+    /// The same units as History and Insights ("8 s", "12 min", "1 h 5 min"), never a bare "m".
+    static func minutes(_ s: Double) -> String { s < 60 ? "\(Int(s)) s" : (s < 3600 ? "\(Int(s / 60)) min" : "\(Int(s / 3600)) h \(Int(s.truncatingRemainder(dividingBy: 3600) / 60)) min") }
 }
 
 /// What Focus did, newest first, a few words each: the AI's work, shown as support rather than surveillance.
