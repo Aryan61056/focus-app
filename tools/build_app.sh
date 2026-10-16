@@ -14,7 +14,17 @@ cp ".build/release/focus-app" "$APP/Contents/MacOS/focus-app"
 SDK_VERSION="$(xcrun --sdk macosx --show-sdk-version)"
 vtool -set-build-version macos 14.0 "$SDK_VERSION" -replace -output "$APP/Contents/MacOS/focus-app" "$APP/Contents/MacOS/focus-app"
 T="$(mktemp -d)"
-swiftc -o "$T/make_icon" ../tools/make_icon.swift 2>/dev/null && "$T/make_icon" "$T/AppIcon.iconset" && iconutil -c icns "$T/AppIcon.iconset" -o "$APP/Contents/Resources/AppIcon.icns" || echo "icon skipped"
+# The icon: Resources/AppIcon.icon (an Icon Composer document: the ring on deep green, Liquid Glass with the system's dark and tinted
+# looks) compiled to Assets.car for macOS 26 and later, plus AppIcon.icns, pre-rendered for older systems. If this Xcode cannot
+# compile it, fall back to the flat icon drawn by tools/make_icon.swift.
+ICON_NAME=""
+# actool runs as a separate server process, so every path must be absolute.
+if xcrun actool "$(pwd)/Resources/AppIcon.icon" --compile "$T" --platform macosx --minimum-deployment-target 14.0 --app-icon AppIcon \
+     --output-partial-info-plist "$T/icon.plist" >/dev/null 2>&1 && [ -f "$T/Assets.car" ]; then
+  cp "$T/Assets.car" "$T/AppIcon.icns" "$APP/Contents/Resources/"; ICON_NAME="AppIcon"
+else
+  swiftc -o "$T/make_icon" ../tools/make_icon.swift 2>/dev/null && "$T/make_icon" "$T/AppIcon.iconset" && iconutil -c icns "$T/AppIcon.iconset" -o "$APP/Contents/Resources/AppIcon.icns" || echo "icon skipped"
+fi
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -40,6 +50,8 @@ PLIST
 # Which build this is, and where it came from: an installed copy watches that folder for a newer build (see Updater.swift). Local only.
 BUILD_ID="$(date -u +%Y%m%d%H%M%S)-$(git rev-parse --short HEAD 2>/dev/null || echo nogit)"
 /usr/libexec/PlistBuddy -c "Add :FocusBuildID string $BUILD_ID" -c "Add :FocusBuildSource string $(pwd)/$APP" "$APP/Contents/Info.plist"
+# Assets.car holds the layered icon; the system finds it by name.
+if [ -n "$ICON_NAME" ]; then /usr/libexec/PlistBuddy -c "Add :CFBundleIconName string $ICON_NAME" "$APP/Contents/Info.plist"; fi
 plutil -lint "$APP/Contents/Info.plist" >/dev/null
 # A requirement that names the bundle id, not the build's hash: with the default ad-hoc requirement (a cdhash) every rebuild is a
 # "new app" to macOS and silently loses the Accessibility and Screen Recording grants, even though Settings still shows them on.
