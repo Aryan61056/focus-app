@@ -9,9 +9,15 @@ struct SeeingCard: View {
     @Bindable var c: SessionController
     var showPreview = true
     var isExample = false
+    /// "I'm stuck", offered in the card's footer while you work (nil on a break, or while its own card is open).
+    var onStuck: (() -> Void)?
     @State private var pinned: UUID?
     @State private var showAll = false
     @State private var width: CGFloat = 800
+
+    /// The big picture column only exists once screen reading is on; until then a one-line invitation does the job.
+    var showPreviewColumn: Bool { showPreview && pinned == nil && c.prefs.readScreen }
+    var showsInvitation: Bool { showPreview && pinned == nil && !c.prefs.readScreen && !isExample }
 
     var shown: Reading? { pinned.flatMap { id in c.readings.first { $0.id == id } } ?? c.latest }
 
@@ -24,12 +30,21 @@ struct SeeingCard: View {
                     if width >= 720 {
                         HStack(alignment: .top, spacing: 24) {
                             decision(r).frame(maxWidth: .infinity, alignment: .leading)
-                            if showPreview && pinned == nil { PreviewCard(c: c).frame(width: min(440, width * 0.46)) }
+                            if showPreviewColumn { PreviewCard(c: c).frame(width: min(440, width * 0.46)) }
                         }
                     } else {
                         VStack(alignment: .leading, spacing: 18) {
                             decision(r)
-                            if showPreview && pinned == nil { PreviewCard(c: c) }
+                            if showPreviewColumn { PreviewCard(c: c) }
+                        }
+                    }
+                    if showsInvitation {
+                        HStack(spacing: 10) {
+                            Image(systemName: "eye").foregroundStyle(Tokens.ink2)
+                            Text("Show the window Focus is reading, right here.").font(Tokens.text(13)).foregroundStyle(Tokens.ink2)
+                            Spacer(minLength: 8)
+                            Button("Turn on") { c.prefs.readScreen = true; c.onRequestPreviewAccess?() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+                                .help("Also reads the words on screen to judge. Nothing is saved.")
                         }
                     }
                     if c.readings.count > 1 && !isExample {
@@ -42,7 +57,17 @@ struct SeeingCard: View {
                         Text("Waiting for the first window. Switch to what you are working on.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
                     }
                 }
-                if !isExample { Text("The model can be wrong. When it is not sure, Focus does nothing.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
+                if !isExample {
+                    HStack(alignment: .center, spacing: 12) {
+                        Text("The model can be wrong. When it is not sure, Focus does nothing.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 8)
+                        if let onStuck {
+                            Button(action: onStuck) { Label("I'm stuck", systemImage: "lifepreserver").lineLimit(1) }
+                                .buttonStyle(FocusButtonStyle(.secondary, small: true)).fixedSize().help("Find a smaller next action")
+                        }
+                    }
+                }
             }
         }
         // A new reading with the same call only refreshes its words; a new call morphs the ring, label and tint with a settling spring.
