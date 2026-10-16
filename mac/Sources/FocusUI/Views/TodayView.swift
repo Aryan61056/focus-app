@@ -22,9 +22,9 @@ struct TodayView: View {
     var content: some View {
         VStack(alignment: .leading, spacing: 22) {
             // Droppy heads its pages with a picture: here a live copy of the notch over the app's artwork.
-            HeroBanner(caption: Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide))) { NotchPreviewPill(c: c) }
+            HeroBanner(caption: Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide)), pulse: c.isActive ? c.ringState.shape + 1 : 0) { NotchPreviewPill(c: c) }
             if c.isActive { LiveHeader(c: c) } else { DashHeader(c: c) }
-            if let n = notice { NoticeRow(notice: n, c: c) }
+            if let n = notice { NoticeRow(notice: n, c: c).transition(.rise(reduce: reduceMotion)) }
             if !hasSide {
                 VStack(alignment: .leading, spacing: 18) { main; if !firstRun { HowDecidesButton() } }
             } else if wide {

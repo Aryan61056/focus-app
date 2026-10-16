@@ -237,3 +237,11 @@ Early on I did not drive your screen (synthetic events sent to the process do no
 - Restored from the old start card after the merge: the "Return continues …" / "Next step" / "New project" hint line and the suggestion card's AI tag and "Counts as on task" line.
 - Verified: build and signature; full Mac suite **333 tests passed, 0 failures** (new `StartFlowTests`: lengths, clock rollover, deadline through pause, expiry before a late reading, five-minute offer, goal carry/complete, reload persistence, legacy decode). Swift brain 17/17 traces, `diff_brains.py` 400/400 identical, privacy 0 findings in 71 files, contrast all pairs pass. Live window capture of the demo app's start sheet (demo PID window only, kept outside Git) shows the length choice, Finish-at time and result line.
 - Not verified: the full five-minute and Until… sessions in real time, VoiceOver order of the form, and Reduce Motion live.
+
+## Motion pass (2026-10-15)
+
+- Branch `aarav/apple-motion`, on top of `aarav/challenge-features`. Full audit with gate answers and rejected ideas: `docs/MOTION-AUDIT.md`.
+- **Hero banner:** the website's halftone motion, done natively. Dots ripple out from the notch pill on the first show after launch, swell under the pointer, and send a wave out when the ring changes shape. It redraws only while something moves (0.1% CPU at rest). The black pills get a lit top edge and contact shadow.
+- **Elsewhere:** the verdict morphs on a new call; Today replays the page entrance when a session starts or ends; notices rise in and out; the "Session finished" check draws itself (macOS 26+); the first-run steps arrive in order; answered Review rows settle out. The ring glow is now a gradient instead of a per-frame blur.
+- **Verified:** build/signature; full Mac suite 333 passed, 0 failures; privacy and contrast checks; window-only captures of the demo showing the ripple, the settle, and the wave on a break.
+- **Not verified:** pointer swell on a real display, ProMotion pacing, live Reduce Motion. Separately, the demo session's 23–45% CPU predates this pass (see the audit).

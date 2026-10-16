@@ -45,7 +45,9 @@ struct SeeingCard: View {
                 if !isExample { Text("The model can be wrong. When it is not sure, Focus does nothing.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2) }
             }
         }
-        .animation(.easeOut(duration: 0.2), value: shown?.id)
+        // A new reading with the same call only refreshes its words; a new call morphs the ring, label and tint with a settling spring.
+        .motion(Motion.out(0.2), value: shown?.id)
+        .motion(Motion.notchSettle, value: shown?.call)
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
         .onChange(of: c.isActive) { _, on in if !on { pinned = nil } }
     }
@@ -92,10 +94,11 @@ struct SeeingCard: View {
     /// The call, large, with Focus's own one-line reason.
     func verdict(_ r: Reading) -> some View {
         HStack(alignment: .top, spacing: 16) {
-            RingView(r.ring, color: r.tint).frame(width: 48, height: 48)
+            LiveRing(r.ring, color: r.tint).frame(width: 48, height: 48)
             VStack(alignment: .leading, spacing: 4) {
-                Text(r.label).font(Tokens.rounded(26, .semibold))
+                Text(r.label).font(Tokens.rounded(26, .semibold)).contentTransition(.interpolate)
                 Text(r.reason).font(Tokens.text(14)).foregroundStyle(Tokens.ink).lineLimit(3).fixedSize(horizontal: false, vertical: true)
+                    .contentTransition(.opacity)
             }
             Spacer(minLength: 0)
         }
