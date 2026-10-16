@@ -311,7 +311,7 @@ struct SettingsView: View {
 
     /// A section of the form, shown only on its own page of the sidebar.
     @ViewBuilder func group<V: View>(_ title: String, _ on: SettingsPage, @ViewBuilder _ content: () -> V) -> some View {
-        if page == on { Section { content() } header: { Text(title) } }
+        if page == on { Section { content() } header: { Text(title).font(Tokens.text(.body, .semibold)) } }
     }
 
     /// A settings row as Droppy and System Settings draw it: the title, a small info button that holds the explanation, and the
