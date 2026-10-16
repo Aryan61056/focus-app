@@ -271,4 +271,5 @@ public enum CuePreview {
     @MainActor public static func rhythm(_ c: SessionController) -> some View { RhythmCard(c: c).padding(CueLayout.margin) }
     @MainActor public static func nudge(_ c: SessionController) -> some View { NudgeCard(c: c, kind: c.surface?.kind ?? "card") }
     @MainActor public static func checkIn(_ c: SessionController) -> some View { CheckInCard(c: c) }
+    @MainActor public static func startSheet(_ c: SessionController, typed: String, asking: Bool) -> some View { StartSheet(controller: c, typed: typed, asking: asking) }
 }

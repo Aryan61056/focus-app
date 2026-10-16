@@ -11,6 +11,8 @@ public struct StartSheet: View {
     @FocusState private var focused: Bool
     /// A suggestion the user accepted: its "what counts" line is saved on the project only if they start with that exact task.
     @State private var accepted: Sharpened?
+    /// Start was pressed on a name close to an older project: ask whether to continue that one before anything is created, as the start field does.
+    @State private var asking = false
 
     /// Level 0 start (PLAN 4.8): the project worked on last, so a returning user only presses Enter.
     static func lastProject(_ store: DataStore?) -> Project? {
@@ -19,26 +21,45 @@ public struct StartSheet: View {
     }
 
     public init(controller: SessionController, isPresented: Binding<Bool>) { self.c = controller; self._isPresented = isPresented }
+    /// Snapshot only: a name already typed, and the near-duplicate question already asked.
+    init(controller: SessionController, typed: String, asking: Bool) {
+        self.c = controller; self._isPresented = .constant(true); self._task = State(initialValue: typed); self._asking = State(initialValue: asking)
+    }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: Space.s) {
             Text("What are you working on?").font(Tokens.rounded(.title3, .semibold))
             TextField("Lab report on pendulums", text: $task)
                 .font(Tokens.text(.headline)).wellField(height: 44, focused: focused)
-                .focused($focused).onSubmit(start)
+                .focused($focused).onSubmit { start() }
                 .onExitCommand { isPresented = false }
             coach
             if let m = parsed.minutes { Text("Timed session, \(m) minutes, on \u{201C}\(parsed.task)\u{201D}.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
             if let p = Self.lastProject(c.store), p.name == task, !p.nextStep.isEmpty {
                 Label("Next step: \(p.nextStep)", systemImage: "arrow.turn.down.right").font(Tokens.text(.body)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
             }
-            if let near = ProjectMatch.similar(to: trimmed, in: c.store?.projects ?? [], limit: 2).first {
+            if asking, let near = Self.askAbout(trimmed, in: c.store?.projects ?? []) {
+                // The question. Nothing has been created yet; either answer starts the session.
+                VStack(alignment: .leading, spacing: Space.s) {
+                    Text("You worked on \u{201C}\(near.name)\u{201D}\(StartCard.when(near, c.store)). Continue it, or start \u{201C}\(trimmed)\u{201D} as a new project?")
+                        .font(Tokens.text(.body)).fixedSize(horizontal: false, vertical: true)
+                    if !near.nextStep.isEmpty { Text("Next: \(near.nextStep)").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(1) }
+                    HStack(spacing: Space.xs) {
+                        Button { start(continuing: near) } label: { Text("Continue \u{201C}\(near.name)\u{201D}").lineLimit(1) }.buttonStyle(FocusButtonStyle(.primary, small: true))
+                        Button { start(continuing: nil, forceNew: true) } label: { Text("Start new").lineLimit(1) }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                    }
+                }
+                .padding(Space.s).frame(maxWidth: .infinity, alignment: .leading)
+                .background(RoundedRectangle(cornerRadius: Tokens.radiusInset, style: .continuous).fill(Tokens.accentSoft))
+            } else if let near = Self.askAbout(trimmed, in: c.store?.projects ?? []) {
                 // Close to an older project: offer to continue it instead of quietly starting a second one.
                 HStack(spacing: Space.xs) {
                     Text("Did you mean").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
-                    chip("\u{201C}\(near.name)\u{201D}", on: false) { task = near.name + (parsed.minutes.map { " \($0)" } ?? "") }
-                    Text("? Pick it to continue it, or start to make a new project.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
-                }.lineLimit(2)
+                    HStack(spacing: 2) {
+                        chip("\u{201C}\(near.name)\u{201D}", on: false) { task = near.name + (parsed.minutes.map { " \($0)" } ?? "") }
+                        Text("?").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
+                    }
+                }.lineLimit(1)
             } else if let line = Self.confirmLine(task: trimmed, project: c.store.flatMap { ProjectMatch.exact(trimmed, in: $0.projects) }) {
                 Text(line).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
             } else if let recent = c.store?.projects.prefix(3), !recent.isEmpty {
@@ -76,7 +97,7 @@ public struct StartSheet: View {
         .motion(Motion.out(0.24), value: c.sharpened)
         .motion(Motion.out(0.24), value: timed)
         .motion(Motion.out(0.24), value: parsed.minutes)
-        .onChange(of: task) { _, _ in if c.sharpened.value != nil || c.sharpened == .failed { c.clearSharpened() } }
+        .onChange(of: task) { _, _ in asking = false; if c.sharpened.value != nil || c.sharpened == .failed { c.clearSharpened() } }
         .onDisappear { c.clearSharpened() }
         .onAppear {
             focused = true
@@ -133,12 +154,23 @@ public struct StartSheet: View {
     var parsed: (task: String, minutes: Int?) { Self.parse(task) }
     var trimmed: String { parsed.task }
 
-    func start() {
+    /// The older project to ask about before starting `task`: one the name looks like, unless the name is a project's exactly. Nil starts at once.
+    static func askAbout(_ task: String, in projects: [Project]) -> Project? {
+        guard !task.isEmpty, ProjectMatch.exact(task, in: projects) == nil else { return nil }
+        return ProjectMatch.similar(to: task, in: projects, limit: 1).first
+    }
+
+    /// Start. A name close to an older project is asked about first (once per edit of the field); a second Start makes it new, as typed.
+    func start() { start(continuing: nil) }
+    func start(continuing project: Project?, forceNew: Bool = false) {
         guard !trimmed.isEmpty else { return }
+        if project == nil, !forceNew, !asking, Self.askAbout(trimmed, in: c.store?.projects ?? []) != nil { asking = true; return }
         let typedMinutes = parsed.minutes
         let isTimed = timed || typedMinutes != nil
-        if let a = accepted, a.task == trimmed { c.saveContextIfEmpty(task: trimmed, context: a.counts) }
-        c.begin(task: trimmed, mode: isTimed ? .timed : .open, duration: isTimed ? Double((typedMinutes ?? minutes) * 60) : nil, autoTick: true)
+        if project == nil, let a = accepted, a.task == trimmed { c.saveContextIfEmpty(task: trimmed, context: a.counts) }
+        asking = false
+        c.begin(task: project?.name ?? trimmed, mode: isTimed ? .timed : .open, duration: isTimed ? Double((typedMinutes ?? minutes) * 60) : nil,
+                projectId: project?.id, autoTick: true)
         isPresented = false
     }
 

@@ -280,6 +280,11 @@ if CommandLine.arguments.contains("--popups") { await popupShots() } else { awai
     func both<V: View>(_ name: String, _ size: CGSize, @ViewBuilder _ v: @escaping () -> V) {
         for dark in [false, true] { WindowShot.shot(v(), size: size, name: name, dark: dark, dir: outDir) }
     }
+    // The start sheet on a name close to an older project: the hint while typing, then the question Start asks.
+    let near = SessionController(judge: judge, store: DataStore(), now: { t })
+    if let store = near.store { var p = store.addProject(name: "Calc homework"); p.nextStep = "Problems 12 to 20"; store.update(p) }
+    both("pop-start-near", CGSize(width: 560, height: 360)) { CuePreview.startSheet(near, typed: "calc homwork", asking: false) }
+    both("pop-start-asking", CGSize(width: 560, height: 420)) { CuePreview.startSheet(near, typed: "calc homwork", asking: true) }
     // Early banner at a real heads-up, so its counts are real.
     let c = await session()
     c.windowChanged(WindowSnapshot(app: "Browser", title: "youtube clip", url: "https://youtube.com/watch?v=1"))

@@ -60,8 +60,19 @@ final class ProjectMatchTests: XCTestCase {
 
     func testTheStartCardHintDoesNotCreateProjectsWhileYouType() {
         // The hint used to call projectNamed(...) from the view body, which made a project for every keystroke.
-        let src = try! String(contentsOfFile: #filePath.replacingOccurrences(of: "Tests/FocusUITests/ProjectMatchTests.swift", with: "Sources/FocusUI/Views/TodayIdle.swift"), encoding: .utf8)
-        XCTAssertFalse(src.contains("projectNamed"), "views must not create projects")
+        for file in ["TodayIdle.swift", "StartSheet.swift"] {
+            let src = try! String(contentsOfFile: #filePath.replacingOccurrences(of: "Tests/FocusUITests/ProjectMatchTests.swift", with: "Sources/FocusUI/Views/\(file)"), encoding: .utf8)
+            XCTAssertFalse(src.contains("projectNamed"), "\(file): views must not create projects")
+        }
+    }
+
+    /// "More options" used to start a second project for a near name without asking; it now asks the same question as the start field.
+    func testTheStartSheetAsksBeforeANearDuplicateProject() {
+        let ps = projects(["Calc homework", "Lab report on pendulums"])
+        XCTAssertEqual(StartSheet.askAbout("calc homwork", in: ps)?.name, "Calc homework", "a near name is asked about")
+        XCTAssertNil(StartSheet.askAbout("calc homework", in: ps), "an exact name just continues that project")
+        XCTAssertNil(StartSheet.askAbout("Essay on sleep", in: ps), "an unrelated name starts a new project at once")
+        XCTAssertNil(StartSheet.askAbout("", in: ps))
     }
 
     func testCleanupRemovesTypingLeftoversAndNothingElse() {
