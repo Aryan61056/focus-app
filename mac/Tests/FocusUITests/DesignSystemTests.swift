@@ -56,4 +56,20 @@ final class DesignSystemTests: XCTestCase {
         }
         XCTAssertEqual(hits, [], "use Tokens.Step and the radius tokens")
     }
+
+    /// Nothing that changes every second animates the change. A digit roll or a one-second arc sweep started every second never ends;
+    /// together with clocks that each ticked on their own `.now` they kept a demo session at about 40 percent of a core (2026-10-16).
+    func testPerSecondClocksDoNotAnimate() throws {
+        let ui = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Sources/FocusUI")
+        var hits: [String] = []
+        let files = FileManager.default.enumerator(atPath: ui.path)!.compactMap { $0 as? String }.filter { $0.hasSuffix(".swift") }
+        for file in files {
+            let text = try String(contentsOf: ui.appendingPathComponent(file), encoding: .utf8)
+            if text.contains("periodic(from: .now, by: 1)") { hits.append("\(file): a one-second timeline off the shared second (use .everySecond)") }
+            if text.contains("clockText()") && text.contains("numericText") { hits.append("\(file): a ticking clock with a digit roll") }
+            if text.contains("value: state.fraction") { hits.append("\(file): an animated progress arc") }
+        }
+        XCTAssertEqual(hits, [])
+    }
 }

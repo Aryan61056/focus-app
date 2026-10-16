@@ -346,14 +346,12 @@ public struct NotchView: View {
 
     var ring: some View {
         // Ticks each second so a timed arc sweeps with the clock; a change of shape (drift, a pause) blurs in.
-        TimelineView(.periodic(from: .now, by: 1)) { _ in LiveRing(c.ringState, color: tint).frame(width: 18, height: 18) }
+        TimelineView(.everySecond) { _ in LiveRing(c.ringState, color: tint).frame(width: 18, height: 18) }
     }
     var time: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { _ in
+        TimelineView(.everySecond) { _ in
             let t = c.clockText()
             Text(t).font(Tokens.fixed(.body, .semibold, rounded: true)).monospacedDigit()
-                .contentTransition(.numericText(countsDown: c.mode == .timed))
-                .motion(Motion.out(0.3), value: t)
         }
     }
 

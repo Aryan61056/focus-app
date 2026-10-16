@@ -11,15 +11,15 @@ public struct MenuBarContent: View {
         VStack(alignment: .leading, spacing: 0) {
             if c.isActive {
                 HStack(spacing: 10) {
-                    TimelineView(.periodic(from: .now, by: 1)) { _ in LiveRing(c.ringState, color: c.ringColor).frame(width: 30, height: 30) }
+                    TimelineView(.everySecond) { _ in LiveRing(c.ringState, color: c.ringColor).frame(width: 30, height: 30) }
                     VStack(alignment: .leading, spacing: 0) {
                         Text(c.taskName).font(Tokens.fixed(.callout, .semibold, rounded: true)).lineLimit(1)
                         Text("\(c.presenceLabel) · \(c.mode == .timed ? "Timed" : "Open") session").font(Tokens.fixed(.caption, .regular)).foregroundStyle(Tokens.ink2)
                     }
                     Spacer()
-                    TimelineView(.periodic(from: .now, by: 1)) { _ in
+                    TimelineView(.everySecond) { _ in
                         let t = c.clockText()
-                        Text(t).font(Tokens.fixed(.callout, .semibold, rounded: true)).monospacedDigit().contentTransition(.numericText(countsDown: c.mode == .timed)).motion(Motion.out(0.3), value: t)
+                        Text(t).font(Tokens.fixed(.callout, .semibold, rounded: true)).monospacedDigit()
                     }
                 }.padding(10)
                 if let r = c.latest, !c.isPaused {

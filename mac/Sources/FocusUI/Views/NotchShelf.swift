@@ -84,7 +84,7 @@ struct SessionWidget: View {
     @Bindable var c: SessionController
     var tint: Color
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { _ in
+        TimelineView(.everySecond) { _ in
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 12) {
                     // The session's "artwork": its ring on a deep tile, glowing while you are on task.
@@ -125,10 +125,8 @@ struct SessionWidget: View {
                 Text(SessionController.format(max(0, c.totalSeconds - c.clockSeconds()))).frame(minWidth: 40, alignment: .leading)
                 ShelfTrack(fraction: c.timedProgress())
                 Text("-" + t).frame(minWidth: 40, alignment: .trailing)
-                    .contentTransition(.numericText(countsDown: true)).motion(Motion.out(0.3), value: t)
             } else {
                 Text(t).frame(minWidth: 40, alignment: .leading)
-                    .contentTransition(.numericText()).motion(Motion.out(0.3), value: t)
                 ShelfTrack(fraction: goalFraction ?? 0)
                 Text(goalTarget ?? "Open").frame(minWidth: 40, alignment: .trailing)
             }

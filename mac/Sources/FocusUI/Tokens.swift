@@ -104,6 +104,12 @@ public enum Space {
 
 /// Motion, named for what it is for. Entering and leaving use a strong ease-out; anything that grows, follows the pointer or can be
 /// interrupted is a spring. Every caller checks Reduce Motion and falls back to `Motion.reduced`: the change stays, the travel goes.
+/// Every live clock and ring in the app ticks on the same whole second. With each TimelineView starting at its own `.now`, the window
+/// was laid out up to six times a second during a session; on one shared boundary SwiftUI does it once.
+extension TimelineSchedule where Self == PeriodicTimelineSchedule {
+    public static var everySecond: PeriodicTimelineSchedule { .periodic(from: Date(timeIntervalSinceReferenceDate: 0), by: 1) }
+}
+
 public enum Motion {
     /// Entering or leaving: starts fast, so the eye gets the change at once.
     public static func out(_ duration: Double = 0.22) -> Animation { .timingCurve(0.23, 1, 0.32, 1, duration: duration) }
@@ -125,8 +131,6 @@ public enum Motion {
     public static let notchSettle = Animation.spring(response: 0.3, dampingFraction: 0.8)
     /// The notch tucking back into the hardware notch when a session ends: no bounce, it is leaving.
     public static let notchTuck = Animation.spring(response: 0.3, dampingFraction: 1)
-    /// A progress arc running down: constant motion is linear.
-    public static let tick = Animation.linear(duration: 1)
     /// Reduce Motion: a short fade in place of any travel.
     public static let reduced = Animation.easeOut(duration: 0.15)
 }

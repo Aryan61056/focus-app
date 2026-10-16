@@ -173,7 +173,7 @@ struct LiveHeader: View {
     var body: some View {
         HStack(alignment: .center, spacing: Space.l) {
             // The live ring: its arc sweeps with the clock, a change of state blurs in, and it breathes while you are on task.
-            TimelineView(.periodic(from: .now, by: 1)) { _ in
+            TimelineView(.everySecond) { _ in
                 LiveRing(c.ringState, color: c.ringColor).frame(width: 76, height: 76)
                     .background { RingGlow(on: c.ringColor == Tokens.accent && !c.isPaused, color: Tokens.accent).padding(-6) }
             }
@@ -188,11 +188,10 @@ struct LiveHeader: View {
             }
             Spacer(minLength: 16)
             VStack(alignment: .trailing, spacing: Space.s) {
-                TimelineView(.periodic(from: .now, by: 1)) { _ in
+                TimelineView(.everySecond) { _ in
                     let t = c.clockText()
                     VStack(alignment: .trailing, spacing: 0) {
                         Text(t).font(Tokens.rounded(.display, .semibold)).monospacedDigit()
-                            .contentTransition(.numericText(countsDown: c.mode == .timed)).motion(Motion.out(0.3), value: t)
                         Text(c.mode == .timed ? "left" : "elapsed").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
                     }
                 }

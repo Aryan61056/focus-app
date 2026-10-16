@@ -70,7 +70,7 @@ struct SeeingCard: View {
                     Text("At \(r.date.formatted(.dateTime.hour().minute()))").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
                     Button("Back to now") { pinned = nil }.buttonStyle(FocusButtonStyle(.plain, small: true))
                 } else {
-                    TimelineView(.periodic(from: .now, by: 1)) { _ in
+                    TimelineView(.everySecond) { _ in
                         Text(Self.ago(c.nowSeconds() - r.at)).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).monospacedDigit()
                     }
                 }

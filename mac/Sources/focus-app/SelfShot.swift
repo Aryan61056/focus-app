@@ -6,7 +6,7 @@ import FocusUI
 @MainActor
 enum SelfShot {
     /// FOCUS_DEMO_ACTIONS="section:settings,start" runs these on the controller after 3 s (demo only), in place of clicks and keys I cannot send:
-    /// section:<today|projects|history|insights|review|settings>, page:<settings page>, text:<1 to 1.5>, pause, start (opens the start sheet), readscreen (turns screen reading on), veil (the whole-screen gray fade, 10 s).
+    /// section:<today|projects|history|insights|review|settings>, page:<settings page>, text:<1 to 1.5>, pause, nonotch, hide, start (opens the start sheet), readscreen (turns screen reading on), veil (the whole-screen gray fade, 10 s).
     static func runActions(_ controller: SessionController) {
         let env = ProcessInfo.processInfo.environment
         guard env["FOCUS_DEMO"] == "1", let list = env["FOCUS_DEMO_ACTIONS"] else { return }
@@ -18,6 +18,8 @@ enum SelfShot {
                 else if a == "readscreen" { controller.prefs.readScreen = true }
                 else if a == "pause" { controller.act(.pause) }   // the held state: nothing is read until resume
                 else if a.hasPrefix("text:"), let f = Double(a.dropFirst(5)) { controller.prefs.textScale = f }   // text:1.5, the Text size setting
+                else if a == "hide" { NSApp.hide(nil) }   // the window out of sight, as during most of a session
+                else if a == "nonotch" { controller.prefs.showNotch = false }   // for measuring what the notch costs
                 else if a == "veil" { controller.previewVeil() }   // the whole-screen gray, so its windows can be listed
             }
         }

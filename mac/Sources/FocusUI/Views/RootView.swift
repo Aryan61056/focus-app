@@ -173,13 +173,14 @@ struct SessionToolbarPill: View {
     @Binding var showStart: Bool
     var body: some View {
         if c.isActive {
-            TimelineView(.periodic(from: .now, by: 1)) { _ in
+            // Clocks that change every second do not roll their digits: a roll each second is motion that never ends, and in the glass
+            // toolbar it cost about a fifth of a core and kept memory climbing (measured on the demo session, 2026-10-16).
+            TimelineView(.everySecond) { _ in
                 let t = c.clockText()
                 Button { c.requestSection(.today) } label: {
                     HStack(spacing: Space.xs) {
                         LiveRing(c.ringState, color: c.ringColor).frame(width: 14, height: 14)
                         Text(t).font(Tokens.fixed(.body, .semibold)).monospacedDigit()
-                            .contentTransition(.numericText(countsDown: c.mode == .timed)).motion(Motion.out(0.3), value: t)
                     }
                     .padding(.horizontal, Space.xxs)
                 }
@@ -275,7 +276,7 @@ struct SessionHeader: View {
         HStack(spacing: Space.s) {
             ZStack {
                 Circle().fill(LinearGradient(colors: Tokens.Art.disc, startPoint: .top, endPoint: .bottom))
-                TimelineView(.periodic(from: .now, by: 1)) { _ in
+                TimelineView(.everySecond) { _ in
                     LiveRing(c.isActive ? c.ringState : .on, color: .white).frame(width: 20, height: 20)
                 }
             }
@@ -390,7 +391,7 @@ struct Sidebar: View {
 private struct SessionCard: View {
     @Bindable var c: SessionController
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { _ in
+        TimelineView(.everySecond) { _ in
             let t = c.clockText()
             HStack(spacing: Space.s) {
                 LiveRing(c.ringState, color: c.ringColor).frame(width: 28, height: 28)
@@ -401,7 +402,6 @@ private struct SessionCard: View {
                 }
                 Spacer()
                 Text(t).font(Tokens.rounded(.callout)).monospacedDigit()
-                    .contentTransition(.numericText(countsDown: c.mode == .timed)).motion(Motion.out(0.3), value: t)
             }
         }
         .padding(Space.s).background(RoundedRectangle(cornerRadius: Tokens.radiusCard, style: .continuous).fill(Tokens.window.opacity(0.7)))

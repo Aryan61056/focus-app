@@ -85,8 +85,10 @@ struct ProgressArc: Shape {
     }
 }
 
-/// RingView that moves: a new shape blurs in over the old one, like an SF Symbol replace, and a timed arc sweeps second by second.
-/// Reduce Motion keeps a short cross-fade and lets the arc step.
+/// RingView that moves: a new shape blurs in over the old one, like an SF Symbol replace. Reduce Motion keeps a short cross-fade.
+/// A timed arc steps once a second and is not animated: a one-second sweep started every second never ends, so every ring on screen
+/// (toolbar, sidebar, notch, Today) redrew at the display's rate for the whole session, about 40 percent of a core. A 25 minute arc
+/// moves a quarter of a degree a second, which no one can see sweep.
 public struct LiveRing: View {
     var state: RingState
     var color: Color
@@ -107,7 +109,6 @@ public struct LiveRing: View {
             SpringKeyframe(1, duration: 0.5, spring: .init(duration: 0.5, bounce: 0.35))
         }
         .animation(reduceMotion ? Motion.reduced : Motion.notchSettle, value: state.shape)
-        .animation(reduceMotion ? nil : Motion.tick, value: state.fraction)
         .animation(Motion.out(0.3), value: color)
     }
 }

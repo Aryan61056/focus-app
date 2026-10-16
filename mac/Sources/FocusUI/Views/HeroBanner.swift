@@ -65,7 +65,7 @@ struct HeroArtwork: View {
 struct NotchPreviewPill: View {
     @Bindable var c: SessionController
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { _ in
+        TimelineView(.everySecond) { _ in
             HStack(spacing: Space.s) {
                 LiveRing(c.isActive ? c.ringState : .on, color: c.isActive && c.ringColor == Tokens.accent ? NotchView.accent : NotchView.ink)
                     .frame(width: 22, height: 22)
@@ -76,7 +76,6 @@ struct NotchPreviewPill: View {
                 if c.isActive {
                     let t = c.clockText()
                     Text(t).font(Tokens.fixed(.headline, .semibold, rounded: true)).monospacedDigit().foregroundStyle(NotchView.ink2)
-                        .contentTransition(.numericText(countsDown: c.mode == .timed)).motion(Motion.out(0.3), value: t)
                 }
             }
             .foregroundStyle(NotchView.ink)
