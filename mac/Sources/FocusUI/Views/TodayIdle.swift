@@ -12,8 +12,14 @@ struct StartCard: View {
     @State private var timed = false
     @State private var minutes = 50
     @FocusState private var focused: Bool
+    /// Start was pressed on a name close to an older project: ask whether to continue that one before anything is created.
+    @State private var asking = false
 
     var parsed: (task: String, minutes: Int?) { StartSheet.parse(task) }
+    var projects: [Project] { c.store?.projects ?? [] }
+    /// Older projects the typed name looks like (never when it matches one exactly).
+    var similar: [Project] { ProjectMatch.similar(to: parsed.task, in: projects, limit: 1) }
+    var existing: Project? { ProjectMatch.exact(parsed.task, in: projects) }
     var last: Project? { StartSheet.lastProject(c.store) }
     var canStart: Bool { !parsed.task.isEmpty || last != nil }
 
@@ -28,8 +34,9 @@ struct StartCard: View {
                             .padding(.horizontal, 16).frame(height: 56)
                             .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Tokens.window))
                             .overlay { RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(focused ? Tokens.accent : Tokens.line, lineWidth: focused ? 1.5 : 1) }
-                            .focused($focused).onSubmit(start)
-                        Button(action: start) { Text(parsed.task.isEmpty && last != nil ? "Continue" : "Start").frame(minWidth: 64) }
+                            .focused($focused).onSubmit { start() }
+                            .onChange(of: task) { _, _ in asking = false }
+                        Button { start() } label: { Text(parsed.task.isEmpty && last != nil ? "Continue" : "Start").frame(minWidth: 64) }
                             .buttonStyle(FocusButtonStyle(.primary)).controlSize(.large).frame(height: 56)
                             .disabled(!canStart).keyboardShortcut(.defaultAction)
                     }
@@ -52,12 +59,35 @@ struct StartCard: View {
 
     /// One calm line under the field: what Return will do.
     @ViewBuilder var hint: some View {
-        if let m = parsed.minutes {
+        if asking, let p = similar.first {
+            // The question. Nothing has been created yet; either answer starts the session.
+            VStack(alignment: .leading, spacing: 10) {
+                Text("You worked on \u{201C}\(p.name)\u{201D}\(Self.when(p, c.store)). Continue it, or start \u{201C}\(parsed.task)\u{201D} as a new project?")
+                    .font(Tokens.text(13.5)).fixedSize(horizontal: false, vertical: true)
+                if !p.nextStep.isEmpty { Text("Next: \(p.nextStep)").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).lineLimit(1) }
+                HStack(spacing: 8) {
+                    Button { start(continuing: p) } label: { Text("Continue \u{201C}\(p.name)\u{201D}").lineLimit(1) }.buttonStyle(FocusButtonStyle(.primary, small: true))
+                    Button { start(forceNew: true) } label: { Text("Start new").lineLimit(1) }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                }
+            }
+            .padding(12).frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Tokens.accentSoft))
+        } else if let m = parsed.minutes, existing == nil, let p = similar.first {
+            Text("Looks like \u{201C}\(p.name)\u{201D}. Return asks before starting \(m) minutes on a new project.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
+        } else if let m = parsed.minutes {
             Text("Return starts a \(m) minute session on \u{201C}\(parsed.task)\u{201D}.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
         } else if parsed.task.isEmpty, let p = last {
             Text(p.nextStep.isEmpty ? "Return continues \u{201C}\(p.name)\u{201D}." : "Return continues \u{201C}\(p.name)\u{201D}. Next: \(p.nextStep)")
                 .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).lineLimit(1)
-        } else if !parsed.task.isEmpty, c.store?.projectNamed(parsed.task) == nil, c.store?.projects.isEmpty == false {
+        } else if let p = existing {
+            Text(p.nextStep.isEmpty ? "Return continues \u{201C}\(p.name)\u{201D}." : "Return continues \u{201C}\(p.name)\u{201D}. Next: \(p.nextStep)")
+                .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).lineLimit(1)
+        } else if let p = similar.first {
+            HStack(spacing: 8) {
+                Text("Did you mean \u{201C}\(p.name)\u{201D}?").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).lineLimit(1)
+                Button("Use it") { task = p.name + (parsed.minutes.map { " \($0)" } ?? "") }.buttonStyle(FocusButtonStyle(.plain, small: true))
+            }
+        } else if !parsed.task.isEmpty, !projects.isEmpty {
             Text("New project. You can describe it later under Projects.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
         }
     }
@@ -99,10 +129,19 @@ struct StartCard: View {
         return Plan(task: p.task, projectId: nil, mode: isTimed ? .timed : .open, duration: isTimed ? Double((p.minutes ?? minutes) * 60) : nil)
     }
 
-    func start() {
+    /// "3 days ago" style note for the question.
+    static func when(_ p: Project, _ store: DataStore?) -> String {
+        guard let s = store?.sessions(for: p.id).first else { return "" }
+        return " " + s.start.formatted(.relative(presentation: .named))
+    }
+
+    /// Return. A name close to an older project is asked about first (once per edit of the field); an exact name just continues that project.
+    func start(continuing project: Project? = nil, forceNew: Bool = false) {
         guard let p = Self.plan(text: task, timed: timed, minutes: minutes, last: last) else { return }
+        if project == nil, !forceNew, !asking, p.projectId == nil, existing == nil, !similar.isEmpty { asking = true; return }
         markSeen()
-        c.begin(task: p.task, mode: p.mode, duration: p.duration, projectId: p.projectId, autoTick: true)
+        asking = false
+        c.begin(task: project?.name ?? p.task, mode: p.mode, duration: p.duration, projectId: project?.id ?? p.projectId ?? existing?.id, autoTick: true)
     }
 
     func chip(_ label: String, on: Bool, _ action: @escaping () -> Void) -> some View {

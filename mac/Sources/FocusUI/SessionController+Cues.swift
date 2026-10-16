@@ -108,8 +108,9 @@ extension SessionController {
         refreshBanner(t)
         tickRhythm(t)
         syncShield()
-        if shield == nil, t - lastFrictionCheck >= 5, let w = currentWindow { lastFrictionCheck = t; updateFriction(w) }
-        enforceOnIdleFriction(t)
+        // On hold nothing is covered and nothing is acted on.
+        if shield == nil, !isHeld, t - lastFrictionCheck >= 5, let w = currentWindow { lastFrictionCheck = t; updateFriction(w) }
+        if !isHeld { enforceOnIdleFriction(t) }
         pulseHaptics(t)
         expirePasses(t)
     }

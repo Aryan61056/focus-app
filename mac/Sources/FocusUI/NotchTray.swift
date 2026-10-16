@@ -133,6 +133,7 @@ private struct TrayTile: View {
                 Button(action: remove) {
                     Image(systemName: "xmark").font(.system(size: 8, weight: .bold)).foregroundStyle(.white)
                         .frame(width: 16, height: 16).background(Circle().fill(Color.white.opacity(0.25)))
+                        .frame(width: 24, height: 24).contentShape(Rectangle())   // the visible disc stays small; the target is not
                 }
                 .buttonStyle(.plain).transition(.scale.combined(with: .opacity))
                 .accessibilityLabel("Take \(item.name) off the tray")

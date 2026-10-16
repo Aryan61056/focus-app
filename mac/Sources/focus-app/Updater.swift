@@ -38,10 +38,16 @@ import FocusUI
     /// A helper shell waits for this process to exit, swaps the bundle (only if the new one's signature verifies), and opens it again.
     /// It reopens the old copy if anything fails, so an update can never leave the app unlaunchable. Paths are arguments, not script text.
     func install(_ offer: UpdateOffer) {
+        // Only a bundle signed for this app's own identifier is swapped in, and the old copy is kept until the new one is in place, so a
+        // failure at any step puts the old one back instead of leaving no app.
         let script = """
         n=0; while kill -0 "$3" 2>/dev/null && [ $n -lt 50 ]; do sleep 0.2; n=$((n+1)); done
-        if /usr/bin/codesign --verify "$1" 2>/dev/null; then
-          rm -rf "$2.updating" && /usr/bin/ditto "$1" "$2.updating" && rm -rf "$2" && mv "$2.updating" "$2"
+        if /usr/bin/codesign --verify -R='identifier "com.example.focus-app.dev"' "$1" 2>/dev/null; then
+          rm -rf "$2.updating" "$2.old"
+          if /usr/bin/ditto "$1" "$2.updating" && mv "$2" "$2.old"; then
+            if mv "$2.updating" "$2"; then rm -rf "$2.old"; else mv "$2.old" "$2"; fi
+          fi
+          rm -rf "$2.updating"
         fi
         /usr/bin/open "$2"
         """

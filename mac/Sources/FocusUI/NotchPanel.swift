@@ -56,10 +56,63 @@ final class HoverBox: NSView {
     override func mouseEntered(with event: NSEvent) { set(true) }
     override func mouseExited(with event: NSEvent) { set(false); onPointer?(nil) }
 
+    // MARK: click-through
+    // The window is as big as the biggest mode (see NotchLayout.panelSize), so most of it is empty. A window gets every click inside its
+    // frame, whatever is drawn there, which made menu bar items next to the notch and a browser's tab bar unclickable for a whole
+    // session. So it ignores the mouse except while the pointer is on the shape, found by watching the pointer system-wide.
+    private var monitors: [Any] = []
+    private var wanted = false
+
+    func startMonitoring() {
+        guard monitors.isEmpty else { return }
+        let mask: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDragged]
+        if let g = NSEvent.addGlobalMonitorForEvents(matching: mask, handler: { [weak self] _ in MainActor.assumeIsolated { self?.pointerMoved() } }) { monitors.append(g) }
+        if let l = NSEvent.addLocalMonitorForEvents(matching: mask, handler: { [weak self] e in MainActor.assumeIsolated { self?.pointerMoved() }; return e }) { monitors.append(l) }
+        pointerMoved()
+    }
+
+    func stopMonitoring() {
+        monitors.forEach { NSEvent.removeMonitor($0) }; monitors = []
+        pending?.cancel(); pending = nil; pendingOn = nil; wanted = false; inside = false; poll?.invalidate(); poll = nil
+    }
+
+    /// Tests pin the pointer here so the real one cannot interfere.
+    var pointerForTesting: NSPoint?
+    /// Where the pointer is, in this view's coordinates.
+    func pointerInView() -> NSPoint? {
+        guard let w = window else { return nil }
+        return convert(w.convertPoint(fromScreen: pointerForTesting ?? NSEvent.mouseLocation), from: nil)
+    }
+
+    /// The shape in screen coordinates.
+    func shapeOnScreen() -> NSRect? {
+        guard let w = window else { return nil }
+        return w.convertToScreen(convert(visibleRect2, to: nil))
+    }
+
+    /// Exposed so tests can drive it. The window takes clicks only while the pointer is on the shape, and that is also what opens and closes it.
+    func pointerMoved(at point: NSPoint? = nil) {
+        let p = point ?? pointerForTesting ?? NSEvent.mouseLocation
+        guard let w = window, w.isVisible, let shape = shapeOnScreen() else { return }
+        let on = shape.insetBy(dx: -2, dy: -2).contains(p)
+        if w.ignoresMouseEvents == on { w.ignoresMouseEvents = !on }
+        if on != wanted { set(on) }
+    }
+
+    private var pendingOn: Bool?
+
     private func set(_ on: Bool) {
-        pending?.cancel()
+        // Asking again for what is already about to happen must not restart its delay. The safety-net poll asks every 0.12 s to close,
+        // which is shorter than the 0.24 s close delay, so each ask cancelled the last and the notch never collapsed.
+        if pendingOn == on, pending != nil { return }
+        wanted = on
+        pending?.cancel(); pendingOn = on
         let work = DispatchWorkItem { [weak self] in
-            guard let self, self.inside != on else { return }
+            guard let self else { return }
+            self.pending = nil; self.pendingOn = nil
+            // Closing always runs, even when the open never did: a click inside the open delay (0.2 s) expands the card before `inside`
+            // flips, and skipping the close then left it open for good.
+            if on, self.inside { return }
             self.inside = on; self.onHover?(on)
             self.watch(on)
         }
@@ -75,8 +128,7 @@ final class HoverBox: NSView {
         guard on else { return }
         poll = Timer.scheduledTimer(withTimeInterval: 0.12, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
-                guard let self, let w = self.window else { return }
-                let p = self.convert(w.mouseLocationOutsideOfEventStream, from: nil)
+                guard let self, let p = self.pointerInView() else { return }
                 if !self.visibleRect2.insetBy(dx: -2, dy: -2).contains(p) { self.set(false) }
             }
         }
@@ -84,12 +136,8 @@ final class HoverBox: NSView {
 
     /// When the shape resizes under a stationary pointer AppKit sends no enter or exit; compare with where the pointer really is.
     private func syncSoon() {
-        DispatchQueue.main.async { [weak self] in
-            guard let self, let w = self.window else { return }
-            let p = self.convert(w.mouseLocationOutsideOfEventStream, from: nil)
-            let now = self.visibleRect2.contains(p) && w.isVisible
-            if now != self.inside { self.set(now) }
-        }
+        // The shape changed under a resting pointer: decide again whether the window should take clicks, and whether this is a hover.
+        DispatchQueue.main.async { [weak self] in self?.pointerMoved() }
     }
 }
 
@@ -122,6 +170,9 @@ public final class NotchPanelController {
     var frameForTesting: NSRect? { homeID.flatMap { slots[$0] }?.panel.frame }
     /// The size of the black shape (what the user sees), as opposed to the fixed window around it.
     var shownSizeForTesting: CGSize? { (homeID.flatMap { slots[$0] }?.panel.contentView as? HoverBox)?.visibleSize }
+    var modelForTesting: NotchModel? { homeID.flatMap { slots[$0] }?.model }
+    var hoverBoxForTesting: HoverBox? { homeID.flatMap { slots[$0] }?.panel.contentView as? HoverBox }
+    var panelForTesting: NSPanel? { homeID.flatMap { slots[$0] }?.panel }
     var framesForTesting: [NSRect] { slots.filter { $0.value.panel.isVisible && tucking[$0.key] == nil }.map { $0.value.panel.frame } }
     /// Any panel window still on screen, including one tucking away.
     var anyWindowVisibleForTesting: Bool { slots.values.contains { $0.panel.isVisible } }
@@ -147,7 +198,7 @@ public final class NotchPanelController {
         running = false
         if let o = screenObserver { NotificationCenter.default.removeObserver(o); screenObserver = nil }
         tucking.values.forEach { $0.cancel() }; tucking = [:]
-        slots.values.forEach { $0.panel.orderOut(nil); $0.model.presented = false }
+        slots.values.forEach { ($0.panel.contentView as? HoverBox)?.stopMonitoring(); $0.panel.orderOut(nil); $0.model.presented = false }
     }
 
     /// Re-run whenever what the notch shows changes: session on or off, the preference, the nudge surface, or hover on any panel.
@@ -204,6 +255,7 @@ public final class NotchPanelController {
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
             self.tucking[key] = nil
+            (slot.panel.contentView as? HoverBox)?.stopMonitoring()
             slot.panel.orderOut(nil)
             if key != self.homeID { self.slots[key] = nil }
         }
@@ -249,7 +301,9 @@ public final class NotchPanelController {
         (p.contentView as? HoverBox)?.visibleSize = shown
         tucking.removeValue(forKey: key)?.cancel()   // wanted again mid-tuck: grow back out from wherever it got to
         let arriving = !p.isVisible
+        if arriving { p.ignoresMouseEvents = true }   // click-through until the pointer is on the shape (HoverBox.pointerMoved)
         p.orderFrontRegardless()
+        (p.contentView as? HoverBox)?.startMonitoring()
         if arriving {
             // Draw one frame tucked inside the notch, then grow out of it. Setting it in the same turn would skip the animation.
             slot.model.presented = false

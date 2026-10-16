@@ -17,7 +17,13 @@ struct SeeingCard: View {
         Tile {
             VStack(alignment: .leading, spacing: 20) {
                 header
-                if let r = shown {
+                if c.isHeld {
+                    // Paused, on a break, in a call, away: nothing is being read, so the last reading is not shown as if it were current.
+                    HStack(spacing: 12) {
+                        RingView(.paused, color: Tokens.ink).frame(width: 30, height: 30)
+                        Text(c.heldLine).font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
+                    }
+                } else if let r = shown {
                     // The picture sits beside the call when there is room, so you see what Focus saw and what it concluded together.
                     if width >= 720 {
                         HStack(alignment: .top, spacing: 24) {

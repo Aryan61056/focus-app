@@ -101,6 +101,7 @@ public struct RootView: View {
             if travelling { travelling = false } else { back.append(old); forward.removeAll() }
         }
         .onChange(of: c.sectionRequest?.serial) { _, _ in if let r = c.sectionRequest { go(.section(r.section)) } }
+        .onChange(of: c.settingsPageRequest?.serial) { _, _ in if let r = c.settingsPageRequest { go(.settings(r.page)) } }
         .onChange(of: c.startRequests) { _, _ in if !c.isActive { go(.section(.today)); showStart = true } }
         .sheet(isPresented: $showStart) { StartSheet(controller: c, isPresented: $showStart) }
     }

@@ -29,6 +29,8 @@ public final class LinkServer {
     @ObservationIgnored private var wanted = false
     @ObservationIgnored private var restart: Task<Void, Never>?
     static let maxFailedPairings = 5
+    /// Connections that have not finished the handshake. Anyone on the network can open one, so only a few at a time.
+    static let maxUnauthenticated = 8
 
     private final class Peer {
         let io: FramedConnection
@@ -127,7 +129,9 @@ public final class LinkServer {
 
     // MARK: connections
     private func accept(_ c: NWConnection) {
+        guard peers.values.filter({ $0.channel == nil }).count < Self.maxUnauthenticated else { c.cancel(); return }
         let io = FramedConnection(c)
+        io.frameLimit = FrameCodec.maxHandshakeFrame
         let registry = registry
         let peer = Peer(io: io, handshake: ServerHandshake(macName: macName, macID: macID, code: pairingCode, lookup: { id in registry.device(id) }))
         let key = ObjectIdentifier(io)
@@ -165,7 +169,7 @@ public final class LinkServer {
                 endPairing()
                 onPaired?(device)
             case .established(let id, let channel):
-                peer.channel = channel; peer.deviceID = id; peer.watchdog?.cancel()
+                peer.channel = channel; peer.deviceID = id; peer.watchdog?.cancel(); peer.io.frameLimit = FrameCodec.maxFrame
                 let name = registry.device(id)?.name ?? "iPhone"
                 if !connected.contains(where: { $0.id == id }) { connected.append(Phone(id: id, name: name)) }
                 onConnected?(id)

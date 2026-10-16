@@ -130,5 +130,16 @@ public struct RingGlow: View {
         }
         .accessibilityHidden(true)
     }
-    func halo(up: Bool) -> some View { Circle().fill(color).blur(radius: 14).scaleEffect(up ? 1.1 : 0.88).opacity(up ? 0.3 : 0.12) }
+    /// A radial gradient, not a blurred circle: SwiftUI blurs on the CPU, and a blur that breathes forever re-ran it every frame
+    /// (a sample of the running app showed it as the single biggest cost, about a third of one core, whenever Today was on screen).
+    func halo(up: Bool) -> some View {
+        GeometryReader { g in
+            let r = min(g.size.width, g.size.height) / 2
+            Circle()
+                .fill(RadialGradient(colors: [color, color.opacity(0.5), color.opacity(0)], center: .center, startRadius: r * 0.2, endRadius: r * 1.5))
+                .frame(width: r * 3, height: r * 3)
+                .position(x: g.size.width / 2, y: g.size.height / 2)
+        }
+        .scaleEffect(up ? 1.1 : 0.88).opacity(up ? 0.3 : 0.12)
+    }
 }

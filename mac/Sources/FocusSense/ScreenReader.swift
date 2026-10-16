@@ -23,3 +23,29 @@ public struct VisionScreenReader: ScreenReader {
         }.value
     }
 }
+
+/// A small grayscale grid of a picture, to tell whether the screen changed since the last read. In memory, a few KB, never stored.
+/// Reading the words (OCR) is the costly part of screen reading, and most of the time nothing on the window has changed.
+public enum PictureFingerprint {
+    static let cols = 64, rows = 36
+
+    public static func of(_ image: CGImage) -> [UInt8]? {
+        var px = [UInt8](repeating: 0, count: cols * rows)
+        let ok = px.withUnsafeMutableBytes { buf -> Bool in
+            guard let ctx = CGContext(data: buf.baseAddress, width: cols, height: rows, bitsPerComponent: 8, bytesPerRow: cols,
+                                      space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue) else { return false }
+            ctx.interpolationQuality = .medium
+            ctx.draw(image, in: CGRect(x: 0, y: 0, width: cols, height: rows))
+            return true
+        }
+        return ok ? px : nil
+    }
+
+    /// True when at least a few cells of the grid moved noticeably: a cursor blink or a clock does not count, a new paragraph does.
+    public static func changed(_ a: [UInt8]?, _ b: [UInt8]?) -> Bool {
+        guard let a, let b, a.count == b.count else { return true }
+        var cells = 0
+        for i in 0..<a.count where abs(Int(a[i]) - Int(b[i])) > 8 { cells += 1; if cells >= 3 { return true } }
+        return false
+    }
+}

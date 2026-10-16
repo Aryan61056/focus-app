@@ -25,6 +25,7 @@ struct SettingsView: View {
     @Bindable var c: SessionController
     @Bindable var store: DataStore
     var page: SettingsPage = .nudges
+    @State private var showMoreNudges = false
     @State private var confirmDelete = false
     var probeBusy: Bool { if case .waiting = c.probe { return true }; return false }
     var probeText: String {
@@ -58,6 +59,8 @@ struct SettingsView: View {
                     row("Play a soft tone with a nudge", "One short system sound when a nudge appears. Off unless you turn it on, and it never plays in practice mode.") {
                         Toggle("", isOn: Binding(get: { c.prefs.nudgeSound }, set: { c.prefs.nudgeSound = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
+                }
+                group("How Focus decides", .nudges) {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(alignment: .firstTextBaseline) {
                             HStack(spacing: 6) { Text("How often Focus checks"); InfoButton(text: "\(c.prefs.checkRate.detail) Each check asks the on-device model, so checking more often uses more battery. Applies from the next session.") }
@@ -74,9 +77,23 @@ struct SettingsView: View {
                         }
                     }
 
+                    row("Ease in, then push harder when behind", "Focus is easy on you before noon and once you reach your daily goal, and it warns sooner and climbs faster when you are behind the goal's pace for the time of day (a 9 to 6 working day). Today always says which it is. Needs the daily goal below to be on.") {
+                        toggle(\.paceMatters)
+                    }
+                }
+                group("If you stay away", .nudges) {
                     row("If you stay away after a warning", "Gentle stops at the warning. Standard and Strict keep going: after about 40 seconds (20 on Strict) Focus asks whether you are on task and reads the window again, then covers every screen with a pause screen, then hides the app you drifted into. Dismissing a card does not stop it; getting back to the task does.") {
                         Toggle("", isOn: Binding(get: { c.prefs.escalate }, set: { c.prefs.escalate = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
+                    row("Fade the whole screen to gray", "While you are off task, every display loses its color a little at a time, deeper the longer you stay away, and it fades back when you return. Preview shows a 10 second fade. Nothing is captured.") {
+                        HStack(spacing: 10) {
+                            Button("Preview") { c.previewVeil() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+                            Toggle("", isOn: Binding(get: { c.prefs.screenGrayscale }, set: { c.prefs.screenGrayscale = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
+                        }
+                    }
+                }
+                group("More options", .nudges) {
+                    DisclosureGroup("Advanced", isExpanded: $showMoreNudges) {
                     if c.prefs.escalate {
                         row("Hide the app you drifted into", "The last step. It hides the app like Command-H: nothing is closed and no work is lost. Click the app in the Dock to bring it back. Focus, Finder and system apps are never hidden.") {
                             Toggle("", isOn: Binding(get: { c.prefs.hideDistractingApp }, set: { c.prefs.hideDistractingApp = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
@@ -90,15 +107,6 @@ struct SettingsView: View {
                             toggle(\.closeOnStrict)
                         }
                     }
-                    row("Fade the whole screen to gray", "While you are off task, every display loses its color a little at a time, deeper the longer you stay away, and it fades back when you return. Preview shows a 10 second fade. Nothing is captured.") {
-                        HStack(spacing: 10) {
-                            Button("Preview") { c.previewVeil() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
-                            Toggle("", isOn: Binding(get: { c.prefs.screenGrayscale }, set: { c.prefs.screenGrayscale = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
-                        }
-                    }
-                    row("Ease in, then push harder when behind", "Focus is easy on you before noon and once you reach your daily goal, and it warns sooner and climbs faster when you are behind the goal's pace for the time of day (a 9 to 6 working day). Today always says which it is. Needs the daily goal below to be on.") {
-                        toggle(\.paceMatters)
-                    }
                     if !c.prefs.practiceRemoved {
                         row("Practice mode", "Watch without interrupting for the first \(Preferences.practiceSessions) sessions.") {
                             Toggle("", isOn: Binding(get: { c.prefs.practiceActive }, set: { $0 ? c.prefs.restartPractice() : c.prefs.turnNudgesOnNow() })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
@@ -107,8 +115,9 @@ struct SettingsView: View {
                     row("Remove practice mode", c.prefs.practiceRemoved ? "Practice mode is gone from Focus. Every session nudges from the start, and Review shows only moments already waiting for an answer." : "Takes practice mode out of Focus for good. Every session nudges from the start, and its screens, counts and messages disappear. You can bring it back here.") {
                         Toggle("", isOn: Binding(get: { c.prefs.practiceRemoved }, set: { c.prefs.practiceRemoved = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
+                    }
                 }
-                group("Cues", .cues) {
+                group("On screen", .cues) {
                     row("Banner over the window you are in", "A small banner with your task, over the window you drifted into, from the warning until you are back. No sound, and it never covers the whole screen.") {
                         toggle(\.showBanner)
                     }
@@ -120,12 +129,8 @@ struct SettingsView: View {
                     row("Cover a flagged site when it opens again", "After a pause screen, the same site is covered whenever you open it again: 20 seconds the first time, then 40 and 60. If you sit behind the cover without going back or explaining, Focus acts on the site as the last step does (it switches tabs, hides the app, or on Strict closes the tab). Going back to the task is always one click.") {
                         toggle(\.frictionReturn)
                     }
-                    row("Explaining a flagged window", "Saying \u{201C}That was fine\u{201D} about a window Focus read as off topic asks you to explain it, with no wait and no hold: one button, then type. Focus checks your words against the window itself with both of its judges, and your words alone never pass it. An accepted explanation covers that one page, not the site, for 8 minutes, then 5, 3 and 2 for later ones, and it never becomes a saved rule. Each later one must clear a higher bar, a pasted repeat is refused, and a session allows 8. A wrong answer is acted on at once (the app is hidden, or on Strict the tab is closed), and two lock explaining for 5 minutes, then 10, 20 and 30. A project rule that says never is final.") {
-                        Label("Always on", systemImage: "lock").foregroundStyle(Tokens.ink2)
-                    }
-                    row("Hold to go back to your task", "Off by default. When on, \u{201C}Back to task\u{201D} on the pause, cover and claim screens asks you to press and hold for 3 seconds, as a small commitment to going back. Escape no longer skips it. It is never behind a wait or a lock, and explaining a window stays one press.") {
-                        toggle(\.holdToReturn)
-                    }
+                }
+                group("Feel and sound", .cues) {
                     row("Tint the menu bar ring", "A warm tint for a heads-up or a prompt, and a slow pulse while you are away. The ring's shape shows the state either way.") {
                         toggle(\.menuBarCue)
                     }
@@ -143,6 +148,14 @@ struct SettingsView: View {
                             Button("Try") { c.previewCue(haptic: false) }.buttonStyle(FocusButtonStyle(.secondary, small: true))
                             toggle(\.speakNudges)
                         }
+                    }
+                }
+                group("Going back", .cues) {
+                    row("Explaining a flagged window", "Saying \u{201C}That was fine\u{201D} about a window Focus read as off topic asks you to explain it, with no wait and no hold: one button, then type. Focus checks your words against the window itself with both of its judges, and your words alone never pass it. An accepted explanation covers that one page, not the site, for 8 minutes, then 5, 3 and 2 for later ones, and it never becomes a saved rule. Each later one must clear a higher bar, a pasted repeat is refused, and a session allows 8. A wrong answer is acted on at once (the app is hidden, or on Strict the tab is closed), and two lock explaining for 5 minutes, then 10, 20 and 30. A project rule that says never is final.") {
+                        Label("Always on", systemImage: "lock").foregroundStyle(Tokens.ink2)
+                    }
+                    row("Hold to go back to your task", "Off by default. When on, \u{201C}Back to task\u{201D} on the pause, cover and claim screens asks you to press and hold for 3 seconds, as a small commitment to going back. Escape no longer skips it. It is never behind a wait or a lock, and explaining a window stays one press.") {
+                        toggle(\.holdToReturn)
                     }
                 }
                 group("Rhythm", .rhythm) {
@@ -182,6 +195,8 @@ struct SettingsView: View {
                     row("Try it", probeText) {
                         Button(probeBusy ? "Switch windows now" : "Check in 5 seconds") { c.runProbe() }.buttonStyle(FocusButtonStyle(.secondary, small: true)).disabled(probeBusy)
                     }
+                }
+                group("How it decides", .reading) {
                     row("Judge with the on-device model", "Apple's on-device model reads the window and decides whether it fits your task. It can be wrong. Off: Focus only follows your project rules and matching words, shows everything else as not judged, and never nudges from its own reading.") {
                         Toggle("", isOn: Binding(get: { c.prefs.useModel }, set: { c.prefs.useModel = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
@@ -191,6 +206,8 @@ struct SettingsView: View {
                     row("Count matching words as on task", "A window whose app name, title or address shares words with your task counts as on task without asking the model. It never applies on feeds, video or news sites, and it can only make Focus quieter.") {
                         Toggle("", isOn: Binding(get: { c.prefs.matchTaskWords }, set: { c.prefs.matchTaskWords = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
+                }
+                group("Left alone", .reading) {
                     row("Skip personal messages, music and blank pages", "Focus leaves these alone: it does not read them and does not count them as off topic.") {
                         Toggle("", isOn: Binding(get: { c.prefs.skipPersonal }, set: { c.prefs.skipPersonal = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }

@@ -158,6 +158,9 @@ public final class SessionController {
     /// Menu commands (View > Today, Projects, ...) ask the window to switch section. The serial makes repeated requests distinct.
     public private(set) var sectionRequest: (section: AppSection, serial: Int)?
     public func requestSection(_ s: AppSection) { sectionRequest = (s, (sectionRequest?.serial ?? 0) + 1) }
+    /// Open a particular Settings page (the scripted demo uses this; the window shows it).
+    public private(set) var settingsPageRequest: (page: SettingsPage, serial: Int)?
+    public func requestSettingsPage(_ p: SettingsPage) { settingsPageRequest = (p, (settingsPageRequest?.serial ?? 0) + 1) }
     public func requestStart() { startRequests += 1 }
     public private(set) var judgeStatus = JudgeStatus.unknown
     public func setJudgeStatus(_ s: JudgeStatus) { if judgeStatus != s { judgeStatus = s } }
@@ -316,7 +319,7 @@ public final class SessionController {
     }
 
     private func checkEscalation(_ t: Double) {
-        guard isActive, !shadow, prefs.escalate, let start = warnedAt, let base = EscalationPlan.of(sessionPreset) else { return }
+        guard isActive, !isHeld, !shadow, prefs.escalate, let start = warnedAt, let base = EscalationPlan.of(sessionPreset) else { return }
         // Easy in the morning, firmer when you are behind the day's goal: the ladder is quicker or slower, and the pause screen holds longer.
         let plan = base.scaled(by: warnedPressure.factor, extraHold: warnedPressure.extraHold)
         let secs = t - start
@@ -375,7 +378,7 @@ public final class SessionController {
     public func veilLevel() -> Double {
         let t = now()
         if let start = veilPreviewStart, let p = Self.previewLevel(t - start) { return p }
-        guard isActive, !shadow, prefs.screenGrayscale else { return 0 }
+        guard isSensing, !shadow, prefs.screenGrayscale else { return 0 }
         let from = veilFrom, to = Double(veilTarget)
         let raw = veilDuration <= 0 || t - veilStartedAt >= Double(veilDuration) ? to : from + (to - from) * (t - veilStartedAt) / Double(veilDuration)
         // The brain's own veil tops out at 60 percent (Standard) at 1 point a second. Counting that as 40 makes the screen fully gray about 40 s after the first flagged moment (about 2.5 points a second).
@@ -478,7 +481,7 @@ public final class SessionController {
     public func setPreviewAccess(_ a: PreviewAccess) { if previewAccess != a { previewAccess = a } }
 
     /// True when a picture may be taken right now: a session runs, the user turned the preview on, and the window is not private.
-    public var previewWanted: Bool { isActive && prefs.readScreen && previewHeld == nil }
+    public var previewWanted: Bool { isSensing && prefs.readScreen && previewHeld == nil }
 
     /// Accepts a captured picture only if it is still allowed when it arrives (the window may have changed while it was taken).
     public func setPreview(_ image: CGImage, app: String, text: String? = nil) {
@@ -507,7 +510,7 @@ public final class SessionController {
     public func windowChanged(_ w: WindowSnapshot) {
         currentWindow = w; screenText = ""
         if isActive { appByWindowKey[Keys.window(w)] = w.app }
-        guard isActive else { return }
+        guard isSensing else { return }   // on hold: remembered, not read; the first look after the hold ends picks it up
         updateFriction(w)
         let m = moment(w)
         previewHeld = nil
@@ -623,6 +626,7 @@ public final class SessionController {
     }
 
     func apply(_ effects: [Effect], _ t: Double) {
+        let wasHeld = isHeld
         for e in effects {
             switch e {
             case .beacon(let s, let r): trackReturn(s, t); beaconForLadder(s, t); presence = Presence(state: s, reason: r); markSegment(s, t); cueBeacon(s, t)
@@ -674,7 +678,16 @@ public final class SessionController {
             }
             if case .beacon(let s, _) = e, s != "paused" { askResume = nil }
         }
+        if isHeld, !wasHeld { enterHold(t) }
+        else if wasHeld, !isHeld, isActive, let w = currentWindow { windowChanged(w) }   // the hold ended: look at the window again now
         syncShield()
+    }
+
+    /// Pausing means Focus stops looking and stops acting: the picture and words go, and any cover, check-in or prompt that was up comes down.
+    private func enterHold(_ t: Double) {
+        shield = nil; checkIn = nil; escalationGate = false; headsUpAt = nil
+        previewFrame = nil; previewHeld = nil; dropScreenText()
+        refreshBanner(t)
     }
 
     /// Builds the session timeline (seconds per state, never window titles) from beacon changes.
@@ -752,6 +765,22 @@ extension SessionController {
     public func offTopicSecondsNow() -> Double { offTopic.seconds + (offTopic.running ? nowSeconds() - offTopic.at : 0) }
 
     public var isPaused: Bool { presence.state == "paused" }
+    /// The session is on hold (you paused, took a break or snoozed, or Focus paused itself for a call, idle time or sleep). Focus reads nothing
+    /// then: no window, no picture, no words, no cover, nothing acted on. A private window is the one hold that still has to watch, to know when it ends.
+    public var isHeld: Bool { presence.state == "paused" && presence.reason != "sensitive" }
+    public var saveFailed: Bool { store?.saveFailed ?? false }
+    /// What the Today card says while nothing is being read.
+    public var heldLine: String {
+        switch presence.reason {
+        case "break": return "On a break. Focus is not reading your windows or screen until it ends."
+        case "snooze": return "Snoozed. Focus is not reading your windows or screen."
+        case "meeting": return "In a call. Focus is not reading your windows or screen while it lasts."
+        case "idle", "sleep": return "You are away. Focus is not reading your windows or screen."
+        default: return "Paused. Focus is not reading your windows or screen."
+        }
+    }
+    /// A session is running and not on hold: the only time the screen and windows may be looked at.
+    public var isSensing: Bool { isActive && !isHeld }
     public var presenceLabel: String {
         switch presence.state {
         case "paused":

@@ -113,10 +113,10 @@ struct RuleGroup: View {
                     HStack(spacing: 6) {
                         Image(systemName: symbol).font(.system(size: 11)).foregroundStyle(Tokens.ink2)
                         Text(item).font(Tokens.text(12.5))
-                        Button { items.removeAll { $0 == item } } label: { Image(systemName: "xmark").font(.system(size: 9, weight: .bold)) }
+                        Button { items.removeAll { $0 == item } } label: { Image(systemName: "xmark").font(.system(size: 9, weight: .bold)).frame(width: 22, height: 22).contentShape(Rectangle()) }
                             .buttonStyle(.plain).foregroundStyle(Tokens.ink2).accessibilityLabel("Remove \(item)")
                     }
-                    .padding(.leading, 10).padding(.trailing, 8).frame(height: 28).background(Capsule().fill(Tokens.control))
+                    .padding(.leading, 10).padding(.trailing, 4).frame(height: 28).background(Capsule().fill(Tokens.control))
                 }
                 if adding {
                     TextField(addLabel, text: $draft).textFieldStyle(.plain).font(Tokens.text(12.5)).padding(.horizontal, 10).frame(width: 170, height: 28)

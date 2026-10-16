@@ -3,6 +3,8 @@ import Observation
 import FocusUI
 
 /// Starts the window watcher when a session begins and stops it when the session ends or is over, so nothing is read between sessions.
+/// It also stops while the session is on hold (paused, on a break, snoozed, in a call, idle, asleep) and starts again, reading at once, when the hold ends.
+/// The system watcher keeps running through a hold: it reads only idle time, calls and power, and it is what ends an idle or call hold.
 @MainActor
 public final class SenseCoordinator {
     private let source: WindowSource
@@ -29,11 +31,14 @@ public final class SenseCoordinator {
     func refreshAccess() { controller.setWindowAccess(source.isTrusted ? .allowed : .appNamesOnly) }
 
     private func track() {
-        withObservationTracking { _ = controller.isActive } onChange: { [weak self] in
+        withObservationTracking { _ = controller.isActive; _ = controller.isHeld } onChange: { [weak self] in
             Task { @MainActor in self?.sync(); self?.track() }
         }
         sync()
     }
 
-    func sync() { if controller.isActive { watcher.start(); system.start() } else { watcher.stop(); system.stop() } }
+    func sync() {
+        if controller.isSensing { watcher.start() } else { watcher.stop() }
+        if controller.isActive { system.start() } else { system.stop() }
+    }
 }

@@ -69,6 +69,7 @@ struct TodayView: View {
 
     /// The most pressing thing to know, if any. Only one is ever shown; the rest wait until it is dealt with.
     var notice: Notice? {
+        if c.saveFailed { return .saveFailed }
         if let a = c.askResume { return .resume(a) }
         if c.wrapUp && c.isActive { return .wrapUp }
         if case .unavailable(let why) = c.judgeStatus { return .modelOff(why) }
@@ -80,7 +81,7 @@ struct TodayView: View {
 }
 
 enum Notice {
-    case resume(String), wrapUp, modelOff(String), access, update(String), contextTip
+    case saveFailed, resume(String), wrapUp, modelOff(String), access, update(String), contextTip
 }
 
 struct NoticeRow: View {
@@ -101,12 +102,14 @@ struct NoticeRow: View {
 
     var symbol: String {
         switch notice {
+        case .saveFailed: return "externaldrive.badge.exclamationmark"
         case .resume: return "play.circle"; case .wrapUp: return "hourglass"; case .modelOff: return "exclamationmark.circle"
         case .access: return "lock.open"; case .update: return "arrow.triangle.2.circlepath"; case .contextTip: return "lightbulb"
         }
     }
     var text: String {
         switch notice {
+        case .saveFailed: return "Focus could not save your data on this Mac, so new sessions may be lost. Check that the disk has room."
         case .resume(let r): return r == "meeting" ? "Your meeting looks over. Pick up where you left off?" : "Welcome back. Pick up where you left off?"
         case .wrapUp: return "Two minutes left. Extend, or wrap up when you are ready."
         case .modelOff(let why): return "\(why) Until then Focus will not nudge you."
@@ -125,6 +128,7 @@ struct NoticeRow: View {
     }
     @ViewBuilder var buttons: some View {
         switch notice {
+        case .saveFailed: Button("Try again") { c.store?.retrySave() }.buttonStyle(FocusButtonStyle(.primary, small: true))
         case .resume:
             Button("Resume") { c.act(.resume) }.buttonStyle(FocusButtonStyle(.primary, small: true))
             Button("End session") { c.end() }.buttonStyle(FocusButtonStyle(.plain, small: true))

@@ -33,7 +33,14 @@ public struct StartSheet: View {
             if let p = Self.lastProject(c.store), p.name == task, !p.nextStep.isEmpty {
                 Label("Next step: \(p.nextStep)", systemImage: "arrow.turn.down.right").font(Tokens.text(13)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
             }
-            if let line = Self.confirmLine(task: trimmed, project: c.store?.projects.first { $0.name.caseInsensitiveCompare(trimmed) == .orderedSame }) {
+            if let near = ProjectMatch.similar(to: trimmed, in: c.store?.projects ?? [], limit: 2).first {
+                // Close to an older project: offer to continue it instead of quietly starting a second one.
+                HStack(spacing: 6) {
+                    Text("Did you mean").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
+                    chip("\u{201C}\(near.name)\u{201D}", on: false) { task = near.name + (parsed.minutes.map { " \($0)" } ?? "") }
+                    Text("? Pick it to continue it, or start to make a new project.").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
+                }.lineLimit(2)
+            } else if let line = Self.confirmLine(task: trimmed, project: c.store.flatMap { ProjectMatch.exact(trimmed, in: $0.projects) }) {
                 Text(line).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
             } else if let recent = c.store?.projects.prefix(3), !recent.isEmpty {
                 HStack(spacing: 6) {

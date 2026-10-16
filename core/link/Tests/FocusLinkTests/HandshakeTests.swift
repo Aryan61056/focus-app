@@ -137,6 +137,14 @@ private func connect(mac: PairedMac, registry: [UUID: PairedDevice]) -> (client:
         while i < stream.count { let n = min(1 + (i * 7) % 13, stream.count - i); reader.append(stream[i..<i + n]); i += n; while let f = try reader.next() { got.append(f) } }
         #expect(got == payloads)
     }
+    @Test func aPeerThatHasNotAuthenticatedMayOnlySendSmallFrames() throws {
+        var reader = FrameReader(maxFrame: FrameCodec.maxHandshakeFrame)
+        reader.append(FrameCodec.frame(Data(repeating: 1, count: 1000)))
+        #expect(try reader.next()?.count == 1000)
+        reader.append(FrameCodec.frame(Data(repeating: 1, count: FrameCodec.maxHandshakeFrame + 1)))
+        #expect(throws: FrameReader.TooLarge.self) { _ = try reader.next() }
+        reader.maxFrame = FrameCodec.maxFrame   // after the handshake the limit is raised
+    }
     @Test func refusesAnAbsurdLength() {
         var reader = FrameReader()
         reader.append(Data([0xFF, 0xFF, 0xFF, 0xFF, 1]))

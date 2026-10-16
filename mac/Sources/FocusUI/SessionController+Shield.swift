@@ -36,7 +36,7 @@ extension SessionController {
         // Leaving the site ends a friction or claim screen; a pause screen belongs to the ladder.
         if let s = shield, s.kind != .pause, s.siteKey != site { shield = nil }
         let t = now()
-        guard prefs.frictionReturn, !shadow, shield == nil, t >= frictionQuietUntil, blockedSites[site] != nil, checkIn == nil else { return }
+        guard prefs.frictionReturn, !shadow, !isHeld, shield == nil, t >= frictionQuietUntil, blockedSites[site] != nil, checkIn == nil else { return }
         if pageHasPass(w) { return }
         let strikes = (frictionStrikes[site] ?? 0) + 1
         frictionStrikes[site] = strikes

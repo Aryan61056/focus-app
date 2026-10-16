@@ -28,7 +28,10 @@ struct FocusApp: App {
             let defaults = UserDefaults(suiteName: "focus-app.test.\(folder.lastPathComponent)") ?? .standard
             return SessionController(judge: DefaultJudge.make(), store: DataStore(url: folder.appendingPathComponent("store.json")), prefs: Preferences(defaults: defaults))
         }
-        return SessionController(judge: DefaultJudge.make(), store: DataStore(url: DataStore.defaultURL), prefs: Preferences())
+        let store = DataStore(url: DataStore.defaultURL)
+        // Once: remove the one-project-per-keystroke leftovers an earlier build made while a name was typed (a copy of the file is kept).
+        if !UserDefaults.standard.bool(forKey: "cleanedTypingLeftovers.1") { store.removeTypingLeftovers(); UserDefaults.standard.set(true, forKey: "cleanedTypingLeftovers.1") }
+        return SessionController(judge: DefaultJudge.make(), store: store, prefs: Preferences())
     }
     /// With two displays the pause screen would otherwise appear on whichever one the window was last on, not where you are looking.
     static func bringToPointerScreen() {

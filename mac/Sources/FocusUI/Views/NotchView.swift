@@ -22,7 +22,7 @@ public enum NotchLayout {
             case .rest: return CGSize(width: 220, height: 36)
             case .peek: return CGSize(width: 300, height: 40)
             case .open: return CGSize(width: 440, height: 132)
-            case .nudge: return CGSize(width: 440, height: 126)
+            case .nudge: return CGSize(width: 440, height: 92)
             }
         }
         let base = notchWidth + 2 * ear
@@ -30,7 +30,7 @@ public enum NotchLayout {
         case .rest: return CGSize(width: base, height: notchHeight)
         case .peek: return CGSize(width: base + 2 * peekExtra, height: notchHeight + 3)
         case .open: return CGSize(width: max(base + 2 * peekExtra, 560), height: notchHeight + 132)
-        case .nudge: return CGSize(width: max(base + 2 * peekExtra, 540), height: notchHeight + 100)
+        case .nudge: return CGSize(width: max(base + 2 * peekExtra, 520), height: notchHeight + 70)
         }
     }
 }
@@ -226,8 +226,9 @@ public struct NotchView: View {
         let open = shown && big
         let dotOrigin = CGPoint(x: (box.width - size.width) / 2, y: 0)
         return ZStack(alignment: .top) {
-            NotchMaterial(shape: shape, expanded: open, notchHeight: hasNotch ? notchHeight : 0)
-            if open { DotField(model: model, origin: dotOrigin).transition(.opacity.animation(Motion.out(0.3))) }
+            // A nudge stays solid black, like the hardware notch it hangs from; only the open card melts into glass.
+            NotchMaterial(shape: shape, expanded: open && mode == .open, notchHeight: hasNotch ? notchHeight : 0)
+            if open && mode == .open { DotField(model: model, origin: dotOrigin).transition(.opacity.animation(Motion.out(0.3))) }
             content.frame(width: size.width, height: size.height, alignment: .top)
                 .opacity(shown ? 1 : 0)
                 .blur(radius: shown || reduceMotion ? 0 : 6)
@@ -401,8 +402,8 @@ public struct NotchView: View {
             Spacer(minLength: 8)
             if nudgeHint == nil { pill("Back to task") { c.act(.backToTask) } }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 26).padding(.top, hasNotch ? 6 : 14).padding(.bottom, 16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .padding(.horizontal, 28).padding(.top, hasNotch ? 2 : 10).padding(.bottom, 18)
     }
 
     var nudgeText: String {
