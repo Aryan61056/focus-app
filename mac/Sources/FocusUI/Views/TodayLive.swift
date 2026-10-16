@@ -64,7 +64,8 @@ struct SeeingCard: View {
             if shown?.source == .model { AITag() }
             if c.isJudging { HStack(spacing: Space.xs) { ThinkingDot(); Text("Reading now").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) } }
             Spacer()
-            if let r = shown {
+            // While held nothing is read, so no "checked ... ago" that would suggest otherwise.
+            if let r = shown, !c.isHeld {
                 if pinned != nil {
                     Text("At \(r.date.formatted(.dateTime.hour().minute()))").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
                     Button("Back to now") { pinned = nil }.buttonStyle(FocusButtonStyle(.plain, small: true))

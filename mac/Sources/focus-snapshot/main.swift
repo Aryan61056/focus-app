@@ -53,6 +53,10 @@ let judge = ScriptedJudge(readings: [
     c.windowChanged(WindowSnapshot(app: "Preview", title: "Chapter 5 exercises.pdf, page 12"))
     await advance(c, to: 30)
     for dark in [false, true] { render(c, "on-task", dark: dark) }
+    // The menu bar popover, which holds every quick function (drawn here; the real one is a system menu bar window).
+    for dark in [false, true] {
+        png(MenuBarContent(controller: c, openApp: {}).background(Tokens.window).environment(\.colorScheme, dark ? .dark : .light), "menubar-popover-\(dark ? "dark" : "light")")
+    }
 
     // Live preview card with a synthetic picture (drawn here, not a capture of any screen).
     let pw = 720, ph = 450

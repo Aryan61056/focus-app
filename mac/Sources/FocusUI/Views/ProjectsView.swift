@@ -36,7 +36,7 @@ struct ProjectsView: View {
         return SidebarRow(selected: on, action: { selected = p.id }) {
             RingView(live ? c.ringState : (sessions.isEmpty ? .unsure : .on), color: live || on ? Tokens.accent : Tokens.ink2).frame(width: 16, height: 16)
             VStack(alignment: .leading, spacing: 1) {
-                Text(p.name).font(Tokens.text(.body, on ? .semibold : .medium)).lineLimit(1)
+                Text(p.name).font(Tokens.text(.body, on ? .semibold : .medium)).lineLimit(1).help(p.name)
                 Text(live ? "In a session now" : (sessions.first.map { $0.start.formatted(.relative(presentation: .named)) } ?? "No sessions yet"))
                     .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(1)
             }
@@ -56,16 +56,10 @@ struct ProjectDetail: View {
         let binding = Binding(get: { store.project(project.id) ?? project }, set: { store.update($0) })
         Scroller {
             VStack(alignment: .leading, spacing: Space.l) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        TextField("Name", text: binding.name).textFieldStyle(.plain).font(Tokens.rounded(.title3, .semibold)).frame(minHeight: 30)
-                        let n = store.sessions(for: project.id)
-                        Text("\(n.count) session\(n.count == 1 ? "" : "s") · \(durationText(n.reduce(0) { $0 + $1.onTaskSeconds })) on task")
-                            .font(Tokens.text(.body)).foregroundStyle(Tokens.ink2)
-                    }
-                    Spacer()
-                    Button { c.begin(task: project.name, projectId: project.id, autoTick: true) } label: { Label("Start session", systemImage: "play.fill") }
-                        .buttonStyle(FocusButtonStyle(.primary)).disabled(c.isActive)
+                // Name and Start side by side when they fit; at large text sizes Start moves under the name instead of cutting it.
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top) { titleBlock(binding); Spacer(); startButton.fixedSize() }
+                    VStack(alignment: .leading, spacing: Space.s) { titleBlock(binding); startButton.fixedSize() }
                 }
                 field("What Focus should know about this project", help: "Focus compares every window with this and your task. A sentence or two of detail helps more than any list. It stays on this Mac.") {
                     ZStack(alignment: .topLeading) {
@@ -89,6 +83,19 @@ struct ProjectDetail: View {
         .confirmationDialog("Delete \(project.name)?", isPresented: $confirmDelete) {
             Button("Delete project", role: .destructive) { store.deleteProject(project.id) }
         } message: { Text("Its rules are removed. Past sessions stay in History.") }
+    }
+
+    func titleBlock(_ binding: Binding<Project>) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            TextField("Name", text: binding.name).textFieldStyle(.plain).font(Tokens.rounded(.title3, .semibold)).frame(minWidth: 200, minHeight: 30)
+            let n = store.sessions(for: project.id)
+            Text("\(n.count) session\(n.count == 1 ? "" : "s") \u{00B7} \(durationText(n.reduce(0) { $0 + $1.onTaskSeconds })) on task")
+                .font(Tokens.text(.body)).foregroundStyle(Tokens.ink2)
+        }
+    }
+    var startButton: some View {
+        Button { c.begin(task: project.name, projectId: project.id, autoTick: true) } label: { Label("Start session", systemImage: "play.fill") }
+            .buttonStyle(FocusButtonStyle(.primary)).disabled(c.isActive)
     }
 
     func field<V: View>(_ title: String, help: String?, @ViewBuilder _ content: () -> V) -> some View {
@@ -160,15 +167,16 @@ struct AskFocusBox: View {
         // Set into the card as a well, not a second card on top of it.
         Inset {
             VStack(alignment: .leading, spacing: Space.s) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text("Ask Focus about a window").font(Tokens.text(.caption, .semibold))
-                    Spacer()
-                    Text("Type anything. Nothing is read from your screen.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline) { askTitle; Spacer(); askNote }
+                    VStack(alignment: .leading, spacing: 2) { askTitle; askNote }
                 }
-                HStack(spacing: Space.xs) {
-                    field("App", $app).frame(width: 130)
-                    field("Window title", $title)
-                    Button(asking ? "Asking" : "Ask Focus") { ask() }.buttonStyle(FocusButtonStyle(.secondary)).disabled(asking || title.trimmingCharacters(in: .whitespaces).isEmpty)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: Space.xs) { field("App", $app).frame(width: 130 * TextScale.shared.factor); field("Window title", $title).frame(minWidth: 140); askButton }
+                    VStack(alignment: .leading, spacing: Space.xs) {
+                        HStack(spacing: Space.xs) { field("App", $app).frame(width: 130 * TextScale.shared.factor); field("Window title", $title) }
+                        askButton
+                    }
                 }
                 if let j = result {
                     let call = SessionController.call(j.label)
@@ -182,6 +190,12 @@ struct AskFocusBox: View {
                 }
             }
         }
+    }
+    var askTitle: some View { Text("Ask Focus about a window").font(Tokens.text(.caption, .semibold)).fixedSize() }
+    var askNote: some View { Text("Type anything. Nothing is read from your screen.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize() }
+    var askButton: some View {
+        Button(asking ? "Asking" : "Ask Focus") { ask() }.buttonStyle(FocusButtonStyle(.secondary)).fixedSize()
+            .disabled(asking || title.trimmingCharacters(in: .whitespaces).isEmpty)
     }
     func field(_ prompt: String, _ text: Binding<String>) -> some View {
         TextField(prompt, text: text).font(Tokens.text(.body)).wellField(height: 32, raised: true)
