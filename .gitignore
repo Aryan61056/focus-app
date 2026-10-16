@@ -35,3 +35,6 @@ core/brain-rs/target/
 # Exception (Aarav, 2026-10-14): the website's own images. App captures there are demo data only, never a real screen.
 !site/assets/**/*.png
 !site/assets/**/*.jpg
+
+# Local working files (render comparisons, findings); never committed.
+scratchpad/
