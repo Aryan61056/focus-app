@@ -4,6 +4,8 @@ import SwiftUI
 struct MiniTimeline: View {
     var segments: [TimelineSegment]
     var height: CGFloat = 10
+    /// Draws itself in once when it appears. Off in lists, where rows scroll in and out all the time.
+    var animated = false
     var body: some View {
         Canvas { ctx, size in
             let total = segments.reduce(0) { $0 + $1.seconds }
@@ -26,6 +28,7 @@ struct MiniTimeline: View {
             }
         }
         .frame(height: height)
+        .modifier(SweepIfAnimated(on: animated))
         .accessibilityLabel(Self.describe(segments))
     }
 
@@ -44,4 +47,11 @@ func sessionSentence(_ r: SessionRecord) -> String {
     let on = Int((r.onTaskSeconds / 60).rounded())
     let slips = r.drifts == 0 ? "No slips." : (r.drifts == 1 ? "One slip." : "\(r.drifts) slips.")
     return "\(on) minute\(on == 1 ? "" : "s") on task. \(slips)"
+}
+
+private struct SweepIfAnimated: ViewModifier {
+    var on: Bool
+    func body(content: Content) -> some View {
+        if on { content.sweepIn(duration: 0.7) } else { content }
+    }
 }

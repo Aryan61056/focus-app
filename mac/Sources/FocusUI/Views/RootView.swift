@@ -196,7 +196,13 @@ struct SessionToolbarPill: View {
 /// The window's own surface: the system's plain window gray, as Droppy's pages sit on, so the grouped cards on top read as cards.
 struct WindowBackdrop: View {
     var body: some View {
-        if SnapshotMode.on { Tokens.window } else { Color(nsColor: .windowBackgroundColor).ignoresSafeArea() }
+        ZStack {
+            if SnapshotMode.on { Tokens.window } else { Color(nsColor: .windowBackgroundColor).ignoresSafeArea() }
+            // The same micro dots as the cards, a little stronger, thinning out from the top so the gutters beside the page are not empty.
+            DotGrid(step: 8, radius: 0.8, opacity: 0.1).equatable()
+                .mask(RadialGradient(colors: [.black, .black.opacity(0)], center: .top, startRadius: 40, endRadius: 620))
+                .ignoresSafeArea()
+        }
     }
 }
 
@@ -310,10 +316,16 @@ struct ProjectTile: View {
 struct IconTile: View {
     var symbol: String
     var color: Color
+    @State private var hover = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         Image(systemName: symbol).font(.system(size: 11, weight: .semibold)).foregroundStyle(.white)
+            .symbolEffect(.bounce, options: .speed(1.4), value: hover && !reduceMotion)
             .frame(width: 20, height: 20)
             .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(color.gradient))
+            .scaleEffect(hover && !reduceMotion ? 1.12 : 1)
+            .animation(Motion.notchSettle, value: hover)
+            .onHover { hover = $0 }
             .accessibilityHidden(true)
     }
 }

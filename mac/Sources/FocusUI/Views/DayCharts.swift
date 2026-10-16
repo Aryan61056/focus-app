@@ -26,6 +26,7 @@ struct DayTrack: View {
                 if let n = nowHour, range.contains(Int(n)) { ctx.fill(Path(CGRect(x: (n - Double(range.lowerBound)) / span * size.width - 1, y: 0, width: 2, height: size.height)), with: .color(Tokens.ink)) }
             }
             .frame(height: 34)
+            .sweepIn(duration: 0.8)
             GeometryReader { g in
                 let span = CGFloat(range.upperBound - range.lowerBound)
                 ForEach(Array(stride(from: range.lowerBound, through: range.upperBound, by: 2)), id: \.self) { h in
@@ -51,7 +52,10 @@ struct WeekBars: View {
                             .foregroundStyle(today ? Tokens.ink : Tokens.ink2).monospacedDigit()
                         UnevenRoundedRectangle(topLeadingRadius: 6, topTrailingRadius: 6, style: .continuous)
                             .fill(Tokens.accent.opacity(today ? 1 : 0.5))
+                            // Printed with the same micro dots as the cards, so a bar reads as halftone rather than a flat block.
+                            .overlay { DotGrid(color: Tokens.onAccent, step: 4, radius: 0.7, opacity: today ? 0.3 : 0.45).equatable().clipShape(UnevenRoundedRectangle(topLeadingRadius: 6, topTrailingRadius: 6, style: .continuous)) }
                             .frame(maxWidth: 34).frame(height: max(d.hours > 0 ? 4 : 0, 76 * d.hours / top))
+                            .modifier(GrowIn(index: i))
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                     .accessibilityElement(children: .ignore)

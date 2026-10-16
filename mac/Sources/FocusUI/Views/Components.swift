@@ -32,13 +32,24 @@ struct Tile<Content: View>: View {
 struct CardSurface: ViewModifier {
     var radius: CGFloat = 10
     var fill: Color = Tokens.card
+    /// The micro dot texture: a faint grid fading from the top-right corner, and a pool of accent dots under the pointer.
+    var dots = true
     @Environment(\.colorScheme) private var scheme
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         // Flat, as Droppy's grouped cards are: the fill and a hairline carry it, with only a whisper of shadow in light mode.
         content
             .background(shape.fill(fill).shadow(color: .black.opacity(scheme == .dark ? 0 : 0.03), radius: 1, y: 1))
+            .modifier(DotsIf(on: dots, radius: radius))
             .overlay { shape.strokeBorder(Tokens.cardEdge) }
+    }
+}
+
+private struct DotsIf: ViewModifier {
+    var on: Bool
+    var radius: CGFloat
+    func body(content: Content) -> some View {
+        if on { content.dotTexture(radius: radius) } else { content }
     }
 }
 
@@ -142,7 +153,7 @@ struct EmptyState<Action: View>: View {
             }
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
-        .modifier(CardSurface(radius: 10))
+        .modifier(CardSurface(radius: 10, dots: false))
         .accessibilityElement(children: .contain)
     }
 }

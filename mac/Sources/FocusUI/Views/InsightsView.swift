@@ -85,29 +85,52 @@ struct InsightsView: View {
     }
 }
 
-/// Hours 8 to 19 down, Monday to Sunday across. Darkness is on-task time; the figure is in the accessibility label.
+/// Hours 8 to 19 down, Monday to Sunday across, drawn as halftone: a bigger, brighter dot is more on-task time, the way the website prints
+/// its art. The dots grow in as a diagonal wave from the top-left, and the one under the pointer swells and lights its row and day.
+/// The figure is in each cell's accessibility label and help text.
 struct Heatmap: View {
     var grid: [[Double]]
+    @State private var hover: (day: Int, hour: Int)?
+    @State private var shown = SnapshotMode.on
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private static let days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
     var body: some View {
         let peak = max(grid.flatMap { $0 }.max() ?? 1, 1)
-        let days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-        VStack(spacing: 3) {
-            HStack(spacing: 3) {
+        let on = shown || reduceMotion
+        VStack(spacing: 2) {
+            HStack(spacing: 2) {
                 Text("").frame(width: 34)
-                ForEach(days, id: \.self) { Text($0).font(Tokens.text(11.5)).foregroundStyle(Tokens.ink2).frame(maxWidth: .infinity) }
+                ForEach(0..<7, id: \.self) { d in
+                    Text(Self.days[d]).font(Tokens.text(11.5, hover?.day == d ? .semibold : .regular))
+                        .foregroundStyle(hover?.day == d ? Tokens.ink : Tokens.ink2).frame(maxWidth: .infinity)
+                }
             }
             ForEach(8..<20, id: \.self) { h in
-                HStack(spacing: 3) {
-                    Text("\(h):00").font(Tokens.rounded(11.5)).foregroundStyle(Tokens.ink2).frame(width: 34, alignment: .trailing)
+                HStack(spacing: 2) {
+                    Text("\(h):00").font(Tokens.rounded(11.5, hover?.hour == h ? .bold : .semibold))
+                        .foregroundStyle(hover?.hour == h ? Tokens.ink : Tokens.ink2).frame(width: 34, alignment: .trailing)
                     ForEach(0..<7, id: \.self) { d in
                         let v = grid[d][h]
-                        RoundedRectangle(cornerRadius: 4).fill(Tokens.control).overlay { RoundedRectangle(cornerRadius: 4).fill(Tokens.accent.opacity(0.15 + 0.85 * v / peak)).opacity(v > 0 ? 1 : 0) }
-                            .frame(height: 16)
-                            .accessibilityElement().accessibilityLabel("\(days[d]) \(h):00, \(Int(v / 60)) minutes on task")
+                        let f = v > 0 ? CGFloat(sqrt(v / peak)) : 0
+                        let here = hover?.day == d && hover?.hour == h
+                        let line = hover?.day == d || hover?.hour == h
+                        Circle()
+                            .fill(v > 0 ? Tokens.accent.opacity(0.35 + 0.65 * f) : Tokens.ink.opacity(line ? 0.22 : 0.12))
+                            .frame(width: v > 0 ? 4 + 11 * f : 3, height: v > 0 ? 4 + 11 * f : 3)
+                            .scaleEffect(on ? (here ? 1.3 : 1) : 0.001)
+                            .animation(reduceMotion ? nil : .spring(duration: 0.55, bounce: 0.25).delay(on && hover == nil ? Double(d + h - 8) * 0.03 : 0), value: on)
+                            .animation(reduceMotion ? nil : Motion.notchSettle, value: here)
+                            .frame(maxWidth: .infinity).frame(height: 19)
+                            .contentShape(Rectangle())
+                            .onHover { inside in if inside { hover = (d, h) } else if hover?.day == d && hover?.hour == h { hover = nil } }
+                            .help(v > 0 ? "\(Self.days[d]) \(h):00: \(Int(v / 60)) minutes on task" : "\(Self.days[d]) \(h):00: nothing yet")
+                            .accessibilityElement().accessibilityLabel("\(Self.days[d]) \(h):00, \(Int(v / 60)) minutes on task")
                     }
                 }
             }
         }
+        .onAppear { shown = true }
     }
 }
 
