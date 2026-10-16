@@ -592,7 +592,14 @@ public final class SessionController {
     }
 
     // MARK: actions from the UI
-    public func act(_ a: UserAction, minutes: Int? = nil) { send(.userAction(a, minutes: minutes)) }
+    public func act(_ a: UserAction, minutes: Int? = nil) {
+        // Going back by any path (banner, check-in, shield, menu bar, notch, iPhone) puts the reminder away. The click is not evidence, so
+        // the brain stays "interrupted" until the next window read, and the banner would ask "Back to ...?" over the task you went back to.
+        // The ladder's own return leaves it up: there the banner says what was done and what comes next.
+        if a == .backToTask, !ladderReturning { headsUpAt = nil; bannerHidden = true }
+        send(.userAction(a, minutes: minutes))
+        if a == .backToTask { refreshBanner(now()) }
+    }
     public func end() { send(.sessionEnd) }
 
     /// "What is the next step?": saved on the project (the start sheet shows it next time), then the brain is told it was answered.

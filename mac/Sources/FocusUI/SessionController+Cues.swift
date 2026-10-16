@@ -110,7 +110,7 @@ extension SessionController {
     }
 
     /// "Back to task" on the banner.
-    public func bannerBackToTask() { headsUpAt = nil; bannerHidden = true; refreshBanner(now()); act(.backToTask) }
+    public func bannerBackToTask() { act(.backToTask) }
     /// "This is part of it" on the heads-up. A window Focus has read as off topic has to be explained; otherwise it is taken at its word.
     public func bannerPartOfIt() { headsUpAt = nil; driftWatch.clearReadings(); refreshBanner(now()); claimOnTask() }
     /// The small cross on the banner. A reminder stays hidden until you have been back on task and drift again.

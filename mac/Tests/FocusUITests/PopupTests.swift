@@ -33,7 +33,33 @@ final class PopupReachTests: XCTestCase {
         XCTAssertEqual(c.banner?.kind, .checkIn, "a new question shows, wherever you are")
         c.answerCheckIn(onTask: false)
         XCTAssertNil(c.checkIn)
-        XCTAssertNotEqual(c.banner?.kind, .checkIn, "answered, the question goes")
+        XCTAssertNil(c.banner, "answered, the question goes, and the reminder does not take its place")
+    }
+
+    /// The click is not evidence, so the brain is still "interrupted" until the next window read. Every way back must put the reminder
+    /// away, or it asks "Back to ...?" over the task window you just went back to.
+    func testEveryWayBackPutsTheReminderAway() async {
+        for way in ["menu bar or notch", "shield", "banner"] {
+            t = 0
+            let c = make()
+            await advance(c, to: 20)
+            c.windowChanged(video)
+            while c.presence.state != "interrupted" && t < 300 { await advance(c, to: t + 1) }
+            XCTAssertEqual(c.banner?.kind, .reminder, way)
+            switch way {
+            case "shield":
+                while c.shield == nil && t < 600 { await advance(c, to: t + 1) }
+                XCTAssertEqual(c.shield?.kind, .pause, way)
+                XCTAssertNil(c.banner, "the shield covers everything, so no banner under it")
+                c.shieldBackToTask()
+            case "banner": c.bannerBackToTask()
+            default: c.act(.backToTask)
+            }
+            XCTAssertEqual(c.presence.state, "interrupted", "not evidence: the next window read decides")
+            XCTAssertNil(c.banner, "\(way): no reminder over the task you went back to")
+            await advance(c, to: t + 2)
+            XCTAssertNil(c.banner, "\(way): it stays away on the next ticks")
+        }
     }
 
     func testAScheduledPromptIsOnTheBannerAndGoesWhenAnswered() async {
