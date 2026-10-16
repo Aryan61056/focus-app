@@ -20,6 +20,8 @@ final class ShieldPanel: NSPanel {
     override func cancelOperation(_ sender: Any?) { onEscape?() }
 }
 
+/// The shield's one column, centred on a dimmed, blurred screen. Always dark, whatever the system appearance, because it sits on a dark
+/// veil: the ring with the time away, one title, one sentence, the way back as the big button, and explaining as the quiet second path.
 struct ShieldCard: View {
     @Bindable var c: SessionController
     var shield: Shield
@@ -27,78 +29,192 @@ struct ShieldCard: View {
     @FocusState private var typing: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Space.m) {
-            HStack(spacing: Space.s) {
-                RingView(.drift, color: Tokens.ink).frame(width: 30, height: 30)
-                Text(CueCopy.shieldTitle(shield.kind)).font(Tokens.rounded(.title2, .semibold))
-            }
-            if shield.asking { asking } else { waiting }
+        VStack(spacing: 0) {
+            ShieldRing(c: c).frame(width: 104, height: 104).padding(.bottom, Space.l)
+            Text(CueCopy.shieldTitle(shield.kind)).font(Tokens.rounded(.title2, .semibold)).multilineTextAlignment(.center)
+            Text(shield.asking ? CueCopy.shieldAsk(task: c.taskName) : CueCopy.shieldBody(shield.kind, tone: c.prefs.nudgeTone, task: c.taskName, longDetour: c.longDetour))
+                .font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2).multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true).padding(.top, Space.xs)
+            Group { if shield.asking { asking } else { waiting } }.padding(.top, Space.xl)
         }
-        .padding(Space.xxl).frame(width: Self.width, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: Tokens.radiusFloat, style: .continuous).fill(Tokens.window))
-        .overlay { RoundedRectangle(cornerRadius: Tokens.radiusFloat, style: .continuous).strokeBorder(Tokens.line) }
-        .shadow(color: .black.opacity(0.3), radius: 30, y: 14)
+        .frame(width: Self.width)
         .foregroundStyle(Tokens.ink)
         .accessibilityElement(children: .contain)
     }
-    static let width: CGFloat = 480
+    static let width: CGFloat = 400
 
-    // Before explaining: the task, a way back, and a button that opens the explanation form at once. There is no wait and no hold.
+    // Before explaining: the way back, and explaining one press away. No wait and no hold, unless holding was switched on.
     @ViewBuilder var waiting: some View {
-        Text(CueCopy.shieldBody(shield.kind, tone: c.prefs.nudgeTone, task: c.taskName, longDetour: c.longDetour))
-            .font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
-        if c.longDetour && shield.kind == .pause { Button(NudgeCopy.breakButton()) { c.takeNudgeBreak() }.buttonStyle(FocusButtonStyle(.primary, expand: true)) }
-        backToTask(secondary: c.longDetour && shield.kind == .pause)
-        TimelineView(.periodic(from: .now, by: 0.25)) { _ in
-            let lock = c.overrideLockRemaining
-            VStack(alignment: .leading, spacing: Space.xs) {
+        VStack(spacing: Space.s) {
+            if c.longDetour && shield.kind == .pause {
+                Button(NudgeCopy.breakButton()) { c.takeNudgeBreak() }.buttonStyle(ShieldButtonStyle(.primary))
+            }
+            backToTask(primary: !(c.longDetour && shield.kind == .pause))
+            TimelineView(.periodic(from: .now, by: 0.25)) { _ in
+                let lock = c.overrideLockRemaining
                 if lock > 0 {
-                    Text(CueCopy.lockedLine(Int(lock.rounded(.up)))).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 6) {
+                        Image(systemName: "lock.fill").font(Tokens.symbol(11, .semibold))
+                        Text("Explaining opens in")
+                        Text(BannerView.clock(lock.rounded(.up))).monospacedDigit().foregroundStyle(Tokens.ink)
+                    }
+                    .font(Tokens.text(.caption, .medium)).foregroundStyle(Tokens.ink2).frame(height: 36)
+                    .accessibilityElement(children: .combine)
                 } else {
-                    Button("Explain why this is on task") { c.openExplanation() }.buttonStyle(FocusButtonStyle(.secondary, expand: true))
-                    Text(CueCopy.explainLine()).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                    VStack(spacing: Space.xxs) {
+                        Button { c.openExplanation() } label: { Label("Explain why this is on task", systemImage: "sparkle") }.buttonStyle(ShieldButtonStyle(.quiet))
+                        Text("Focus checks your words against the window").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
+                    }
                 }
             }
+            if let m = shield.message, c.overrideLockRemaining <= 0 { ShieldNotice(text: m).padding(.top, Space.xs) }
         }
     }
 
-    // After: a short explanation, checked by Focus against the window.
+    // Explaining: one field, the two ways forward, and the rules as three short facts.
     @ViewBuilder var asking: some View {
-        Text(CueCopy.shieldAsk(task: c.taskName)).font(Tokens.text(.callout, .semibold))
-        TextField(CueCopy.shieldPlaceholder, text: $text, axis: .vertical)
-            .textFieldStyle(.plain).lineLimit(3...5).focused($typing).onSubmit(send)
-            .padding(Space.s).frame(minHeight: 84, alignment: .topLeading)
-            .background(RoundedRectangle(cornerRadius: Tokens.radiusControl).fill(Tokens.control))
-            .disabled(shield.checking)
-            .onAppear { typing = true }
-        if let m = shield.message {
-            HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
-                Image(systemName: "exclamationmark.circle").foregroundStyle(Tokens.ink2)
-                Text(m).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink).fixedSize(horizontal: false, vertical: true)
-            }.accessibilityElement(children: .combine)
-        }
-        backToTask(secondary: false)
-        HStack(spacing: Space.s) {
-            Button("Check my answer", action: send).buttonStyle(FocusButtonStyle(.secondary, expand: true))
+        VStack(alignment: .leading, spacing: Space.s) {
+            ZStack(alignment: .bottomTrailing) {
+                TextField(CueCopy.shieldPlaceholder, text: $text, axis: .vertical)
+                    .textFieldStyle(.plain).font(Tokens.text(.body)).lineLimit(3...5).focused($typing).onSubmit(send)
+                    .padding(.horizontal, Space.s).padding(.top, Space.s).padding(.bottom, 26)
+                    .frame(minHeight: 96, alignment: .topLeading)
+                    .disabled(shield.checking)
+                    .onAppear { typing = true }
+                let words = OverrideClaim.tokens(text).count
+                Text("\(min(words, OverrideClaim.minWords))/\(OverrideClaim.minWords) words").font(Tokens.text(.caption2, .medium)).monospacedDigit()
+                    .foregroundStyle(words >= OverrideClaim.minWords ? Tokens.accent : Tokens.ink2).padding(Space.xs)
+                    .accessibilityLabel("\(words) words, at least \(OverrideClaim.minWords)")
+            }
+            .background(RoundedRectangle(cornerRadius: Tokens.radiusCard, style: .continuous).fill(Color.white.opacity(0.07)))
+            .overlay { RoundedRectangle(cornerRadius: Tokens.radiusCard, style: .continuous).strokeBorder(typing ? Tokens.accent.opacity(0.7) : Color.white.opacity(0.14)) }
+            if let m = shield.message { ShieldNotice(text: m) }
+            HStack(spacing: Space.xs) {
+                Button(action: send) {
+                    HStack(spacing: 6) {
+                        if shield.checking { ProgressView().controlSize(.small).tint(Tokens.ink); Text("Reading the window") }
+                        else { Image(systemName: "sparkle"); Text("Check my answer") }
+                    }
+                }
+                .buttonStyle(ShieldButtonStyle(.secondary))
                 .disabled(shield.checking || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            if shield.checking { ProgressView().controlSize(.small); Text("Reading the window").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
+                backToTask(primary: true)
+            }
+            HStack(spacing: 6) {
+                Spacer(minLength: 0)
+                ShieldChip(symbol: "arrow.counterclockwise", text: "\(shield.attemptsLeft) \(shield.attemptsLeft == 1 ? "try" : "tries") left")
+                ShieldChip(symbol: "clock", text: "Pass lasts \(Int(Shield.passSeconds(afterClaims: c.claimsAccepted) / 60)) min")
+                ShieldChip(symbol: "number", text: "\(min(c.claimsAccepted + 1, Shield.claimCap)) of \(Shield.claimCap) this session")
+                Spacer(minLength: 0)
+            }
+            .help("A wrong answer is acted on at once, and two lock explaining for \(Int(Shield.lockSeconds(after: c.overrideLocks) / 60)) minutes. An accepted explanation covers this page only.")
         }
-        Text("\(shield.attemptsLeft) \(shield.attemptsLeft == 1 ? "try" : "tries") left. A wrong answer costs something, and two lock explaining for \(Int(Shield.lockSeconds(after: c.overrideLocks) / 60)) minutes. An accepted explanation covers this page only, for \(Int(Shield.passSeconds(afterClaims: c.claimsAccepted) / 60)) minutes (explanation \(c.claimsAccepted + 1) of \(Shield.claimCap)).")
-            .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
     }
 
     func send() { c.submitExplanation(text) }
 
-    /// Back to task: one press, or, if the user switched on holding in Settings, a short press and hold. Never behind a wait or a lock.
-    @ViewBuilder func backToTask(secondary: Bool) -> some View {
+    /// Back to task: one press (Return or Escape too), or, if holding was switched on in Settings, a three second press. Never behind a lock.
+    @ViewBuilder func backToTask(primary: Bool) -> some View {
         if c.prefs.holdToReturn {
-            VStack(alignment: .leading, spacing: Space.xs) {
-                HoldPad(c: c).frame(height: 36)
+            VStack(spacing: Space.xxs) {
+                HoldPad(c: c).frame(height: 44)
                 Text(CueCopy.backHoldLine()).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
             }
+        } else if shield.asking {
+            Button("Back to task") { c.shieldBackToTask() }.buttonStyle(ShieldButtonStyle(primary ? .primary : .secondary))
         } else {
-            Button("Back to task") { c.shieldBackToTask() }.buttonStyle(FocusButtonStyle(secondary ? .secondary : .primary, expand: true))
+            Button("Back to task") { c.shieldBackToTask() }.buttonStyle(ShieldButtonStyle(primary ? .primary : .secondary)).keyboardShortcut(.defaultAction)
         }
+    }
+}
+
+/// The ring over the shield: the slip's gapped ring, drawn large and thin, with the time away inside it.
+struct ShieldRing: View {
+    var c: SessionController
+    var body: some View {
+        ZStack {
+            Circle().fill(Tokens.slip.opacity(0.1))
+            Circle().stroke(Tokens.track, lineWidth: 4).padding(10)
+            Circle().trim(from: 0, to: 281.5 / 360).rotation(.degrees(-60))
+                .stroke(Tokens.slip, style: StrokeStyle(lineWidth: 4, lineCap: .round)).padding(10)
+            TimelineView(.everySecond) { _ in
+                let s = c.offTopicSecondsNow()
+                VStack(spacing: 0) {
+                    if s >= 1 {
+                        Text(BannerView.clock(s)).font(Tokens.rounded(.title3, .semibold)).monospacedDigit()
+                        Text("away").font(Tokens.text(.caption2, .medium)).foregroundStyle(Tokens.ink2)
+                    } else {
+                        Image(systemName: "sparkle").font(Tokens.symbol(22, .semibold)).foregroundStyle(Tokens.slip)
+                    }
+                }
+            }
+        }
+        .accessibilityElement().accessibilityLabel("Time away from the task, \(Int(c.offTopicSecondsNow() / 60)) minutes")
+    }
+}
+
+/// The shield's buttons: big capsules that read on the dark veil whatever window state (never glass, which grays in an inactive panel).
+struct ShieldButtonStyle: ButtonStyle {
+    enum Kind { case primary, secondary, quiet }
+    var kind: Kind
+    init(_ kind: Kind) { self.kind = kind }
+    func makeBody(configuration: Configuration) -> some View { Inner(configuration: configuration, kind: kind) }
+    struct Inner: View {
+        let configuration: Configuration
+        let kind: Kind
+        @State private var hover = false
+        @Environment(\.isEnabled) private var enabled
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+        var body: some View {
+            configuration.label
+                .font(Tokens.text(kind == .quiet ? .body : .callout, .semibold))
+                .foregroundStyle(kind == .primary ? Tokens.onAccent : (kind == .quiet && !hover ? Tokens.ink2 : Tokens.ink))
+                .frame(maxWidth: kind == .quiet ? nil : .infinity)
+                .padding(.horizontal, Space.m).frame(height: kind == .quiet ? 32 : 44)
+                .background(Capsule().fill(fill))
+                .opacity(enabled ? 1 : 0.45)
+                .scaleEffect(configuration.isPressed && !reduceMotion ? 0.98 : 1)
+                .animation(reduceMotion ? nil : Motion.out(0.14), value: configuration.isPressed)
+                .animation(Motion.hover, value: hover)
+                .onHover { hover = $0 }
+                .contentShape(Capsule())
+        }
+        var fill: Color {
+            switch kind {
+            case .primary: return hover ? Tokens.accent.opacity(0.9) : Tokens.accent
+            case .secondary: return Color.white.opacity(hover ? 0.18 : 0.12)
+            case .quiet: return Color.white.opacity(hover ? 0.08 : 0)
+            }
+        }
+    }
+}
+
+/// A short fact under the explanation field.
+struct ShieldChip: View {
+    var symbol: String
+    var text: String
+    var body: some View {
+        HStack(spacing: 5) { Image(systemName: symbol).font(Tokens.symbol(10, .semibold)); Text(text).monospacedDigit() }
+            .font(Tokens.text(.caption, .medium)).foregroundStyle(Tokens.ink2)
+            .padding(.horizontal, Space.xs).frame(height: 24)
+            .background(Capsule().fill(Color.white.opacity(0.07)))
+            .accessibilityElement(children: .combine)
+    }
+}
+
+/// Why the last explanation did not pass, or what Focus did about it: amber, with a full edge, never a side stripe.
+struct ShieldNotice: View {
+    var text: String
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
+            Image(systemName: "exclamationmark.circle.fill").foregroundStyle(Tokens.slip)
+            Text(text).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink).fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(Space.s)
+        .background(RoundedRectangle(cornerRadius: Tokens.radiusInset, style: .continuous).fill(Tokens.slip.opacity(0.14)))
+        .overlay { RoundedRectangle(cornerRadius: Tokens.radiusInset, style: .continuous).strokeBorder(Tokens.slip.opacity(0.35)) }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -147,21 +263,23 @@ final class HoldPadView: NSView {
     private func stopRedrawIfIdle() { if c.backHoldStart == nil { timer?.invalidate(); timer = nil } }
 
     override func draw(_ dirtyRect: NSRect) {
-        let r = bounds, radius = Tokens.radiusControl
+        let r = bounds, radius = r.height / 2   // a capsule, like the shield's other buttons
         let dark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
         let ink = dark ? NSColor(srgbRed: 0.93, green: 0.95, blue: 0.94, alpha: 1) : NSColor(srgbRed: 0.09, green: 0.11, blue: 0.09, alpha: 1)
         let track = NSBezierPath(roundedRect: r, xRadius: radius, yRadius: radius)
-        ink.withAlphaComponent(0.1).setFill(); track.fill()
+        let accent = dark ? NSColor(srgbRed: 0.47, green: 0.84, blue: 0.62, alpha: 1) : NSColor(srgbRed: 0.106, green: 0.459, blue: 0.282, alpha: 1)
+        // It is the way back, so it reads as the primary action before it is pressed: a green track that fills as you hold.
+        accent.withAlphaComponent(0.2).setFill(); track.fill()
         let p = CGFloat(c.backHoldProgress())
         if p > 0 {
             NSGraphicsContext.saveGraphicsState(); track.addClip()
-            (dark ? NSColor(srgbRed: 0.47, green: 0.84, blue: 0.62, alpha: 0.55) : NSColor(srgbRed: 0.106, green: 0.459, blue: 0.282, alpha: 0.28)).setFill()
+            accent.withAlphaComponent(dark ? 0.6 : 0.35).setFill()
             NSRect(x: 0, y: 0, width: r.width * p, height: r.height).fill()
             NSGraphicsContext.restoreGraphicsState()
         }
-        ink.withAlphaComponent(0.14).setStroke(); track.lineWidth = 1; track.stroke()
+        accent.withAlphaComponent(0.55).setStroke(); track.lineWidth = 1; track.stroke()
         let label = (p > 0 ? "Keep holding" : "Hold to go back to task") as NSString
-        let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 13, weight: .semibold), .foregroundColor: ink]
+        let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 14 * TextScale.shared.factor, weight: .semibold), .foregroundColor: ink]
         let size = label.size(withAttributes: attrs)
         label.draw(at: NSPoint(x: r.midX - size.width / 2, y: r.midY - size.height / 2), withAttributes: attrs)
     }
@@ -181,11 +299,21 @@ struct ProgressBar: View {
 
 struct ShieldContent: View {
     @Bindable var c: SessionController
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         ZStack {
-            Color.black.opacity(0.55)
-            if let s = c.shield { ShieldCard(c: c, shield: s) }
+            // A dim that is darkest at the edges, so the eye lands on the column in the middle.
+            RadialGradient(colors: [.black.opacity(0.6), .black.opacity(0.8)], center: .center, startRadius: 80, endRadius: 900)
+            // A soft pool of shade under the column, so its words read even over a bright window behind the blur.
+            RadialGradient(colors: [.black.opacity(0.45), .black.opacity(0)], center: .center, startRadius: 0, endRadius: 420)
+            if let s = c.shield {
+                ShieldCard(c: c, shield: s)
+                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.97)).combined(with: AnyTransition(.blurReplace)))
+            }
         }
+        .animation(reduceMotion ? Motion.reduced : Motion.out(0.32), value: c.shield?.kind)
+        .animation(reduceMotion ? Motion.reduced : Motion.out(0.22), value: c.shield?.asking)
+        .environment(\.colorScheme, .dark)
     }
 }
 
@@ -249,6 +377,8 @@ public final class ShieldController {
 
     private func makePanel() -> ShieldPanel {
         let p = ShieldPanel()
+        // The shield is always dark (ShieldContent); AppKit parts such as the hold control follow the panel's appearance.
+        p.appearance = NSAppearance(named: .darkAqua)
         p.onEscape = { [weak self] in if self?.c.prefs.holdToReturn != true { self?.c.shieldBackToTask() } }
         let blur = NSVisualEffectView(); blur.material = .fullScreenUI; blur.blendingMode = .behindWindow; blur.state = .active
         let host = NSHostingView(rootView: ShieldContent(c: c))

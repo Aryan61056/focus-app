@@ -22,6 +22,11 @@ let judge = ScriptedJudge(readings: [
 }
 
 @MainActor func render(_ c: SessionController, _ name: String, dark: Bool, selection: AppSection = .today, height: CGFloat = 800) {
+    // --window: the window server draws it, so scroll views, fields and glass appear as they do in the app.
+    if CommandLine.arguments.contains("--window") {
+        WindowShot.shot(RootView(controller: c, selection: selection).frame(width: 1240, height: height), size: CGSize(width: 1240, height: height), name: name, dark: dark, dir: outDir)
+        return
+    }
     let view = RootView(controller: c, selection: selection).frame(width: 1240, height: height)
         .environment(\.colorScheme, dark ? .dark : .light)
     let r = ImageRenderer(content: view)
@@ -259,5 +264,63 @@ struct FakeWindow<Over: View>: View {
     late.prefs.paceMatters = true; late.prefs.dailyGoalMinutes = 180
     for dark in [false, true] { render(late, "today-behind", dark: dark, selection: .today) }
 }
-await run()
-screens()
+if CommandLine.arguments.contains("--popups") { await popupShots() } else { await run(); screens() }
+
+/// focus-snapshot <dir> --popups: every surface that appears while you drift, drawn by the window server (glass and text fields included).
+@MainActor func popupShots() async {
+    func session(_ preset: Preset = .standard) async -> SessionController {
+        t = 0
+        let c = SessionController(judge: judge, store: DataStore(), now: { t })
+        c.windowChanged(WindowSnapshot(app: "Notes", title: "Calc homework"))
+        c.begin(task: "Calc homework", preset: preset, shadow: false)
+        await advance(c, to: 20)
+        return c
+    }
+    let wall = Color(red: 0.2, green: 0.27, blue: 0.36)
+    func both<V: View>(_ name: String, _ size: CGSize, @ViewBuilder _ v: @escaping () -> V) {
+        for dark in [false, true] { WindowShot.shot(v(), size: size, name: name, dark: dark, dir: outDir) }
+    }
+    // Early banner at a real heads-up, so its counts are real.
+    let c = await session()
+    c.windowChanged(WindowSnapshot(app: "Browser", title: "youtube clip", url: "https://youtube.com/watch?v=1"))
+    while c.surface == nil && t < 300 { await advance(c, to: t + 1) }
+    both("pop-nudge", CGSize(width: 760, height: 380)) { FakeWindow(dark: false) { EmptyView() }.overlay(alignment: .topTrailing) { CuePreview.nudge(c).padding(Space.l) } }
+    both("pop-banner-reminder", CGSize(width: 760, height: 380)) { FakeWindow(dark: false) { CuePreview.banner(c, .reminder) } }
+    both("pop-banner-early", CGSize(width: 760, height: 380)) { FakeWindow(dark: false) { CuePreview.banner(c, .early) } }
+    both("pop-notch-nudge", CGSize(width: 760, height: 200)) { ZStack(alignment: .top) { wall; NotchView(controller: c, notchWidth: 200, notchHeight: 32, forced: .nudge) } }
+    both("pop-pill-nudge", CGSize(width: 760, height: 200)) { ZStack(alignment: .top) { wall; NotchView(controller: c, notchWidth: 0, notchHeight: 0, forced: .nudge) } }
+    let warned = t
+    c.act(.dismiss)
+    await advance(c, to: warned + 45)
+    both("pop-banner-checkin", CGSize(width: 760, height: 380)) { FakeWindow(dark: false) { CuePreview.banner(c, .checkIn) } }
+    both("pop-checkin", CGSize(width: 760, height: 380)) { FakeWindow(dark: false) { EmptyView() }.overlay(alignment: .topTrailing) { CuePreview.checkIn(c).padding(Space.l) } }
+    both("pop-notch-checkin", CGSize(width: 760, height: 200)) { ZStack(alignment: .top) { wall; NotchView(controller: c, notchWidth: 200, notchHeight: 32, forced: .nudge) } }
+    let shields: [(String, Shield.Kind, Bool, Bool, String?, Int, Bool)] = [
+        ("pop-shield-pause", .pause, false, false, nil, 2, false),
+        ("pop-shield-friction", .friction, false, false, nil, 2, false),
+        ("pop-shield-claim", .claim, false, false, nil, 2, false),
+        ("pop-shield-asking", .claim, true, false, nil, 2, false),
+        ("pop-shield-refused", .claim, true, false, "Focus read the window again and it does not look like Calc homework. 1 try left.", 1, false),
+        ("pop-shield-checking", .claim, true, true, nil, 2, false),
+        ("pop-shield-locked", .pause, false, false, nil, 2, true),
+    ]
+    for (name, kind, asking, checking, message, tries, locked) in shields {
+        let sc = await session()
+        sc.debugShowShield(kind, asking: asking, checking: checking, message: message, attemptsLeft: tries)
+        if locked { sc.debugLock() }
+        // The real shield sits on a full-screen blur; blurring the stand-in window gets close to it.
+        both(name, CGSize(width: 1000, height: 700)) { ZStack { FakeWindow(dark: false) { EmptyView() }.blur(radius: 18); CuePreview.shield(sc) } }
+    }
+    let hold = await session()
+    hold.prefs.holdToReturn = true
+    hold.debugShowShield(.pause)
+    both("pop-shield-hold", CGSize(width: 1000, height: 700)) { ZStack { FakeWindow(dark: false) { EmptyView() }.blur(radius: 18); CuePreview.shield(hold) } }
+    for (name, rhythm) in [("pop-rhythm-checkin", Rhythm.checkIns), ("pop-rhythm-break", .pomodoro)] {
+        let r = await session()
+        r.prefs.rhythm = rhythm
+        await advance(r, to: 25 * 60 + 25)
+        both(name, CGSize(width: 760, height: 380)) { FakeWindow(dark: false) { EmptyView() }.overlay(alignment: .topTrailing) { CuePreview.rhythm(r) } }
+        both(name.replacingOccurrences(of: "pop-", with: "pop-banner-"), CGSize(width: 760, height: 380)) { FakeWindow(dark: false) { CuePreview.banner(r, .rhythm) } }
+        both(name.replacingOccurrences(of: "pop-", with: "pop-notch-"), CGSize(width: 760, height: 200)) { ZStack(alignment: .top) { wall; NotchView(controller: r, notchWidth: 200, notchHeight: 32, forced: .nudge) } }
+    }
+}

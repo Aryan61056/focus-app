@@ -43,9 +43,12 @@ public struct DriftWatch: Equatable, Sendable {
     }
 }
 
-/// The small banner over the window you are in. `early` is the heads-up; `reminder` stays from the warning until you are back.
+/// The small banner over the window you are in: the one place a prompt reaches you wherever you are working. `early` is the heads-up;
+/// `reminder` stays from the warning until you are back; `checkIn` asks the ladder's question; `rhythm` is a scheduled check-in or break.
+/// The check-in and the schedule used to show only as cards inside Focus's own window, which is behind the app you are in, so they
+/// could not be answered without finding Focus first.
 public struct Banner: Equatable, Sendable {
-    public enum Kind: Equatable, Sendable { case early, reminder }
+    public enum Kind: Equatable, Sendable { case early, reminder, checkIn, rhythm }
     public var kind: Kind
     public var at: Double
 }
@@ -146,7 +149,11 @@ public enum Rhythm: String, CaseIterable, Identifiable, Sendable {
 }
 
 public struct RhythmPrompt: Equatable, Sendable {
-    public enum Kind: Equatable, Sendable { case checkIn, breakDue(minutes: Int) }
+    public enum Kind: Equatable, Sendable {
+        case checkIn, breakDue(minutes: Int)
+        /// The ring a prompt shows: closed for a check-in, a ring with a dot for a break.
+        var ring: RingState { if case .breakDue = self { return .breakTime }; return .on }
+    }
     public var kind: Kind
     public var at: Double
 }
@@ -215,15 +222,35 @@ extension EscalationPlan {
 public enum CueCopy {
     /// Shown on the reminder banner before a Strict round closes the tab, so closing is never a surprise.
     public static let closeWarning = "Focus will close this tab next."
-    public static func bannerTitle(_ kind: Banner.Kind, tone: NudgeTone, task: String) -> String {
+    public static func bannerTitle(_ kind: Banner.Kind, tone: NudgeTone, task: String, rhythm: RhythmPrompt.Kind? = nil) -> String {
         switch (kind, tone) {
         case (.early, .neutral): return "Still on \(task)?"
         case (.early, .coach): return "Easing away from \(task)?"
         case (.early, .direct): return "Drifting from \(task)?"
-        case (.reminder, .neutral): return "Your task: \(task)"
+        case (.reminder, .neutral): return "Back to \(task)?"
         case (.reminder, .coach): return "\(task) is waiting for you"
         case (.reminder, .direct): return "Back to \(task)"
+        case (.checkIn, _): return NudgeCopy.checkInTitle(task: task)
+        case (.rhythm, _): return rhythmTitle(rhythm ?? .checkIn, task: task)
         }
+    }
+
+    /// The short line under the banner's title: what Focus saw, in a few words and numbers, never the name of the window.
+    public static func headsUpMeta(away: Int, of total: Int) -> String { "\(away) of the last \(total) reads off task" }
+    public static let reminderMeta = "Off task"
+    public static let checkInMeta = "Read again: still off task"
+    public static func rhythmMeta(_ k: RhythmPrompt.Kind, checkInMinutes: Int) -> String {
+        switch k {
+        case .checkIn: return "Check-in every \(checkInMinutes) min"
+        case .breakDue: return "\(Rhythm.workMinutes) min of work done"
+        }
+    }
+    /// The steps of the ladder, for the dots on the banner and what VoiceOver says about them.
+    public static let ladderSteps = ["warning", "check-in", "pause screen", "Focus acts on the window"]
+    public static func ladderLabel(_ step: EscalationStep) -> String {
+        let i = step.rawValue
+        let next = i + 1 < ladderSteps.count ? " Next, \(ladderSteps[i + 1])." : ""
+        return "Step \(i + 1) of \(ladderSteps.count), \(ladderSteps[i]).\(next)"
     }
 
     public static func shieldTitle(_ k: Shield.Kind) -> String {
@@ -243,7 +270,7 @@ public enum CueCopy {
         switch a { case .close: return "Focus closed the tab."; case .hide: return "Focus hid the app."; case .switchAway: return "Focus switched you back." }
     }
     public static func claimsUsedUp(_ n: Int) -> String { "You have used all \(n) explanations for this session. Go back to the task." }
-    public static func backHoldLine() -> String { "You turned on holding to go back. Hold for \(Int(Shield.backHoldSeconds)) seconds." }
+    public static func backHoldLine() -> String { "\(Int(Shield.backHoldSeconds)) seconds. Letting go starts over." }
     public static func explainLine() -> String { "If this really is part of your task, say how. Focus checks your words against the window. Opening this costs nothing; a wrong answer does." }
     public static func lockedLine(_ seconds: Int) -> String {
         let m = (seconds + 59) / 60

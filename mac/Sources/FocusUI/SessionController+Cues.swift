@@ -73,16 +73,28 @@ extension SessionController {
         refreshBanner(t)
     }
 
+    /// One banner at a time, the most pressing first: the ladder's check-in, the reminder after a warning, the heads-up, then a scheduled prompt.
     func refreshBanner(_ t: Double) {
         var next: Banner?
-        if isActive, !shadow, prefs.showBanner, !isPaused, !gateOpen, checkIn == nil {
-            if presence.state == "interrupted", !bannerHidden {
+        if isActive, !shadow, prefs.showBanner, !isPaused, !gateOpen {
+            if let asked = checkIn, !bannerHidden {
+                next = Banner(kind: .checkIn, at: asked)
+            } else if presence.state == "interrupted", !bannerHidden {
                 next = Banner(kind: .reminder, at: banner?.kind == .reminder ? banner!.at : t)
             } else if let h = headsUpAt, presence.state != "interrupted", t - h < Self.headsUpSeconds {
                 next = Banner(kind: .early, at: h)
+            } else if let p = rhythmPrompt {
+                next = Banner(kind: .rhythm, at: p.at)
             }
         }
         if banner != next { banner = next }
+    }
+
+    /// What the heads-up says it saw: off-task or not-sure reads among the recent ones.
+    public var headsUpCounts: (away: Int, total: Int) {
+        let t = now()
+        let recent = driftWatch.points.filter { t - $0.at <= driftWatch.span }
+        return (recent.filter { $0.call != .on }.count, recent.count)
     }
 
     /// Feeds every reading the judge or a rule makes to the watcher and raises a heads-up when the recent past looks like a rabbit hole.
@@ -134,26 +146,27 @@ extension SessionController {
         lastWorkTick = t
         // Work time is the time actually spent in the session: not paused, not on a break, and a Mac that slept does not count.
         if !isPaused { workSeconds += min(max(0, t - last), 5) }
-        if let p = rhythmPrompt, p.kind == .checkIn, t - p.at >= Self.checkInPromptSeconds { rhythmPrompt = nil; workSeconds = 0 }
+        if let p = rhythmPrompt, p.kind == .checkIn, t - p.at >= Self.checkInPromptSeconds { rhythmPrompt = nil; workSeconds = 0; refreshBanner(t) }
         guard rhythmPrompt == nil, let due = prefs.rhythm.dueAfter(checkInMinutes: prefs.checkInMinutes), workSeconds >= due else { return }
         // Not while you are being warned about something else, or paused; it waits until you are working again.
         guard !isPaused, surface == nil, checkIn == nil, !gateOpen, presence.state != "interrupted", presence.state != "drifting", readings.first?.call != .off, banner == nil, shield == nil else { return }
         let kind: RhythmPrompt.Kind = prefs.rhythm == .pomodoro ? .breakDue(minutes: Rhythm.breakMinutes(afterBlock: workBlocks + 1)) : .checkIn
         rhythmPrompt = RhythmPrompt(kind: kind, at: t)
+        refreshBanner(t)
         fire(prefs.rhythm == .pomodoro ? .breakDue : .rhythmCheckIn, title: CueCopy.rhythmTitle(kind, task: taskName))
     }
 
     /// "Keep going". A check-in starts a new interval; a break you put off comes back in five minutes.
     public func rhythmKeepGoing() {
         guard let p = rhythmPrompt else { return }
-        rhythmPrompt = nil
+        rhythmPrompt = nil; refreshBanner(now())
         if case .breakDue = p.kind, let due = prefs.rhythm.dueAfter(checkInMinutes: prefs.checkInMinutes) { workSeconds = max(0, due - 300) } else { workSeconds = 0 }
     }
 
     /// "Take a break": the brain pauses for the length offered, and the next block starts when the break ends.
     public func rhythmTakeBreak() {
         guard let p = rhythmPrompt else { return }
-        rhythmPrompt = nil; workSeconds = 0
+        rhythmPrompt = nil; workSeconds = 0; refreshBanner(now())
         switch p.kind {
         case .breakDue(let m): workBlocks += 1; act(.breakTime, minutes: m)
         case .checkIn: act(.breakTime, minutes: Rhythm.shortBreak)

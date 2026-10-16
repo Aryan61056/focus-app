@@ -22,7 +22,7 @@ public enum NotchLayout {
             case .rest: return CGSize(width: 220, height: 36)
             case .peek: return CGSize(width: 300, height: 40)
             case .open: return CGSize(width: 440, height: 132)
-            case .nudge: return CGSize(width: 440, height: 92)
+            case .nudge: return CGSize(width: 460, height: 76)
             }
         }
         let base = notchWidth + 2 * ear
@@ -388,20 +388,21 @@ public struct NotchView: View {
 
     // MARK: nudge: one way forward, no way out
 
+    /// The words, one line of what Focus saw under them, and the one button. On a screen without a notch the pill has no band, so the
+    /// state ring leads. The rows sit centred in the space under the band, clear of the rounded foot.
     var nudgeBody: some View {
-        HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(nudgeText).font(Tokens.fixed(.headline, .semibold, rounded: true)).lineLimit(2).fixedSize(horizontal: false, vertical: true)
-                if let hint = nudgeHint {
-                    // Prompts that need an answer other than going back are answered in the Focus window, not here.
-                    Text(hint).font(Tokens.fixed(.caption, .regular)).foregroundStyle(Self.ink2)
-                }
+        HStack(alignment: .center, spacing: 14) {
+            if !hasNotch { nudgeMark.frame(width: 24, height: 24) }
+            VStack(alignment: .leading, spacing: 3) {
+                Text(nudgeText).font(Tokens.fixed(.headline, .semibold)).lineLimit(1).truncationMode(.tail)
+                nudgeMeta
             }
-            Spacer(minLength: 8)
-            if nudgeHint == nil { pill("Back to task") { c.act(.backToTask) } }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if offersWayBack { pill("Back to task") { c.act(.backToTask) } }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .padding(.horizontal, 28).padding(.top, hasNotch ? 2 : 10).padding(.bottom, 18)
+        .padding(.leading, hasNotch ? 30 : 18).padding(.trailing, hasNotch ? 26 : 14)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.bottom, hasNotch ? 6 : 0)
     }
 
     var nudgeText: String {
@@ -410,11 +411,30 @@ public struct NotchView: View {
         return c.nudgeTitle
     }
 
-    /// A check-in or schedule prompt has no "back to task" answer, so the notch says where to answer it instead of offering a button.
-    var nudgeHint: String? {
-        if c.surface == nil, c.rhythmPrompt != nil, c.checkIn == nil { return "Answer in the Focus window or the menu bar." }
-        return nil
+    /// A warning or the check-in: going back is the answer the notch can give. A schedule prompt is answered on the banner or in the menu bar.
+    var offersWayBack: Bool { c.surface != nil || c.checkIn != nil }
+
+    @ViewBuilder var nudgeMark: some View {
+        if offersWayBack { RingView(.drift, color: Tokens.Notch.slip) }
+        else { RingView(c.rhythmPrompt?.kind.ring ?? .on, color: Self.accent) }
     }
+
+    @ViewBuilder var nudgeMeta: some View {
+        HStack(spacing: 5) {
+            if c.checkIn != nil {
+                notchSparkle; Text(CueCopy.checkInMeta)
+            } else if c.surface != nil {
+                notchSparkle; Text(CueCopy.reminderMeta)
+                TimelineView(.everySecond) { _ in Text(BannerView.clock(c.offTopicSecondsNow())).monospacedDigit().foregroundStyle(Tokens.Notch.slip) }
+            } else if let p = c.rhythmPrompt {
+                Image(systemName: "clock").font(.system(size: 10, weight: .semibold))
+                Text(c.prefs.showBanner ? CueCopy.rhythmMeta(p.kind, checkInMinutes: c.prefs.checkInMinutes) : "Answer in the menu bar")
+            }
+        }
+        .font(Tokens.fixed(.caption, .medium)).foregroundStyle(Self.ink2).lineLimit(1)
+    }
+
+    var notchSparkle: some View { Image(systemName: "sparkle").font(.system(size: 10, weight: .semibold)).foregroundStyle(Self.accent).accessibilityHidden(true) }
 
     /// The only button on the notch. It goes the way the app wants you to go, so it is the one thing that is safe to leave here.
     func pill(_ title: String, _ action: @escaping () -> Void) -> some View {

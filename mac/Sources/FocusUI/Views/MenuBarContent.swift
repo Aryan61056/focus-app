@@ -28,6 +28,24 @@ public struct MenuBarContent: View {
                         Text("Reading \(r.appText): \(r.call == .on ? "matches the task" : (r.call == .off ? "looks off topic" : "not sure"))").font(Tokens.fixed(.caption, .regular)).foregroundStyle(Tokens.ink2).lineLimit(1)
                     }.padding(.horizontal, 10).padding(.bottom, 6)
                 }
+                // A question waiting for an answer comes first, so it can be answered here as well as on the banner.
+                if c.checkIn != nil {
+                    Divider().padding(.vertical, 4)
+                    prompt(NudgeCopy.checkInTitle(task: c.taskName))
+                    item("Back to task") { c.answerCheckIn(onTask: false) }
+                    item("Yes, this is part of it") { c.answerCheckIn(onTask: true) }
+                } else if let p = c.rhythmPrompt {
+                    Divider().padding(.vertical, 4)
+                    prompt(CueCopy.rhythmTitle(p.kind, task: c.taskName))
+                    switch p.kind {
+                    case .checkIn:
+                        item("Yes, keep going") { c.rhythmKeepGoing() }
+                        item("Take a \(c.rhythmBreakMinutes) minute break") { c.rhythmTakeBreak() }
+                    case .breakDue:
+                        item("Start the break") { c.rhythmTakeBreak() }
+                        item("Five more minutes") { c.rhythmKeepGoing() }
+                    }
+                }
                 Divider().padding(.vertical, 4)
                 item(c.isPaused ? "Resume" : "Pause") { c.act(c.isPaused ? .resume : .pause) }
                 Menu("Take a break") { ForEach([5, 10, 15], id: \.self) { m in Button("\(m) minutes") { c.act(.breakTime, minutes: m) } } }.menuStyle(.borderlessButton).padding(.horizontal, 10).frame(height: 30)
@@ -51,6 +69,14 @@ public struct MenuBarContent: View {
             item("Open Focus", openApp)
         }
         .padding(8).frame(width: 296)
+    }
+
+    func prompt(_ title: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "sparkle").font(.system(size: 10, weight: .semibold)).foregroundStyle(Tokens.accent)
+            Text(title).font(Tokens.fixed(.caption, .semibold)).foregroundStyle(Tokens.ink2).lineLimit(2)
+        }
+        .padding(.horizontal, 10).padding(.vertical, 4)
     }
 
     func item(_ title: String, _ action: @escaping () -> Void) -> some View {

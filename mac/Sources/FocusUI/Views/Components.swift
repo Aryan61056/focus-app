@@ -42,11 +42,10 @@ struct Inset<Content: View>: View {
 }
 
 extension View {
-    /// A card that floats over the page or the screen (nudge, check-in, rhythm prompt, next step): glass, the float radius and one shadow.
+    /// A card that floats over the page (nudge, check-in, rhythm prompt, next step): the shared opaque float surface, never glass,
+    /// because it must read the same whether or not the window is active.
     func floatingCard(width: CGFloat = 340) -> some View {
-        padding(Space.l).frame(width: width)
-            .glassSurface(RoundedRectangle(cornerRadius: Tokens.radiusFloat, style: .continuous), fallback: Tokens.window)
-            .shadow(color: .black.opacity(0.18), radius: 18, y: 8)
+        padding(Space.l).frame(width: width).cueSurface()
     }
     /// At least `Tokens.minHit` square to click, whatever the glyph's size, so small icons are still easy to hit.
     func hitTarget() -> some View { frame(minWidth: Tokens.minHit, minHeight: Tokens.minHit).contentShape(Rectangle()) }

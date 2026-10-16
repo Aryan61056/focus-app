@@ -29,7 +29,11 @@ def main() -> int:
                  ("ink on control hover", "ink", hov, 4.5), ("ink on accentSoft", "ink", flat("accentSoft"), 4.5),
                  ("accentInk on accentSoft (selected choice)", "accentInk", flat("accentSoft"), 4.5), ("ink2 on well", "ink2", flat("well"), 4.5),
                  ("ink2 on control over card", "ink2", over(tk["control"][0], tk["control"][1], flat("window2")), 4.5),
-                 ("accent ring on window (non-text)", "accent", win, 3.0), ("accent text on window", "accent", win, 4.5), ("slip mark on window (non-text)", "slip", win, 3.0), ("slip mark on window2 (non-text)", "slip", flat("window2"), 3.0), ("ink on slipSoft", "ink", flat("slipSoft"), 4.5), ("onAccent on accent (primary button)", "onAccent", flat("accent"), 4.5)]
+                 ("accent ring on window (non-text)", "accent", win, 3.0), ("accent text on window", "accent", win, 4.5), ("slip mark on window (non-text)", "slip", win, 3.0), ("slip mark on window2 (non-text)", "slip", flat("window2"), 3.0), ("ink on slipSoft", "ink", flat("slipSoft"), 4.5), ("onAccent on accent (primary button)", "onAccent", flat("accent"), 4.5),
+                 ("ink on float (popups)", "ink", flat("float"), 4.5), ("ink2 on float (popups)", "ink2", flat("float"), 4.5),
+                 ("ink on control over float (popup secondary button)", "ink", over(tk["control"][0], tk["control"][1], flat("float")), 4.5),
+                 ("slipInk text on float (off-task timer)", "slipInk", flat("float"), 4.5), ("slipInk text on window", "slipInk", win, 4.5),
+                 ("slip mark on float (non-text)", "slip", flat("float"), 3.0)]
         for label, fg, bg, need in pairs:
             r = ratio(tk[fg][0], bg); ok = r >= need; bad += not ok
             print(f"{mode:5} {'ok ' if ok else 'LOW'} {r:5.2f} (need {need}) {label}")
@@ -38,7 +42,7 @@ def main() -> int:
     for name, r, g, b in re.findall(r"static let (\w+) = Color\(red: ([\d.]+), green: ([\d.]+), blue: ([\d.]+)\)", src.split("enum Notch")[1].split("}")[0]):
         notch[name] = tuple(round(float(v) * 255) for v in (r, g, b))
     for label, fg, bg, need in [("notch ink on black", notch["ink"], (0, 0, 0), 4.5), ("notch ink2 on black", notch["ink2"], (0, 0, 0), 4.5),
-                                ("notch accent on black (non-text)", notch["accent"], (0, 0, 0), 3.0), ("notch onAccent on accent", notch["onAccent"], notch["accent"], 4.5)]:
+                                ("notch accent on black (non-text)", notch["accent"], (0, 0, 0), 3.0), ("notch onAccent on accent", notch["onAccent"], notch["accent"], 4.5), ("notch slip text on black", notch["slip"], (0, 0, 0), 4.5)]:
         r = ratio(fg, bg); ok = r >= need; bad += not ok
         print(f"notch {'ok ' if ok else 'LOW'} {r:5.2f} (need {need}) {label}")
     print("all pairs pass" if not bad else f"{bad} pair(s) below target")

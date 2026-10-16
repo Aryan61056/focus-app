@@ -154,14 +154,17 @@ public struct RootView: View {
             // The card has its own animation scope. An animation on the whole content (the old veil fade, then the card fade) made every
             // change that landed with it, such as a session ending, cross-fade the old and new screens over each other.
             ZStack(alignment: .topTrailing) {
-                // Cards drop in from the corner they are pinned to and leave the same way.
-                if c.checkIn != nil { CheckInCard(c: c).padding(Space.l).transition(.card(from: .topTrailing, reduce: reduceMotion)) }
+                // Cards drop in from the corner they are pinned to and leave the same way. While the banner is up it carries the moment
+                // (it sits over whichever window is in front, this one included), so the card would only repeat it.
+                if c.banner != nil { EmptyView() }
+                else if c.checkIn != nil { CheckInCard(c: c).padding(Space.l).transition(.card(from: .topTrailing, reduce: reduceMotion)) }
                 else if let s = c.surface, s.kind != "gate" { NudgeCard(c: c, kind: s.kind).padding(Space.l).transition(.card(from: .topTrailing, reduce: reduceMotion)) }
                 else if c.rhythmPrompt != nil { RhythmCard(c: c).padding(Space.l).transition(.card(from: .topTrailing, reduce: reduceMotion)) }
             }
             .motion(Motion.out(0.24), value: c.rhythmPrompt)
             .motion(Motion.out(0.24), value: c.surface)
             .motion(Motion.out(0.24), value: c.checkIn)
+            .motion(Motion.out(0.24), value: c.banner)
             ZStack(alignment: .topTrailing) {
                 if c.reentryOpen || c.manualNextStep {
                     ReentryCard(c: c).padding(Space.l).padding(.top, c.surface == nil && c.rhythmPrompt == nil ? 0 : 190)

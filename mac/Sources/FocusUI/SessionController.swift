@@ -334,7 +334,8 @@ public final class SessionController {
             if prefs.nudgeSound { onCue?() }
             switch step {
             case .checkIn:
-                checkIn = t
+                // The question is new, so it shows even if you hid the reminder before it.
+                checkIn = t; bannerHidden = false
                 fire(.checkIn, title: NudgeCopy.checkInTitle(task: taskName))
                 // Read the window again right now instead of waiting for the next scheduled look.
                 if let w = senseNow?() { windowChanged(w) }
@@ -364,6 +365,7 @@ public final class SessionController {
     /// "No" or "Back to task" only sends you back.
     public func answerCheckIn(onTask: Bool) {
         if onTask { claimOnTask() } else { checkIn = nil; act(.backToTask) }
+        refreshBanner(now())   // the banner carries the question, so it goes with the click, not a second later
     }
 
     /// The pause screen. There is no snooze and no one-click "That was fine": going back to the task is always open, and explaining the window
