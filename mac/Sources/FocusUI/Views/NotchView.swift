@@ -22,7 +22,7 @@ public enum NotchLayout {
             case .rest: return CGSize(width: 220, height: 36)
             case .peek: return CGSize(width: 300, height: 40)
             case .open: return CGSize(width: 440, height: 132)
-            case .nudge: return CGSize(width: 440, height: 126)
+            case .nudge: return CGSize(width: 460, height: 84)
             }
         }
         let base = notchWidth + 2 * ear
@@ -30,7 +30,7 @@ public enum NotchLayout {
         case .rest: return CGSize(width: base, height: notchHeight)
         case .peek: return CGSize(width: base + 2 * peekExtra, height: notchHeight + 3)
         case .open: return CGSize(width: max(base + 2 * peekExtra, 560), height: notchHeight + 132)
-        case .nudge: return CGSize(width: max(base + 2 * peekExtra, 540), height: notchHeight + 100)
+        case .nudge: return CGSize(width: max(base + 2 * peekExtra, 540), height: notchHeight + 72)
         }
     }
 }
@@ -226,8 +226,14 @@ public struct NotchView: View {
         let open = shown && big
         let dotOrigin = CGPoint(x: (box.width - size.width) / 2, y: 0)
         return ZStack(alignment: .top) {
-            NotchMaterial(shape: shape, expanded: open, notchHeight: hasNotch ? notchHeight : 0)
-            if open { DotField(model: model, origin: dotOrigin).transition(.opacity.animation(Motion.out(0.3))) }
+            // A nudge stays solid black, so its one line reads crisply, with green light rising from its foot. The open card melts into glass.
+            NotchMaterial(shape: shape, expanded: shown && mode == .open, notchHeight: hasNotch ? notchHeight : 0)
+            if shown && mode == .open { DotField(model: model, origin: dotOrigin).transition(.opacity.animation(Motion.out(0.3))) }
+            if shown && mode == .nudge {
+                // Ripples out of the hardware notch as the card opens, like the hero art on Today.
+                Halftone(pattern: .nudge, ripple: .onAppear, followsPointer: false)
+                    .transition(.opacity.animation(Motion.out(0.2)))
+            }
             content.frame(width: size.width, height: size.height, alignment: .top)
                 .opacity(shown ? 1 : 0)
                 .blur(radius: shown || reduceMotion ? 0 : 6)
@@ -320,8 +326,9 @@ public struct NotchView: View {
             time.frame(width: NotchLayout.ear + extra)
         }
         .frame(width: notchWidth + 2 * (NotchLayout.ear + extra), height: notchHeight)
-        .opacity(mode == .open ? 0 : 1)
-        .blur(radius: mode == .open && !reduceMotion ? 4 : 0)
+        // The open card and the nudge carry their own ring and clock, so the band empties for them.
+        .opacity(big ? 0 : 1)
+        .blur(radius: big && !reduceMotion ? 4 : 0)
     }
 
     /// Words in a widened ear wait for the ear to open, then come out of a blur.
@@ -389,20 +396,34 @@ public struct NotchView: View {
 
     // MARK: nudge: one way forward, no way out
 
+    /// One row: the ring, the question with how far into the session you are, and the one way forward.
     var nudgeBody: some View {
-        HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(nudgeText).font(Tokens.rounded(16, .semibold)).lineLimit(2).fixedSize(horizontal: false, vertical: true)
-                if let hint = nudgeHint {
-                    // Prompts that need an answer other than going back are answered in the Focus window, not here.
-                    Text(hint).font(Tokens.text(12)).foregroundStyle(Self.ink2)
+        HStack(alignment: .center, spacing: 14) {
+            TimelineView(.periodic(from: .now, by: 1)) { _ in LiveRing(c.ringState, color: tint).frame(width: 20, height: 20) }
+                .padding(10)
+                .background(Circle().fill(Color.white.opacity(0.08)))
+                .overlay { Circle().strokeBorder(PillEdge.gradient, lineWidth: 1) }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(nudgeText).font(Tokens.rounded(16, .semibold)).lineLimit(1).minimumScaleFactor(0.85)
+                Group {
+                    if let hint = nudgeHint {
+                        // Prompts that need an answer other than going back are answered in the Focus window, not here.
+                        Text(hint)
+                    } else {
+                        TimelineView(.periodic(from: .now, by: 1)) { _ in
+                            Text(c.mode == .timed ? "\(c.clockText()) left in this session" : "\(c.clockText()) into this session").monospacedDigit()
+                        }
+                    }
                 }
+                .font(Tokens.text(12)).foregroundStyle(Self.ink2).lineLimit(1)
             }
-            Spacer(minLength: 8)
+            .layoutPriority(1)
+            Spacer(minLength: 10)
             if nudgeHint == nil { pill("Back to task") { c.act(.backToTask) } }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 26).padding(.top, hasNotch ? 6 : 14).padding(.bottom, 16)
+        .padding(.horizontal, hasNotch ? 30 : 16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.top, hasNotch ? 2 : 0).padding(.bottom, hasNotch ? 6 : 0)
     }
 
     var nudgeText: String {
@@ -426,8 +447,9 @@ public struct NotchView: View {
     }
 }
 
-/// The notch's one button: brightens under the pointer and gives under the click, like a system control.
-private struct PillStyle: ButtonStyle {
+/// The notch's one button: brightens under the pointer and gives under the click, like a system control. Solid, not glass, because
+/// the panels it sits in never become key, and glass in an inactive window draws grey.
+struct PillStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View { Inner(configuration: configuration) }
     struct Inner: View {
         let configuration: Configuration

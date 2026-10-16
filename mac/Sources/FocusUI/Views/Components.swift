@@ -135,6 +135,13 @@ struct EmptyState<Action: View>: View {
             action
         }
         .padding(.vertical, 44).padding(.horizontal, 24).frame(maxWidth: .infinity)
+        // Printed rings spread out from the symbol as the empty page arrives, then rest and swell under the pointer.
+        .background {
+            GeometryReader { g in
+                Halftone(pattern: .rings(center: UnitPoint(x: 0.5, y: 70 / max(1, g.size.height)), aspect: g.size.width / max(1, g.size.height)))
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
         .modifier(CardSurface(radius: 10))
         .accessibilityElement(children: .contain)
     }

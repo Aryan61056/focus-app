@@ -4,6 +4,7 @@ import FocusJudge
 struct ReviewView: View {
     @Bindable var c: SessionController
     @Bindable var store: DataStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
             let a = store.agreement
@@ -31,10 +32,14 @@ struct ReviewView: View {
                 Scroller {
                     VStack(spacing: 0) {
                         ForEach(Array(open.enumerated()), id: \.element.id) { i, m in
-                            if i > 0 { Divider().overlay(Tokens.line) }
-                            moment(m)
+                            VStack(spacing: 0) {
+                                if i > 0 { Divider().overlay(Tokens.line) }
+                                moment(m)
+                            }
+                            .transition(.asymmetric(insertion: .opacity, removal: reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.98, anchor: .top))))
                         }
                     }
+                    .motion(Motion.notchSettle, value: open.map(\.id))
                     .padding(.horizontal, 16).modifier(CardSurface(radius: 16))
                 }
             }

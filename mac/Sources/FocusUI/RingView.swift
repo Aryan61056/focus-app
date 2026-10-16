@@ -130,5 +130,12 @@ public struct RingGlow: View {
         }
         .accessibilityHidden(true)
     }
-    func halo(up: Bool) -> some View { Circle().fill(color).blur(radius: 14).scaleEffect(up ? 1.1 : 0.88).opacity(up ? 0.3 : 0.12) }
+    /// A soft disc drawn as a gradient rather than a blurred circle: same look, but a blur re-rendered every frame of a forever animation
+    /// cost a steady share of the CPU.
+    func halo(up: Bool) -> some View {
+        Circle().fill(EllipticalGradient(stops: [.init(color: color, location: 0), .init(color: color, location: 0.5),
+                                                .init(color: color.opacity(0.45), location: 0.72), .init(color: color.opacity(0), location: 1)],
+                                         center: .center, startRadiusFraction: 0, endRadiusFraction: 0.5))
+            .padding(-14).scaleEffect(up ? 1.1 : 0.88).opacity(up ? 0.3 : 0.12)
+    }
 }

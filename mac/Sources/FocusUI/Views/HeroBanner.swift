@@ -1,13 +1,15 @@
 import SwiftUI
 
 /// The picture at the top of a page, the way Droppy heads its pages: artwork with a live copy of the notch on it, and a caption.
+/// `pulse` is anything that changes when the notch's state does; each change sends a soft wave out through the dots from the notch.
 struct HeroBanner<Inset: View>: View {
     var caption: String
+    var pulse: Int = 0
     @ViewBuilder var inset: Inset
     var body: some View {
         VStack(spacing: 8) {
             ZStack {
-                HeroArtwork()
+                HeroArtwork(pulse: pulse)
                 inset
             }
             .frame(height: 176)
@@ -19,40 +21,11 @@ struct HeroBanner<Inset: View>: View {
     }
 }
 
-/// Halftone hills in the app's green under a deep sky with a few stars: drawn here, so nothing ships as an image.
+/// Halftone hills in the app's green under a deep sky with a few stars: drawn here, so nothing ships as an image. It moves the way the
+/// website's art does (see `Halftone`): a ripple out from the notch once per launch, a swell under the pointer, a wave on a state change.
 struct HeroArtwork: View {
-    var body: some View {
-        Canvas(rendersAsynchronously: true) { ctx, size in
-            ctx.fill(Path(CGRect(origin: .zero, size: size)), with: .linearGradient(
-                Gradient(colors: [Color(red: 0.03, green: 0.22, blue: 0.16), Color(red: 0.05, green: 0.40, blue: 0.27), Color(red: 0.10, green: 0.55, blue: 0.36)]),
-                startPoint: .zero, endPoint: CGPoint(x: size.width * 0.4, y: size.height)))
-            // Dots grow where the "hills" are, which gives the printed look without an image.
-            let step: CGFloat = 4
-            var y: CGFloat = 0
-            while y < size.height {
-                var x: CGFloat = 0
-                while x < size.width {
-                    let u = x / size.width, v = y / size.height
-                    let hill1 = v - (0.72 - 0.18 * sin(u * 5.2 + 0.6) - 0.06 * sin(u * 13))
-                    let hill2 = v - (0.38 + 0.22 * cos(u * 3.4 + 1.9) + 0.05 * sin(u * 17 + 2))
-                    // Soft edges: dots are biggest on the crest of each hill and thin out away from it, like printed clouds.
-                    let crest1 = max(0, 1 - abs(hill1) * 4.5), crest2 = max(0, 1 - abs(hill2) * 5)
-                    let cloud = crest1 * crest1 * 1.1 + crest2 * crest2 * 0.9 + (hill1 > 0 ? 0.3 + 0.25 * sin(u * 40 + v * 23) * sin(u * 11) : 0)
-                    let r = min(3.2, cloud * 3.0)
-                    if r > 0.35 {
-                        ctx.fill(Path(ellipseIn: CGRect(x: x - r / 2, y: y - r / 2, width: r, height: r)), with: .color(.white.opacity(0.22 + 0.5 * min(1, cloud))))
-                    }
-                    x += step
-                }
-                y += step
-            }
-            for (i, star) in [(0.12, 0.2), (0.31, 0.12), (0.58, 0.18), (0.82, 0.1), (0.9, 0.34), (0.44, 0.07), (0.7, 0.28)].enumerated() {
-                let r: CGFloat = i % 3 == 0 ? 1.6 : 1
-                ctx.fill(Path(ellipseIn: CGRect(x: star.0 * size.width, y: star.1 * size.height, width: r * 2, height: r * 2)), with: .color(.white.opacity(0.7)))
-            }
-        }
-        .accessibilityHidden(true)
-    }
+    var pulse = 0
+    var body: some View { Halftone(pattern: .hills, ripple: .oncePerLaunch("hero"), pulse: pulse) }
 }
 
 /// The notch as it looks right now, as a black capsule: ring, task and time while a session runs.
@@ -66,6 +39,7 @@ struct NotchPreviewPill: View {
                     .padding(6)
                     .background(Circle().fill(Color.white.opacity(0.08)))
                 Text(c.isActive ? c.taskName : "Ready when you are").font(Tokens.text(17, .semibold)).lineLimit(1).frame(maxWidth: 190, alignment: .leading)
+                    .contentTransition(.interpolate).motion(Motion.notchSettle, value: c.isActive ? c.taskName : "")
                 Spacer(minLength: 8)
                 if c.isActive {
                     let t = c.clockText()
@@ -77,7 +51,9 @@ struct NotchPreviewPill: View {
             .padding(.leading, 8).padding(.trailing, 18)
             .frame(width: 300, height: 52)
             .background(Capsule().fill(.black))
+            .overlay { Capsule().strokeBorder(PillEdge.gradient, lineWidth: 1) }
             .shadow(color: .black.opacity(0.35), radius: 12, y: 6)
+            .shadow(color: .black.opacity(0.18), radius: 2, y: 1)
         }
         .motion(Motion.notchOpen, value: c.isActive)
     }
@@ -96,8 +72,15 @@ struct NudgePreviewPill: View {
         .padding(.leading, 22).padding(.trailing, 10)
         .frame(height: 52)
         .background(Capsule().fill(.black))
+        .overlay { Capsule().strokeBorder(PillEdge.gradient, lineWidth: 1) }
         .shadow(color: .black.opacity(0.35), radius: 12, y: 6)
+        .shadow(color: .black.opacity(0.18), radius: 2, y: 1)
         .motion(Motion.notchSettle, value: text)
         .accessibilityElement(children: .combine)
     }
+}
+
+/// Light catching the top edge of a black pill, so it reads as a solid object sitting on the art rather than a hole in it.
+enum PillEdge {
+    static let gradient = LinearGradient(colors: [.white.opacity(0.16), .white.opacity(0.03), .clear], startPoint: .top, endPoint: .bottom)
 }

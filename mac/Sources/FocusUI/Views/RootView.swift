@@ -129,7 +129,8 @@ public struct RootView: View {
                 }
                 // Each page arrives with a short rise out of a soft blur. Keyframes on the same views (no new identity), so the
                 // scroll position and anything else that changes at the same moment are left alone.
-                .keyframeAnimator(initialValue: Entrance(), trigger: current) { content, v in
+                // Starting or ending a session on Today swaps most of the page, so it gets the same entrance as a new page.
+                .keyframeAnimator(initialValue: Entrance(), trigger: EntranceKey(item: current, live: current == .section(.today) && c.isActive)) { content, v in
                     content.opacity(v.opacity).offset(y: reduceMotion ? 0 : v.rise).blur(radius: reduceMotion ? 0 : v.blur)
                 } keyframes: { _ in
                     KeyframeTrack(\.opacity) { MoveKeyframe(0); CubicKeyframe(1, duration: 0.26) }
@@ -331,6 +332,8 @@ extension AppSection {
         }
     }
 }
+
+struct EntranceKey: Equatable { var item: SidebarItem; var live: Bool }
 
 /// What a section's entrance animates. Starts at rest, so the first screen at launch simply shows.
 struct Entrance { var opacity = 1.0, rise = 0.0, blur = 0.0 }

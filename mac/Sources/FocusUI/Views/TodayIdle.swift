@@ -57,36 +57,51 @@ struct ProjectChip: View {
 /// After a session: what happened, in one short block. Everything optional sits below it.
 struct JustFinishedCard: View {
     @Bindable var c: SessionController
+    /// The tick draws itself once when the card arrives: the one moment in a session worth a small flourish.
+    @State private var drawn = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         if let s = c.summary {
-            Tile {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text("Session finished").font(Tokens.rounded(18, .semibold))
-                        Spacer()
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Image(systemName: "checkmark.circle").font(.system(size: 17, weight: .semibold)).foregroundStyle(Tokens.accent)
+                        .modifier(DrawOn(hidden: !drawn && !reduceMotion))
+                        .accessibilityHidden(true)
+                    Text("Session finished").font(Tokens.rounded(18, .semibold))
+                    Spacer()
+                }
+                .task { try? await Task.sleep(for: .milliseconds(220)); drawn = true }
+                Text(sentence(s)).font(Tokens.text(14)).foregroundStyle(Tokens.ink2)
+                if let h = c.highlight { HighlightLine(highlight: h) }
+                if c.shortSessionOffer {
+                    HStack {
+                        Button("Keep going") { c.keepGoing() }.buttonStyle(FocusButtonStyle(.primary, small: true))
+                        Button("Finish") { c.finishFiveMinutes() }.buttonStyle(FocusButtonStyle(.plain, small: true))
                     }
-                    Text(sentence(s)).font(Tokens.text(14)).foregroundStyle(Tokens.ink2)
-                    if let h = c.highlight { HighlightLine(highlight: h) }
-                    if c.shortSessionOffer {
-                        HStack {
-                            Button("Keep going") { c.keepGoing() }.buttonStyle(FocusButtonStyle(.primary, small: true))
-                            Button("Finish") { c.finishFiveMinutes() }.buttonStyle(FocusButtonStyle(.plain, small: true))
-                        }
-                    } else { SessionGoalResult(c: c) }
-                    if !c.shortSessionOffer && (c.sessionGoal.isEmpty || c.goalDisposition != nil) { RecapBlock(c: c) }
-                    if !c.shortSessionOffer && (c.sessionGoal.isEmpty || c.goalDisposition != nil), let p = c.projectForNote { PickUpNote(c: c, project: p) }
-                    if c.askLoudness && !c.shortSessionOffer && (c.sessionGoal.isEmpty || c.goalDisposition != nil) {
-                        Divider().overlay(Tokens.line)
-                        HStack(spacing: 8) {
-                            Text("Was Focus too loud?").font(Tokens.text(13, .semibold))
-                            Spacer()
-                            Button("Too quiet") { c.prefs.answerLoudness(.tooQuiet) }.buttonStyle(FocusButtonStyle(.plain, small: true))
-                            Button("About right") { c.prefs.answerLoudness(.aboutRight) }.buttonStyle(FocusButtonStyle(.plain, small: true))
-                            Button("Too loud") { c.prefs.answerLoudness(.tooLoud) }.buttonStyle(FocusButtonStyle(.plain, small: true))
-                        }
+                } else { SessionGoalResult(c: c) }
+                if !c.shortSessionOffer && (c.sessionGoal.isEmpty || c.goalDisposition != nil) { RecapBlock(c: c) }
+                if !c.shortSessionOffer && (c.sessionGoal.isEmpty || c.goalDisposition != nil), let p = c.projectForNote { PickUpNote(c: c, project: p) }
+                if c.askLoudness && !c.shortSessionOffer && (c.sessionGoal.isEmpty || c.goalDisposition != nil) {
+                    Divider().overlay(Tokens.line)
+                    HStack(spacing: 8) {
+                        Text("Was Focus too loud?").font(Tokens.text(13, .semibold))
+                        Spacer()
+                        Button("Too quiet") { c.prefs.answerLoudness(.tooQuiet) }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                        Button("About right") { c.prefs.answerLoudness(.aboutRight) }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                        Button("Too loud") { c.prefs.answerLoudness(.tooLoud) }.buttonStyle(FocusButtonStyle(.plain, small: true))
                     }
                 }
             }
+            .padding(22)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // Light blooms in from the card's empty corner as it arrives, the one moment in a session worth marking. It settles faint.
+            .background {
+                GeometryReader { g in
+                    Halftone(pattern: .bloom(from: UnitPoint(x: 1, y: 0), aspect: g.size.width / max(1, g.size.height)), followsPointer: false)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+            .modifier(CardSurface(radius: 10))
         }
     }
     func sentence(_ s: SessionSummary) -> String {
@@ -259,6 +274,9 @@ struct HowDecidesButton: View {
 /// Gone after the first session or when hidden.
 struct HowItWorks: View {
     @Bindable var c: SessionController
+    /// First run only: the three steps arrive one after another, reading order, once.
+    @State private var shown = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline) {
@@ -267,11 +285,12 @@ struct HowItWorks: View {
                 Button("Hide") { c.prefs.introSeen = true }.buttonStyle(FocusButtonStyle(.plain, small: true))
             }
             HStack(alignment: .top, spacing: 14) {
-                step("text.cursor", "Say what you are working on", "One line is enough. Focus keeps it as a project for next time.")
-                step("macwindow", "It compares the window in front", "The app, the title and the page, read on this Mac. Words that match your task count at once.")
-                step("hand.raised", "Not sure does nothing", "A nudge needs two checks that agree and a drift that lasts. The model can be wrong.")
+                step("text.cursor", "Say what you are working on", "One line is enough. Focus keeps it as a project for next time.").arrive(0, shown, reduceMotion)
+                step("macwindow", "It compares the window in front", "The app, the title and the page, read on this Mac. Words that match your task count at once.").arrive(1, shown, reduceMotion)
+                step("hand.raised", "Not sure does nothing", "A nudge needs two checks that agree and a drift that lasts. The model can be wrong.").arrive(2, shown, reduceMotion)
             }
         }
+        .onAppear { shown = true }
     }
     func step(_ symbol: String, _ title: String, _ text: String) -> some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -283,5 +302,21 @@ struct HowItWorks: View {
         .padding(18).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Tokens.well))
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// SF Symbols' draw-on where the system has it (macOS 26); earlier systems simply show the symbol.
+struct DrawOn: ViewModifier {
+    var hidden: Bool
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) { content.symbolEffect(.drawOn, isActive: hidden) } else { content }
+    }
+}
+
+extension View {
+    /// One of a few items arriving in order: rises a few points and fades in, 60 ms after the one before. Reduce Motion: a plain fade.
+    func arrive(_ index: Int, _ shown: Bool, _ reduce: Bool) -> some View {
+        opacity(shown ? 1 : 0).offset(y: shown || reduce ? 0 : 8)
+            .animation((reduce ? Motion.reduced : Motion.out(0.42)).delay(reduce ? 0 : 0.18 + Double(index) * 0.06), value: shown)
     }
 }

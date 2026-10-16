@@ -48,7 +48,7 @@ struct SettingsView: View {
                 if page == .nudges {
                     // Droppy heads its pages with a picture of the feature: here, a nudge as the notch shows it, in the tone you picked.
                     Section {
-                        HeroBanner(caption: "A nudge in the notch") { NudgePreviewPill(text: c.prefs.nudgeTone.example) }
+                        HeroBanner(caption: "A nudge in the notch", pulse: c.prefs.nudgeTone.example.hashValue) { NudgePreviewPill(text: c.prefs.nudgeTone.example) }
                             .listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
                     }
                 }
