@@ -48,7 +48,7 @@ final class WorkspaceTests: XCTestCase {
 
     func testCountsRead() {
         XCTAssertEqual(SessionCounts.minutes(42), "42 s")
-        XCTAssertEqual(SessionCounts.minutes(9 * 60 + 5), "9m")
-        XCTAssertEqual(SessionCounts.minutes(3600 + 10 * 60), "1h 10m")
+        XCTAssertEqual(SessionCounts.minutes(9 * 60 + 5), "9 min")
+        XCTAssertEqual(SessionCounts.minutes(3600 + 10 * 60), "1 h 10 min")
     }
 }
