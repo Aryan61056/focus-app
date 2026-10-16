@@ -143,7 +143,7 @@ struct FakeWindow<Over: View>: View {
         ("shield-friction-waiting", .friction, 20, false, false, nil, 2),
         ("shield-explain-ready", .claim, 0, false, false, nil, 2),
         ("shield-asking", .claim, 0, true, false, nil, 2),
-        ("shield-refused", .claim, 0, true, false, "Focus read the window again and it does not look like Calc homework. 1 try left.", 1),
+        ("shield-refused", .claim, 0, true, false, "This does not look like Calc homework. 1 try left.", 1),
         ("shield-checking", .claim, 0, true, true, nil, 2),
         ("shield-locked", .pause, 0, false, false, "Focus could not verify this. Explaining is locked for 5 minutes. Going back to the task works now.", 2),
     ]
@@ -294,6 +294,15 @@ if CommandLine.arguments.contains("--popups") { await popupShots() } else { awai
     if let store = near.store { var p = store.addProject(name: "Calc homework"); p.nextStep = "Problems 12 to 20"; store.update(p) }
     both("pop-start-near", CGSize(width: 560, height: 360)) { CuePreview.startSheet(near, typed: "calc homwork", asking: false) }
     both("pop-start-asking", CGSize(width: 560, height: 420)) { CuePreview.startSheet(near, typed: "calc homwork", asking: true) }
+    // The notch on task, in every state it can be in without a nudge, at this Mac's real notch (185 x 32 pt).
+    let calm = await session()
+    for (name, mode, tab) in [("rest", NotchMode.rest, NotchTab.home), ("peek", .peek, .home), ("open", .open, .home), ("open-tray", .open, .tray), ("open-widgets", .open, .widgets)] {
+        let m = NotchModel(); m.tab = tab
+        both("pop-notch-\(name)", CGSize(width: 760, height: 240)) { ZStack(alignment: .top) { wall; NotchView(controller: calm, notchWidth: 185, notchHeight: 32, forced: mode, model: m) } }
+    }
+    // The menu bar panel during a session, with the reading line and the control tiles.
+    both("pop-menubar", CGSize(width: 312, height: 470)) { ZStack(alignment: .top) { Tokens.card; MenuBarContent(controller: calm, openApp: {}) } }
+    both("pop-pill-rest", CGSize(width: 760, height: 120)) { ZStack(alignment: .top) { wall; NotchView(controller: calm, notchWidth: 0, notchHeight: 0, forced: .rest) } }
     // Early banner at a real heads-up, so its counts are real.
     let c = await session()
     c.windowChanged(WindowSnapshot(app: "Browser", title: "youtube clip", url: "https://youtube.com/watch?v=1"))
@@ -301,20 +310,20 @@ if CommandLine.arguments.contains("--popups") { await popupShots() } else { awai
     both("pop-nudge", CGSize(width: 760, height: 380)) { FakeWindow(dark: false) { EmptyView() }.overlay(alignment: .topTrailing) { CuePreview.nudge(c).padding(Space.l) } }
     both("pop-banner-reminder", CGSize(width: 760, height: 380)) { FakeWindow(dark: false) { CuePreview.banner(c, .reminder) } }
     both("pop-banner-early", CGSize(width: 760, height: 380)) { FakeWindow(dark: false) { CuePreview.banner(c, .early) } }
-    both("pop-notch-nudge", CGSize(width: 760, height: 200)) { ZStack(alignment: .top) { wall; NotchView(controller: c, notchWidth: 200, notchHeight: 32, forced: .nudge) } }
+    both("pop-notch-nudge", CGSize(width: 760, height: 200)) { ZStack(alignment: .top) { wall; NotchView(controller: c, notchWidth: 185, notchHeight: 32, forced: .nudge) } }
     both("pop-pill-nudge", CGSize(width: 760, height: 200)) { ZStack(alignment: .top) { wall; NotchView(controller: c, notchWidth: 0, notchHeight: 0, forced: .nudge) } }
     let warned = t
     c.act(.dismiss)
     await advance(c, to: warned + 45)
     both("pop-banner-checkin", CGSize(width: 760, height: 380)) { FakeWindow(dark: false) { CuePreview.banner(c, .checkIn) } }
     both("pop-checkin", CGSize(width: 760, height: 380)) { FakeWindow(dark: false) { EmptyView() }.overlay(alignment: .topTrailing) { CuePreview.checkIn(c).padding(Space.l) } }
-    both("pop-notch-checkin", CGSize(width: 760, height: 200)) { ZStack(alignment: .top) { wall; NotchView(controller: c, notchWidth: 200, notchHeight: 32, forced: .nudge) } }
+    both("pop-notch-checkin", CGSize(width: 760, height: 200)) { ZStack(alignment: .top) { wall; NotchView(controller: c, notchWidth: 185, notchHeight: 32, forced: .nudge) } }
     let shields: [(String, Shield.Kind, Bool, Bool, String?, Int, Bool)] = [
         ("pop-shield-pause", .pause, false, false, nil, 2, false),
         ("pop-shield-friction", .friction, false, false, nil, 2, false),
         ("pop-shield-claim", .claim, false, false, nil, 2, false),
         ("pop-shield-asking", .claim, true, false, nil, 2, false),
-        ("pop-shield-refused", .claim, true, false, "Focus read the window again and it does not look like Calc homework. 1 try left.", 1, false),
+        ("pop-shield-refused", .claim, true, false, "This does not look like Calc homework. 1 try left.", 1, false),
         ("pop-shield-checking", .claim, true, true, nil, 2, false),
         ("pop-shield-locked", .pause, false, false, nil, 2, true),
     ]
@@ -335,6 +344,6 @@ if CommandLine.arguments.contains("--popups") { await popupShots() } else { awai
         await advance(r, to: 25 * 60 + 25)
         both(name, CGSize(width: 760, height: 380)) { FakeWindow(dark: false) { EmptyView() }.overlay(alignment: .topTrailing) { CuePreview.rhythm(r) } }
         both(name.replacingOccurrences(of: "pop-", with: "pop-banner-"), CGSize(width: 760, height: 380)) { FakeWindow(dark: false) { CuePreview.banner(r, .rhythm) } }
-        both(name.replacingOccurrences(of: "pop-", with: "pop-notch-"), CGSize(width: 760, height: 200)) { ZStack(alignment: .top) { wall; NotchView(controller: r, notchWidth: 200, notchHeight: 32, forced: .nudge) } }
+        both(name.replacingOccurrences(of: "pop-", with: "pop-notch-"), CGSize(width: 760, height: 200)) { ZStack(alignment: .top) { wall; NotchView(controller: r, notchWidth: 185, notchHeight: 32, forced: .nudge) } }
     }
 }

@@ -387,9 +387,9 @@ struct HowItWorks: View {
             // A real sequence, so it is numbered: one inset, three short steps, no grid of look-alike cards.
             Inset(padding: Space.l) {
                 VStack(alignment: .leading, spacing: Space.m) {
-                    step(1, "Say what you are working on", "One line is enough. Focus keeps it as a project for next time.")
-                    step(2, "It compares the window in front", "The app, the title and the page, read on this Mac. Words that match your task count at once.")
-                    step(3, "Not sure does nothing", "A nudge needs two checks that agree and a drift that lasts. The model can be wrong.")
+                    step(1, "Say what you are working on", "Kept as a project for next time")
+                    step(2, "It compares the window in front", "App, title and page, read on this Mac")
+                    step(3, "Not sure does nothing", "It can be wrong, so a nudge needs a drift that lasts")
                 }
             }
         }

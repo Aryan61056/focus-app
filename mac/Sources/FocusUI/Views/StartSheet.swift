@@ -34,19 +34,25 @@ public struct StartSheet: View {
                 .focused($focused).onSubmit { start() }
                 .onExitCommand { isPresented = false }
             coach
-            if let m = parsed.minutes { Text("Timed session, \(m) minutes, on \u{201C}\(parsed.task)\u{201D}.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
+            if let m = parsed.minutes { Text("\(m) minutes on \u{201C}\(parsed.task)\u{201D}").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
             if let p = Self.lastProject(c.store), p.name == task, !p.nextStep.isEmpty {
                 Label("Next step: \(p.nextStep)", systemImage: "arrow.turn.down.right").font(Tokens.text(.body)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
             }
             if asking, let near = Self.askAbout(trimmed, in: c.store?.projects ?? []) {
                 // The question. Nothing has been created yet; either answer starts the session.
                 VStack(alignment: .leading, spacing: Space.s) {
-                    Text("You worked on \u{201C}\(near.name)\u{201D}\(StartCard.when(near, c.store)). Continue it, or start \u{201C}\(trimmed)\u{201D} as a new project?")
-                        .font(Tokens.text(.body)).fixedSize(horizontal: false, vertical: true)
-                    if !near.nextStep.isEmpty { Text("Next: \(near.nextStep)").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(1) }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Continue \u{201C}\(near.name)\u{201D}?").font(Tokens.text(.body, .semibold)).lineLimit(1)
+                        let when = StartCard.when(near, c.store)
+                        if !near.nextStep.isEmpty || !when.isEmpty {
+                            Text(near.nextStep.isEmpty ? "Last worked" + when : "Next: \(near.nextStep)")
+                                .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(1)
+                        }
+                    }
                     HStack(spacing: Space.xs) {
-                        Button { start(continuing: near) } label: { Text("Continue \u{201C}\(near.name)\u{201D}").lineLimit(1) }.buttonStyle(FocusButtonStyle(.primary, small: true))
-                        Button { start(continuing: nil, forceNew: true) } label: { Text("Start new").lineLimit(1) }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                        Button { start(continuing: near) } label: { Text("Continue").lineLimit(1) }.buttonStyle(FocusButtonStyle(.primary, small: true))
+                        Button { start(continuing: nil, forceNew: true) } label: { Text("New project").lineLimit(1) }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+                            .help("Start \u{201C}\(trimmed)\u{201D} as its own project")
                     }
                 }
                 .padding(Space.s).frame(maxWidth: .infinity, alignment: .leading)
@@ -80,7 +86,7 @@ public struct StartSheet: View {
             }
             if c.prefs.practiceActive {
                 HStack(alignment: .top, spacing: Space.s) {
-                    Label("Practice mode: Focus watches but will not interrupt you. \(c.prefs.practiceSessionsLeft) practice session\(c.prefs.practiceSessionsLeft == 1 ? "" : "s") left.", systemImage: "eye")
+                    Label("Practice: no nudges, \(c.prefs.practiceSessionsLeft) left", systemImage: "eye")
                         .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 0)
                     Button("Nudge me now") { c.prefs.turnNudgesOnNow() }.buttonStyle(FocusButtonStyle(.plain, small: true))
@@ -116,7 +122,7 @@ public struct StartSheet: View {
         case .working:
             HStack(spacing: Space.xs) { ThinkingDot(); Text("Thinking about it on this Mac").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
         case .failed:
-            Text("Focus has no suggestion right now. Your task is fine as it is.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
+            Text("No suggestion. Your task is clear.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
         case .ready(let s):
             VStack(alignment: .leading, spacing: Space.xs) {
                 HStack { Text("Suggestion").font(Tokens.text(.body, .semibold)); AITag() }
@@ -135,11 +141,11 @@ public struct StartSheet: View {
     /// One calm line under the task: what Focus will compare windows with. Nil until something is typed.
     static func confirmLine(task: String, project: Project?) -> String? {
         guard !task.isEmpty else { return nil }
-        guard let p = project else { return "New project. Focus compares each window with this task. You can describe it later under Projects." }
+        guard let p = project else { return "New project." }
         let ctx = p.context.trimmingCharacters(in: .whitespacesAndNewlines)
-        if ctx.isEmpty { return "Focus knows this project. A line about it under Projects helps it decide." }
+        if ctx.isEmpty { return "Focus knows this project." }
         let short = ctx.count > 70 ? String(ctx.prefix(67)) + "..." : ctx
-        return "Focus will use what you wrote: \u{201C}\(short)\u{201D}"
+        return "Focus will use: \u{201C}\(short)\u{201D}"
     }
 
     /// "Calc homework 50" or "essay 25 min" start a timed session: a trailing number from 5 to 240, with an optional "m", "min" or "minutes".

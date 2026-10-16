@@ -62,10 +62,8 @@ struct ShieldCard: View {
                     .font(Tokens.text(.caption, .medium)).foregroundStyle(Tokens.ink2).frame(height: 36)
                     .accessibilityElement(children: .combine)
                 } else {
-                    VStack(spacing: Space.xxs) {
-                        Button { c.openExplanation() } label: { Label("Explain why this is on task", systemImage: "sparkle") }.buttonStyle(ShieldButtonStyle(.quiet))
-                        Text("Focus checks your words against the window").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
-                    }
+                    Button { c.openExplanation() } label: { Label("Explain why this is on task", systemImage: "sparkle") }.buttonStyle(ShieldButtonStyle(.quiet))
+                        .help("Focus checks your words against the window")
                 }
             }
             if let m = shield.message, c.overrideLockRemaining <= 0 { ShieldNotice(text: m).padding(.top, Space.xs) }
@@ -101,14 +99,10 @@ struct ShieldCard: View {
                 .disabled(shield.checking || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 backToTask(primary: true)
             }
-            HStack(spacing: 6) {
-                Spacer(minLength: 0)
-                ShieldChip(symbol: "arrow.counterclockwise", text: "\(shield.attemptsLeft) \(shield.attemptsLeft == 1 ? "try" : "tries") left")
-                ShieldChip(symbol: "clock", text: "Pass lasts \(Int(Shield.passSeconds(afterClaims: c.claimsAccepted) / 60)) min")
-                ShieldChip(symbol: "number", text: "\(min(c.claimsAccepted + 1, Shield.claimCap)) of \(Shield.claimCap) this session")
-                Spacer(minLength: 0)
-            }
-            .help("A wrong answer is acted on at once, and two lock explaining for \(Int(Shield.lockSeconds(after: c.overrideLocks) / 60)) minutes. An accepted explanation covers this page only.")
+            // The rules as one quiet mark: tries left as dots. How long a pass lasts and the session's limit are the tooltip.
+            TriesLeft(left: shield.attemptsLeft, of: Shield.attempts)
+                .frame(maxWidth: .infinity)
+                .help("A pass lasts \(Int(Shield.passSeconds(afterClaims: c.claimsAccepted) / 60)) min and covers this page only. Explanation \(min(c.claimsAccepted + 1, Shield.claimCap)) of \(Shield.claimCap) this session. A wrong answer is acted on at once, and two lock explaining for \(Int(Shield.lockSeconds(after: c.overrideLocks) / 60)) minutes.")
         }
     }
 
@@ -117,10 +111,7 @@ struct ShieldCard: View {
     /// Back to task: one press (Return or Escape too), or, if holding was switched on in Settings, a three second press. Never behind a lock.
     @ViewBuilder func backToTask(primary: Bool) -> some View {
         if c.prefs.holdToReturn {
-            VStack(spacing: Space.xxs) {
-                HoldPad(c: c).frame(height: 44)
-                Text(CueCopy.backHoldLine()).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
-            }
+            HoldPad(c: c).frame(height: 44).help(CueCopy.backHoldLine())
         } else if shield.asking {
             Button("Back to task") { c.shieldBackToTask() }.buttonStyle(ShieldButtonStyle(primary ? .primary : .secondary))
         } else {
@@ -192,16 +183,22 @@ struct ShieldButtonStyle: ButtonStyle {
     }
 }
 
-/// A short fact under the explanation field.
-struct ShieldChip: View {
-    var symbol: String
-    var text: String
+/// Tries left on this window, as dots: filled while a try is left. Says it in words to VoiceOver.
+struct TriesLeft: View {
+    var left: Int
+    var of: Int
     var body: some View {
-        HStack(spacing: 5) { Image(systemName: symbol).font(Tokens.symbol(10, .semibold)); Text(text).monospacedDigit() }
-            .font(Tokens.text(.caption, .medium)).foregroundStyle(Tokens.ink2)
-            .padding(.horizontal, Space.xs).frame(height: 24)
-            .background(Capsule().fill(Color.white.opacity(0.07)))
-            .accessibilityElement(children: .combine)
+        HStack(spacing: Space.xs) {
+            Text("Tries").font(Tokens.text(.caption, .medium)).foregroundStyle(Tokens.ink2)
+            HStack(spacing: 5) {
+                ForEach(0..<of, id: \.self) { i in
+                    Circle().fill(i < left ? Tokens.ink.opacity(0.85) : Color.white.opacity(0.14)).frame(width: 7, height: 7)
+                }
+            }
+        }
+        .frame(height: 24)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(left) \(left == 1 ? "try" : "tries") left")
     }
 }
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Regression check for the notch/pill: launches the demo build (scripted session, in-memory data), moves the real pointer onto the panel and away
 # three times, and fails if the app died (the 2026-10-01 hover crash) or its notch panel was not on screen.
-# Since 2026-10-15 the notch window is a fixed 576 by 212 pt for the whole session (the shape inside it grows), so window frames can no
+# Since 2026-10-15 the notch window is a fixed size (437 by 132 pt on a 185 pt notch since 2026-10-16) for the whole session (the shape inside it grows), so window frames can no
 # longer show whether hover arrived; that needs eyes on the real notch. Only the dev build is started, watched and stopped: an installed
 # copy of Focus that is running a session is left alone.
 # Moves your pointer for about 15 seconds. Needs a built mac/.build/Focus.app (tools/build_app.sh) and a logged-in desktop. Not part of `swift test`.

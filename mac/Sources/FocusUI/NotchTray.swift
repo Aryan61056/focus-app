@@ -43,39 +43,35 @@ struct TrayColumn: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if !tray.items.isEmpty && !targeted { header.transition(.opacity) }
-            ZStack {
-                if tray.items.isEmpty || targeted {
-                    DropZone(targeted: targeted).transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.96)))
-                } else {
-                    ScrollView(.horizontal) {
-                        HStack(spacing: 4) {
-                            ForEach(tray.items) { item in
-                                TrayTile(item: item) { tray.remove(item.id) }
-                                    .transition(reduceMotion ? .opacity : .scale(scale: 0.6).combined(with: .opacity))
-                            }
+        ZStack {
+            if tray.items.isEmpty || targeted {
+                DropZone(targeted: targeted).transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.96)))
+            } else {
+                ScrollView(.horizontal) {
+                    HStack(spacing: 4) {
+                        ForEach(tray.items) { item in
+                            TrayTile(item: item) { tray.remove(item.id) }
+                                .transition(reduceMotion ? .opacity : .scale(scale: 0.6).combined(with: .opacity))
                         }
-                        .padding(.vertical, 2)
+                        // Clearing the shelf is the last tile, so the page needs no header line of its own.
+                        Button { tray.removeAll() } label: {
+                            Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)).foregroundStyle(NotchView.ink2)
+                                .frame(width: 28, height: 28).background(Circle().fill(Color.white.opacity(0.08)))
+                                .frame(width: 44, height: 60).contentShape(Rectangle())
+                        }
+                        .buttonStyle(ShelfIconStyle())
+                        .help("Clear the tray")
+                        .accessibilityLabel("Clear the tray")
                     }
-                    .scrollIndicators(.never)
-                    .transition(.opacity)
+                    .padding(.vertical, 2)
                 }
+                .scrollIndicators(.never)
+                .transition(.opacity)
             }
-            .frame(maxHeight: .infinity)
-            .motion(Motion.notchOpen, value: tray.items)
-            .motion(Motion.notchPeek, value: targeted)
         }
-    }
-
-    var header: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "tray.full.fill").font(.system(size: 11, weight: .semibold)).foregroundStyle(NotchView.ink2)
-            Text("Tray · \(tray.items.count)").font(Tokens.fixed(.caption, .semibold)).foregroundStyle(NotchView.ink2)
-                .contentTransition(.numericText()).motion(Motion.notchSettle, value: tray.items.count)
-            Spacer(minLength: 0)
-            Button("Clear") { tray.removeAll() }.buttonStyle(TrayChipStyle())
-        }
+        .frame(maxHeight: .infinity)
+        .motion(Motion.notchOpen, value: tray.items)
+        .motion(Motion.notchPeek, value: targeted)
     }
 }
 
@@ -88,17 +84,17 @@ private struct DropZone: View {
         TimelineView(.animation(paused: reduceMotion || !targeted)) { ctx in
             let phase = reduceMotion || !targeted ? 0 : CGFloat(ctx.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 6) * -28)
             ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(targeted ? NotchView.accent.opacity(0.12) : Color.white.opacity(0.03))
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .strokeBorder(targeted ? NotchView.accent : Color.white.opacity(0.18), style: StrokeStyle(lineWidth: 1.5, lineCap: .round, dash: [6, 7], dashPhase: phase))
-                VStack(spacing: 5) {
-                    Image(systemName: targeted ? "arrow.down.circle.fill" : "tray.fill")
-                        .font(.system(size: 22, weight: .medium))
+                HStack(spacing: 7) {
+                    Image(systemName: targeted ? "arrow.down.circle.fill" : "tray")
+                        .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(targeted ? NotchView.accent : NotchView.ink2)
                         .contentTransition(.symbolEffect(.replace))
                         .symbolEffect(.bounce, value: targeted)
-                    Text(targeted ? "Drop to keep it here" : "Tray").font(Tokens.fixed(.body, .semibold))
+                    Text(targeted ? "Drop to keep it" : "Drop files here").font(Tokens.fixed(.caption, .semibold))
                         .foregroundStyle(targeted ? NotchView.ink : NotchView.ink2)
                         .contentTransition(.interpolate)
                 }
@@ -121,11 +117,11 @@ private struct TrayTile: View {
         VStack(spacing: 4) {
             Image(nsImage: thumb ?? NSWorkspace.shared.icon(forFile: item.url.path))
                 .resizable().aspectRatio(contentMode: .fit)
-                .frame(width: 46, height: 46)
-                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                .frame(width: 36, height: 36)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                 .shadow(color: .black.opacity(0.4), radius: 3, y: 2)
             Text(item.name).font(Tokens.fixed(.caption2, .medium)).foregroundStyle(NotchView.ink2)
-                .lineLimit(1).truncationMode(.middle).frame(width: 64)
+                .lineLimit(1).truncationMode(.middle).frame(width: 56)
         }
         .padding(5)
         .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.white.opacity(hover ? 0.1 : 0)))
@@ -154,22 +150,6 @@ private struct TrayTile: View {
     static func thumbnail(_ url: URL) async -> NSImage? {
         let req = QLThumbnailGenerator.Request(fileAt: url, size: CGSize(width: 80, height: 80), scale: 2, representationTypes: .thumbnail)
         return try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: req).nsImage
-    }
-}
-
-/// The small text buttons in the notch: quiet until the pointer is on them.
-private struct TrayChipStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View { Inner(configuration: configuration) }
-    struct Inner: View {
-        let configuration: Configuration
-        @State private var hover = false
-        var body: some View {
-            configuration.label.font(Tokens.fixed(.caption2, .semibold)).foregroundStyle(NotchView.ink2)
-                .padding(.horizontal, 8).frame(height: 20)
-                .background(Capsule().fill(Color.white.opacity(configuration.isPressed ? 0.2 : (hover ? 0.12 : 0.06))))
-                .animation(Motion.hover, value: hover)
-                .onHover { hover = $0 }
-        }
     }
 }
 

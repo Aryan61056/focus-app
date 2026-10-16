@@ -259,21 +259,21 @@ public enum CueCopy {
     public static func shieldBody(_ k: Shield.Kind, tone: NudgeTone, task: String, longDetour: Bool) -> String {
         switch k {
         case .pause: return NudgeCopy.gateBody(tone: tone, task: task, longDetour: longDetour)
-        case .friction: return "Focus covered this window because you were warned here. Go back to \(task), or explain how this helps."
-        case .claim: return "Focus read this window as off topic. Explain how it helps with \(task), and Focus checks your words against the window."
+        case .friction: return "You were warned on this window. Back to \(task)?"
+        case .claim: return "Read as off topic for \(task)."
         }
     }
     public static func shieldAsk(task: String) -> String { "How does this window help with \(task)?" }
-    public static let shieldPlaceholder = "What are you doing here, and how does it connect?"
+    public static let shieldPlaceholder = "I am using this to"
     /// What Focus says it did after a wrong explanation.
     public static func punishment(_ a: EnforceAction) -> String {
         switch a { case .close: return "Focus closed the tab."; case .hide: return "Focus hid the app."; case .switchAway: return "Focus switched you back." }
     }
-    public static func claimsUsedUp(_ n: Int) -> String { "You have used all \(n) explanations for this session. Go back to the task." }
+    public static func claimsUsedUp(_ n: Int) -> String { "All \(n) explanations used this session." }
     public static func backHoldLine() -> String { "\(Int(Shield.backHoldSeconds)) seconds. Letting go starts over." }
     public static func lockedLine(_ seconds: Int) -> String {
         let m = (seconds + 59) / 60
-        return "Focus could not verify this. Explaining is locked for \(m) \(m == 1 ? "minute" : "minutes"). Going back to the task works now."
+        return "Not verified. Explaining is locked for \(m) \(m == 1 ? "minute" : "minutes")."
     }
 
     public static func rhythmTitle(_ k: RhythmPrompt.Kind, task: String) -> String {

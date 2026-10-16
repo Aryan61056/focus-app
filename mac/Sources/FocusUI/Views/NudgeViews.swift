@@ -23,6 +23,7 @@ struct CueCardHeader<Meta: View>: View {
 struct NudgeCard: View {
     @Bindable var c: SessionController
     var kind: String
+    @State private var closeHover = false
     var body: some View {
         VStack(alignment: .leading, spacing: Space.m) {
             CueCardHeader(ring: .drift, tint: Tokens.slip, title: c.nudgeTitle) {
@@ -30,21 +31,38 @@ struct NudgeCard: View {
                 Text(CueCopy.reminderMeta)
                 TimelineView(.everySecond) { _ in Text(BannerView.clock(c.offTopicSecondsNow())).monospacedDigit().foregroundStyle(Tokens.slipInk) }
             }
-            if c.longDetour {
-                // After a long detour another push helps less than a rest; the break leads and going back stays one click away.
-                Button(NudgeCopy.breakButton()) { c.takeNudgeBreak() }.buttonStyle(FocusButtonStyle(.primary, expand: true))
-                Button("Back to task") { c.act(.backToTask) }.buttonStyle(FocusButtonStyle(.secondary, expand: true))
-            } else {
-                Button("Back to task") { c.act(.backToTask) }.buttonStyle(FocusButtonStyle(.primary, expand: true))
+            .padding(.trailing, Space.l)
+            // Two answers, as on the banner. After a long detour another push helps less than a rest, so the break leads.
+            HStack(spacing: Space.xs) {
+                if c.longDetour {
+                    Button(NudgeCopy.breakButton()) { c.takeNudgeBreak() }.buttonStyle(FocusButtonStyle(.primary, small: true))
+                    Button("Back to task") { c.act(.backToTask) }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+                } else {
+                    Button("Back to task") { c.act(.backToTask) }.buttonStyle(FocusButtonStyle(.primary, small: true))
+                    Button("This is part of it") { c.claimOnTask() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+                }
             }
-            HStack {
-                Button("That was fine") { c.claimOnTask() }.buttonStyle(FocusButtonStyle(.plain, small: true))
-                Spacer()
-                Button("Not now") { c.act(.dismiss) }.buttonStyle(FocusButtonStyle(.plain, small: true))
-            }
+            .padding(.leading, 24 + Space.s)
         }
         .floatingCard()
+        .overlay(alignment: .topTrailing) { CueClose(hover: $closeHover, help: "Not now") { c.act(.dismiss) }.padding(Space.xs) }
         .accessibilityElement(children: .contain)
+    }
+}
+
+/// The small round close button on an in-window card, the same as the banner's.
+struct CueClose: View {
+    @Binding var hover: Bool
+    var help: String
+    var action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "xmark").font(Tokens.symbol(9, .bold)).foregroundStyle(hover ? Tokens.ink : Tokens.ink2)
+                .frame(width: 22, height: 22).background(Circle().fill(hover ? Tokens.controlHover : Tokens.control))
+                .frame(width: Tokens.minHit, height: Tokens.minHit).contentShape(Circle())
+        }
+        .buttonStyle(.plain).onHover { hover = $0 }.animation(Motion.hover, value: hover)
+        .help(help).accessibilityLabel(help)
     }
 }
 
@@ -57,8 +75,11 @@ struct CheckInCard: View {
                 Image(systemName: "sparkle").foregroundStyle(Tokens.accent)
                 Text(CueCopy.checkInMeta)
             }
-            Button("Back to task") { c.answerCheckIn(onTask: false) }.buttonStyle(FocusButtonStyle(.primary, expand: true))
-            Button("Yes, this is part of it") { c.answerCheckIn(onTask: true) }.buttonStyle(FocusButtonStyle(.secondary, expand: true))
+            HStack(spacing: Space.xs) {
+                Button("Back to task") { c.answerCheckIn(onTask: false) }.buttonStyle(FocusButtonStyle(.primary, small: true))
+                Button("Yes, this is part of it") { c.answerCheckIn(onTask: true) }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+            }
+            .padding(.leading, 24 + Space.s)
         }
         .floatingCard()
         .accessibilityElement(children: .contain)
@@ -75,14 +96,17 @@ struct RhythmCard: View {
                     Image(systemName: "clock")
                     Text(CueCopy.rhythmMeta(p.kind, checkInMinutes: c.prefs.checkInMinutes))
                 }
-                switch p.kind {
-                case .checkIn:
-                    Button("Yes, keep going") { c.rhythmKeepGoing() }.buttonStyle(FocusButtonStyle(.primary, expand: true))
-                    Button("Take a \(c.rhythmBreakMinutes) minute break") { c.rhythmTakeBreak() }.buttonStyle(FocusButtonStyle(.secondary, expand: true))
-                case .breakDue(let m):
-                    Button("Start the break") { c.rhythmTakeBreak() }.buttonStyle(FocusButtonStyle(.primary, expand: true)).accessibilityLabel("Start the \(m) minute break")
-                    Button("Five more minutes") { c.rhythmKeepGoing() }.buttonStyle(FocusButtonStyle(.secondary, expand: true))
+                HStack(spacing: Space.xs) {
+                    switch p.kind {
+                    case .checkIn:
+                        Button("Yes, keep going") { c.rhythmKeepGoing() }.buttonStyle(FocusButtonStyle(.primary, small: true))
+                        Button("Take a \(c.rhythmBreakMinutes) minute break") { c.rhythmTakeBreak() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+                    case .breakDue(let m):
+                        Button("Start the break") { c.rhythmTakeBreak() }.buttonStyle(FocusButtonStyle(.primary, small: true)).accessibilityLabel("Start the \(m) minute break")
+                        Button("Five more minutes") { c.rhythmKeepGoing() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+                    }
                 }
+                .padding(.leading, 24 + Space.s)
             }
             .floatingCard()
             .accessibilityElement(children: .contain)

@@ -84,9 +84,29 @@ final class NotchTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(box.width, open.width); XCTAssertGreaterThanOrEqual(box.height, open.height)
     }
 
+    /// Owner, 2026-10-16: "make sure the dynamic island looks good and not fat and big". At this Mac's real notch (185 x 32 pt) nothing
+    /// grows wider than about 420 pt or hangs more than 92 pt below the notch, and no state hangs a tab bar under the shape.
+    func testTheIslandStaysSlim() throws {
+        for mode in [NotchMode.rest, .peek, .open, .nudge] {
+            let s = NotchLayout.size(mode, notchWidth: 185, notchHeight: 32)
+            XCTAssertLessThanOrEqual(s.width, 425, "\(mode) is too wide")
+            XCTAssertLessThanOrEqual(s.height - 32, 92, "\(mode) hangs too low")
+            XCTAssertEqual(NotchLayout.hitSize(mode, notchWidth: 185, notchHeight: 32), s, "nothing hangs under the shape")
+            let p = NotchLayout.size(mode, notchWidth: 0, notchHeight: 0)
+            XCTAssertLessThanOrEqual(p.width, 400); XCTAssertLessThanOrEqual(p.height, 124)
+        }
+        XCTAssertLessThanOrEqual(NotchLayout.size(.nudge, notchWidth: 185, notchHeight: 32).height, 32 + 50, "a nudge is one row")
+        // One accent, no colorful tiles (owner, 2026-10-16): the open card's widgets use the notch's own grays.
+        let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Sources/FocusUI/Views/NotchShelf.swift")
+        let src = try String(contentsOf: url, encoding: .utf8)
+        XCTAssertFalse(src.contains("LinearGradient"), "no gradient tiles in the notch")
+        XCTAssertFalse(src.contains("Color(red:"), "no colors outside the notch tokens")
+    }
+
     func testNoNotchGivesAFloatingPill() {
         let r = NotchLayout.size(.rest, notchWidth: 0, notchHeight: 0)
-        XCTAssertEqual(r.height, 36)
+        XCTAssertEqual(r.height, 32, "a slim pill, as tall as a menu bar")
         XCTAssertGreaterThan(NotchLayout.size(.nudge, notchWidth: 0, notchHeight: 0).height, r.height)
     }
 

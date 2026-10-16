@@ -12,21 +12,29 @@ public struct MenuBarContent: View {
             if c.isActive {
                 HStack(spacing: 10) {
                     TimelineView(.everySecond) { _ in LiveRing(c.ringState, color: c.ringColor).frame(width: 30, height: 30) }
-                    VStack(alignment: .leading, spacing: 0) {
+                    VStack(alignment: .leading, spacing: 1) {
                         Text(c.taskName).font(Tokens.fixed(.callout, .semibold, rounded: true)).lineLimit(1)
-                        Text("\(c.presenceLabel) · \(c.mode == .timed ? "Timed" : "Open") session").font(Tokens.fixed(.caption, .regular)).foregroundStyle(Tokens.ink2)
+                        Text("\(c.presenceLabel) · \(c.mode == .timed ? "Timed" : "Open")").font(Tokens.fixed(.caption, .regular)).foregroundStyle(Tokens.ink2)
                     }
                     Spacer()
                     TimelineView(.everySecond) { _ in
                         let t = c.clockText()
-                        Text(t).font(Tokens.fixed(.callout, .semibold, rounded: true)).monospacedDigit()
+                        Text(t).font(Tokens.fixed(.title3, .semibold, rounded: true)).monospacedDigit()
                     }
                 }.padding(10)
+                // What Focus is reading, as the app and its call: the sparkle marks the AI's work, the small ring says the call by shape.
                 if let r = c.latest, !c.isPaused {
-                    HStack(spacing: 8) {
-                        RingView(r.ring, color: r.tint).frame(width: 14, height: 14)
-                        Text("Reading \(r.appText): \(r.call == .on ? "matches the task" : (r.call == .off ? "looks off topic" : "not sure"))").font(Tokens.fixed(.caption, .regular)).foregroundStyle(Tokens.ink2).lineLimit(1)
-                    }.padding(.horizontal, 10).padding(.bottom, 6)
+                    HStack(spacing: 6) {
+                        Image(systemName: "sparkle").font(.system(size: 9, weight: .semibold)).foregroundStyle(Tokens.accent)
+                        Text(r.appText).lineLimit(1).truncationMode(.middle)
+                        Spacer(minLength: 6)
+                        RingView(r.ring, color: r.tint).frame(width: 11, height: 11)
+                        Text(r.call == .on ? "On task" : (r.call == .off ? "Off topic" : "Not sure")).foregroundStyle(Tokens.ink)
+                    }
+                    .font(Tokens.fixed(.caption, .regular)).foregroundStyle(Tokens.ink2)
+                    .padding(.horizontal, 10).frame(height: 28)
+                    .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Tokens.control))
+                    .padding(.horizontal, 4).padding(.bottom, 6)
                 }
                 // A question waiting for an answer comes first, so it can be answered here as well as on the banner.
                 if c.checkIn != nil {
@@ -46,17 +54,19 @@ public struct MenuBarContent: View {
                         item("Five more minutes") { c.rhythmKeepGoing() }
                     }
                 }
+                // The session's controls as four tiles, the way Control Center lays out its toggles.
+                HStack(spacing: 6) {
+                    tile(c.isPaused ? "Resume" : "Pause", c.isPaused ? "play.fill" : "pause.fill") { c.act(c.isPaused ? .resume : .pause) }
+                    tileMenu("Break", "cup.and.saucer.fill", [5, 10, 15]) { c.act(.breakTime, minutes: $0) }
+                    tileMenu("Snooze", "moon.zzz.fill", [15, 30, 60]) { c.act(.snooze, minutes: $0) }
+                    tile("End", "stop.fill") { c.end() }
+                }
+                .padding(.horizontal, 4).padding(.vertical, 6)
                 Divider().padding(.vertical, 4)
-                item(c.isPaused ? "Resume" : "Pause") { c.act(c.isPaused ? .resume : .pause) }
-                Menu("Take a break") { ForEach([5, 10, 15], id: \.self) { m in Button("\(m) minutes") { c.act(.breakTime, minutes: m) } } }.menuStyle(.borderlessButton).padding(.horizontal, 10).frame(height: 30)
-                Menu("Snooze") { ForEach([15, 30, 60], id: \.self) { m in Button("\(m) minutes") { c.act(.snooze, minutes: m) } } }.menuStyle(.borderlessButton).padding(.horizontal, 10).frame(height: 30)
-                Divider().padding(.vertical, 4)
-                item("Set next step") { c.manualNextStep = true; openApp() }
-                item("That was fine") { c.claimOnTask() }
                 item("Back to task") { c.act(.backToTask) }
-                Divider().padding(.vertical, 4)
-                if c.mode == .timed { item("Extend 5 minutes") { c.act(.extend, minutes: 5) } }
-                item("End session") { c.end() }
+                item("This is part of it") { c.claimOnTask() }
+                item("Set next step") { c.manualNextStep = true; openApp() }
+                if c.mode == .timed { item("Add 5 minutes") { c.act(.extend, minutes: 5) } }
             } else {
                 Text("No session running").font(Tokens.fixed(.callout, .semibold, rounded: true)).padding(10)
                 item("Start a session") { c.requestStart(); openApp() }
@@ -69,6 +79,17 @@ public struct MenuBarContent: View {
             item("Open Focus", openApp)
         }
         .padding(8).frame(width: 296)
+    }
+
+    /// One control tile: a symbol over a one-word label.
+    func tile(_ title: String, _ symbol: String, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) { TileFace(title: title, symbol: symbol) }.buttonStyle(MenuRowStyle(radius: 10))
+    }
+
+    /// A tile that opens a short menu of lengths.
+    func tileMenu(_ title: String, _ symbol: String, _ minutes: [Int], _ pick: @escaping (Int) -> Void) -> some View {
+        Menu { ForEach(minutes, id: \.self) { m in Button("\(m) minutes") { pick(m) } } } label: { TileFace(title: title, symbol: symbol) }
+            .menuStyle(.button).buttonStyle(MenuRowStyle(radius: 10)).menuIndicator(.hidden)
     }
 
     func prompt(_ title: String) -> some View {
@@ -87,15 +108,31 @@ public struct MenuBarContent: View {
 
 /// A menu row that lights under the pointer, as a real menu does, so you can see what a click will hit.
 struct MenuRowStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View { Inner(configuration: configuration) }
+    var radius: CGFloat = 6
+    func makeBody(configuration: Configuration) -> some View { Inner(configuration: configuration, radius: radius) }
     struct Inner: View {
         let configuration: Configuration
+        var radius: CGFloat
         @State private var hover = false
         var body: some View {
             configuration.label
-                .background(RoundedRectangle(cornerRadius: 6).fill(configuration.isPressed ? Tokens.controlHover : (hover ? Tokens.control : .clear)))
+                .background(RoundedRectangle(cornerRadius: radius, style: .continuous).fill(configuration.isPressed ? Tokens.controlHover : (hover ? Tokens.control : .clear)))
                 .animation(Motion.hover, value: hover)
                 .onHover { hover = $0 }
         }
+    }
+}
+
+/// A control tile's face: the symbol on a soft tile, the word under it.
+struct TileFace: View {
+    var title: String
+    var symbol: String
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: symbol).font(.system(size: 13, weight: .semibold)).foregroundStyle(Tokens.ink)
+                .frame(width: 34, height: 34).background(Circle().fill(Tokens.control))
+            Text(title).font(Tokens.fixed(.caption2, .medium)).foregroundStyle(Tokens.ink2).lineLimit(1)
+        }
+        .frame(maxWidth: .infinity).padding(.vertical, 6).contentShape(Rectangle())
     }
 }

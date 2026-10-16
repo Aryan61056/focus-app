@@ -51,7 +51,7 @@ struct WelcomeView: View {
         VStack(spacing: Space.xl) {
             Stage { WelcomeDemo() }
             Headline(title: "Stay on the task you name",
-                     line: "Focus compares the window in front with your task and nudges you gently when you drift. When it isn't sure, it does nothing.")
+                     line: "A gentle nudge when you drift. When Focus isn't sure, it does nothing.")
             HStack(spacing: Space.xl) {
                 Fact(symbol: "lock", text: "Stays on this Mac")
                 Fact(symbol: "person.slash", text: "No account")
@@ -68,7 +68,7 @@ struct WelcomeView: View {
         VStack(spacing: Space.xl) {
             Stage { AccessPicture(allowed: allowed) }
             Headline(title: "Let Focus see the window in front",
-                     line: "macOS asks you to allow Accessibility. Focus uses it to read the app, the window title and the page address, only while a session runs.")
+                     line: "Focus reads the app, title and page address, only during a session.")
             accessStatus.frame(minHeight: 28)
         }
     }
@@ -81,12 +81,12 @@ struct WelcomeView: View {
         } else if asked {
             HStack(spacing: Space.xs) {
                 ThinkingDot()
-                Text("Switch on Focus in Privacy & Security, then come back here.").font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2)
+                Text("Switch on Focus, then come back").font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2)
             }
             .help("If Focus is already switched on in the list, remove it with the minus button and add it again.")
             .transition(.opacity)
         } else {
-            Text("Without it, Focus sees only which app is in front.").font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2)
+            Text("Without it, Focus sees only the app name").font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2)
         }
     }
 
@@ -97,7 +97,7 @@ struct WelcomeView: View {
     var firstTask: some View {
         VStack(spacing: Space.xl) {
             Stage { MenuBarPicture(task: parsed.task, minutes: parsed.minutes) }
-            Headline(title: "What are you working on?", line: "Name it in a few words. While you work, Focus waits in the menu bar.")
+            Headline(title: "What are you working on?", line: "A few words is enough.")
             VStack(spacing: Space.s) {
                 TextField("Lab report on pendulums", text: $task)
                     .font(Tokens.rounded(.title3, .medium))
@@ -106,15 +106,15 @@ struct WelcomeView: View {
                     .onAppear { typing = true }
                 Text(hint).font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                 if c.prefs.practiceActive {
-                    Fact(symbol: "eye", text: "Your first \(c.prefs.practiceSessionsLeft) sessions are practice: Focus shows its calls but won't interrupt.")
+                    Fact(symbol: "eye", text: "First \(c.prefs.practiceSessionsLeft) sessions are practice, no nudges")
                 }
             }
         }
     }
 
     var hint: String {
-        if let m = parsed.minutes { return "A \(m) minute session on \u{201C}\(parsed.task)\u{201D}." }
-        return "Add minutes for a timed session, like \u{201C}Essay 25\u{201D}."
+        if let m = parsed.minutes { return "\(m) minutes on \u{201C}\(parsed.task)\u{201D}" }
+        return "Add minutes to time it: \u{201C}Essay 25\u{201D}"
     }
 
     func startSession() { Self.start(c, text: task) }
