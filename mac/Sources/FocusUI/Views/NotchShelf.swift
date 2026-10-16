@@ -266,7 +266,7 @@ struct ShelfWidgets: View {
                                 if model.widget == w {
                                     Image(systemName: "checkmark.circle.fill").symbolRenderingMode(.palette)
                                         .foregroundStyle(.white, NotchView.accent).font(.system(size: 15)).offset(x: 5, y: 5)
-                                        .transition(.scale.combined(with: .opacity))
+                                        .transition(reduceMotion ? .opacity : .scale.combined(with: .opacity))
                                 }
                             }
                             .scaleEffect(hovered == w && !reduceMotion ? 1.06 : 1)

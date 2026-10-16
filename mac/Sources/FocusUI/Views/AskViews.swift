@@ -16,9 +16,8 @@ struct AskPanel: View {
                     Spacer()
                 }
                 HStack(spacing: Space.xs) {
-                    TextField("Why did you flag that window?", text: $question).textFieldStyle(.plain).font(Tokens.text(.callout))
-                        .padding(.horizontal, Space.s).frame(height: 36)
-                        .background(RoundedRectangle(cornerRadius: Tokens.radiusControl).fill(Tokens.control))
+                    TextField("Why did you flag that window?", text: $question).font(Tokens.text(.callout))
+                        .wellField(focused: focused)
                         .focused($focused).onSubmit(ask)
                     Button("Ask") { ask() }.buttonStyle(FocusButtonStyle(.secondary)).disabled(question.trimmingCharacters(in: .whitespaces).isEmpty || c.answer.isWorking)
                 }
@@ -40,7 +39,7 @@ struct AskPanel: View {
                         Button("Clear") { c.clearAnswer(); question = "" }.buttonStyle(FocusButtonStyle(.plain, small: true))
                     }
                     .padding(Space.m).frame(maxWidth: .infinity, alignment: .leading)
-                    .background(RoundedRectangle(cornerRadius: Tokens.radiusInset).fill(Tokens.window2))
+                    .modifier(CardSurface())
                     .accessibilityElement(children: .combine)
                 case .idle: EmptyView()
                 }
@@ -51,8 +50,7 @@ struct AskPanel: View {
     func ask() { c.askFocus(question) }
 
     func chip(_ text: String) -> some View {
-        Button(text) { question = text; ask() }.buttonStyle(.plain).font(Tokens.text(.caption, .medium))
-            .padding(.horizontal, Space.s).frame(height: 28).background(Capsule().fill(Tokens.control))
+        Button(text) { question = text; ask() }.buttonStyle(ChoiceStyle(on: false))
     }
 }
 
@@ -76,7 +74,8 @@ struct RecapBlock: View {
                 }
             }
             .padding(Space.m).frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: Tokens.radiusInset).fill(Tokens.window2))
+            // Inside the finished-session card, so a well (the card's own white would make it vanish in light mode).
+            .background(RoundedRectangle(cornerRadius: Tokens.radiusInset, style: .continuous).fill(Tokens.well))
         }
     }
 }

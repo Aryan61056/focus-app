@@ -47,7 +47,7 @@ struct TrayColumn: View {
             if !tray.items.isEmpty && !targeted { header.transition(.opacity) }
             ZStack {
                 if tray.items.isEmpty || targeted {
-                    DropZone(targeted: targeted).transition(.opacity.combined(with: .scale(scale: 0.96)))
+                    DropZone(targeted: targeted).transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.96)))
                 } else {
                     ScrollView(.horizontal) {
                         HStack(spacing: 4) {
@@ -136,7 +136,7 @@ private struct TrayTile: View {
                         .frame(width: 16, height: 16).background(Circle().fill(Color.white.opacity(0.25)))
                         .frame(width: 24, height: 24).contentShape(Rectangle())   // the visible disc stays small; the target is not
                 }
-                .buttonStyle(.plain).transition(.scale.combined(with: .opacity))
+                .buttonStyle(.plain).transition(reduceMotion ? .opacity : .scale.combined(with: .opacity))
                 .accessibilityLabel("Take \(item.name) off the tray")
             }
         }

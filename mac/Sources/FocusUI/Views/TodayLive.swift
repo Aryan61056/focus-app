@@ -152,12 +152,14 @@ struct SeeingCard: View {
 
     var allReadings: some View {
         DisclosureGroup(isExpanded: $showAll) {
+            // Columns grow with the Text size setting, so a time or a label never wraps inside its column.
+            let k = TextScale.shared.factor
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(c.readings.prefix(12))) { r in
                     HStack(spacing: Space.s) {
-                        Text(r.date.formatted(.dateTime.hour().minute())).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).monospacedDigit().frame(width: 56, alignment: .leading)
-                        Text(r.appText).font(Tokens.text(.body)).lineLimit(1).frame(width: 110, alignment: .leading)
-                        HStack(spacing: Space.xs) { RingView(r.ring, color: r.tint).frame(width: 14, height: 14); Text(r.label).font(Tokens.text(.caption, .semibold)) }.frame(width: 100, alignment: .leading)
+                        Text(r.date.formatted(.dateTime.hour().minute())).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).monospacedDigit().lineLimit(1).frame(width: 64 * k, alignment: .leading)
+                        Text(r.appText).font(Tokens.text(.body)).lineLimit(1).frame(width: 110 * k, alignment: .leading)
+                        HStack(spacing: Space.xs) { RingView(r.ring, color: r.tint).frame(width: 14, height: 14); Text(r.label).font(Tokens.text(.caption, .semibold)).lineLimit(1) }.frame(width: 100 * k, alignment: .leading)
                         Text(r.reason).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(1)
                         Spacer(minLength: 6)
                         if r.source == .rule { Text(r.byWords ? "Matching words" : "Your rule").font(Tokens.text(.caption2)).foregroundStyle(Tokens.ink2).padding(.horizontal, Space.xs).padding(.vertical, 1).overlay { Capsule().strokeBorder(Tokens.line) } }

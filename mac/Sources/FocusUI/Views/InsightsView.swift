@@ -91,14 +91,16 @@ struct Heatmap: View {
     var body: some View {
         let peak = max(grid.flatMap { $0 }.max() ?? 1, 1)
         let days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        // The hour column grows with the Text size setting, so "10:00" never breaks.
+        let labelWidth = 36 * TextScale.shared.factor
         VStack(spacing: 3) {
             HStack(spacing: 3) {
-                Text("").frame(width: 34)
+                Text("").frame(width: labelWidth)
                 ForEach(days, id: \.self) { Text($0).font(Tokens.text(.caption2)).foregroundStyle(Tokens.ink2).frame(maxWidth: .infinity) }
             }
             ForEach(8..<20, id: \.self) { h in
                 HStack(spacing: 3) {
-                    Text("\(h):00").font(Tokens.rounded(.caption2)).foregroundStyle(Tokens.ink2).frame(width: 34, alignment: .trailing)
+                    Text("\(h):00").font(Tokens.rounded(.caption2)).foregroundStyle(Tokens.ink2).lineLimit(1).frame(width: labelWidth, alignment: .trailing)
                     ForEach(0..<7, id: \.self) { d in
                         let v = grid[d][h]
                         RoundedRectangle(cornerRadius: Tokens.radiusTiny).fill(Tokens.control).overlay { RoundedRectangle(cornerRadius: Tokens.radiusTiny).fill(Tokens.accent.opacity(0.15 + 0.85 * v / peak)).opacity(v > 0 ? 1 : 0) }

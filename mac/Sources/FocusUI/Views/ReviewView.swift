@@ -7,7 +7,7 @@ struct ReviewView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Space.xl) {
             let a = store.agreement
-            PageHeader(title: "Review", subtitle: "Moments Focus would have nudged you about, and why. Your answers teach it what counts.") {
+            PageHeader(title: "Review", subtitle: "Moments Focus would have nudged you about, and why. It can be wrong; your answers teach it what counts.") {
                 if a.answered > 0 { Text("Agreed with you on \(a.agreed) of \(a.answered)").font(Tokens.text(.body)).foregroundStyle(Tokens.ink2) }
             }
             if c.prefs.practiceActive {
@@ -42,22 +42,26 @@ struct ReviewView: View {
         }
     }
 
+    /// Focus's own reason leads, because the call is what you are judging; where and when sit under it.
     func moment(_ m: ReviewMoment) -> some View {
-        HStack(spacing: Space.m) {
-            Text(m.at.formatted(.dateTime.weekday(.abbreviated).hour().minute())).font(Tokens.text(.body)).foregroundStyle(Tokens.ink2).frame(width: 110, alignment: .leading)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(store.project(m.projectId)?.name ?? "Session").font(Tokens.text(.body, .semibold))
-                Text(m.siteKey.replacingOccurrences(of: "|", with: ", ")).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
-                HStack(spacing: Space.xs) { RingView(.drift, color: Tokens.ink).frame(width: 13, height: 13); Text("Would have nudged").font(Tokens.text(.caption)) }
-                    .padding(.horizontal, Space.s).frame(height: 22).background(Capsule().fill(Tokens.control))
-                if let why = m.reason { (Text("Why Focus flagged it: ").foregroundStyle(Tokens.ink2) + Text(why)).font(Tokens.text(.body)).fixedSize(horizontal: false, vertical: true).frame(maxWidth: 440, alignment: .leading).padding(.top, 3) }
+        HStack(alignment: .top, spacing: Space.m) {
+            RingView(.drift, color: Tokens.ink).frame(width: 20, height: 20).padding(.top, 2).accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: Space.xxs) {
+                Text(m.reason ?? "Focus read this window as off topic.").font(Tokens.text(.body, .medium))
+                    .fixedSize(horizontal: false, vertical: true).frame(maxWidth: 460, alignment: .leading)
+                Text("\(store.project(m.projectId)?.name ?? "Session") \u{00B7} \(m.siteKey.replacingOccurrences(of: "|", with: ", ")) \u{00B7} \(m.at.formatted(.dateTime.weekday(.abbreviated).hour().minute()))")
+                    .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(2)
             }
-            Spacer()
-            Button("Right call") { store.answerReview(m.id, "right") }.buttonStyle(FocusButtonStyle(.secondary, small: true))
-            Button("That was fine") {
-                store.apply(LearnedRule(scope: "project", kind: "allow", keyType: "site", key: m.siteKey), to: m.projectId)
-                store.answerReview(m.id, "fine")
-            }.buttonStyle(FocusButtonStyle(.plain, small: true))
+            .accessibilityElement(children: .combine)
+            Spacer(minLength: Space.s)
+            HStack(spacing: Space.xs) {
+                Button("Right call") { store.answerReview(m.id, "right") }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+                Button("That was fine") {
+                    store.apply(LearnedRule(scope: "project", kind: "allow", keyType: "site", key: m.siteKey), to: m.projectId)
+                    store.answerReview(m.id, "fine")
+                }.buttonStyle(FocusButtonStyle(.plain, small: true))
+            }
+            .fixedSize()
         }
         .padding(.vertical, Space.m).padding(.horizontal, Space.xs)
     }

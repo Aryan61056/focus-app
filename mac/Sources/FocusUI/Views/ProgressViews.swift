@@ -55,6 +55,7 @@ struct WeekStrip: View {
 /// A short line while working: back on task quickly, goal reached, longest stretch. Gone after a few seconds, never a popup.
 struct MomentLine: View {
     var moment: Confirmation
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         HStack(spacing: Space.xs) {
             RingView(.done, color: Tokens.accent).frame(width: 16, height: 16)
@@ -62,7 +63,7 @@ struct MomentLine: View {
         }
         .padding(.leading, Space.xs).padding(.trailing, Space.s).frame(height: 28)
         .background(Capsule().fill(Tokens.accentSoft))
-        .transition(.asymmetric(insertion: .opacity.combined(with: .scale(scale: 0.9, anchor: .leading)), removal: .opacity))
+        .transition(reduceMotion ? .opacity : .asymmetric(insertion: .opacity.combined(with: .scale(scale: 0.9, anchor: .leading)), removal: .opacity))
         .accessibilityElement(children: .ignore).accessibilityLabel(moment.text)
     }
 }
