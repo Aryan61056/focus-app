@@ -16,6 +16,14 @@ public struct StartSheet: View {
             HStack { Spacer(); Button("Cancel") { isPresented = false }.keyboardShortcut(.cancelAction) }
         }.padding(24).frame(width: 520).onExitCommand { isPresented = false }
     }
+    /// The projects to offer as one-click starts: the ones you worked on most recently first, then any never used, newest first.
+    static func recentProjects(_ store: DataStore?, limit: Int = 3) -> [Project] {
+        guard let store else { return [] }
+        var lastUsed: [UUID: Date] = [:]
+        for s in store.sessions { if let id = s.projectId, (lastUsed[id] ?? .distantPast) < s.start { lastUsed[id] = s.start } }
+        let used = store.projects.filter { lastUsed[$0.id] != nil }.sorted { (lastUsed[$0.id] ?? .distantPast) > (lastUsed[$1.id] ?? .distantPast) }
+        return Array((used + store.projects.filter { lastUsed[$0.id] == nil }).prefix(limit))
+    }
     static func lastProject(_ store: DataStore?) -> Project? {
         guard let store, let r = store.sessions.max(by: { $0.start < $1.start }) else { return nil }
         return store.project(r.projectId)

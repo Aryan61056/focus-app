@@ -16,6 +16,16 @@ struct StartForm: View {
     var existing: Project? { ProjectMatch.exact(parsed.task, in: projects) }
     var last: Project? { StartSheet.lastProject(c.store) }
     var parsed: (task: String, minutes: Int?) { StartSheet.parse(c.startDraft.task) }
+    /// Up to three projects to start in one click, the one you worked on last first.
+    var recent: [Project] { StartSheet.recentProjects(c.store) }
+    /// The project Return will start: the one you named, or with nothing typed the one you worked on last.
+    func isTarget(_ p: Project) -> Bool { parsed.task.isEmpty ? p.id == last?.id : parsed.task == p.name }
+    func group<Content: View>(_ label: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label).font(Tokens.text(.caption, .medium)).foregroundStyle(Tokens.ink2)
+            content()
+        }
+    }
     var canStart: Bool { (!parsed.task.isEmpty || last != nil) && c.startDraft.done.count <= 240 }
     var body: some View {
         @Bindable var draft = c.startDraft
@@ -27,25 +37,36 @@ struct StartForm: View {
                 VStack(alignment: .trailing, spacing: 10) { taskField(draft: $draft.task); startButton }
             }
             hint
-            if let minutes = parsed.minutes {
-                HStack {
-                    Text("\(minutes) minutes").font(Tokens.text(.body)).foregroundStyle(Tokens.ink2)
-                    Button("Change length") { draft.task = parsed.task }.buttonStyle(FocusButtonStyle(.plain, small: true))
+            if !recent.isEmpty {
+                group("Recent") {
+                    FlowRow(spacing: 8) {
+                        ForEach(recent) { project in
+                            Button(project.name) { draft.task = project.name; draft.done = project.carriedGoal ?? "" }
+                                .buttonStyle(ChoiceStyle(on: isTarget(project))).lineLimit(1).help("Start with \(project.name)")
+                        }
+                    }
                 }
-            } else {
-                Picker("Length", selection: $draft.length) { ForEach(StartLength.allCases) { Text($0.title).tag($0) } }.pickerStyle(.segmented)
-                    .help("Choose a short start, a timed session, a clock time or an open session")
-                if draft.length == .until {
+            }
+            group("How long") {
+                if let minutes = parsed.minutes {
+                    HStack {
+                        Text("\(minutes) minutes").font(Tokens.text(.body)).foregroundStyle(Tokens.ink2)
+                        Button("Change length") { draft.task = parsed.task }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                    }
+                } else if draft.length == .until {
                     HStack {
                         DatePicker("Finish at", selection: $draft.until, displayedComponents: [.hourAndMinute]).datePickerStyle(.field)
-                        Spacer()
                         if let end = draft.plan(now: c.date())?.deadline {
                             Text(Calendar.current.isDate(end, inSameDayAs: c.date()) ? "Today" : "Tomorrow").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
                         }
+                        Spacer()
+                        Button("Use a length") { draft.length = .open }.buttonStyle(FocusButtonStyle(.plain, small: true))
                     }.transition(.rise(reduce: reduceMotion))
+                } else {
+                    lengthSlider
                 }
             }
-            DisclosureGroup("Optional", isExpanded: $draft.extras) {
+            DisclosureGroup("More options", isExpanded: $draft.extras) {
                 VStack(alignment: .leading, spacing: 12) {
                     TextField("What would done look like?", text: $draft.done, prompt: Text("What would done look like?").foregroundStyle(Tokens.ink2))
                         .textFieldStyle(.roundedBorder).accessibilityLabel("What would done look like?").help("Saved on this Mac with your session")
@@ -56,14 +77,6 @@ struct StartForm: View {
                     }
                 }.padding(.top, 10)
             }.font(Tokens.text(.body)).tint(Tokens.ink2)
-            if let projects = c.store?.projects.prefix(3), !projects.isEmpty {
-                FlowRow(spacing: 8) {
-                    ForEach(Array(projects)) { project in
-                        Button(project.name) { draft.task = project.name; draft.done = project.carriedGoal ?? "" }
-                            .buttonStyle(ChoiceStyle(on: parsed.task == project.name)).lineLimit(1).help("Start with \(project.name)")
-                    }
-                }
-            }
         }
         .motion(Motion.notchSettle, value: draft.length).motion(Motion.notchSettle, value: draft.extras)
         .motion(Motion.notchSettle, value: c.sharpened)
@@ -75,15 +88,56 @@ struct StartForm: View {
         .task {
             let chosenProject = parsed.task.isEmpty ? last : c.store?.projects.first { $0.name.caseInsensitiveCompare(parsed.task) == .orderedSame }
             if draft.done.isEmpty, let goal = chosenProject?.carriedGoal { draft.done = goal; draft.extras = true }
+            // A person who runs timed sessions out of habit starts on their usual length; everyone else starts on Open.
+            if !draft.lengthTouched, draft.length == .open, let usual = LengthStops.usualMinutes(from: c.store?.sessions ?? []) {
+                draft.length = .minutes; draft.minutes = usual; draft.usualMinutes = usual
+            }
             await Task.yield(); focused = true
         }
         .onDisappear { c.clearSharpened() }
     }
+    /// One slider for how long: stops every five minutes at first, then wider, and Open (no timer) at the far end. It starts on the length this
+    /// person usually picks once they have a habit of timed sessions; otherwise on Open.
+    var stop: Binding<Double> {
+        Binding(
+            get: { Double(c.startDraft.length == .minutes ? LengthStops.nearest(c.startDraft.minutes) : LengthStops.open) },
+            set: { value in
+                let draft = c.startDraft, index = Int(value.rounded())
+                draft.lengthTouched = true
+                if index >= LengthStops.open { draft.length = .open } else { draft.length = .minutes; draft.minutes = LengthStops.minutes[index] }
+            })
+    }
+    var lengthReadout: String { c.startDraft.length == .minutes ? LengthStops.describe(minutes: c.startDraft.minutes) : "No timer" }
+    var lengthNote: String {
+        let draft = c.startDraft
+        guard draft.length == .minutes else { return "It ends when you end it." }
+        if draft.minutes == 5 { return "A short start. When it ends you can keep going." }
+        let end = c.date().addingTimeInterval(Double(draft.minutes) * 60).formatted(date: .omitted, time: .shortened)
+        return "Ends at \(end)." + (!draft.lengthTouched && draft.usualMinutes == draft.minutes ? " Your usual length." : "")
+    }
+    var lengthSlider: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(lengthReadout).font(Tokens.text(.headline).monospacedDigit()).contentTransition(.numericText())
+                Spacer()
+                Button("Until a time\u{2026}") { c.startDraft.length = .until; c.startDraft.lengthTouched = true }
+                    .buttonStyle(FocusButtonStyle(.plain, small: true)).help("End at a time of day instead of after a length")
+            }
+            Slider(value: stop, in: 0...Double(LengthStops.open), step: 1) { Text("How long") } minimumValueLabel: {
+                Text("5 min").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
+            } maximumValueLabel: {
+                Text("No timer").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
+            }
+            .labelsHidden().tint(Tokens.accent).accessibilityLabel("How long").accessibilityValue(lengthReadout)
+            Text(lengthNote).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
+        }
+        .motion(Motion.notchSettle, value: c.startDraft.minutes)
+    }
     func taskField(draft: Binding<String>) -> some View {
-        TextField("Task", text: draft, prompt: Text(last?.name ?? "Lab report on pendulums").foregroundStyle(Tokens.ink2))
+        TextField("Task", text: draft, prompt: Text(last == nil ? "e.g. Lab report on pendulums" : "Or type a new task").foregroundStyle(Tokens.ink2))
             .textFieldStyle(.plain).font(Tokens.text(.headline)).padding(14).background(Tokens.well, in: RoundedRectangle(cornerRadius: Tokens.radiusCard))
             .overlay { RoundedRectangle(cornerRadius: Tokens.radiusCard).strokeBorder(focused ? Tokens.accent : Tokens.line, lineWidth: focused ? 2 : 1) }
-            .focused($focused).onSubmit { start() }.accessibilityLabel("Your task").help("You can add a length, like essay 25")
+            .focused($focused).onSubmit { start() }.accessibilityLabel("Your task").help(last.map { "Leave this empty and press Return to continue \($0.name). You can add a length, like essay 25." } ?? "You can add a length, like essay 25")
     }
     var startButton: some View {
         Button { start() } label: { Text(parsed.task.isEmpty && last != nil ? "Continue" : "Start").frame(minWidth: 64) }
@@ -102,7 +156,7 @@ struct StartForm: View {
         guard let s = store?.sessions(for: p.id).first else { return "" }
         return " " + s.start.formatted(.relative(presentation: .named))
     }
-    /// One calm line under the field: what Return will do.
+    /// One calm line under the field, only when there is something to say about the name you typed.
     @ViewBuilder var hint: some View {
         if asking, let p = similar.first {
             // The question. Nothing has been created yet; either answer starts the session.
@@ -116,9 +170,6 @@ struct StartForm: View {
             }
             .padding(Space.s).frame(maxWidth: .infinity, alignment: .leading)
             .background(RoundedRectangle(cornerRadius: Tokens.radiusInset, style: .continuous).fill(Tokens.accentSoft))
-        } else if parsed.task.isEmpty, let p = last {
-            Text("Return continues \u{201C}\(p.name)\u{201D}.")
-                .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(2)
         } else if let p = similar.first, existing == nil {
             HStack(spacing: Space.xs) {
                 Text("Did you mean \u{201C}\(p.name)\u{201D}?").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(1)

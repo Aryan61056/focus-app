@@ -265,7 +265,26 @@ struct FakeWindow<Over: View>: View {
     late.prefs.paceMatters = true; late.prefs.dailyGoalMinutes = 180
     for dark in [false, true] { render(late, "today-behind", dark: dark, selection: .today) }
 }
-if CommandLine.arguments.contains("--popups") { await popupShots() } else { await run(); screens() }
+if CommandLine.arguments.contains("--start") { startShots() }
+else if CommandLine.arguments.contains("--popups") { await popupShots() } else { await run(); screens() }
+
+/// focus-snapshot <dir> --start: the start sheet for a first-time user and for someone with history, drawn by the window server.
+@MainActor func startShots() {
+    let fresh = SessionController(judge: judge, store: DataStore(), now: { t })
+    let used = SessionController(judge: judge, store: seededStore(), now: { t })
+    func both<V: View>(_ name: String, _ size: CGSize, @ViewBuilder _ v: @escaping () -> V) {
+        for dark in [false, true] { WindowShot.shot(v(), size: size, name: name, dark: dark, dir: outDir) }
+    }
+    both("start-new-user", CGSize(width: 560, height: 360)) { CuePreview.startSheet(fresh, typed: "", asking: false) }
+    both("start-returning", CGSize(width: 560, height: 400)) { CuePreview.startSheet(used, typed: "", asking: false) }
+    both("start-typed", CGSize(width: 560, height: 400)) { CuePreview.startSheet(used, typed: "Read chapter 6", asking: false) }
+    used.startDraft.length = .minutes; used.startDraft.minutes = 40; used.startDraft.lengthTouched = true
+    both("start-forty", CGSize(width: 560, height: 400)) { CuePreview.startSheet(used, typed: "", asking: false) }
+    used.startDraft.length = .until
+    both("start-until", CGSize(width: 560, height: 420)) { CuePreview.startSheet(used, typed: "", asking: false) }
+    used.startDraft.length = .minutes; used.startDraft.minutes = 5
+    both("start-five", CGSize(width: 560, height: 400)) { CuePreview.startSheet(used, typed: "", asking: false) }
+}
 
 /// focus-snapshot <dir> --popups: every surface that appears while you drift, drawn by the window server (glass and text fields included).
 @MainActor func popupShots() async {

@@ -76,7 +76,7 @@ public struct MenuBarContent: View {
                     Divider().padding(.vertical, 4)
                 }
                 item("Start a session") { c.requestStart(); openApp() }
-                item("Just five minutes") { c.startDraft.length = .five; c.requestStart(); openApp() }
+                item("Just five minutes") { c.startDraft.length = .minutes; c.startDraft.minutes = 5; c.startDraft.lengthTouched = true; c.requestStart(); openApp() }
             }
             if c.visibleUpdate != nil {
                 Divider().padding(.vertical, 4)

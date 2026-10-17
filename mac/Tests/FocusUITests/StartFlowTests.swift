@@ -7,8 +7,8 @@ import FocusJudge
     func testLengthChoicesAndTypedLength() {
         let draft = StartDraft(); let now = Date(timeIntervalSince1970: 1700000000)
         XCTAssertEqual(draft.plan(now: now)?.mode, .open)
-        draft.length = .five; XCTAssertEqual(draft.plan(now: now)?.duration, 300); XCTAssertTrue(draft.plan(now: now)?.five == true)
-        draft.length = .twentyFive; XCTAssertEqual(draft.plan(now: now)?.duration, 1500)
+        draft.length = .minutes; draft.minutes = 5; XCTAssertEqual(draft.plan(now: now)?.duration, 300); XCTAssertTrue(draft.plan(now: now)?.five == true)
+        draft.length = .minutes; draft.minutes = 25; XCTAssertEqual(draft.plan(now: now)?.duration, 1500)
         draft.task = "Essay 50"; XCTAssertEqual(draft.plan(now: now)?.duration, 3000)
         XCTAssertEqual(draft.plan(now: now, text: "Chemistry")?.duration, 1500, "Quick project start does not inherit another typed task's suffix")
     }
@@ -32,7 +32,7 @@ import FocusJudge
     func testFiveMinutesOffersAChoiceAndContinuingCreatesAnOpenSession() {
         var t = 0.0
         let c = SessionController(judge: UnsureJudge(), store: DataStore(), now: { t })
-        c.startDraft.task = "Chemistry"; c.startDraft.length = .five; c.startDraft.done = "Answer the first question"
+        c.startDraft.task = "Chemistry"; c.startDraft.length = .minutes; c.startDraft.minutes = 5; c.startDraft.done = "Answer the first question"
         XCTAssertTrue(c.startWithDraft(autoTick: false))
         t = 300; c.tick(); XCTAssertFalse(c.isActive); XCTAssertTrue(c.shortSessionOffer)
         c.keepGoing(); XCTAssertTrue(c.isActive); XCTAssertEqual(c.mode, .open); XCTAssertFalse(c.shortSessionOffer)
@@ -41,7 +41,7 @@ import FocusJudge
     }
     func testManualEarlyEndDoesNotOfferContinuationAndGoalCanBeCarriedThenCompleted() {
         let c = SessionController(judge: UnsureJudge(), store: DataStore())
-        c.startDraft.task = "Essay"; c.startDraft.length = .five; c.startDraft.done = "Write the opening paragraph"
+        c.startDraft.task = "Essay"; c.startDraft.length = .minutes; c.startDraft.minutes = 5; c.startDraft.done = "Write the opening paragraph"
         XCTAssertTrue(c.startWithDraft(autoTick: false)); c.end(); XCTAssertFalse(c.shortSessionOffer)
         c.resolveSessionGoal(done: false)
         XCTAssertEqual(c.projectForNote?.carriedGoal, "Write the opening paragraph")
@@ -80,7 +80,7 @@ import FocusJudge
         XCTAssertEqual(restored.sessions.first?.goal, "Write the first paragraph"); XCTAssertEqual(restored.sessions.first?.goalDone, false)
         XCTAssertEqual(restored.projects.first?.carriedGoal, "Write the first paragraph")
         let other = store.addProject(name: "Chemistry")
-        c.startDraft.task = "Essay 50"; c.startDraft.done = "Unrelated essay goal"; c.startDraft.length = .twentyFive
+        c.startDraft.task = "Essay 50"; c.startDraft.done = "Unrelated essay goal"; c.startDraft.length = .minutes; c.startDraft.minutes = 25
         XCTAssertTrue(c.startWithDraft(task: other.name, projectId: other.id, autoTick: false))
         XCTAssertEqual(c.clockSeconds(), 1500, accuracy: 1); XCTAssertEqual(c.sessionGoal, ""); c.end()
     }

@@ -3,16 +3,50 @@ import Observation
 import FocusBrain
 import FocusJudge
 
-public enum StartLength: String, CaseIterable, Identifiable, Sendable {
-    case five, twentyFive, until, open
-    public var id: Self { self }
-    public var title: String { switch self { case .five: return "5 min"; case .twentyFive: return "25"; case .until: return "Until…"; case .open: return "Open" } }
+/// How a session is bounded: a number of minutes (the slider), a clock time, or nothing (Open).
+public enum StartLength: String, Sendable {
+    case minutes, until, open
+}
+
+/// The stops on the length slider. Finer at the short end, where five minutes matters, and wider further out, where it does not; the last
+/// stop is Open (no timer). The slider moves one stop at a time, so there is no way to land on an odd number.
+public enum LengthStops {
+    public static let minutes = [5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 90, 120, 150, 180]
+    /// The index of the last stop, which means "no timer".
+    public static var open: Int { minutes.count }
+    /// The stop closest to `m` minutes.
+    public static func nearest(_ m: Int) -> Int {
+        minutes.indices.min { abs(minutes[$0] - m) < abs(minutes[$1] - m) } ?? 0
+    }
+    /// "25 min", "1 hour", "1 h 30 min".
+    public static func describe(minutes m: Int) -> String {
+        if m < 60 { return "\(m) min" }
+        if m % 60 == 0 { return m == 60 ? "1 hour" : "\(m / 60) hours" }
+        return "\(m / 60) h \(m % 60) min"
+    }
+    /// The length this person usually picks, once they have shown a habit: at least three of their last ten sessions timed and at least
+    /// ten minutes long, and at least half of those ten timed. The middle of those lengths, moved to the nearest stop. Nil otherwise, so
+    /// anyone who mostly runs Open sessions keeps Open as the starting point.
+    public static func usualMinutes(from sessions: [SessionRecord]) -> Int? {
+        let recent = Array(sessions.sorted { $0.start > $1.start }.prefix(10))
+        let timed = recent.filter { $0.timed && $0.activeSeconds >= 600 }
+        guard timed.count >= 3, timed.count * 2 >= recent.count else { return nil }
+        let lengths = timed.map { $0.activeSeconds / 60 }.sorted()
+        let middle = lengths.count % 2 == 1 ? lengths[lengths.count / 2] : (lengths[lengths.count / 2 - 1] + lengths[lengths.count / 2]) / 2
+        return minutes[nearest(Int(middle.rounded()))]
+    }
 }
 
 /// One draft shared by Today, the start sheet and quick project starts. Never persisted.
 @MainActor @Observable public final class StartDraft {
     public var task = ""
     public var length: StartLength = .open
+    /// Used when `length` is `.minutes`.
+    public var minutes = 25
+    /// Set once the person moves the slider, so Focus stops suggesting a length of its own.
+    public var lengthTouched = false
+    /// The suggested length that was applied for them, if any, so the form can say it is their usual.
+    public var usualMinutes: Int?
     public var until = Date().addingTimeInterval(25 * 60)
     public var done = ""
     public var extras = false
@@ -26,8 +60,7 @@ public enum StartLength: String, CaseIterable, Identifiable, Sendable {
         let parsed = StartSheet.parse(text ?? task)
         if let minutes = parsed.minutes { return StartPlan(mode: .timed, duration: Double(minutes * 60), deadline: nil, five: minutes == 5) }
         switch length {
-        case .five: return StartPlan(mode: .timed, duration: 300, deadline: nil, five: true)
-        case .twentyFive: return StartPlan(mode: .timed, duration: 1500, deadline: nil, five: false)
+        case .minutes: return StartPlan(mode: .timed, duration: Double(minutes * 60), deadline: nil, five: minutes == 5)
         case .open: return StartPlan(mode: .open, duration: nil, deadline: nil, five: false)
         case .until:
             guard let end = Self.nextClockTime(until, after: now, calendar: calendar) else { return nil }
