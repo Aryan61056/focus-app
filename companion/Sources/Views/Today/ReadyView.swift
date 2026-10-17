@@ -6,6 +6,8 @@ struct ReadyView: View {
     @State private var task = ""
     @State private var minutes: Int? = 25
     @State private var started = 0
+    /// Ticks when the connection changes, so the art sends a wave out: the phone found (or lost) the Mac.
+    @State private var pulse = 0
     @FocusState private var focused: Bool
 
     private var recentTasks: [String] {
@@ -16,14 +18,14 @@ struct ReadyView: View {
 
     var body: some View {
         VStack(spacing: 24) {
-            VStack(spacing: 6) {
-                FocusRing(phase: .idle, progress: nil, lineWidth: 10).frame(width: 132, height: 132)
-                Text("Ready when you are").font(.title2.weight(.semibold)).padding(.top, 8)
-                Text(model.connection.isLive ? "Starts on your Mac" : "Waiting for your Mac. Open Focus on it and check Session › iPhone.")
+            VStack(spacing: 12) {
+                HeroBanner(key: "today", pulse: pulse) { SessionPill() }
+                Text(model.connection.isLive ? "Starts on your Mac" : "Waiting for your Mac. Open Focus on it and click Connect your iPhone.")
                     .multilineTextAlignment(.center)
                     .font(.subheadline).foregroundStyle(Palette.ink2).contentTransition(.interpolate)
             }
-            .padding(.top, 20)
+            .padding(.top, 8)
+            .reveal(0, key: "today")
 
             Card {
                 VStack(alignment: .leading, spacing: 16) {
@@ -48,15 +50,18 @@ struct ReadyView: View {
                     ChoiceChips(options: [("Open", nil), ("25 min", 25), ("50 min", 50), ("90 min", 90)], selection: $minutes)
                 }
             }
+            .reveal(1, key: "today")
 
             PrimaryButton(title: "Start session", systemImage: "play.fill", action: begin).disabled(!canStart)
                 .opacity(canStart ? 1 : 0.55)
                 .motion(Motion.settle, value: canStart)
+                .reveal(2, key: "today")
             if let n = model.notice { Text(n).font(.footnote).foregroundStyle(Palette.ink2).transition(.opacity) }
         }
         .frame(maxWidth: 520)
         .successFeedback(started)
         .motion(Motion.settle, value: model.notice)
+        .onChange(of: model.connection.isLive) { _, _ in pulse += 1 }
     }
 
     private func begin() {

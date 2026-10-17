@@ -11,10 +11,10 @@ struct InsightsView: View {
                 ScrollView {
                     if let i = model.insights {
                         VStack(spacing: 16) {
-                            TodayCard(insights: i)
-                            WeekCard(insights: i)
-                            if let r = i.returnSeconds, i.returnCount > 0 { ReturnCard(seconds: r, count: i.returnCount) }
-                            RecentSessions(sessions: i.recent)
+                            TodayCard(insights: i).reveal(0, key: "insights")
+                            WeekCard(insights: i).reveal(1, key: "insights")
+                            if let r = i.returnSeconds, i.returnCount > 0 { ReturnCard(seconds: r, count: i.returnCount).reveal(2, key: "insights") }
+                            RecentSessions(sessions: i.recent).reveal(3, key: "insights")
                         }
                         .padding(.horizontal, Metrics.gutter).padding(.bottom, 24)
                         .frame(maxWidth: 560)

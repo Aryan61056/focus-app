@@ -91,6 +91,12 @@ public struct RootView: View {
                                 Button { travel(from: &forward, to: &back) } label: { Label("Forward", systemImage: "chevron.right") }
                                     .disabled(forward.isEmpty).keyboardShortcut("]", modifiers: .command)
                             }
+                            ToolbarItem(placement: .primaryAction) {
+                                Button { c.onOpenPhone?() } label: {
+                                    Label(c.phoneState == .none ? "Connect your iPhone" : "iPhone", systemImage: "iphone")
+                                }
+                                .help(c.phoneState == .none ? "Connect your iPhone" : "Your iPhone")
+                            }
                             ToolbarItem(placement: .primaryAction) { SessionToolbarPill(c: c, showStart: $showStart) }
                         }
                 }
@@ -257,6 +263,8 @@ struct SourceList: View {
         }
         .listStyle(.sidebar)
         .searchable(text: $search, placement: .sidebar, prompt: "Search")
+        // Pinned under the list so connecting a phone is never more than one click away, whatever page or search is showing.
+        .safeAreaInset(edge: .bottom, spacing: 0) { PhoneConnectCard(c: c).padding(.horizontal, 10).padding(.bottom, 10).padding(.top, 6) }
     }
 
     func row(_ s: AppSection) -> some View {

@@ -8,14 +8,17 @@ struct FocusRing: View {
     /// 0...1 for a timed session; nil for an open one (the ring is simply complete).
     var progress: Double?
     var lineWidth: CGFloat = 14
+    /// On a black pill (the banner): mint and white instead of the page's greens, the way the Mac's notch draws the ring.
+    var onDark = false
 
     private var look: Look {
+        let accent = onDark ? Mint.accent : Palette.accent, quiet = onDark ? Mint.quiet : Palette.ink2
         switch phase {
-        case .idle: Look(trim: 1, dash: [1, 0], color: Palette.track)
-        case .onTask, .recovering: Look(trim: max(0.015, progress ?? 1), dash: [1, 0], color: Palette.accent)
-        case .unsure: Look(trim: 1, dash: [0.01, 2.2], color: Palette.ink2)
-        case .drifting: Look(trim: 0.8, dash: [1, 0], color: Palette.drift)
-        case .paused, .onBreak: Look(trim: 1, dash: [3, 2.4], color: Palette.ink2)
+        case .idle: return Look(trim: 1, dash: [1, 0], color: onDark ? Mint.quiet.opacity(0.5) : Palette.track)
+        case .onTask, .recovering: return Look(trim: max(0.015, progress ?? 1), dash: [1, 0], color: accent)
+        case .unsure: return Look(trim: 1, dash: [0.01, 2.2], color: quiet)
+        case .drifting: return Look(trim: 0.8, dash: [1, 0], color: onDark ? Mint.drift : Palette.drift)
+        case .paused, .onBreak: return Look(trim: 1, dash: [3, 2.4], color: quiet)
         }
     }
 
@@ -24,7 +27,7 @@ struct FocusRing: View {
     var body: some View {
         let look = look
         ZStack {
-            Circle().stroke(Palette.track.opacity(look.dash == [1, 0] ? 1 : 0.35), lineWidth: lineWidth)
+            Circle().stroke((onDark ? Color.white.opacity(0.18) : Palette.track).opacity(look.dash == [1, 0] ? 1 : 0.35), lineWidth: lineWidth)
             Circle()
                 .trim(from: 0, to: look.trim)
                 .stroke(look.color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, dash: look.dash.map { $0 * lineWidth }.map { max($0, 0.01) }))
@@ -45,4 +48,11 @@ struct FocusRing: View {
             }
         }.padding()
     }
+}
+
+/// The notch's colors, for anything drawn on black.
+enum Mint {
+    static let accent = Color(red: 0.62, green: 0.93, blue: 0.76)
+    static let quiet = Color.white.opacity(0.72)
+    static let drift = Color(red: 0.91, green: 0.72, blue: 0.47)
 }

@@ -6,6 +6,7 @@ struct ActiveSessionView: View {
     @Environment(AppModel.self) private var model
     @State private var confirmEnd = false
     @State private var sent = 0
+    @State private var wave = 0
     @ScaledMetric(relativeTo: .largeTitle) private var ringSize = 272
     @ScaledMetric(relativeTo: .largeTitle) private var clockSize = 56
 
@@ -19,13 +20,16 @@ struct ActiveSessionView: View {
                 Text(s.task).font(.title2.weight(.semibold)).multilineTextAlignment(.center).lineLimit(3)
             }
             .padding(.top, 8)
+            .reveal(0, key: "active")
 
-            ringAndClock
-            status
-            controls
+            ringAndClock.reveal(1, key: "active")
+            status.reveal(2, key: "active")
+            controls.reveal(3, key: "active")
             Button("End session", role: .destructive) { confirmEnd = true }
                 .font(.subheadline.weight(.medium)).foregroundStyle(Palette.ink2).frame(minHeight: 44)
+                .reveal(4, key: "active")
         }
+        .onChange(of: s.phase) { _, _ in wave += 1 }
         .frame(maxWidth: 520)
         .opacity(live ? 1 : 0.55)
         .overlay(alignment: .top) { if !live { OfflineBanner().transition(.move(edge: .top).combined(with: .opacity)) } }
@@ -54,6 +58,11 @@ struct ActiveSessionView: View {
                 .padding(36)
             }
             .frame(width: ringSize, height: ringSize)
+            // Printed rings around the session ring. A change of state (drifting, back on task, paused) sends a wave out through them.
+            .background {
+                Halftone(pattern: .rings(color: s.phase == .drifting ? Palette.drift : Palette.accent, hole: 0.3), ripple: .oncePerLaunch("ring"), pulse: wave, followsTouch: false)
+                    .frame(width: ringSize * 1.7, height: ringSize * 1.7).allowsHitTesting(false)
+            }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("\(s.task), \(seconds.spokenText) \(s.timed ? "left" : "elapsed"), \(s.phase.accessibleName)")
         }

@@ -74,6 +74,7 @@ public struct MenuBarContent: View {
             }
             Divider().padding(.vertical, 4)
             item("Park a thought") { c.onParkThought?() }
+            item(c.phoneState == .none ? "Connect your iPhone\u{2026}" : "Your iPhone\u{2026}") { c.onOpenPhone?() }
             item("Open Focus", openApp)
         }
         .padding(8).frame(width: 296)
