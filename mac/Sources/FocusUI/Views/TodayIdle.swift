@@ -94,7 +94,13 @@ struct JustFinishedCard: View {
                         }
                     }
                 }
+                // A soft bloom of dots from the corner when the card arrives, so finishing feels marked without taking over the card.
+                .background(alignment: .topTrailing) {
+                    Halftone(pattern: .bloom(from: .topTrailing, aspect: 1.6), ripple: .onAppear, followsPointer: false)
+                        .frame(width: 320, height: 200).offset(x: Space.l, y: -Space.l).allowsHitTesting(false)
+                }
             }
+            .clipShape(RoundedRectangle(cornerRadius: Tokens.radiusCard, style: .continuous))
         }
     }
     func sentence(_ s: SessionSummary) -> String {

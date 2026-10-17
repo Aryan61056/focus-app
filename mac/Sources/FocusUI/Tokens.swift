@@ -29,11 +29,12 @@ public enum Tokens {
     /// Amber as text (the time away on a popup): darker in light mode, so a few words clear 4.5:1; the mark color is for shapes.
     public static let slipInk = Color(light: 0x8F5200, dark: 0xF0B060)
     /// Three layers, so a screen reads at a glance: the canvas, raised surfaces on it, and wells (fields, the reading bar) sunk into it.
-    /// Plain neutral grays; the sidebar and the Focus panel are the second layer.
-    public static let window = Color(light: 0xF7F7F6, dark: 0x1B1B1B)
-    public static let window2 = Color(light: 0xFFFFFF, dark: 0x242424)
-    public static let well = Color(light: 0xF0F0EF, dark: 0x202020)
-    public static let sidebar = Color(light: 0xEEEEED, dark: 0x151515)
+    /// Deep green-blacks in dark and pale green-whites in light (owner, 2026-10-17: a green sidebar against neutral gray looked odd), so the
+    /// dotted sidebar and the pages are one palette. Quiet: the tint is a few percent, the one bright green stays the accent.
+    public static let window = Color(light: 0xF3F8F5, dark: 0x0F1612)
+    public static let window2 = Color(light: 0xFFFFFF, dark: 0x18211C)
+    public static let well = Color(light: 0xEBF2EE, dark: 0x121B16)
+    public static let sidebar = Color(light: 0xE8F0EB, dark: 0x0B110E)
     public static let line = Color(light: 0x1A1B1B, dark: 0xFFFFFF, lightAlpha: 0.11, darkAlpha: 0.1)
     public static let control = Color(light: 0x1A1B1B, dark: 0xFFFFFF, lightAlpha: 0.06, darkAlpha: 0.09)
     public static let controlHover = Color(light: 0x1A1B1B, dark: 0xFFFFFF, lightAlpha: 0.11, darkAlpha: 0.16)
@@ -43,7 +44,7 @@ public enum Tokens {
     public static let track = Color(light: 0x1A1B1B, dark: 0xFFFFFF, lightAlpha: 0.16, darkAlpha: 0.2)
     /// Surfaces that float over other apps (the banner, nudge cards, prompts). Opaque, so they read the same over any window and whether
     /// or not Focus is the active app: glass and tinted glass drain to gray in a window that is not active, and these never are.
-    public static let float = Color(light: 0xFFFFFF, dark: 0x262727)
+    public static let float = Color(light: 0xFFFFFF, dark: 0x1C2620)
     public static let floatEdge = Color(light: 0x000000, dark: 0xFFFFFF, lightAlpha: 0.1, darkAlpha: 0.12)
 
     /// The notch is always black, whatever the system appearance, so it has its own fixed colors (on black: ink 18.6:1,
