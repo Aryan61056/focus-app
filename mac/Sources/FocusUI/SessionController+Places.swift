@@ -26,7 +26,8 @@ extension SessionController {
         let before = places.candidates.map(\.id)
         places.addDwell(w, seconds: min(max(0, t - last), 5))   // a Mac that slept does not count
         if places.candidates.map(\.id) != before { placesVersion &+= 1 }
-        if prefs.restoreSpot, !shadow, pendingSpot == nil, places.contains(w), t - (lastPositionAt ?? -.infinity) >= Self.positionEverySeconds, let read = onReadPosition {
+        // A browser keeps each tab's scroll itself, and its text fields are the page's: nothing to note there.
+        if prefs.restoreSpot, !shadow, pendingSpot == nil, !Enforcement.isBrowser(w.app), places.contains(w), t - (lastPositionAt ?? -.infinity) >= Self.positionEverySeconds, let read = onReadPosition {
             lastPositionAt = t
             places.notePosition(w, read(w))
         }
@@ -62,6 +63,8 @@ extension SessionController {
     public var beaconPlace: TaskPlace? {
         guard prefs.beaconRing, isActive, !shadow, presence.state == "interrupted", let d = returnPlace else { return nil }
         if let cur = currentWindow, TaskPlaces.identity(cur) == d.id { return nil }
+        // A tab or space inside the window you are in: that window is not "the way back", so there is nothing to outline.
+        if let cur = currentWindow, Enforcement.isBrowser(d.window.app), cur.app == d.window.app { return nil }
         return d
     }
 
@@ -114,7 +117,7 @@ extension SessionController {
     /// document that was just opened may not have laid out yet. Only ever into the very window asked for.
     private func startSpotRestore(_ place: TaskPlace, _ outcome: ReturnOutcome) {
         lastSpotRestored = nil; pendingSpot = nil
-        guard prefs.restoreSpot, !shadow, onRestorePosition != nil, outcome != .alreadyThere else { return }
+        guard prefs.restoreSpot, !shadow, onRestorePosition != nil, outcome != .alreadyThere, !Enforcement.isBrowser(place.window.app) else { return }
         pendingSpot = (place, 0)
     }
 

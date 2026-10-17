@@ -53,7 +53,8 @@ public struct TaskPlace: Equatable, Sendable, Identifiable {
     /// "Pages · Essay draft": the app and a short name for the page or file, for a tooltip or a menu row. The task's own place, never a distraction.
     public var label: String {
         let name = TaskPlaces.shortName(window)
-        return name.isEmpty ? window.app : window.app + " \u{00B7} " + name
+        let space = window.space.isEmpty ? "" : window.space + " \u{00B7} "
+        return name.isEmpty ? (space.isEmpty ? window.app : window.app + " \u{00B7} " + window.space) : window.app + " \u{00B7} " + space + name
     }
 }
 
@@ -96,9 +97,11 @@ public struct TaskPlaces: Equatable, Sendable {
     /// What makes two windows the same place: a page by its address without query or fragment, a document by its file, anything else by title.
     /// The same file or page keeps one place when its title changes ("Essay" to "Essay - Edited", "(3) Inbox" to "Inbox").
     public static func identity(_ w: WindowSnapshot) -> String {
-        if Keys.host(w.url) != nil { return Keys.window(w) }
+        // The same page in two spaces of one window is two places: you worked in one of them.
+        let inSpace = w.space.isEmpty ? "" : "|space:" + w.space
+        if Keys.host(w.url) != nil { return Keys.window(w) + inSpace }
         if !w.documentPath.isEmpty { return w.app.lowercased() + "|file:" + w.documentPath }
-        return Keys.window(w)
+        return Keys.window(w) + inSpace
     }
 
     /// Focus read this window as on task.

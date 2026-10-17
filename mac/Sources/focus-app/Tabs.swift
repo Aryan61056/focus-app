@@ -15,7 +15,7 @@ import FocusSense
     /// Brings the tab you were last working in forward. False when there is none to go to.
     static func switchAway(from w: WindowSnapshot, to onTask: WindowSnapshot?) -> Bool {
         guard let t = onTask, t.app == w.app, !t.url.isEmpty else { return false }
-        return run(TabScript.switchTo(app: t.app, url: t.url)) == "ok"
+        return run(TabScript.switchTo(app: t.app, url: t.url, space: t.space)) == "ok"
     }
 
     static func close(_ w: WindowSnapshot) -> Bool { run(TabScript.close(app: w.app, url: w.url)) == "ok" }
@@ -28,7 +28,7 @@ import FocusSense
 @MainActor final class BrowserAddressSource: @MainActor WindowSource {
     private let inner = AXWindowSource()
     private let enabled: () -> Bool
-    private var cache: (app: String, title: String, url: String, at: Date)?
+    private var cache: (app: String, title: String, url: String, space: String, at: Date)?
     private var pausedUntil = Date.distantPast
     init(enabled: @escaping () -> Bool) { self.enabled = enabled }
 
@@ -36,15 +36,20 @@ import FocusSense
 
     func current() -> WindowSnapshot? {
         guard var w = inner.current() else { return nil }
-        guard w.url.isEmpty, enabled(), Enforcement.isBrowser(w.app), let source = TabScript.currentURL(app: w.app), Date() >= pausedUntil else { return w }
-        if let c = cache, c.app == w.app, c.title == w.title, Date().timeIntervalSince(c.at) < 4 { w.url = c.url; return w }
+        // Arc and Dia keep several spaces of tabs in one window, so the space is read too (it is part of where you were). Other browsers only
+        // need the address, and only when Accessibility did not give one.
+        let spaced = Enforcement.isSpaceBrowser(w.app)
+        guard enabled(), Enforcement.isBrowser(w.app), spaced || w.url.isEmpty, Date() >= pausedUntil,
+              let source = spaced ? TabScript.currentTab(app: w.app) : TabScript.currentURL(app: w.app) else { return w }
+        if let c = cache, c.app == w.app, c.title == w.title, Date().timeIntervalSince(c.at) < 4 { if w.url.isEmpty { w.url = c.url }; w.space = c.space; return w }
         var err: NSDictionary?
         guard let script = NSAppleScript(source: source) else { return w }
         let out = script.executeAndReturnError(&err)
         if err != nil { pausedUntil = Date().addingTimeInterval(60); return w }
-        let url = out.stringValue ?? ""
-        cache = (w.app, w.title, url, Date())
-        w.url = url
+        let parsed = spaced ? TabScript.parseCurrentTab(out.stringValue ?? "") : (url: out.stringValue ?? "", space: "")
+        cache = (w.app, w.title, parsed.url, parsed.space, Date())
+        if w.url.isEmpty { w.url = parsed.url }
+        w.space = parsed.space
         return w
     }
 }

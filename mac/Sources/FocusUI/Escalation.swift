@@ -66,8 +66,13 @@ public enum Enforcement {
 public enum EnforceAction: Equatable, Sendable { case switchAway, hide, close }
 
 extension Enforcement {
-    /// Browsers Focus can steer through AppleScript. Arc and others are left out: their scripting is not the same and I have not checked it.
-    static let browsers: Set<String> = ["safari", "google chrome", "brave browser", "microsoft edge", "comet"]
+    /// Browsers Focus can steer through AppleScript. Arc and Dia are in since their dictionaries (`sdef`) were read: both have spaces (Arc `space`,
+    /// Dia `profile`) with their own tabs and a `focus` command, which the scripts below use. Firefox and others are still out.
+    static let browsers: Set<String> = ["safari", "google chrome", "brave browser", "microsoft edge", "comet", "arc", "dia"]
+    /// Browsers that keep several spaces of tabs inside one window (Arc's Spaces, Dia's profiles). A place there is a tab in a space, so the
+    /// window alone cannot say where you were. Their scripting is not the same as Chrome's: see `TabScript.switchTo` and the checks of 2026-10-17.
+    static let spaceBrowsers: Set<String> = ["arc", "dia"]
+    public static func isSpaceBrowser(_ app: String?) -> Bool { app.map { spaceBrowsers.contains($0.trimmingCharacters(in: .whitespaces).lowercased()) } ?? false }
     public static func isBrowser(_ app: String?) -> Bool { app.map { browsers.contains($0.trimmingCharacters(in: .whitespaces).lowercased()) } ?? false }
 
     /// `performed` counts the rounds already carried out this warning (0 for the first).
@@ -93,7 +98,7 @@ public enum TabScript {
     /// The address of the front window's current tab in a Chromium browser, which does not report it through Accessibility.
     /// Empty for a private window, so a private tab is never read or closed. Safari reports its address through Accessibility already.
     public static func currentURL(app: String) -> String? {
-        guard let name = appName(app), !isSafari(name) else { return nil }
+        guard let name = appName(app), !isSafari(name), !Enforcement.isSpaceBrowser(name) else { return nil }
         return """
         with timeout of 2 seconds
         tell application \(quoted(name))
@@ -108,6 +113,48 @@ public enum TabScript {
         """
     }
 
+    /// The front tab of Arc or Dia and the space it sits in, as "address<TAB>space". Arc: the address and the id of the active space (nothing for
+    /// an incognito window). Dia: only the name of the active profile, never an address, because its dictionary has no private-window flag to
+    /// check first. Nil for any other browser.
+    public static func currentTab(app: String) -> String? {
+        guard let name = appName(app) else { return nil }
+        switch name {
+        case "Arc":
+            return """
+            with timeout of 2 seconds
+            tell application "Arc"
+                try
+                    if (count of windows) is 0 then return ""
+                    if (mode of front window) is "incognito" then return ""
+                    return (URL of active tab of front window) & (character id 9) & ((id of active space of front window) as text)
+                end try
+            end tell
+            return ""
+            end timeout
+            """
+        case "Dia":
+            return """
+            with timeout of 2 seconds
+            tell application "Dia"
+                try
+                    if (count of windows) is 0 then return ""
+                    return (character id 9) & ((name of active profile of front window) as text)
+                end try
+            end tell
+            return ""
+            end timeout
+            """
+        default: return nil
+        }
+    }
+
+    /// Splits `currentTab`'s answer. A single field is an address with no space.
+    public static func parseCurrentTab(_ raw: String) -> (url: String, space: String) {
+        let parts = raw.split(separator: "\t", maxSplits: 1, omittingEmptySubsequences: false).map(String.init)
+        guard parts.count == 2 else { return (raw.trimmingCharacters(in: .whitespacesAndNewlines), "") }
+        return (parts[0].trimmingCharacters(in: .whitespacesAndNewlines), parts[1].trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
     /// The name AppleScript knows the browser by.
     public static func appName(_ app: String) -> String? {
         switch app.trimmingCharacters(in: .whitespaces).lowercased() {
@@ -116,6 +163,8 @@ public enum TabScript {
         case "brave browser": return "Brave Browser"
         case "microsoft edge": return "Microsoft Edge"
         case "comet": return "Comet"
+        case "arc": return "Arc"
+        case "dia": return "Dia"
         default: return nil
         }
     }
@@ -139,9 +188,11 @@ public enum TabScript {
         return "((\(var_) starts with \(quoted("https://" + b))) or (\(var_) starts with \(quoted("http://" + b))))"
     }
 
-    /// Brings the tab at `url` forward (any window of that browser). Prints "ok" when it found one, else "none".
-    public static func switchTo(app: String, url: String) -> String? {
+    /// Brings the tab at `url` forward (any window of that browser). Prints "ok" when it found one, else "none". In Arc and Dia the tab may be in
+    /// another space, so the space is brought forward first, and a tab in the space `space` you worked in is preferred over the same address elsewhere.
+    public static func switchTo(app: String, url: String, space: String = "") -> String? {
         guard let name = appName(app), !bare(url).isEmpty else { return nil }
+        if Enforcement.isSpaceBrowser(name) { return spaceScript(name: name, condition: starts("(URL of t)", url), space: space) }
         let pick = isSafari(name) ? "set current tab of w to t" : "set active tab index of w to i"
         return """
         with timeout of 3 seconds
@@ -165,12 +216,13 @@ public enum TabScript {
         """
     }
 
-    /// Brings forward the tab whose title contains `title`, for a page whose address changed since Focus read it (a single-page app, a redirect).
-    /// Too short a title is nil: it would match the wrong tab. Prints "ok" or "none".
-    public static func switchToTitle(app: String, title: String) -> String? {
+    /// Brings forward the tab whose title contains `title`, for a page whose address changed since Focus read it (a single-page app, a redirect)
+    /// or that Focus never read an address for (Dia). Too short a title is nil: it would match the wrong tab. Prints "ok" or "none".
+    public static func switchToTitle(app: String, title: String, space: String = "") -> String? {
         guard let name = appName(app) else { return nil }
         let want = TaskPlaces.pageTitle(title, app: app)
         guard want.count >= 6 else { return nil }
+        if Enforcement.isSpaceBrowser(name) { return spaceScript(name: name, condition: "((title of t) contains \(quoted(want)))", space: space) }
         let pick = isSafari(name) ? "set current tab of w to t" : "set active tab index of w to i"
         let titleOf = isSafari(name) ? "name of t" : "title of t"   // Safari calls a tab's title its name, Chromium browsers call it title
         return """
@@ -190,6 +242,73 @@ public enum TabScript {
                 end repeat
             end repeat
         end tell
+        return "none"
+        end timeout
+        """
+    }
+
+    /// The Arc and Dia version: look through every window's spaces (Arc `spaces of w`, Dia `profiles of w`), first the one you worked in, then
+    /// the rest; bring that space forward (`focus`), then the tab (Arc `select`, Dia `focus`), then the window to the front.
+    static func spaceScript(name: String, condition: String, space: String) -> String {
+        let wanted = quoted(space)
+        if name == "Arc" {
+            return """
+            with timeout of 3 seconds
+            set wanted to \(wanted)
+            repeat with pass from 1 to 2
+                tell application "Arc"
+                    repeat with w in windows
+                        repeat with s in spaces of w
+                            if pass = 2 or wanted is "" or ((id of s) as text) is wanted then
+                                repeat with t in tabs of s
+                                    try
+                                        if \(condition) then
+                                            try
+                                                tell s to focus
+                                            end try
+                                            tell t to select
+                                            try
+                                                set index of w to 1
+                                            end try
+                                            return "ok"
+                                        end if
+                                    end try
+                                end repeat
+                            end if
+                        end repeat
+                    end repeat
+                end tell
+                if wanted is "" then exit repeat
+            end repeat
+            return "none"
+            end timeout
+            """
+        }
+        return """
+        with timeout of 3 seconds
+        set wanted to \(wanted)
+        repeat with pass from 1 to 2
+            tell application "Dia"
+                repeat with w in windows
+                    repeat with p in profiles of w
+                        if pass = 2 or wanted is "" or ((name of p) as text) is wanted then
+                            repeat with t in tabs of p
+                                try
+                                    if \(condition) then
+                                        try
+                                            focus p
+                                        end try
+                                        focus t
+                                        return "ok"
+                                    end if
+                                end try
+                            end repeat
+                        end if
+                    end repeat
+                end repeat
+            end tell
+            if wanted is "" then exit repeat
+        end repeat
         return "none"
         end timeout
         """

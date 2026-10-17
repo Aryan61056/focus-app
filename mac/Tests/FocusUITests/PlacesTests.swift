@@ -234,7 +234,7 @@ final class TabTitleScriptTests: XCTestCase {
 
     func testATitleTooShortToTrustOrABrowserWeDoNotSteerIsNil() {
         XCTAssertNil(TabScript.switchToTitle(app: "Safari", title: "Inbox"))
-        XCTAssertNil(TabScript.switchToTitle(app: "Arc", title: "Lecture notes"))
+        XCTAssertNil(TabScript.switchToTitle(app: "Firefox", title: "Lecture notes"))
     }
 
     func testAPageTitleCannotBecomeScript() throws {
@@ -1279,5 +1279,141 @@ final class SlipTimingTests: XCTestCase {
         s.segments = [TimelineSegment(.on, 1200), TimelineSegment(.off, 60), TimelineSegment(.off, 60), TimelineSegment(.unsure, 30), TimelineSegment(.off, 60), TimelineSegment(.on, 400)]
         let t = Rewards.slipTiming(Array(repeating: s, count: 4) + (0..<4).map { _ in session(slipsAtMinutes: [20]) }, today: day)
         XCTAssertEqual(t?.total, 8, "two consecutive off segments are one slip; unsure in between does not start another")
+    }
+}
+
+final class SpaceBrowserScriptTests: XCTestCase {
+    func testArcAndDiaAreBrowsersWithSpaces() {
+        XCTAssertTrue(Enforcement.isBrowser("Arc")); XCTAssertTrue(Enforcement.isBrowser("Dia"))
+        XCTAssertTrue(Enforcement.isSpaceBrowser("Arc")); XCTAssertTrue(Enforcement.isSpaceBrowser(" dia "))
+        XCTAssertFalse(Enforcement.isSpaceBrowser("Safari")); XCTAssertFalse(Enforcement.isSpaceBrowser(nil))
+        XCTAssertEqual(TabScript.appName("arc"), "Arc"); XCTAssertEqual(TabScript.appName("Dia"), "Dia")
+    }
+
+    func testArcLooksThroughEverySpaceAndFocusesTheOneThatHoldsTheTab() throws {
+        let s = try XCTUnwrap(TabScript.switchTo(app: "Arc", url: "https://notes.example.com/week3?x=1", space: "SPACE-1"))
+        XCTAssertTrue(s.contains("spaces of w")); XCTAssertTrue(s.contains("tabs of s"))
+        XCTAssertTrue(s.contains("tell s to focus")); XCTAssertTrue(s.contains("tell t to select"))
+        XCTAssertTrue(s.contains(#"set wanted to "SPACE-1""#), "the space you worked in is tried first")
+        XCTAssertTrue(s.contains(#"starts with "https://notes.example.com/week3""#), "the query is dropped so a tab that changed it still matches")
+        XCTAssertFalse(s.contains("x=1"))
+    }
+
+    func testDiaLooksThroughEveryProfileAndFocusesTheProfileThenTheTab() throws {
+        let s = try XCTUnwrap(TabScript.switchToTitle(app: "Dia", title: "Lecture notes - Dia", space: "Work"))
+        XCTAssertTrue(s.contains("profiles of w")); XCTAssertTrue(s.contains("tabs of p"))
+        XCTAssertTrue(s.contains("focus p")); XCTAssertTrue(s.contains("focus t"))
+        XCTAssertTrue(s.contains(#"(title of t) contains "Lecture notes""#))
+        XCTAssertTrue(s.contains(#"set wanted to "Work""#))
+    }
+
+    func testWithNoSpaceRememberedOnePassOverEverythingIsEnough() throws {
+        let s = try XCTUnwrap(TabScript.switchTo(app: "Arc", url: "https://notes.example.com/week3"))
+        XCTAssertTrue(s.contains(#"set wanted to """#)); XCTAssertTrue(s.contains(#"if wanted is "" then exit repeat"#))
+    }
+
+    func testASpaceNameCannotBecomeScript() throws {
+        let evil = "x\"; do shell script \"rm -rf ~\" -- "
+        for app in ["Arc", "Dia"] {
+            let s = try XCTUnwrap(TabScript.switchTo(app: app, url: "https://a.example.com/", space: evil))
+            XCTAssertTrue(s.contains(#"set wanted to "x\"; do shell script \"rm -rf ~\" -- ""#), "every quote in the space name is escaped for \(app)")
+        }
+    }
+
+    func testTheCurrentTabAndSpaceAreAskedForAndDiaNeverGivesAnAddress() throws {
+        let arc = try XCTUnwrap(TabScript.currentTab(app: "Arc"))
+        XCTAssertTrue(arc.contains("active space of front window")); XCTAssertTrue(arc.contains("incognito"), "a private window returns nothing")
+        let dia = try XCTUnwrap(TabScript.currentTab(app: "Dia"))
+        XCTAssertTrue(dia.contains("name of active profile")); XCTAssertFalse(dia.contains("URL of"), "no address from a browser with no private-window flag")
+        XCTAssertNil(TabScript.currentTab(app: "Safari"))
+        XCTAssertNil(TabScript.currentURL(app: "Arc"), "Arc is read through currentTab, which also gives the space")
+    }
+
+    func testTheAnswerIsSplitIntoAddressAndSpace() {
+        XCTAssertEqual(TabScript.parseCurrentTab("https://a.example.com/x\tSPACE-9").url, "https://a.example.com/x")
+        XCTAssertEqual(TabScript.parseCurrentTab("https://a.example.com/x\tSPACE-9").space, "SPACE-9")
+        XCTAssertEqual(TabScript.parseCurrentTab("\tWork").url, ""); XCTAssertEqual(TabScript.parseCurrentTab("\tWork").space, "Work")
+        XCTAssertEqual(TabScript.parseCurrentTab("https://a.example.com/x").space, "")
+        XCTAssertEqual(TabScript.parseCurrentTab("").url, "")
+    }
+
+    func testTooShortATitleIsNotTrustedInEitherBrowser() {
+        XCTAssertNil(TabScript.switchToTitle(app: "Arc", title: "Inbox")); XCTAssertNil(TabScript.switchToTitle(app: "Dia", title: "Home"))
+    }
+}
+
+final class SpacePlacesTests: XCTestCase {
+    func tab(_ space: String, _ url: String = "https://notes.example.com/week3", title: String = "Lecture notes") -> WindowSnapshot {
+        WindowSnapshot(app: "Arc", title: title, url: url, space: space)
+    }
+
+    func testTheSamePageInTwoSpacesIsTwoPlaces() {
+        XCTAssertNotEqual(TaskPlaces.identity(tab("Work")), TaskPlaces.identity(tab("Personal")))
+        XCTAssertEqual(TaskPlaces.identity(tab("Work")), TaskPlaces.identity(tab("Work")))
+        XCTAssertEqual(TaskPlaces.identity(WindowSnapshot(app: "Safari", title: "x", url: "https://a.example.com/p")),
+                       TaskPlaces.identity(WindowSnapshot(app: "Safari", title: "x", url: "https://a.example.com/p", space: "")), "no space, no change for other browsers")
+    }
+
+    func testYouWorkedInTheSpaceNotTheOneWithTheSamePage() {
+        var p = TaskPlaces()
+        p.noteOnTask(tab("Work"), at: 0); p.addDwell(tab("Work"), seconds: 120)
+        p.noteOnTask(tab("Personal"), at: 130); p.addDwell(tab("Personal"), seconds: 10)
+        XCTAssertEqual(p.all.count, 2)
+        XCTAssertEqual(p.destination?.window.space, "Work", "ten seconds in the other space is a glance")
+    }
+
+    func testTheLabelNamesTheSpace() {
+        XCTAssertEqual(TaskPlace(window: tab("Work"), lastSeen: 0).label, "Arc \u{00B7} Work \u{00B7} Lecture notes")
+        XCTAssertEqual(TaskPlace(window: WindowSnapshot(app: "Dia", title: "", space: "Work"), lastSeen: 0).label, "Dia \u{00B7} Work")
+        XCTAssertEqual(TaskPlace(window: WindowSnapshot(app: "Safari", title: "Lecture notes"), lastSeen: 0).label, "Safari \u{00B7} Lecture notes")
+    }
+
+    func testWindowsInAnotherSpaceAreNotTheSameSpot() {
+        XCTAssertFalse(LandingCheck.sameSpot(tab("Personal"), tab("Work")))
+        XCTAssertTrue(LandingCheck.sameSpot(tab("Work", title: "Lecture notes - Arc"), tab("Work")))
+    }
+}
+
+@MainActor
+final class SpaceBrowserControllerTests: XCTestCase {
+    var t = 0.0
+    var went: [WindowSnapshot] = []
+    let judge = ScriptedJudge(markers: [("Notes", .on), ("youtube", .off)])
+    let work = WindowSnapshot(app: "Arc", title: "Notes lecture", url: "https://notes.example.com/week3", space: "Work")
+    let video = WindowSnapshot(app: "Arc", title: "cat video - YouTube", url: "https://www.youtube.com/watch?v=1", space: "Personal")
+    func make() -> SessionController {
+        let prefs = noWords(); prefs.beaconRing = true
+        let c = SessionController(judge: judge, store: DataStore(), prefs: prefs, now: { [unowned self] in self.t })
+        c.onGoToPlace = { [unowned self] w, _, _ in went.append(w); return .exact }
+        return c
+    }
+    func advance(_ c: SessionController, to target: Double) async { while t < target { t += 1; c.tick(); await c.waitForJudgments() } }
+
+    func testBackToTaskCarriesTheSpaceYouWorkedIn() async {
+        let c = make()
+        c.windowChanged(work); c.begin(task: "Calc homework", preset: .standard, shadow: false)
+        await advance(c, to: 60); c.windowChanged(video); await advance(c, to: 80)
+        c.act(.backToTask)
+        XCTAssertEqual(went.last?.space, "Work"); XCTAssertEqual(went.last?.url, work.url)
+        XCTAssertEqual(c.returnPlace?.label, "Arc \u{00B7} Work \u{00B7} Notes lecture")
+    }
+
+    func testThereIsNoWindowToOutlineWhenTheWayBackIsAnotherSpaceOfTheSameWindow() async {
+        let c = make()
+        c.windowChanged(work); c.begin(task: "Calc homework", preset: .standard, shadow: false)
+        await advance(c, to: 60); c.windowChanged(video); await advance(c, to: 260)
+        XCTAssertEqual(c.presence.state, "interrupted")
+        XCTAssertNil(c.beaconPlace, "the window with the way back in it is the window you are in")
+    }
+
+    func testScrollAndCursorAreNotNotedOrRestoredInABrowser() async {
+        let c = make()
+        var reads = 0, restores = 0
+        c.onReadPosition = { _ in reads += 1; return PlacePosition(scroll: 0.4) }
+        c.onRestorePosition = { _, _ in restores += 1; return true }
+        c.windowChanged(work); c.begin(task: "Calc homework", preset: .standard, shadow: false)
+        await advance(c, to: 60); c.windowChanged(video); await advance(c, to: 80)
+        c.act(.backToTask); c.windowChanged(work); await advance(c, to: 90)
+        XCTAssertEqual(reads, 0); XCTAssertEqual(restores, 0, "the browser keeps each tab's scroll itself")
     }
 }

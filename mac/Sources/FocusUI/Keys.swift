@@ -4,8 +4,11 @@ import FocusJudge
 /// What a sense reports about the front window. Senses never see the task; the controller adds it.
 public struct WindowSnapshot: Sendable, Equatable {
     public var app: String, title: String, url: String, documentPath: String, text: String
-    public init(app: String, title: String, url: String = "", documentPath: String = "", text: String = "") {
-        self.app = app; self.title = title; self.url = url; self.documentPath = documentPath; self.text = text
+    /// The space (Arc) or profile (Dia) the tab sits in, for a browser that keeps several in one window. Empty everywhere else. Only ever
+    /// part of a place's identity, never of the brain's keys.
+    public var space: String
+    public init(app: String, title: String, url: String = "", documentPath: String = "", text: String = "", space: String = "") {
+        self.app = app; self.title = title; self.url = url; self.documentPath = documentPath; self.text = text; self.space = space
     }
 }
 

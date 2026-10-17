@@ -16,15 +16,16 @@ import FocusSense
         var exact = false, pageIsGone = false
         if allowTabs, Enforcement.isBrowser(w.app) {
             var urlSaidNone = false, titleSaidNone = true   // no title to try is as good as "none"
-            if !w.url.isEmpty { let r = Tabs.run(TabScript.switchTo(app: w.app, url: w.url)); exact = r == "ok"; urlSaidNone = r == "none" }
-            if !exact, !w.title.isEmpty, let script = TabScript.switchToTitle(app: w.app, title: w.title) {
+            if !w.url.isEmpty { let r = Tabs.run(TabScript.switchTo(app: w.app, url: w.url, space: w.space)); exact = r == "ok"; urlSaidNone = r == "none" }
+            if !exact, !w.title.isEmpty, let script = TabScript.switchToTitle(app: w.app, title: w.title, space: w.space) {
                 let r = Tabs.run(script); exact = r == "ok"; titleSaidNone = r == "none"
             }
             // Only a definite "no such tab" lets the page be opened again; a refused permission or a slow browser is not "gone".
             pageIsGone = !exact && urlSaidNone && titleSaidNone
         }
         if !exact { exact = WindowRaiser.raise(pid: app.processIdentifier, matching: w) }
-        if !exact, allowTabs, !Enforcement.isBrowser(w.app) { exact = WindowRaiser.raiseTab(pid: app.processIdentifier, matching: w) }
+        // The app's own tab bar, when no script reached the tab (Automation refused, or an app with no scripting).
+        if !exact, allowTabs { exact = WindowRaiser.raiseTab(pid: app.processIdentifier, matching: w) }
         var reopened = false
         if !exact, reopen {
             // A document that is already open just comes forward when opened again, so this is safe even if the window was merely not matched.
@@ -39,7 +40,9 @@ import FocusSense
     /// Where the place's window is on screen, for the beacon ring.
     static func frame(of w: WindowSnapshot) -> CGRect? {
         guard let app = running(w.app) else { return nil }
-        return WindowRaiser.frame(pid: app.processIdentifier, matching: w)
+        // When the app is the one in front, "its only window" is the window you are in, not the place you drifted from: outline nothing then.
+        let inFront = NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier
+        return WindowRaiser.frame(pid: app.processIdentifier, matching: w, allowOnlyWindow: !inFront)
     }
 
     private static func running(_ name: String) -> NSRunningApplication? {

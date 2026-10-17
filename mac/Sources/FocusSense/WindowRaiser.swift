@@ -119,7 +119,7 @@ public enum WindowRaiser {
 
     /// Where this window is on screen (top left origin, like Core Graphics), or nil when it cannot be found or is minimized. A browser whose
     /// tab is not the front one has a window titled for another tab, so with a single window the app has, that window is taken.
-    @MainActor public static func frame(pid: pid_t, matching target: WindowSnapshot) -> CGRect? {
+    @MainActor public static func frame(pid: pid_t, matching target: WindowSnapshot, allowOnlyWindow: Bool = true) -> CGRect? {
         guard AXIsProcessTrusted() else { return nil }
         let app = AXUIElementCreateApplication(pid)
         AXUIElementSetMessagingTimeout(app, 0.3)
@@ -131,7 +131,7 @@ public enum WindowRaiser {
         }
         let showing = all.filter { !minimized($0) }
         let cands = showing.map { Candidate(title: AXWindowSource.string($0, kAXTitleAttribute), documentPath: AXWindowSource.address(AXWindowSource.string($0, kAXDocumentAttribute)).path) }
-        guard let w = pick(for: target, among: cands).map({ showing[$0] }) ?? (showing.count == 1 ? showing[0] : nil) else { return nil }
+        guard let w = pick(for: target, among: cands).map({ showing[$0] }) ?? (allowOnlyWindow && showing.count == 1 ? showing[0] : nil) else { return nil }
         var pos: CFTypeRef?, size: CFTypeRef?
         guard AXUIElementCopyAttributeValue(w, kAXPositionAttribute as CFString, &pos) == .success, AXUIElementCopyAttributeValue(w, kAXSizeAttribute as CFString, &size) == .success,
               let pv = pos, let sv = size, CFGetTypeID(pv) == AXValueGetTypeID(), CFGetTypeID(sv) == AXValueGetTypeID() else { return nil }

@@ -316,7 +316,8 @@ final class TabEnforcementTests: XCTestCase {
         let s = try XCTUnwrap(TabScript.currentURL(app: "Google Chrome"))
         XCTAssertTrue(s.contains("URL of active tab of front window") && s.contains("incognito"))
         XCTAssertNil(TabScript.currentURL(app: "Safari"), "Safari reports its address through Accessibility")
-        XCTAssertNil(TabScript.currentURL(app: "Arc"))
+        XCTAssertNil(TabScript.currentURL(app: "Firefox"), "a browser we do not steer")
+        XCTAssertNil(TabScript.currentURL(app: "Arc"), "Arc has spaces and is read through currentTab")
     }
 
     func testSwitchingCanBeSwitchedOff() async {
@@ -331,7 +332,7 @@ final class TabEnforcementTests: XCTestCase {
         XCTAssertTrue(s.contains("active tab of front window"))
         XCTAssertTrue(s.contains("a.com/x\\\"; do shell script \\\"rm -rf ~\\\""), "every quote in the address is escaped, so it stays data")
         XCTAssertFalse(s.contains("q=1"), "query and fragment are dropped")
-        XCTAssertNil(TabScript.close(app: "Arc", url: "https://a.com"))
+        XCTAssertNil(TabScript.close(app: "Firefox", url: "https://a.com"), "a browser we do not steer")
         XCTAssertNil(TabScript.switchTo(app: "Safari", url: ""))
         XCTAssertTrue(try XCTUnwrap(TabScript.switchTo(app: "Safari", url: "docs.example.com/calc")).contains("set current tab of w to t"))
     }
