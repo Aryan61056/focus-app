@@ -89,7 +89,7 @@ Apple on-device model is reachable through the FoundationModels framework (Swift
 ```bash
 python3 -m unittest discover -s eval/tests            # unit tests (metrics, rules, scenario validation)
 python3 eval/run_eval.py --validate                   # validate and summarize scenario files
-python3 eval/run_eval.py --backend oracle             # harness sanity: must score 100%
+python3 eval/run_eval.py --backend oracle             # harness sanity: 100% except the 2 scenarios the injection guard withholds (95% recall); it rewrites eval/results/oracle_full_rules.*, so git checkout those after
 python3 eval/run_eval.py --backend fm_swift           # Apple system model, reports to eval/results/
 python3 eval/run_eval.py --backend fm_swift --order relation --text-mode ocr   # other judge, OCR of synthetic screenshots
 python3 eval/combine_results.py <run-a.json> <run-b.json>                      # two-judge rule from saved runs

@@ -10,7 +10,7 @@ Everything here is synthetic. No real screen is captured. Python is stdlib only 
 ```bash
 python3 -m unittest discover -s eval/tests
 python3 eval/run_eval.py --validate
-python3 eval/run_eval.py --backend oracle                  # must be 100%: checks the harness
+python3 eval/run_eval.py --backend oracle                  # checks the harness: 100% except the two adversarial scenarios the injection guard withholds (19 of 19 precision, 95% recall)
 python3 eval/run_eval.py --backend fm_swift                # Apple on-device system model
 python3 eval/run_eval.py --backend fm_swift --text-mode titles   # no window text
 python3 eval/run_eval.py --backend fm_swift --no-rules     # every scenario reaches the model
