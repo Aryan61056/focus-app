@@ -10,12 +10,13 @@ struct FocusRing: View {
     var lineWidth: CGFloat = 14
 
     private var look: Look {
+        let accent = Palette.accent, quiet = Palette.ink2
         switch phase {
-        case .idle: Look(trim: 1, dash: [1, 0], color: Palette.track)
-        case .onTask, .recovering: Look(trim: max(0.015, progress ?? 1), dash: [1, 0], color: Palette.accent)
-        case .unsure: Look(trim: 1, dash: [0.01, 2.2], color: Palette.ink2)
-        case .drifting: Look(trim: 0.8, dash: [1, 0], color: Palette.drift)
-        case .paused, .onBreak: Look(trim: 1, dash: [3, 2.4], color: Palette.ink2)
+        case .idle: return Look(trim: 1, dash: [1, 0], color: Palette.track)
+        case .onTask, .recovering: return Look(trim: max(0.015, progress ?? 1), dash: [1, 0], color: accent)
+        case .unsure: return Look(trim: 1, dash: [0.01, 2.2], color: quiet)
+        case .drifting: return Look(trim: 0.8, dash: [1, 0], color: Palette.drift)
+        case .paused, .onBreak: return Look(trim: 1, dash: [3, 2.4], color: quiet)
         }
     }
 

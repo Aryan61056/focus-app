@@ -16,14 +16,20 @@ struct ReadyView: View {
 
     var body: some View {
         VStack(spacing: 24) {
-            VStack(spacing: 6) {
-                FocusRing(phase: .idle, progress: nil, lineWidth: 10).frame(width: 132, height: 132)
-                Text("Ready when you are").font(.title2.weight(.semibold)).padding(.top, 8)
-                Text(model.connection.isLive ? "Starts on your Mac" : "Waiting for your Mac. Open Focus on it and check Session › iPhone.")
-                    .multilineTextAlignment(.center)
-                    .font(.subheadline).foregroundStyle(Palette.ink2).contentTransition(.interpolate)
+            VStack(spacing: 14) {
+                HStack(spacing: 14) {
+                    FocusRing(phase: .idle, progress: nil, lineWidth: 6).frame(width: 56, height: 56)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Ready when you are").font(.title2.weight(.semibold))
+                        Text(model.connection.isLive ? "Starts on your Mac" : "Waiting for your Mac. Open Focus on it and click Connect your iPhone.")
+                            .font(.subheadline).foregroundStyle(Palette.ink2).contentTransition(.interpolate)
+                    }
+                    Spacer(minLength: 0)
+                }
+                FocusBar(phase: .idle)
             }
-            .padding(.top, 20)
+            .padding(.top, 8)
+            .reveal(0, key: "today")
 
             Card {
                 VStack(alignment: .leading, spacing: 16) {
@@ -48,10 +54,12 @@ struct ReadyView: View {
                     ChoiceChips(options: [("Open", nil), ("25 min", 25), ("50 min", 50), ("90 min", 90)], selection: $minutes)
                 }
             }
+            .reveal(1, key: "today")
 
             PrimaryButton(title: "Start session", systemImage: "play.fill", action: begin).disabled(!canStart)
                 .opacity(canStart ? 1 : 0.55)
                 .motion(Motion.settle, value: canStart)
+                .reveal(2, key: "today")
             if let n = model.notice { Text(n).font(.footnote).foregroundStyle(Palette.ink2).transition(.opacity) }
         }
         .frame(maxWidth: 520)

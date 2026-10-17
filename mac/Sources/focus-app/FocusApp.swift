@@ -147,6 +147,8 @@ struct FocusApp: App {
                     controller.onDockBounce = { if !NSApp.isActive { NSApp.requestUserAttention(.informationalRequest) } }
                     // The iPhone link stays off until turned on in Session > iPhone, and never runs in the scripted demo.
                     if ProcessInfo.processInfo.environment["FOCUS_DEMO"] != "1" { phoneLink.attach(controller) }
+                    // The sidebar card, toolbar button and menu bar row all open this window, so connecting a phone is easy to find.
+                    controller.onOpenPhone = { NSApp.activate(ignoringOtherApps: true); openWindow(id: "iphone") }
                     controller.onBringBackToApp = { name in
                         NSWorkspace.shared.runningApplications.first { $0.localizedName == name && $0.activationPolicy == .regular }?.activate()
                     }

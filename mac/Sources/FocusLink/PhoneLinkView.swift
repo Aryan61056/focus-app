@@ -58,7 +58,7 @@ public struct PhoneLinkView: View {
     private var idle: some View {
         VStack(alignment: .leading, spacing: 16) {
             phones
-            Button { link.beginPairing() } label: { Label(link.phones.isEmpty ? "Pair an iPhone" : "Pair another iPhone", systemImage: "iphone.badge.plus").frame(maxWidth: .infinity) }
+            Button { link.beginPairing() } label: { Label(link.phones.isEmpty ? "Pair an iPhone" : "Pair another iPhone", systemImage: "iphone").frame(maxWidth: .infinity) }
                 .buttonStyle(FocusButtonStyle(.primary, expand: true))
             Text("Install Focus on your iPhone first, then press the button. It takes about ten seconds.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
         }

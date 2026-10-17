@@ -14,17 +14,20 @@ struct ActiveSessionView: View {
 
     var body: some View {
         VStack(spacing: 26) {
+            FocusBar(phase: s.phase).reveal(0, key: "active")
             VStack(spacing: 4) {
                 Eyebrow("Working on")
                 Text(s.task).font(.title2.weight(.semibold)).multilineTextAlignment(.center).lineLimit(3)
             }
-            .padding(.top, 8)
+            .reveal(0, key: "active")
 
-            ringAndClock
-            status
-            controls
+            ringAndClock.reveal(1, key: "active")
+            status.reveal(2, key: "active")
+            Text("Focus can be wrong. When it isn't sure, it does nothing.").font(.footnote).foregroundStyle(Palette.ink2).multilineTextAlignment(.center).reveal(2, key: "active")
+            controls.reveal(3, key: "active")
             Button("End session", role: .destructive) { confirmEnd = true }
                 .font(.subheadline.weight(.medium)).foregroundStyle(Palette.ink2).frame(minHeight: 44)
+                .reveal(4, key: "active")
         }
         .frame(maxWidth: 520)
         .opacity(live ? 1 : 0.55)
@@ -66,7 +69,7 @@ struct ActiveSessionView: View {
                 .contentTransition(.symbolEffect(.replace)).labelStyle(.titleAndIcon)
             if s.phase == .drifting {
                 TimelineView(.periodic(from: .now, by: 1)) { ctx in
-                    Text("Away for \(model.clock.offTopicSeconds(at: ctx.date).clockText)").font(.subheadline.monospacedDigit()).foregroundStyle(Palette.ink2)
+                    Text("Away for \(model.clock.offTopicSeconds(at: ctx.date).clockText)").font(.subheadline.monospacedDigit()).foregroundStyle(Palette.drift)
                 }
             }
             if let d = s.phase.detail(task: s.task) {

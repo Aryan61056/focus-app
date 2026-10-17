@@ -220,7 +220,7 @@ final class AppModel {
 
     private func apply(_ s: SessionState) {
         if s.phase == .drifting, clock.state.phase != .drifting { driftCount += 1 }
-        if s.isActive, !clock.state.isActive { pickup.askPermissionIfNeeded() }
+        if s.isActive, !clock.state.isActive, !isDemo { pickup.askPermissionIfNeeded() }
         clock = SessionClock(state: s, receivedAt: .now)
         if !isDemo { guardCache.save(clock) }
         liveActivity.sync(clock)
