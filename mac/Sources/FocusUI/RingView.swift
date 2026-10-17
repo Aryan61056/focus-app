@@ -85,8 +85,10 @@ struct ProgressArc: Shape {
     }
 }
 
-/// RingView that moves: a new shape blurs in over the old one, like an SF Symbol replace, and a timed arc sweeps second by second.
-/// Reduce Motion keeps a short cross-fade and lets the arc step.
+/// RingView that moves: a new shape blurs in over the old one, like an SF Symbol replace. Reduce Motion keeps a short cross-fade.
+/// A timed arc steps once a second and is not animated: a one-second sweep started every second never ends, so every ring on screen
+/// (toolbar, sidebar, notch, Today) redrew at the display's rate for the whole session, about 40 percent of a core. A 25 minute arc
+/// moves a quarter of a degree a second, which no one can see sweep.
 public struct LiveRing: View {
     var state: RingState
     var color: Color
@@ -107,35 +109,6 @@ public struct LiveRing: View {
             SpringKeyframe(1, duration: 0.5, spring: .init(duration: 0.5, bounce: 0.35))
         }
         .animation(reduceMotion ? Motion.reduced : Motion.notchSettle, value: state.shape)
-        .animation(reduceMotion ? nil : Motion.tick, value: state.fraction)
         .animation(Motion.out(0.3), value: color)
-    }
-}
-
-/// A slow, faint glow behind a ring while you are on task: the app breathing with you. It fades away the moment you drift, so it only
-/// ever means one thing. Reduce Motion: a still glow.
-public struct RingGlow: View {
-    var on: Bool
-    var color: Color
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    public init(on: Bool, color: Color) { self.on = on; self.color = color }
-    public var body: some View {
-        ZStack {
-            if on {
-                Group {
-                    if reduceMotion { halo(up: true) } else { PhaseAnimator([false, true]) { halo(up: $0) } animation: { _ in .easeInOut(duration: 2.6) } }
-                }
-                .transition(.opacity.animation(Motion.out(0.5)))
-            }
-        }
-        .accessibilityHidden(true)
-    }
-    /// A soft disc drawn as a gradient rather than a blurred circle: same look, but a blur re-rendered every frame of a forever animation
-    /// cost a steady share of the CPU.
-    func halo(up: Bool) -> some View {
-        Circle().fill(EllipticalGradient(stops: [.init(color: color, location: 0), .init(color: color, location: 0.5),
-                                                .init(color: color.opacity(0.45), location: 0.72), .init(color: color.opacity(0), location: 1)],
-                                         center: .center, startRadiusFraction: 0, endRadiusFraction: 0.5))
-            .padding(-14).scaleEffect(up ? 1.1 : 0.88).opacity(up ? 0.3 : 0.12)
     }
 }

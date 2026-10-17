@@ -62,13 +62,13 @@ private struct ParkingInput: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Park a thought").font(Tokens.rounded(20))
+            Text("Park a thought").font(Tokens.rounded(.title3))
             TextField("Thought", text: $text, prompt: Text("Save it for later").foregroundStyle(Tokens.ink2)).textFieldStyle(.plain)
                 .padding(10).background(Tokens.well, in: RoundedRectangle(cornerRadius: 8))
                 .overlay { RoundedRectangle(cornerRadius: 8).strokeBorder(focused ? Tokens.accent : Tokens.line, lineWidth: focused ? 2 : 1) }
                 .focused($focused).onSubmit(save).accessibilityLabel("Thought to save for later")
             HStack {
-                Text(saveFailed ? "Couldn’t save. Try again." : (text.count > 2000 ? "Keep this under 2,000 characters." : "Return to save · Esc to cancel")).font(Tokens.text(12)).foregroundStyle(Tokens.ink)
+                Text(saveFailed ? "Couldn’t save. Try again." : (text.count > 2000 ? "Keep this under 2,000 characters." : "Return to save · Esc to cancel")).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink)
                 Spacer()
                 Button("Save", action: save).keyboardShortcut(.defaultAction).disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || text.count > 2000)
                     .help("Save your thought and return to what you were doing")
@@ -93,7 +93,7 @@ struct ParkingLotCard: View {
         Tile {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    Text("For later").font(Tokens.rounded(18))
+                    Text("For later").font(Tokens.rounded(.title3))
                     Spacer()
                     Menu {
                         Button("Clear completed") { store.clearThoughts(completedOnly: true) }.disabled(!store.thoughts.contains { $0.completed })
@@ -110,7 +110,7 @@ struct ParkingLotCard: View {
     var rows: some View {
         ForEach(Array(store.thoughts.prefix(showAll ? store.thoughts.count : 3))) { thought in
                     Toggle(isOn: Binding(get: { thought.completed }, set: { store.completeThought(thought.id, completed: $0) })) {
-                        Text(thought.text).lineLimit(3).help(thought.text).strikethrough(thought.completed).font(Tokens.text(14)).foregroundStyle(thought.completed ? Tokens.ink2 : Tokens.ink)
+                        Text(thought.text).lineLimit(3).help(thought.text).strikethrough(thought.completed).font(Tokens.text(.callout)).foregroundStyle(thought.completed ? Tokens.ink2 : Tokens.ink)
                     }.toggleStyle(.checkbox).help("Mark this thought complete").transition(.rise(reduce: reduceMotion))
                 }
     }

@@ -12,7 +12,7 @@ struct ReadyView: View {
 
     private var recentTasks: [String] {
         var seen = Set<String>()
-        return (model.insights?.recent ?? []).map(\.task).filter { seen.insert($0.lowercased()).inserted }.prefix(3).map { $0 }
+        return (model.displayedInsights?.recent ?? []).map(\.task).filter { seen.insert($0.lowercased()).inserted }.prefix(3).map { $0 }
     }
     private var canStart: Bool { model.connection.isLive && !task.trimmingCharacters(in: .whitespaces).isEmpty }
 

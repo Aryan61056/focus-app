@@ -6,31 +6,33 @@ import FocusBrain
 public enum NotchMode: Equatable, Sendable { case rest, peek, open, nudge }
 
 /// Size of the notch surface for each mode. Pure, so it is tested; the AppKit panel just applies it.
-/// The proportions follow Droppy's notch as measured on this Mac on 2026-10-13: hover widens it about 50 pt a side and 3 pt down,
-/// a click opens it to about 540 by 150.
+/// Slim on purpose (owner, 2026-10-16: "not fat and big"): at rest each ear holds only the ring or the time, hover widens it just
+/// enough for a two-word state, and a nudge or the open card stays under about 420 pt, so it reads as part of the bezel, not a panel.
 public enum NotchLayout {
-    public static let ear: CGFloat = 66
-    /// How much wider each ear gets on hover, or while the notch announces a change of state.
-    public static let peekExtra: CGFloat = 52
+    /// Each ear beside the hardware notch at rest: room for the ring, or for the clock up to "1:05:30".
+    public static let ear: CGFloat = 48
+    /// How much wider each ear gets on hover, or while the notch announces a change of state: the ring plus "Getting back".
+    public static let peekExtra: CGFloat = 44
     /// Room around the biggest shape, so nothing is ever cut off by the window edge.
     public static let shadowPad: CGFloat = 8
-    /// The glass tab bar hangs this far under the open shape (its height plus the gap), as Droppy's does.
-    public static let tabBarRoom: CGFloat = 40
+    /// The open card and the nudge: width of each side beside the hardware notch, and the depth they hang below it.
+    static let openEar: CGFloat = 118, openDepth: CGFloat = 92
+    static let nudgeEar: CGFloat = 110, nudgeDepth: CGFloat = 50
     public static func size(_ mode: NotchMode, notchWidth: CGFloat, notchHeight: CGFloat) -> CGSize {
         if notchWidth == 0 {   // Macs without a notch: a floating pill under the menu bar
             switch mode {
-            case .rest: return CGSize(width: 220, height: 36)
-            case .peek: return CGSize(width: 300, height: 40)
-            case .open: return CGSize(width: 440, height: 132)
-            case .nudge: return CGSize(width: 460, height: 84)
+            case .rest: return CGSize(width: 210, height: 32)
+            case .peek: return CGSize(width: 250, height: 32)
+            case .open: return CGSize(width: 400, height: 32 + openDepth)
+            case .nudge: return CGSize(width: 400, height: 56)
             }
         }
         let base = notchWidth + 2 * ear
         switch mode {
         case .rest: return CGSize(width: base, height: notchHeight)
-        case .peek: return CGSize(width: base + 2 * peekExtra, height: notchHeight + 3)
-        case .open: return CGSize(width: max(base + 2 * peekExtra, 560), height: notchHeight + 132)
-        case .nudge: return CGSize(width: max(base + 2 * peekExtra, 540), height: notchHeight + 72)
+        case .peek: return CGSize(width: base + 2 * peekExtra, height: notchHeight + 2)
+        case .open: return CGSize(width: max(notchWidth + 2 * openEar, 400), height: notchHeight + openDepth)
+        case .nudge: return CGSize(width: max(notchWidth + 2 * nudgeEar, 400), height: notchHeight + nudgeDepth)
         }
     }
 }
@@ -40,13 +42,12 @@ extension NotchLayout {
     /// animation is SwiftUI's and AppKit's layout is never touched while it runs.
     public static func panelSize(notchWidth: CGFloat, notchHeight: CGFloat) -> CGSize {
         let all = [NotchMode.rest, .peek, .open, .nudge].map { size($0, notchWidth: notchWidth, notchHeight: notchHeight) }
-        return CGSize(width: (all.map(\.width).max() ?? 0) + 2 * shadowPad, height: (all.map(\.height).max() ?? 0) + tabBarRoom + shadowPad)
+        return CGSize(width: (all.map(\.width).max() ?? 0) + 2 * shadowPad, height: (all.map(\.height).max() ?? 0) + shadowPad)
     }
 
-    /// What the pointer can be on without the notch closing: the shape, plus the tab bar under it once it is open.
+    /// What the pointer can be on without the notch closing: the shape itself (the page tabs sit inside the open card's top band).
     public static func hitSize(_ mode: NotchMode, notchWidth: CGFloat, notchHeight: CGFloat) -> CGSize {
-        let s = size(mode, notchWidth: notchWidth, notchHeight: notchHeight)
-        return mode == .open ? CGSize(width: s.width, height: s.height + tabBarRoom) : s
+        size(mode, notchWidth: notchWidth, notchHeight: notchHeight)
     }
 
     /// Where the shape starts and ends: the size of the hardware notch, so it grows out of it and tucks back into it. Pixels inside the
@@ -55,14 +56,16 @@ extension NotchLayout {
         notchWidth == 0 ? CGSize(width: 150, height: 30) : CGSize(width: notchWidth, height: notchHeight)
     }
 
-    /// Corner radii per mode: (bottom corners, the concave shoulders where it meets the bezel). Both grow as it opens, as Droppy's do.
+    /// Corner radii per mode: (bottom corners, the concave shoulders where it meets the bezel). Both grow a little as it opens; kept
+    /// modest, since big round corners made the open card look swollen.
     static func radii(_ mode: NotchMode, shown: Bool, pill: Bool) -> (bottom: CGFloat, top: CGFloat) {
         if !shown { return (8, 0) }
-        if pill { return mode == .rest || mode == .peek ? (18, 0) : (28, 0) }
+        if pill { return mode == .rest || mode == .peek ? (16, 0) : (22, 0) }
         switch mode {
-        case .rest: return (10, 5)
-        case .peek: return (12, 6)
-        case .open, .nudge: return (26, 16)
+        case .rest: return (9, 5)
+        case .peek: return (11, 6)
+        case .open: return (22, 12)
+        case .nudge: return (20, 10)
         }
     }
 }
@@ -165,21 +168,29 @@ public struct NotchView: View {
         self.tray = tray ?? NotchTray()
     }
 
-    static let ink = Color(red: 0.93, green: 0.95, blue: 0.94)
-    static let ink2 = Color(red: 0.70, green: 0.73, blue: 0.71)
-    static let accent = Color(red: 0.47, green: 0.84, blue: 0.62)
+    static let ink = Tokens.Notch.ink
+    static let ink2 = Tokens.Notch.ink2
+    static let accent = Tokens.Notch.accent
     static let track = Color.white.opacity(0.16)
 
-    /// A nudge opens the notch once; otherwise a click opens it and hover peeks. The gate (strict pause screen) is not shown here.
+    /// One drift, one popup. The banner over your window carries the nudge, and the notch opening to the same words at the same time
+    /// overlapped it under the menu bar. So the notch opens to a nudge only when the banner is off in Settings; otherwise its ring turns amber.
+    /// The gate (strict pause screen) is never shown here.
+    public static func opensToNudge(_ c: SessionController) -> Bool {
+        guard !c.prefs.showBanner else { return false }
+        return c.checkIn != nil || c.rhythmPrompt != nil || (c.surface.map { $0.kind != "gate" } ?? false)
+    }
+
+    /// A nudge opens the notch once (see `opensToNudge`); otherwise a click opens it and hover peeks.
     public static func mode(for c: SessionController, hover: Bool, expanded: Bool = false, dropping: Bool = false) -> NotchMode {
         if dropping { return .open }   // a file on its way gets the tray, even over a nudge; the nudge is back once it lands
-        if c.checkIn != nil || c.rhythmPrompt != nil { return .nudge }
-        if let s = c.surface, s.kind != "gate" { return .nudge }
+        if opensToNudge(c) { return .nudge }
         if expanded { return .open }
         return hover ? .peek : .rest
     }
     public var mode: NotchMode { forced ?? Self.mode(for: c, hover: model.hover, expanded: model.expanded, dropping: model.dropTargeted) }
-    var tint: Color { c.ringColor == Tokens.accent ? Self.accent : Self.ink }
+    /// Green on task, amber once a slip is called (the banner's color), white otherwise; drifting stays white, since it may be nothing.
+    var tint: Color { c.ringColor == Tokens.accent ? Self.accent : c.presence.state == "interrupted" ? Tokens.Notch.slip : Self.ink }
     var hasNotch: Bool { notchWidth > 0 }
     var big: Bool { mode == .open || mode == .nudge }
     /// The ears are wide: under the pointer, or while a change of state is announced.
@@ -192,12 +203,7 @@ public struct NotchView: View {
         let r = NotchLayout.radii(sizeMode, shown: shown, pill: !hasNotch)
         let shape = NotchShape(bottom: r.bottom, top: r.top, pill: !hasNotch)
         let box = NotchLayout.panelSize(notchWidth: notchWidth, notchHeight: notchHeight)
-        VStack(spacing: 8) {
-            surface(shape: shape, size: size, box: box, shown: shown)
-            if shown && mode == .open && forced == nil || forced == .open {
-                ShelfTabBar(model: model).transition(tabBarTransition)
-            }
-        }
+        surface(shape: shape, size: size, box: box, shown: shown)
         // Mouse down squeezes it in from the sides before it springs open, the press Droppy gives.
         .scaleEffect(x: pressing && !big && !reduceMotion ? 0.87 : 1, y: 1, anchor: .top)
         .onChange(of: model.dropTargeted) { _, on in if on { model.tab = .tray } }
@@ -225,14 +231,9 @@ public struct NotchView: View {
         let open = shown && big
         let dotOrigin = CGPoint(x: (box.width - size.width) / 2, y: 0)
         return ZStack(alignment: .top) {
-            // A nudge stays solid black, so its one line reads crisply, with green light rising from its foot. The open card melts into glass.
-            NotchMaterial(shape: shape, expanded: shown && mode == .open, notchHeight: hasNotch ? notchHeight : 0)
-            if shown && mode == .open { DotField(model: model, origin: dotOrigin).transition(.opacity.animation(Motion.out(0.3))) }
-            if shown && mode == .nudge {
-                // Ripples out of the hardware notch as the card opens, like the hero art on Today.
-                Halftone(pattern: .nudge, ripple: .onAppear, followsPointer: false)
-                    .transition(.opacity.animation(Motion.out(0.2)))
-            }
+            // A nudge stays solid black, like the hardware notch it hangs from; only the open card melts into glass.
+            NotchMaterial(shape: shape, expanded: open && mode == .open, notchHeight: hasNotch ? notchHeight : 0)
+            if open && mode == .open { DotField(model: model, origin: dotOrigin).transition(.opacity.animation(Motion.out(0.3))) }
             content.frame(width: size.width, height: size.height, alignment: .top)
                 .opacity(shown ? 1 : 0)
                 .blur(radius: shown || reduceMotion ? 0 : 6)
@@ -289,17 +290,10 @@ public struct NotchView: View {
                            removal: AnyTransition.opacity.combined(with: AnyTransition(.blurReplace)).animation(Motion.out(0.12)))
     }
 
-    /// The tab bar drops out from under the shape once it has opened, and tucks back up first when it closes.
-    var tabBarTransition: AnyTransition {
-        if reduceMotion { return .opacity.animation(Motion.reduced) }
-        return .asymmetric(insertion: AnyTransition.opacity.combined(with: .offset(y: -14)).combined(with: .scale(scale: 0.8, anchor: .top)).animation(Motion.notchOpen.delay(0.08)),
-                           removal: AnyTransition.opacity.combined(with: .offset(y: -10)).animation(Motion.out(0.12)))
-    }
-
     /// The band stays put while the body underneath fades in and out, so the ring and time never jump.
     @ViewBuilder var content: some View {
         VStack(spacing: 0) {
-            if hasNotch { band } else if !big { rest }
+            if hasNotch { band } else if !big { rest } else if mode == .open { openHeader.frame(height: 32) }
             switch mode {
             case .rest, .peek: EmptyView()
             case .open: openBody.transition(bodyTransition)
@@ -309,25 +303,46 @@ public struct NotchView: View {
     }
 
     /// The top band: ring on the left ear, the hardware notch in the middle, the time on the right ear. Wider under the pointer,
-    /// with how Focus reads you beside the ring. The open card has its own big ring and clock, so the band empties for it.
+    /// with how Focus reads you beside the ring. Open, the band carries the state and the page tabs instead, so nothing hangs below.
     var band: some View {
-        let extra = wide ? NotchLayout.peekExtra : 0
-        return HStack(spacing: 0) {
-            HStack(spacing: 7) {
-                ring
-                if wide {
-                    Text(flash ?? c.presenceLabel).font(Tokens.text(12, .semibold)).foregroundStyle(tint).lineLimit(1).fixedSize()
-                        .transition(earTransition(.leading))
+        // Over a nudge the ring and the time move out to the row's edges, so they line up with the words and the button below.
+        let edges = mode == .nudge
+        let earW = wide ? NotchLayout.ear + NotchLayout.peekExtra
+            : edges ? (NotchLayout.size(.nudge, notchWidth: notchWidth, notchHeight: notchHeight).width - notchWidth) / 2 : NotchLayout.ear
+        return ZStack {
+            HStack(spacing: 0) {
+                HStack(spacing: 6) {
+                    ring
+                    if wide {
+                        Text(flash ?? c.presenceLabel).font(Tokens.fixed(.caption2, .semibold)).foregroundStyle(tint).lineLimit(1).fixedSize()
+                            .transition(earTransition(.leading))
+                    }
                 }
+                .padding(.leading, edges ? 22 : 0)
+                .frame(width: earW, alignment: edges ? .leading : .center)
+                Spacer(minLength: notchWidth)
+                time.padding(.trailing, edges ? 16 : 0).frame(width: earW, alignment: edges ? .trailing : .center)
             }
-            .frame(width: NotchLayout.ear + extra)
-            Spacer(minLength: notchWidth)
-            time.frame(width: NotchLayout.ear + extra)
+            .frame(width: notchWidth + 2 * earW, height: notchHeight)
+            .opacity(mode == .open ? 0 : 1)
+            .blur(radius: mode == .open && !reduceMotion ? 4 : 0)
+            if mode == .open {
+                openHeader.frame(width: NotchLayout.size(.open, notchWidth: notchWidth, notchHeight: notchHeight).width, height: notchHeight)
+                    .transition(bodyTransition)
+            }
         }
-        .frame(width: notchWidth + 2 * (NotchLayout.ear + extra), height: notchHeight)
-        // The open card and the nudge carry their own ring and clock, so the band empties for them.
-        .opacity(big ? 0 : 1)
-        .blur(radius: big && !reduceMotion ? 4 : 0)
+    }
+
+    /// The open card's top line: the ring and the state word on the left, the page tabs on the right, the hardware notch between.
+    var openHeader: some View {
+        HStack(spacing: 6) {
+            ring
+            Text(c.presenceLabel).font(Tokens.fixed(.caption, .semibold)).foregroundStyle(tint).lineLimit(1).fixedSize()
+                .contentTransition(.interpolate)
+            Spacer(minLength: hasNotch ? notchWidth : 8)
+            ShelfTabBar(model: model)
+        }
+        .padding(.leading, hasNotch ? 20 : 14).padding(.trailing, hasNotch ? 16 : 10)
     }
 
     /// Words in a widened ear wait for the ear to open, then come out of a blur.
@@ -339,26 +354,24 @@ public struct NotchView: View {
 
     /// The resting pill on a screen without a notch.
     var rest: some View {
-        HStack(spacing: 10) {
-            ring.frame(width: 20)
-            Text(wide ? (flash ?? c.presenceLabel) : c.taskName).font(Tokens.text(13, wide ? .semibold : .medium)).lineLimit(1)
+        HStack(spacing: 8) {
+            ring
+            Text(wide ? (flash ?? c.presenceLabel) : c.taskName).font(Tokens.fixed(.caption, wide ? .semibold : .medium)).lineLimit(1)
                 .foregroundStyle(wide ? tint : Self.ink)
                 .contentTransition(.interpolate)
             Spacer(minLength: 4)
             time
-        }.padding(.horizontal, 14).frame(maxHeight: .infinity)
+        }.padding(.horizontal, 12).frame(maxHeight: .infinity)
     }
 
     var ring: some View {
         // Ticks each second so a timed arc sweeps with the clock; a change of shape (drift, a pause) blurs in.
-        TimelineView(.periodic(from: .now, by: 1)) { _ in LiveRing(c.ringState, color: tint).frame(width: 18, height: 18) }
+        TimelineView(.everySecond) { _ in LiveRing(c.ringState, color: tint).frame(width: 14, height: 14) }
     }
     var time: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { _ in
+        TimelineView(.everySecond) { _ in
             let t = c.clockText()
-            Text(t).font(Tokens.rounded(13, .semibold)).monospacedDigit()
-                .contentTransition(.numericText(countsDown: c.mode == .timed))
-                .motion(Motion.out(0.3), value: t)
+            Text(t).font(Tokens.fixed(.caption, .semibold, rounded: true)).monospacedDigit().fixedSize()
         }
     }
 
@@ -386,8 +399,8 @@ public struct NotchView: View {
         }
         .frame(maxHeight: .infinity, alignment: .top)
         .motion(Motion.notchSettle, value: model.tab)
-        // Clear of the concave shoulders (16 pt) and the rounded foot, so nothing sits on the curve.
-        .padding(.horizontal, 30).padding(.top, hasNotch ? 6 : 16).padding(.bottom, 18)
+        // Clear of the concave shoulders (12 pt) and the rounded foot, so nothing sits on the curve.
+        .padding(.horizontal, 22).padding(.top, 6).padding(.bottom, 14)
     }
 
     /// Pages swap in place: the old one blurs away as the new one sharpens in.
@@ -395,34 +408,21 @@ public struct NotchView: View {
 
     // MARK: nudge: one way forward, no way out
 
-    /// One row: the ring, the question with how far into the session you are, and the one way forward.
+    /// The words, one line of what Focus saw under them, and the one button. On a screen without a notch the pill has no band, so the
+    /// state ring leads. The rows sit centred in the space under the band, clear of the rounded foot.
     var nudgeBody: some View {
-        HStack(alignment: .center, spacing: 14) {
-            TimelineView(.periodic(from: .now, by: 1)) { _ in LiveRing(c.ringState, color: tint).frame(width: 20, height: 20) }
-                .padding(10)
-                .background(Circle().fill(Color.white.opacity(0.08)))
-                .overlay { Circle().strokeBorder(PillEdge.gradient, lineWidth: 1) }
+        HStack(alignment: .center, spacing: 10) {
+            if !hasNotch { nudgeMark.frame(width: 18, height: 18) }
             VStack(alignment: .leading, spacing: 2) {
-                Text(nudgeText).font(Tokens.rounded(16, .semibold)).lineLimit(1).minimumScaleFactor(0.85)
-                Group {
-                    if let hint = nudgeHint {
-                        // Prompts that need an answer other than going back are answered in the Focus window, not here.
-                        Text(hint)
-                    } else {
-                        TimelineView(.periodic(from: .now, by: 1)) { _ in
-                            Text(c.mode == .timed ? "\(c.clockText()) left in this session" : "\(c.clockText()) into this session").monospacedDigit()
-                        }
-                    }
-                }
-                .font(Tokens.text(12)).foregroundStyle(Self.ink2).lineLimit(1)
+                Text(nudgeText).font(Tokens.fixed(.body, .semibold)).lineLimit(1).truncationMode(.tail)
+                nudgeMeta
             }
-            .layoutPriority(1)
-            Spacer(minLength: 10)
-            if nudgeHint == nil { pill("Back to task") { c.act(.backToTask) } }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if offersWayBack { pill("Back to task") { c.act(.backToTask) } }
         }
-        .padding(.horizontal, hasNotch ? 30 : 16)
+        .padding(.leading, hasNotch ? 22 : 16).padding(.trailing, hasNotch ? 14 : 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.top, hasNotch ? 2 : 0).padding(.bottom, hasNotch ? 6 : 0)
+        .padding(.bottom, hasNotch ? 4 : 0)
     }
 
     var nudgeText: String {
@@ -431,23 +431,41 @@ public struct NotchView: View {
         return c.nudgeTitle
     }
 
-    /// A check-in or schedule prompt has no "back to task" answer, so the notch says where to answer it instead of offering a button.
-    var nudgeHint: String? {
-        if c.surface == nil, c.rhythmPrompt != nil, c.checkIn == nil { return "Answer in the Focus window or the menu bar." }
-        return nil
+    /// A warning or the check-in: going back is the answer the notch can give. A schedule prompt is answered on the banner or in the menu bar.
+    var offersWayBack: Bool { c.surface != nil || c.checkIn != nil }
+
+    @ViewBuilder var nudgeMark: some View {
+        if offersWayBack { RingView(.drift, color: Tokens.Notch.slip) }
+        else { RingView(c.rhythmPrompt?.kind.ring ?? .on, color: Self.accent) }
     }
+
+    @ViewBuilder var nudgeMeta: some View {
+        HStack(spacing: 5) {
+            if c.checkIn != nil {
+                notchSparkle; Text(CueCopy.checkInMeta)
+            } else if c.surface != nil {
+                notchSparkle; Text(CueCopy.reminderMeta)
+                TimelineView(.everySecond) { _ in Text(BannerView.clock(c.offTopicSecondsNow())).monospacedDigit().foregroundStyle(Tokens.Notch.slip) }
+            } else if let p = c.rhythmPrompt {
+                Image(systemName: "clock").font(.system(size: 9, weight: .semibold))
+                Text(c.prefs.showBanner ? CueCopy.rhythmMeta(p.kind, checkInMinutes: c.prefs.checkInMinutes) : "Answer in the menu bar")
+            }
+        }
+        .font(Tokens.fixed(.caption2, .medium)).foregroundStyle(Self.ink2).lineLimit(1)
+    }
+
+    var notchSparkle: some View { Image(systemName: "sparkle").font(.system(size: 9, weight: .semibold)).foregroundStyle(Self.accent).accessibilityHidden(true) }
 
     /// The only button on the notch. It goes the way the app wants you to go, so it is the one thing that is safe to leave here.
     func pill(_ title: String, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(title).font(Tokens.text(13, .semibold)).foregroundStyle(Color(red: 0.02, green: 0.1, blue: 0.05))
-                .padding(.horizontal, 18).frame(height: 32)
+            Text(title).font(Tokens.fixed(.caption, .semibold)).foregroundStyle(Tokens.Notch.onAccent)
+                .padding(.horizontal, 12).frame(height: 26)
         }.buttonStyle(PillStyle())
     }
 }
 
-/// The notch's one button: brightens under the pointer and gives under the click, like a system control. Solid, not glass, because
-/// the panels it sits in never become key, and glass in an inactive window draws grey.
+/// The notch's one button: brightens under the pointer and gives under the click, like a system control.
 struct PillStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View { Inner(configuration: configuration) }
     struct Inner: View {

@@ -1,5 +1,6 @@
 import XCTest
 import CoreGraphics
+import os
 @testable import FocusSense
 @testable import FocusUI
 @testable import FocusJudge
@@ -118,5 +119,47 @@ final class PreviewWatcherTests: XCTestCase {
         c.begin(task: "Calc homework", preset: .standard, shadow: false)
         w.capture(); await settle(); c.end()
         XCTAssertNil(c.previewFrame); XCTAssertEqual(c.screenText, "")
+    }
+}
+
+/// Reading the words is the expensive part of screen reading; it must not run again on a window that has not changed.
+@MainActor
+final class OCRSavingTests: XCTestCase {
+    final class CountingReader: ScreenReader, @unchecked Sendable {
+        private let n = OSAllocatedUnfairLock(initialState: 0)
+        var count: Int { n.withLock { $0 } }
+        func words(in image: CGImage) async -> String { n.withLock { $0 += 1 }; return "Problem 4. Integrate by parts." }
+    }
+    struct FlatGrabber: ScreenGrabber {
+        var shade: UInt8 = 200
+        var isAllowed: Bool { true }
+        func requestAccess() {}
+        func grab() async -> (image: CGImage, app: String)? { (image(shade), "Notes") }
+    }
+    nonisolated static func image(_ shade: UInt8, bar: Bool = false) -> CGImage {
+        let ctx = CGContext(data: nil, width: 320, height: 200, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        let v = CGFloat(shade) / 255
+        ctx.setFillColor(CGColor(red: v, green: v, blue: v, alpha: 1)); ctx.fill(CGRect(x: 0, y: 0, width: 320, height: 200))
+        if bar { ctx.setFillColor(CGColor(red: 0, green: 0, blue: 0, alpha: 1)); ctx.fill(CGRect(x: 20, y: 80, width: 280, height: 60)) }
+        return ctx.makeImage()!
+    }
+    func image(_ s: UInt8) -> CGImage { Self.image(s) }
+
+    func testTheSamePictureIsNotReadTwice() async {
+        let c = SessionController(judge: ScriptedJudge(markers: [("Notes", .on)]), now: { 0 })
+        c.windowChanged(WindowSnapshot(app: "Notes", title: "Calc homework")); c.prefs.readScreen = true
+        c.begin(task: "Calc homework", preset: .standard, shadow: false)
+        let reader = CountingReader()
+        let w = PreviewWatcher(grabber: FlatGrabber(), reader: reader, controller: c, readEvery: 0)
+        for _ in 0..<5 { w.capture(); for _ in 0..<6 { await Task.yield(); try? await Task.sleep(nanoseconds: 4_000_000) } }
+        XCTAssertEqual(reader.count, 1, "five captures of an unchanged window cost one read")
+        XCTAssertNotNil(c.previewFrame, "the picture itself still refreshes")
+    }
+
+    func testAChangedPictureIsReadAgain() {
+        let a = PictureFingerprint.of(Self.image(200)), b = PictureFingerprint.of(Self.image(200)), c = PictureFingerprint.of(Self.image(200, bar: true))
+        XCTAssertFalse(PictureFingerprint.changed(a, b))
+        XCTAssertTrue(PictureFingerprint.changed(a, c), "a new block of text moves many cells")
+        XCTAssertTrue(PictureFingerprint.changed(nil, a))
     }
 }

@@ -31,7 +31,9 @@ enum SampleData {
             (8, 14, 44, calc, 3), (9, 9.5, 61, thesis, 0), (10, 11, 33, deck, 1), (12, 9, 50, thesis, 1),
         ]
         for (i, p) in plan.enumerated().reversed() {
-            let start = today.addingTimeInterval(-Double(p.0) * 86_400 + p.1 * 3600)
+            // Run just after midnight, "today" would be in the future; keep every made-up session in the past.
+            let base = today.addingTimeInterval(-Double(p.0) * 86_400 + p.1 * 3600)
+            let start = base > .now ? base.addingTimeInterval(-86_400) : base
             let total = p.2 * 60
             let off = Double(p.4) * 150, unsure = Double((i % 3) + 1) * 60
             let segs: [TimelineSegment] = p.4 == 0

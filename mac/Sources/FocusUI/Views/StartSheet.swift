@@ -4,16 +4,27 @@ import FocusBrain
 public struct StartSheet: View {
     @Bindable var c: SessionController
     @Binding var isPresented: Bool
+    var asking = false
     public init(controller: SessionController, isPresented: Binding<Bool>) { c = controller; _isPresented = isPresented }
+    /// Snapshot only: a name already typed, and the near-duplicate question already asked.
+    init(controller: SessionController, typed: String, asking: Bool) {
+        c = controller; _isPresented = .constant(true); self.asking = asking; controller.startDraft.task = typed
+    }
     public var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            StartForm(c: c) { isPresented = false }
+            StartForm(c: c, asking: asking) { isPresented = false }
             HStack { Spacer(); Button("Cancel") { isPresented = false }.keyboardShortcut(.cancelAction) }
         }.padding(24).frame(width: 520).onExitCommand { isPresented = false }
     }
     static func lastProject(_ store: DataStore?) -> Project? {
         guard let store, let r = store.sessions.max(by: { $0.start < $1.start }) else { return nil }
         return store.project(r.projectId)
+    }
+
+    /// The older project to ask about before starting `task`: one the name looks like, unless the name is a project's exactly. Nil starts at once.
+    static func askAbout(_ task: String, in projects: [Project]) -> Project? {
+        guard !task.isEmpty, ProjectMatch.exact(task, in: projects) == nil else { return nil }
+        return ProjectMatch.similar(to: task, in: projects, limit: 1).first
     }
 
     static func confirmLine(task: String, project: Project?) -> String? {

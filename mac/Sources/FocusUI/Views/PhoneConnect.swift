@@ -23,7 +23,7 @@ struct PhoneConnectCard: View {
     private var tile: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(LinearGradient(colors: [Color(red: 0.42, green: 0.80, blue: 0.56), Color(red: 0.16, green: 0.50, blue: 0.32)], startPoint: .top, endPoint: .bottom))
+                .fill(Tokens.accentSoft)
             PhoneGlyph(adding: c.phoneState == .none)
         }
         .frame(width: 34, height: 34)
@@ -38,10 +38,10 @@ struct PhoneConnectCard: View {
                     tile
                     VStack(alignment: .leading, spacing: 1) {
                         HStack(spacing: 6) {
-                            Text(title).font(Tokens.text(13, .semibold)).foregroundStyle(Tokens.ink).lineLimit(1)
+                            Text(title).font(Tokens.text(.body, .semibold)).foregroundStyle(Tokens.ink).lineLimit(1)
                             if live { Circle().fill(Tokens.accent).frame(width: 7, height: 7).transition(.scale.combined(with: .opacity)) }
                         }
-                        Text(detail).font(Tokens.text(11.5)).foregroundStyle(Tokens.ink2).lineLimit(1)
+                        Text(detail).font(Tokens.text(.caption2)).foregroundStyle(Tokens.ink2).lineLimit(1)
                     }
                     Spacer(minLength: 0)
                     Image(systemName: "chevron.right").font(.system(size: 10, weight: .bold)).foregroundStyle(Tokens.ink2.opacity(0.7))
@@ -50,7 +50,7 @@ struct PhoneConnectCard: View {
                 // Squeezed sidebar: the tile with a one-word label.
                 HStack(spacing: 6) {
                     tile.scaleEffect(0.82).frame(width: 28, height: 28)
-                    Text(c.phoneState == .none ? "Add iPhone" : "iPhone").font(Tokens.text(12, .semibold)).foregroundStyle(Tokens.ink).lineLimit(1)
+                    Text(c.phoneState == .none ? "Add iPhone" : "iPhone").font(Tokens.text(.caption, .semibold)).foregroundStyle(Tokens.ink).lineLimit(1)
                     if live { Circle().fill(Tokens.accent).frame(width: 6, height: 6) }
                 }
                 .fixedSize(horizontal: true, vertical: false)
@@ -83,9 +83,9 @@ struct PhoneGlyph: View {
     var adding: Bool
     var size: CGFloat = 15
     var body: some View {
-        Image(systemName: "iphone").font(.system(size: size, weight: .semibold)).foregroundStyle(.white)
+        Image(systemName: "iphone").font(.system(size: size, weight: .semibold)).foregroundStyle(Tokens.accentInk)
             .overlay(alignment: .topTrailing) {
-                if adding { Image(systemName: "plus").font(.system(size: size * 0.5, weight: .heavy)).foregroundStyle(.white).offset(x: size * 0.4, y: -size * 0.3) }
+                if adding { Image(systemName: "plus").font(.system(size: size * 0.5, weight: .heavy)).foregroundStyle(Tokens.accentInk).offset(x: size * 0.4, y: -size * 0.3) }
             }
     }
 }

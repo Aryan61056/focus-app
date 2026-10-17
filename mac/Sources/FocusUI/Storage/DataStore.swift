@@ -11,6 +11,8 @@ public final class DataStore {
     public private(set) var review: [ReviewMoment] = []
     public private(set) var thoughts: [ParkedThought] = []
     @ObservationIgnored private let url: URL?
+    /// The last save did not reach the disk (full disk, no permission). Today says so, because the alternative is losing sessions without a word.
+    public private(set) var saveFailed = false
 
     public init(url: URL? = nil) {
         self.url = url
@@ -27,15 +29,23 @@ public final class DataStore {
 
     public static var defaultURL: URL {
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Focus", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         return dir.appendingPathComponent("store.json")
     }
 
     @discardableResult func save() -> Bool {
         guard let url else { return true }
-        guard let data = try? JSONEncoder.store.encode(StoreFile(projects: projects, sessions: sessions, review: review, thoughts: thoughts)) else { return false }
-        do { try data.write(to: url, options: [.atomic]); return true } catch { return false }
+        guard let data = try? JSONEncoder.store.encode(StoreFile(projects: projects, sessions: sessions, review: review, thoughts: thoughts)) else { saveFailed = true; return false }
+        do {
+            try data.write(to: url, options: [.atomic])
+            // Task and project names are personal: only this user may read the file (an atomic write makes a new file with the default 0644).
+            try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+            if saveFailed { saveFailed = false }
+            return true
+        } catch { saveFailed = true; return false }
     }
+
+    public func retrySave() { save() }
 
     // MARK: projects
     @discardableResult
@@ -44,9 +54,42 @@ public final class DataStore {
     public func update(_ p: Project) { if let i = projects.firstIndex(where: { $0.id == p.id }) { projects[i] = p; save() } }
     public func deleteProject(_ id: UUID) { projects.removeAll { $0.id == id }; save() }
 
+    /// The project with this name, or nil. Never creates one: views ask this while you type, and a lookup that makes projects
+    /// made one per keystroke ("f", "fd", "fdf"...). Only starting a session creates a project.
+    public func existingProject(named name: String) -> Project? { ProjectMatch.exact(name, in: projects) }
+
+    /// Projects an earlier build made while a name was being typed: one per keystroke, so each is a shorter start of a longer name that
+    /// was made within minutes after it, and holds nothing (no sessions, description, next step or rules). Removes only those, once,
+    /// keeping a copy of the file first. Returns how many went.
+    @discardableResult
+    public func removeTypingLeftovers() -> Int {
+        func holdsNothing(_ p: Project) -> Bool {
+            sessions.allSatisfy { $0.projectId != p.id } && p.context.isEmpty && p.nextStep.isEmpty && p.profile == ProjectProfile()
+        }
+        let leftovers = projects.filter { p in
+            let n = ProjectMatch.normalize(p.name)
+            guard !n.isEmpty, holdsNothing(p) else { return false }
+            return projects.contains { q in
+                q.id != p.id && q.createdAt >= p.createdAt && q.createdAt.timeIntervalSince(p.createdAt) <= 300
+                    && ProjectMatch.normalize(q.name).count > n.count && ProjectMatch.normalize(q.name).hasPrefix(n)
+            }
+        }
+        guard !leftovers.isEmpty else { return 0 }
+        if let url, FileManager.default.fileExists(atPath: url.path) {
+            let backup = url.deletingLastPathComponent().appendingPathComponent("store.before-cleanup.json")
+            try? FileManager.default.removeItem(at: backup)
+            try? FileManager.default.copyItem(at: url, to: backup)
+            try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: backup.path)
+        }
+        let ids = Set(leftovers.map(\.id))
+        projects.removeAll { ids.contains($0.id) }
+        save()
+        return ids.count
+    }
+
     /// Find a project by its name (case-insensitive) or make one, so a typed task becomes a project the next session can reuse.
     public func projectNamed(_ name: String) -> Project {
-        projects.first { $0.name.caseInsensitiveCompare(name) == .orderedSame } ?? addProject(name: name)
+        existingProject(named: name) ?? addProject(name: name)
     }
 
     // MARK: sessions

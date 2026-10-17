@@ -32,6 +32,8 @@ public final class Preferences {
     public var readScreen: Bool { didSet { defaults.set(readScreen, forKey: "readScreen") } }
     /// First-run intro shown once; and the one "too quiet, about right, too loud" question, asked once after the first session that actually nudged.
     public var introSeen: Bool { didSet { defaults.set(introSeen, forKey: "introSeen") } }
+    /// The welcome window (what Focus does, window access, the first task) was finished or skipped.
+    public var welcomeSeen: Bool { didSet { defaults.set(welcomeSeen, forKey: "welcomeSeen") } }
     public var loudnessAsked: Bool { didSet { defaults.set(loudnessAsked, forKey: "loudnessAsked") } }
     public var contextTipDismissed: Bool { didSet { defaults.set(contextTipDismissed, forKey: "contextTipDismissed") } }
     /// A window whose title or address shares words with the task counts as on task without the model. Quiet by construction.
@@ -45,6 +47,14 @@ public final class Preferences {
     public var practiceRemoved: Bool { didSet { defaults.set(practiceRemoved, forKey: "practiceRemoved"); if practiceRemoved { practiceSessionsLeft = 0 } } }
     /// Quiet rewards: today's progress toward a daily goal, a streak with rest days, longest stretch, how fast you get back. Off hides all of it.
     public var showProgress: Bool { didSet { defaults.set(showProgress, forKey: "showProgress") } }
+    /// Friends (docs/SOCIAL.md): your daily numbers go to the friends you invite through iCloud. Off by default; turning it off deletes them.
+    public var shareWithFriends: Bool { didSet { defaults.set(shareWithFriends, forKey: "shareWithFriends") } }
+    /// The name friends see. Empty until you type one.
+    public var friendName: String { didSet { defaults.set(friendName, forKey: "friendName") } }
+    /// The avatar friends see, from FriendCard.avatars. Empty shows your first letter.
+    public var friendEmoji: String { didSet { defaults.set(friendEmoji, forKey: "friendEmoji") } }
+    /// The Friends board last looked at, so the page opens where you left it.
+    public var friendsBoard: String { didSet { defaults.set(friendsBoard, forKey: "friendsBoard") } }
     public var dailyGoalMinutes: Int { didSet { defaults.set(dailyGoalMinutes, forKey: "dailyGoalMinutes") } }
     /// Wording of nudges only. Curated lines, never model-written, and none ever names what you were looking at.
     public var nudgeTone: NudgeTone { didSet { defaults.set(nudgeTone.rawValue, forKey: "nudgeTone") } }
@@ -89,6 +99,8 @@ public final class Preferences {
     /// Easy in the morning, firmer when you are behind the day's goal (DayPressure).
     public var paceMatters: Bool { didSet { defaults.set(paceMatters, forKey: "paceMatters") } }
     public static let goalChoices = [30, 60, 90, 120, 180]
+    /// How large the app window's text is drawn, 1 to 1.5 (General, Text size). The notch and the over-window banner keep their size.
+    public var textScale: Double { didSet { defaults.set(textScale, forKey: "textScale"); TextScale.shared.factor = CGFloat(textScale) } }
     public var practiceActive: Bool { !practiceRemoved && practiceSessionsLeft > 0 }
 
     public init(defaults: UserDefaults = .standard) {
@@ -102,12 +114,17 @@ public final class Preferences {
         notchWidgets = defaults.stringArray(forKey: "notchWidgets") ?? ["today"]
         notchNote = defaults.string(forKey: "notchNote") ?? ""
         introSeen = defaults.object(forKey: "introSeen") as? Bool ?? false
+        welcomeSeen = defaults.object(forKey: "welcomeSeen") as? Bool ?? false
         loudnessAsked = defaults.object(forKey: "loudnessAsked") as? Bool ?? false
         contextTipDismissed = defaults.object(forKey: "contextTipDismissed") as? Bool ?? false
         matchTaskWords = defaults.object(forKey: "matchTaskWords") as? Bool ?? true
         useModel = defaults.object(forKey: "useModel") as? Bool ?? true
         aiHelp = defaults.object(forKey: "aiHelp") as? Bool ?? true
         showProgress = defaults.object(forKey: "showProgress") as? Bool ?? true
+        shareWithFriends = defaults.bool(forKey: "shareWithFriends")
+        friendName = defaults.string(forKey: "friendName") ?? ""
+        friendEmoji = defaults.string(forKey: "friendEmoji") ?? ""
+        friendsBoard = defaults.string(forKey: "friendsBoard") ?? ""
         dailyGoalMinutes = defaults.object(forKey: "dailyGoalMinutes") as? Int ?? 90
         nudgeTone = NudgeTone(rawValue: defaults.string(forKey: "nudgeTone") ?? "") ?? .neutral
         checkRate = CheckRate(rawValue: defaults.string(forKey: "checkRate") ?? "") ?? .often
@@ -130,6 +147,9 @@ public final class Preferences {
         checkInMinutes = defaults.object(forKey: "checkInMinutes") as? Int ?? 25
         paceMatters = defaults.object(forKey: "paceMatters") as? Bool ?? true
         nudgeSound = defaults.object(forKey: "nudgeSound") as? Bool ?? false
+        let scale = min(1.5, max(1, defaults.object(forKey: "textScale") as? Double ?? 1))
+        textScale = scale
+        TextScale.shared.factor = CGFloat(scale)
         let removed = defaults.object(forKey: "practiceRemoved") as? Bool ?? true
         practiceRemoved = removed
         practiceSessionsLeft = removed ? 0 : (defaults.object(forKey: "practiceLeft") as? Int ?? Preferences.practiceSessions)

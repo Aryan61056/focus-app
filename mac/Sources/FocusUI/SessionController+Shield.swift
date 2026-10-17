@@ -36,7 +36,7 @@ extension SessionController {
         // Leaving the site ends a friction or claim screen; a pause screen belongs to the ladder.
         if let s = shield, s.kind != .pause, s.siteKey != site { shield = nil }
         let t = now()
-        guard prefs.frictionReturn, !shadow, shield == nil, t >= frictionQuietUntil, blockedSites[site] != nil, checkIn == nil else { return }
+        guard prefs.frictionReturn, !shadow, !isHeld, shield == nil, t >= frictionQuietUntil, blockedSites[site] != nil, checkIn == nil else { return }
         if pageHasPass(w) { return }
         let strikes = (frictionStrikes[site] ?? 0) + 1
         frictionStrikes[site] = strikes
@@ -189,7 +189,7 @@ extension SessionController {
         let words = OverrideClaim.content(OverrideClaim.tidy(raw))
         if acceptedClaimWords.contains(where: { OverrideClaim.similarity($0, words) >= 0.6 }) { s.message = OverrideClaim.reusedMessage; shield = s; return }
         guard prefs.useModel, let w else {
-            s.message = prefs.useModel ? "Focus cannot see a window to check. Go back to your task." : "The on-device model is switched off in Settings, so Focus cannot check this. Go back to your task."
+            s.message = prefs.useModel ? "Focus cannot see a window to check." : "Checking is switched off in Settings."
             shield = s; return
         }
         s.checking = true; s.message = nil
@@ -219,11 +219,11 @@ extension SessionController {
         } else {
             let n = s.attemptsLeft
             switch r.why {
-            case .ruleSaysNever: s.message = "You told Focus this never counts for the project. Change that in Projects if it is wrong."
+            case .ruleSaysNever: s.message = "Your rule says this never counts. Change it in Projects."
             case .injected: s.message = OverrideClaim.Issue.injected.message
             case .sensitive: s.message = "This is a private window, so Focus cannot read it."
-            case .couldNotTell: s.message = "Focus could not tell from the window, so it kept the block. \(n) \(n == 1 ? "try" : "tries") left."
-            default: s.message = "Focus read the window again and it does not look like \(taskName). \(n) \(n == 1 ? "try" : "tries") left."
+            case .couldNotTell: s.message = "Focus could not tell, so the block stays. \(n) \(n == 1 ? "try" : "tries") left."
+            default: s.message = "This does not look like \(taskName). \(n) \(n == 1 ? "try" : "tries") left."
             }
         }
         shield = s
@@ -258,6 +258,9 @@ extension SessionController {
 
     /// Demo and test only: locks explaining, as two wrong answers would.
     public func debugLock() { overrideLockedUntil = now() + Shield.lockSeconds(after: overrideLocks) }
+
+    /// Test only: puts up a banner of this kind as it would appear.
+    func debugShowBanner(_ kind: Banner.Kind, at t: Double) { banner = Banner(kind: kind, at: t) }
 
     /// Demo and test only: shows a shield as if it had just appeared.
     public func debugShowShield(_ kind: Shield.Kind, app: String = "Safari", site: String = "safari|youtube.com", wait: Double = 0,

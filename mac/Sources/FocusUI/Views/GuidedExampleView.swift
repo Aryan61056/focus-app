@@ -8,29 +8,29 @@ public struct GuidedExampleView: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 22) {
             HStack {
-                Label("An example, using made-up windows", systemImage: "play.rectangle").font(Tokens.text(13, .semibold)).foregroundStyle(Tokens.ink2)
+                Label("An example, using made-up windows", systemImage: "play.rectangle").font(Tokens.text(.body, .semibold)).foregroundStyle(Tokens.ink2)
                 Spacer()
                 Button("Done", action: close).keyboardShortcut(.cancelAction).help("Close the example")
             }
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(GuidedExample.titles[example.step]).font(Tokens.rounded(28, .semibold)).contentTransition(.opacity)
-                    Text(GuidedExample.explanations[example.step]).font(Tokens.text(14)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                    Text(GuidedExample.titles[example.step]).font(Tokens.rounded(.title2, .semibold)).contentTransition(.opacity)
+                    Text(GuidedExample.explanations[example.step]).font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer()
-                Text("\(example.step + 1) of 4").font(Tokens.text(13)).monospacedDigit().contentTransition(.numericText())
+                Text("\(example.step + 1) of 4").font(Tokens.text(.body)).monospacedDigit().contentTransition(.numericText())
             }.frame(minHeight: 100, alignment: .top)
             HStack(spacing: 14) {
                 LiveRing(example.controller.ringState, color: example.controller.ringColor).frame(width: 52, height: 52)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(example.controller.taskName).font(Tokens.rounded(20, .semibold))
-                    Text(example.controller.presenceLabel).font(Tokens.text(13)).foregroundStyle(Tokens.ink2)
+                    Text(example.controller.taskName).font(Tokens.rounded(.title3, .semibold))
+                    Text(example.controller.presenceLabel).font(Tokens.text(.body)).foregroundStyle(Tokens.ink2)
                 }
                 Spacer()
                 if example.preparing { ProgressView().controlSize(.small).accessibilityLabel("Preparing the example") }
             }.frame(height: 60)
             ScrollView {
-                SeeingCard(c: example.controller, showPreview: false, isExample: true)
+                TodayLiveMain(c: example.controller, showPreview: false, isExample: true)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .scrollIndicators(.hidden)

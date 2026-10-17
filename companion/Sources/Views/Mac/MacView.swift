@@ -23,6 +23,14 @@ struct MacView: View {
         }
     }
 
+    private var iCloudLine: String {
+        switch model.cloud.status {
+        case .idle, .checking: model.cloud.snapshot.map { String(localized: "Insights from \($0.asOf.formatted(.relative(presentation: .named)))") } ?? String(localized: "Checking iCloud\u{2026}")
+        case .unavailable(let why), .failed(let why): why
+        case .ready: model.cloud.snapshot.map { String(localized: "Insights updated \($0.asOf.formatted(.relative(presentation: .named)))") } ?? String(localized: "Your Mac hasn't shared Insights yet")
+        }
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -40,6 +48,11 @@ struct MacView: View {
                     if model.mac != nil { Button("Forget this Mac", role: .destructive) { confirmForget = true } }
                 }
                 Section {
+                    Label(iCloudLine, systemImage: "icloud").foregroundStyle(Palette.ink2)
+                } header: { Text("iCloud") } footer: {
+                    Text("Turn on Keep Insights in iCloud in the Mac app's iPhone window. Your days and sessions then show here when the Mac is off or away. Only times, counts and the task names you typed are stored, in your own iCloud.")
+                }
+                Section {
                     Toggle("Demo mode", isOn: Binding(get: { model.isDemo }, set: { $0 ? model.startDemo() : model.stopDemo() }))
                         .tint(Palette.accent)
                 } footer: { Text("Explore the app with a pretend Mac. Nothing is sent anywhere.") }
@@ -49,7 +62,7 @@ struct MacView: View {
                 }
                 .font(.subheadline).foregroundStyle(Palette.ink2)
                 Section {} footer: {
-                    Text("Your phone talks to your Mac directly over your Wi-Fi. There's no account and no server of ours in between.")
+                    Text("Live sessions go directly between your phone and Mac over your Wi-Fi. There's no account and no server of ours in between.")
                 }
             }
             .scrollContentBackground(.hidden)

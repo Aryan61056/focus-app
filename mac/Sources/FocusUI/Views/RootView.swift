@@ -3,12 +3,12 @@ import AppKit
 import FocusBrain
 
 public enum AppSection: String, CaseIterable, Identifiable {
-    case today = "Today", projects = "Projects", history = "History", insights = "Insights", review = "Review", settings = "Settings"
+    case today = "Today", projects = "Projects", history = "History", insights = "Insights", review = "Review", friends = "Friends", settings = "Settings"
     public var id: String { rawValue }
     var symbol: String {
         switch self {
-        case .today: return "calendar"; case .projects: return "folder"; case .history: return "clock"
-        case .insights: return "chart.bar"; case .review: return "checklist"; case .settings: return "slider.horizontal.3"
+        case .today: return "sun.max"; case .projects: return "folder"; case .history: return "clock"
+        case .insights: return "chart.xyaxis.line"; case .review: return "flag"; case .friends: return "person.2"; case .settings: return "gearshape"
         }
     }
 }
@@ -32,6 +32,11 @@ public struct RootView: View {
     @State private var forward: [SidebarItem] = []
     @State private var travelling = false
     @State private var columns = NavigationSplitViewVisibility.all
+    /// A narrow window hides the sidebar so the page keeps its room, and brings it back when the window widens again, unless you chose.
+    @State private var roomForSidebar = true
+    @State private var sidebarAutoHidden = false
+    /// Window width under which the sidebar and a page with its Focus panel no longer sit together comfortably.
+    static let sidebarFits: CGFloat = 940
     /// The project picked inside the Projects screen's own list.
     @State private var listProject: UUID?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -52,6 +57,7 @@ public struct RootView: View {
     }
 
     var title: String {
+        if case .section(.today) = current, c.isActive { return c.taskName }
         switch current {
         case .section(let s): return s.rawValue
         case .settings(let p): return p.rawValue
@@ -61,20 +67,25 @@ public struct RootView: View {
 
     public var body: some View {
         Group {
-            if SnapshotMode.on {
-                // ImageRenderer cannot draw a split view, so offscreen snapshots keep a plain two-pane layout.
+            if c.showsWelcome {
+                // A new Mac: the welcome takes the whole window until it is finished or skipped.
+                WelcomeView(c: c)
+            } else if SnapshotMode.on {
+                // ImageRenderer cannot draw a split view, so offscreen snapshots keep a plain sidebar and page.
                 HStack(spacing: 0) { Sidebar(c: c, selection: $selection).background(Tokens.sidebar); detail }
             } else {
                 // Laid out like Droppy's window: a source list with search and a header row, the page name in the toolbar beside
                 // back and forward, and one action on the right.
                 NavigationSplitView(columnVisibility: $columns) {
                     SourceList(c: c, item: Binding(get: { current }, set: { if let v = $0 { go(v) } }), selection: selection)
+                        // The column width alone left the sidebar near 144 points (names cut short) while no width was saved; a minimum on the content holds 200.
+                        .frame(minWidth: 200)
                         .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 280)
                         // The sidebar button sits at the sidebar's own right edge, where Droppy has it.
                         .toolbar(removing: .sidebarToggle)
                         .toolbar {
                             ToolbarItem(placement: .automatic) {
-                                Button { withAnimation(Motion.glide) { columns = columns == .detailOnly ? .all : .detailOnly } } label: {
+                                Button { sidebarAutoHidden = false; withAnimation(Motion.glide) { columns = columns == .detailOnly ? .all : .detailOnly } } label: {
                                     Label("Show or hide the sidebar", systemImage: "sidebar.left")
                                 }
                                 .keyboardShortcut("s", modifiers: [.command, .control])
@@ -91,25 +102,39 @@ public struct RootView: View {
                                 Button { travel(from: &forward, to: &back) } label: { Label("Forward", systemImage: "chevron.right") }
                                     .disabled(forward.isEmpty).keyboardShortcut("]", modifiers: .command)
                             }
+                            ToolbarItemGroup(placement: .primaryAction) { SessionToolbar(c: c, showStart: $showStart, compact: !roomForSidebar) }
                             ToolbarItem(placement: .primaryAction) {
                                 Button { c.onOpenPhone?() } label: {
                                     Label(c.phoneState == .none ? "Connect your iPhone" : "iPhone", systemImage: "iphone")
                                 }
                                 .help(c.phoneState == .none ? "Connect your iPhone" : "Your iPhone")
                             }
-                            ToolbarItem(placement: .primaryAction) { SessionToolbarPill(c: c, showStart: $showStart) }
                         }
                 }
             }
         }
-        .frame(minWidth: 960, minHeight: 600)
+        // The welcome fills the window and its last step needs about 540 points, so it keeps the old minimum height; the app itself goes smaller.
+        .frame(minWidth: 760, minHeight: c.showsWelcome ? 600 : 520)
+        .onGeometryChange(for: Bool.self) { $0.size.width >= Self.sidebarFits } action: { fits in
+            // Only when the width crosses the line, so a sidebar you opened in a narrow window stays while you drag.
+            guard fits != roomForSidebar else { return }
+            roomForSidebar = fits
+            if !fits, columns == .all { sidebarAutoHidden = true; withAnimation(Motion.glide) { columns = .detailOnly } }
+            else if fits, sidebarAutoHidden { sidebarAutoHidden = false; withAnimation(Motion.glide) { columns = .all } }
+        }
         .foregroundStyle(Tokens.ink)
         .onChange(of: current) { old, _ in
             if travelling { travelling = false } else { back.append(old); forward.removeAll() }
         }
         .onChange(of: c.sectionRequest?.serial) { _, _ in if let r = c.sectionRequest { go(.section(r.section)) } }
+        .onChange(of: c.settingsPageRequest?.serial) { _, _ in if let r = c.settingsPageRequest { go(.settings(r.page)) } }
         .onChange(of: c.startRequests) { _, _ in if !c.isActive { go(.section(.today)); showStart = true } }
         .sheet(isPresented: $showStart) { StartSheet(controller: c, isPresented: $showStart) }
+    }
+
+    /// Pages that draw the Focus panel beside themselves and so take the whole detail area.
+    var ownsLayout: Bool {
+        switch current { case .section(.today), .section(.history), .section(.review), .section(.friends): return true; default: return false }
     }
 
     func travel(from a: inout [SidebarItem], to b: inout [SidebarItem]) {
@@ -130,6 +155,7 @@ public struct RootView: View {
                     case .section(.review) where !c.showsReview: TodayView(c: c, showStart: $showStart)
                     case .section(.review): if let st = c.store { ReviewView(c: c, store: st) } else { ComingNext(section: selection) }
                     case .section(.insights): if let st = c.store { InsightsView(c: c, store: st) } else { ComingNext(section: selection) }
+                    case .section(.friends): if let f = c.friends { FriendsView(c: c, friends: f) } else { ComingNext(section: selection) }
                     case .settings(let page): if let st = c.store { SettingsView(c: c, store: st, page: page) } else { ComingNext(section: selection) }
                     default: ComingNext(section: selection)
                     }
@@ -144,9 +170,10 @@ public struct RootView: View {
                     KeyframeTrack(\.rise) { MoveKeyframe(10); SpringKeyframe(0, duration: 0.42, spring: .init(duration: 0.42, bounce: 0.1)) }
                     KeyframeTrack(\.blur) { MoveKeyframe(4); CubicKeyframe(0, duration: 0.22) }
                 }
-                // One centred column, as wide as Droppy's, so every page reads the same way on any window size.
-                .frame(maxWidth: selection == .settings ? 700 : 720)
-                .padding(.horizontal, selection == .settings ? 0 : 24).padding(.top, selection == .settings ? 0 : 12).padding(.bottom, selection == .settings ? 0 : 24)
+                // Today, History and Review lay out their own page and Focus panel across the whole window. Settings is one centred
+                // form; Projects and Insights use the width up to a readable maximum.
+                .frame(maxWidth: ownsLayout ? .infinity : (selection == .settings ? 700 : Tokens.contentWidth))
+                .padding(.horizontal, ownsLayout || selection == .settings ? 0 : Space.xl).padding(.top, ownsLayout || selection == .settings ? 0 : Space.s)
                 // A page taller than the window scrolls inside itself; it must never make the split view (and so the window) taller.
                 .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .top)
                 .clipped()
@@ -154,17 +181,20 @@ public struct RootView: View {
             // The card has its own animation scope. An animation on the whole content (the old veil fade, then the card fade) made every
             // change that landed with it, such as a session ending, cross-fade the old and new screens over each other.
             ZStack(alignment: .topTrailing) {
-                // Cards drop in from the corner they are pinned to and leave the same way.
-                if c.checkIn != nil { CheckInCard(c: c).padding(18).transition(.card(from: .topTrailing, reduce: reduceMotion)) }
-                else if let s = c.surface, s.kind != "gate" { NudgeCard(c: c, kind: s.kind).padding(18).transition(.card(from: .topTrailing, reduce: reduceMotion)) }
-                else if c.rhythmPrompt != nil { RhythmCard(c: c).padding(18).transition(.card(from: .topTrailing, reduce: reduceMotion)) }
+                // Cards drop in from the corner they are pinned to and leave the same way. While the banner is up it carries the moment
+                // (it sits over whichever window is in front, this one included), so the card would only repeat it.
+                if c.banner != nil { EmptyView() }
+                else if c.checkIn != nil { CheckInCard(c: c).padding(Space.l).transition(.card(from: .topTrailing, reduce: reduceMotion)) }
+                else if let s = c.surface, s.kind != "gate" { NudgeCard(c: c, kind: s.kind).padding(Space.l).transition(.card(from: .topTrailing, reduce: reduceMotion)) }
+                else if c.rhythmPrompt != nil { RhythmCard(c: c).padding(Space.l).transition(.card(from: .topTrailing, reduce: reduceMotion)) }
             }
             .motion(Motion.out(0.24), value: c.rhythmPrompt)
             .motion(Motion.out(0.24), value: c.surface)
             .motion(Motion.out(0.24), value: c.checkIn)
+            .motion(Motion.out(0.24), value: c.banner)
             ZStack(alignment: .topTrailing) {
                 if c.reentryOpen || c.manualNextStep {
-                    ReentryCard(c: c).padding(18).padding(.top, c.surface == nil && c.rhythmPrompt == nil ? 0 : 190)
+                    ReentryCard(c: c).padding(Space.l).padding(.top, c.surface == nil && c.rhythmPrompt == nil ? 0 : 190)
                         .transition(.card(from: .topTrailing, reduce: reduceMotion))
                 }
             }
@@ -174,24 +204,46 @@ public struct RootView: View {
     }
 }
 
-/// The one action at the right of the toolbar, as Droppy keeps one there: the running session (ring and clock), or Start.
-struct SessionToolbarPill: View {
+/// The session's controls, always in reach at the right of the toolbar: the ring and clock, Pause or Resume, Break and End. Start when
+/// nothing runs. Icons with labels for VoiceOver and tooltips, so the toolbar stays quiet.
+struct SessionToolbar: View {
     @Bindable var c: SessionController
     @Binding var showStart: Bool
+    /// A narrow window folds Break and End into one menu, so the toolbar keeps room for the sidebar button and the page's name.
+    var compact = false
     var body: some View {
         if c.isActive {
-            TimelineView(.periodic(from: .now, by: 1)) { _ in
+            // Clocks that change every second do not roll their digits: a roll each second is motion that never ends, and in the glass
+            // toolbar it cost about a fifth of a core and kept memory climbing (measured on the demo session, 2026-10-16).
+            TimelineView(.everySecond) { _ in
                 let t = c.clockText()
                 Button { c.requestSection(.today) } label: {
-                    HStack(spacing: 7) {
+                    HStack(spacing: Space.xs) {
                         LiveRing(c.ringState, color: c.ringColor).frame(width: 14, height: 14)
-                        Text(t).font(Tokens.text(13, .semibold)).monospacedDigit()
-                            .contentTransition(.numericText(countsDown: c.mode == .timed)).motion(Motion.out(0.3), value: t)
+                        Text(t).font(Tokens.fixed(.body, .semibold)).monospacedDigit()
                     }
-                    .padding(.horizontal, 4)
+                    .padding(.horizontal, Space.xxs)
                 }
                 .help("\(c.taskName), \(c.presenceLabel)")
                 .accessibilityLabel("\(c.taskName), \(c.presenceLabel), \(t)")
+            }
+            Button { c.act(c.isPaused ? .resume : .pause) } label: {
+                Label(c.isPaused ? "Resume" : "Pause", systemImage: c.isPaused ? "play.fill" : "pause.fill").contentTransition(.symbolEffect(.replace))
+            }
+            .help(c.isPaused ? "Resume" : "Pause")
+            if compact {
+                Menu {
+                    ForEach([5, 10, 15], id: \.self) { m in Button("\(m) minute break") { c.act(.breakTime, minutes: m) } }
+                    Divider()
+                    Button("End session") { c.end() }
+                } label: { Label("Break or end", systemImage: "ellipsis") }
+                .help("Take a break, or end the session")
+            } else {
+                Menu {
+                    ForEach([5, 10, 15], id: \.self) { m in Button("\(m) minute break") { c.act(.breakTime, minutes: m) } }
+                } label: { Label("Break", systemImage: "cup.and.saucer") }
+                .help("Take a break")
+                Button { c.end() } label: { Label("End", systemImage: "stop.fill") }.help("End the session")
             }
         } else {
             Button { showStart = true } label: { Label("Start session", systemImage: "play.fill").labelStyle(.titleAndIcon) }
@@ -226,39 +278,40 @@ struct SourceList: View {
     @Binding var item: SidebarItem?
     var selection: AppSection
     @State private var search = ""
+    @State private var settingsOpen = true
 
     func shows(_ name: String) -> Bool { search.isEmpty || name.localizedCaseInsensitiveContains(search) }
 
     var body: some View {
         let places = [AppSection.today, .projects].filter { shows($0.rawValue) }
         let records = [AppSection.history, .insights, .review].filter { ($0 != .review || c.showsReview) && shows($0.rawValue) }
+        let social = [AppSection.friends].filter { c.friends != nil && shows($0.rawValue) }
         let pages = SettingsPage.allCases.filter { shows($0.rawValue) }
         let projects = (c.store?.projects ?? []).filter { shows($0.name) }
         List(selection: $item) {
-            SessionHeader(c: c).padding(.vertical, 4).selectionDisabled()
-                .onTapGesture { item = .section(.today) }
             // A group with nothing matching the search is left out, heading and all.
             if !places.isEmpty { Section { ForEach(places) { s in row(s) } } }
             if !records.isEmpty { Section { ForEach(records) { s in row(s) } } }
-            if !pages.isEmpty {
-                Section {
-                    ForEach(pages) { p in
-                        Label { Text(p.rawValue) } icon: { IconTile(symbol: p.symbol, color: p.color) }.tag(SidebarItem.settings(p))
-                    }
-                }
-            }
+            if !social.isEmpty { Section { ForEach(social) { s in row(s) } } }
             if !projects.isEmpty {
                 Section("Projects") {
                     ForEach(projects) { p in
-                        Label { Text(p.name).lineLimit(1) } icon: { ProjectTile(name: p.name) }
+                        let now = c.isActive && c.projectId == p.id
+                        Label { Text(p.name).lineLimit(1) } icon: { ProjectDot(now: now) }
                             // The project the running session belongs to.
-                            .badge(c.isActive && c.projectId == p.id ? Text("Now").foregroundStyle(Tokens.accent) : nil)
+                            .badge(now ? Text("Now").foregroundStyle(Tokens.accent) : nil)
                             .tag(SidebarItem.project(p.id))
                     }
                 }
             }
-            if places.isEmpty && records.isEmpty && pages.isEmpty && projects.isEmpty {
-                Text("Nothing called \u{201C}\(search)\u{201D}").font(Tokens.text(12)).foregroundStyle(.secondary).selectionDisabled()
+            if !pages.isEmpty {
+                // Every settings page keeps its own row; the group folds away when you do not need it.
+                Section("Settings", isExpanded: $settingsOpen) {
+                    ForEach(pages) { p in Label(p.rawValue, systemImage: p.symbol).tag(SidebarItem.settings(p)) }
+                }
+            }
+            if places.isEmpty && records.isEmpty && social.isEmpty && pages.isEmpty && projects.isEmpty {
+                Text("Nothing called \u{201C}\(search)\u{201D}").font(Tokens.text(.caption)).foregroundStyle(.secondary).selectionDisabled()
             }
         }
         .listStyle(.sidebar)
@@ -268,83 +321,20 @@ struct SourceList: View {
     }
 
     func row(_ s: AppSection) -> some View {
-        Label { Text(s.rawValue) } icon: { IconTile(symbol: s.tileSymbol, color: s.tileColor) }
+        Label(s.rawValue, systemImage: s.symbol)
             // Moments still waiting for an answer, as a count on Review. The tag goes last so the row stays selectable.
-            .badge(s == .review ? (c.store?.openReviewCount ?? 0) : 0)
+            .badge(s == .review ? (c.store?.openReviewCount ?? 0) : (s == .friends ? (c.friends?.newCheers ?? 0) : 0))
             .tag(SidebarItem.section(s))
     }
 }
 
-/// The top of the sidebar, where Droppy shows your account: here, the session. A big ring on a green disc, the task and how Focus
-/// reads you, or a quiet "Focus" when nothing is running.
-struct SessionHeader: View {
-    @Bindable var c: SessionController
+/// A project in the sidebar: a small ring, filled green for the project the running session belongs to.
+struct ProjectDot: View {
+    var now: Bool
     var body: some View {
-        HStack(spacing: 10) {
-            ZStack {
-                Circle().fill(LinearGradient(colors: [Color(red: 0.42, green: 0.80, blue: 0.56), Color(red: 0.16, green: 0.50, blue: 0.32)], startPoint: .top, endPoint: .bottom))
-                TimelineView(.periodic(from: .now, by: 1)) { _ in
-                    LiveRing(c.isActive ? c.ringState : .on, color: .white).frame(width: 20, height: 20)
-                }
-            }
-            .frame(width: 40, height: 40)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(c.isActive ? c.taskName : "Focus").font(Tokens.text(13.5, .semibold)).lineLimit(1)
-                Text(c.isActive ? c.presenceLabel : "No session running").font(Tokens.text(11.5)).foregroundStyle(.secondary)
-                    .contentTransition(.interpolate).motion(Motion.out(0.25), value: c.presenceLabel)
-            }
-            Spacer(minLength: 0)
-        }
-        .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityHint("Shows Today")
-    }
-}
-
-/// A project's tile: its first letter on a color picked from its name, so each project keeps the same color.
-struct ProjectTile: View {
-    var name: String
-    static let palette: [Color] = [.blue, .purple, .pink, .orange, .teal, .indigo, .mint, .brown]
-    var body: some View {
-        let color = Self.palette[abs(name.unicodeScalars.reduce(0) { $0 &* 31 &+ Int($1.value) }) % Self.palette.count]
-        Text(String(name.prefix(1)).uppercased()).font(.system(size: 11, weight: .bold, design: .rounded)).foregroundStyle(.white)
-            .frame(width: 20, height: 20)
-            .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(color.gradient))
-            .accessibilityHidden(true)
-    }
-}
-
-/// A white symbol on a small colored rounded square, the way System Settings (and Droppy) mark each section in the sidebar.
-struct IconTile: View {
-    var symbol: String
-    var color: Color
-    @State private var hover = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    var body: some View {
-        Image(systemName: symbol).font(.system(size: 11, weight: .semibold)).foregroundStyle(.white)
-            .symbolEffect(.bounce, options: .speed(1.4), value: hover && !reduceMotion)
-            .frame(width: 20, height: 20)
-            .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(color.gradient))
-            .scaleEffect(hover && !reduceMotion ? 1.12 : 1)
-            .animation(Motion.notchSettle, value: hover)
-            .onHover { hover = $0 }
-            .accessibilityHidden(true)
-    }
-}
-
-extension AppSection {
-    var tileSymbol: String {
-        switch self {
-        case .today: return "sun.max.fill"; case .projects: return "folder.fill"; case .history: return "clock.fill"
-        case .insights: return "chart.bar.fill"; case .review: return "checklist"; case .settings: return "gearshape.fill"
-        }
-    }
-    var tileColor: Color {
-        switch self {
-        case .today: return Color(red: 0.16, green: 0.62, blue: 0.38); case .projects: return .blue; case .history: return .orange
-        case .insights: return .purple; case .review: return .pink; case .settings: return .gray
-        }
+        Circle().strokeBorder(now ? Tokens.accent : Tokens.ink2.opacity(0.6), lineWidth: 1.5)
+            .background(Circle().fill(now ? Tokens.accent : .clear).padding(3))
+            .frame(width: 12, height: 12).accessibilityHidden(true)
     }
 }
 
@@ -361,20 +351,20 @@ struct Sidebar: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 9) { RingView(.on, color: Tokens.accent).frame(width: 20, height: 20); Text("Focus").font(Tokens.rounded(15, .semibold)) }
-                .padding(.horizontal, 8).padding(.top, 18).padding(.bottom, 14)
-            ForEach(AppSection.allCases.filter { $0 != .settings && ($0 != .review || c.showsReview) }) { s in row(s) }
+            HStack(spacing: Space.s) { RingView(.on, color: Tokens.accent).frame(width: 20, height: 20); Text("Focus").font(Tokens.rounded(.callout, .semibold)) }
+                .padding(.horizontal, Space.xs).padding(.top, Space.l).padding(.bottom, Space.m)
+            ForEach(AppSection.allCases.filter { $0 != .settings && ($0 != .review || c.showsReview) && ($0 != .friends || c.friends != nil) }) { s in row(s) }
             Spacer()
             ZStack {
                 if c.isActive {
-                    SessionCard(c: c).padding(.bottom, 10)
+                    SessionCard(c: c).padding(.bottom, Space.s)
                         .transition(reduceMotion ? .opacity : .opacity.combined(with: .offset(y: 10)).combined(with: .scale(scale: 0.97, anchor: .bottom)))
                 }
             }
             .motion(Motion.notchSettle, value: c.isActive)
             row(.settings)
         }
-        .padding(.horizontal, 10).padding(.bottom, 12)
+        .padding(.horizontal, Space.s).padding(.bottom, Space.s)
         .frame(width: 228)
         .motion(Motion.glide, value: selection)
     }
@@ -382,16 +372,16 @@ struct Sidebar: View {
     /// The selection is one shape that slides between rows; the pointer gets a fainter one of its own.
     func row(_ s: AppSection) -> some View {
         Button { selection = s } label: {
-            HStack(spacing: 10) {
+            HStack(spacing: Space.s) {
                 Image(systemName: s.symbol).frame(width: 18).foregroundStyle(selection == s ? Tokens.accent : Tokens.ink2)
                     .symbolEffect(.bounce, value: selection == s)
                 Text(s.rawValue); Spacer()
             }
-            .font(Tokens.text(13.5, selection == s ? .semibold : .regular)).padding(.horizontal, 10).frame(height: 32)
+            .font(Tokens.text(.body, selection == s ? .semibold : .regular)).padding(.horizontal, Space.s).frame(height: 32)
             .background {
                 ZStack {
-                    if hovered == s && selection != s { RoundedRectangle(cornerRadius: 8).fill(Tokens.control.opacity(0.55)).transition(.opacity) }
-                    if selection == s { RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Tokens.accentSoft).matchedGeometryEffect(id: "selection", in: pill) }
+                    if hovered == s && selection != s { RoundedRectangle(cornerRadius: Tokens.radiusRow).fill(Tokens.control.opacity(0.55)).transition(.opacity) }
+                    if selection == s { RoundedRectangle(cornerRadius: Tokens.radiusRow, style: .continuous).fill(Tokens.accentSoft).matchedGeometryEffect(id: "selection", in: pill) }
                 }
                 .animation(Motion.hover, value: hovered)
             }
@@ -406,22 +396,27 @@ struct Sidebar: View {
 private struct SessionCard: View {
     @Bindable var c: SessionController
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { _ in
+        TimelineView(.everySecond) { _ in
             let t = c.clockText()
-            HStack(spacing: 10) {
+            // The task gets the card's whole width (two lines if it needs them); the clock sits with the state underneath,
+            // where it used to squeeze even a short task name down to a few letters.
+            HStack(alignment: .center, spacing: Space.s) {
                 LiveRing(c.ringState, color: c.ringColor).frame(width: 28, height: 28)
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(c.taskName).font(Tokens.text(13, .semibold)).lineLimit(1)
-                    Text(c.presenceLabel).font(Tokens.text(12)).foregroundStyle(Tokens.ink2)
-                        .contentTransition(.interpolate).motion(Motion.out(0.25), value: c.presenceLabel)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(c.taskName).font(Tokens.text(.body, .semibold)).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: Space.xxs) {
+                        Text(c.presenceLabel).contentTransition(.interpolate).motion(Motion.out(0.25), value: c.presenceLabel)
+                        Text("\u{00B7}")
+                        Text(t).monospacedDigit()
+                    }
+                    .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
                 }
-                Spacer()
-                Text(t).font(Tokens.rounded(14)).monospacedDigit()
-                    .contentTransition(.numericText(countsDown: c.mode == .timed)).motion(Motion.out(0.3), value: t)
+                Spacer(minLength: 0)
             }
+            .accessibilityElement(children: .combine)
         }
-        .padding(12).background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Tokens.window.opacity(0.7)))
-        .overlay { RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Tokens.line) }
+        .padding(Space.s).background(RoundedRectangle(cornerRadius: Tokens.radiusCard, style: .continuous).fill(Tokens.window.opacity(0.7)))
+        .overlay { RoundedRectangle(cornerRadius: Tokens.radiusCard, style: .continuous).strokeBorder(Tokens.line) }
     }
 }
 
@@ -429,9 +424,9 @@ private struct SessionCard: View {
 struct ComingNext: View {
     var section: AppSection
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(section.rawValue).font(Tokens.rounded(26, .semibold))
-            Text("This screen is designed (see docs/design/app.html) but not built yet.").font(Tokens.text(13.5)).foregroundStyle(Tokens.ink2)
+        VStack(alignment: .leading, spacing: Space.xs) {
+            Text(section.rawValue).font(Tokens.rounded(.title2, .semibold))
+            Text("This screen is designed (see docs/design/app.html) but not built yet.").font(Tokens.text(.body)).foregroundStyle(Tokens.ink2)
         }
     }
 }
@@ -446,10 +441,10 @@ struct SidebarRow<Label: View>: View {
     @State private var hover = false
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 10) { label }
-                .font(Tokens.text(small ? 13 : 13.5, selected ? .semibold : .regular))
-                .padding(.horizontal, 10).frame(height: small ? 30 : 32)
-                .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(selected ? Tokens.control : (hover ? Tokens.control.opacity(0.5) : .clear)))
+            HStack(spacing: Space.s) { label }
+                .font(Tokens.text(.body, selected ? .semibold : .regular))
+                .padding(.horizontal, Space.s).padding(.vertical, Space.xs).frame(minHeight: small ? 30 : 32)
+                .background(RoundedRectangle(cornerRadius: Tokens.radiusRow, style: .continuous).fill(selected ? Tokens.control : (hover ? Tokens.control.opacity(0.5) : .clear)))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain).onHover { hover = $0 }

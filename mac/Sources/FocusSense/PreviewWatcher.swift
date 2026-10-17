@@ -4,7 +4,7 @@ import FocusUI
 
 /// While a session runs and the user has turned screen reading on, takes a picture every few seconds, shows it in the app, and
 /// reads the words on it (every `readEvery` seconds, or at once for a new app) so the judge can use them. A picture is dropped if
-/// the window became private while it was being taken. Stops, and everything is cleared, when the session ends or the switch goes off.
+/// the window became private while it was being taken. Stops, and everything is cleared, when the session ends, goes on hold (pause, break, snooze, call, idle, sleep) or the switch goes off.
 @MainActor
 public final class PreviewWatcher {
     private let grabber: ScreenGrabber
@@ -15,6 +15,9 @@ public final class PreviewWatcher {
     private var lastApp = ""
     private var lastKey = ""
     private var lastWords = ""
+    private var lastPrint: [UInt8]?
+    /// Words are read again at least this often even if the picture looks the same (a small change can hide in the grid).
+    private let maxStale: TimeInterval = 30
     private var timer: Timer?
     private var busy = false
     private var ticks = 0
@@ -39,7 +42,7 @@ public final class PreviewWatcher {
     }
 
     private func track() {
-        withObservationTracking { _ = controller.isActive; _ = controller.prefs.readScreen } onChange: { [weak self] in
+        withObservationTracking { _ = controller.isActive; _ = controller.isHeld; _ = controller.prefs.readScreen } onChange: { [weak self] in
             Task { @MainActor in self?.sync(); self?.track() }
         }
         sync()
@@ -48,11 +51,11 @@ public final class PreviewWatcher {
     func syncAccess() { controller.setPreviewAccess(grabber.isAllowed ? .allowed : .denied) }
 
     func sync() {
-        if controller.isActive && controller.prefs.readScreen {
+        if controller.isSensing && controller.prefs.readScreen {
             syncAccess()
             if timer == nil { timer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in MainActor.assumeIsolated { self?.capture() } }; capture() }
         } else {
-            timer?.invalidate(); timer = nil; lastWords = ""; lastApp = ""; lastKey = ""; lastRead = .distantPast; controller.clearPreview()
+            timer?.invalidate(); timer = nil; lastWords = ""; lastApp = ""; lastKey = ""; lastPrint = nil; lastRead = .distantPast; controller.clearPreview()
         }
     }
 
@@ -69,9 +72,12 @@ public final class PreviewWatcher {
             defer { busy = false }
             guard let g = await grabber.grab() else { return }
             let key = (controller.currentWindow?.title ?? "") + "|" + (controller.currentWindow?.url ?? "")
-            let due = g.app != lastApp || key != lastKey || Date().timeIntervalSince(lastRead) >= readEvery
+            let print = PictureFingerprint.of(g.image)
+            let age = Date().timeIntervalSince(lastRead)
+            // New app or page: read at once. Otherwise only when the picture changed, or the words have gone stale.
+            let due = g.app != lastApp || key != lastKey || (age >= readEvery && (PictureFingerprint.changed(lastPrint, print) || age >= maxStale))
             if due {
-                lastApp = g.app; lastKey = key; lastRead = Date()
+                lastApp = g.app; lastKey = key; lastRead = Date(); lastPrint = print
                 lastWords = await reader.words(in: g.image)
             }
             controller.setPreview(g.image, app: g.app, text: lastWords)

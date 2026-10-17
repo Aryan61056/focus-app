@@ -8,14 +8,14 @@ struct StuckCard: View {
         Tile {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Text("One small next step").font(Tokens.rounded(20, .semibold))
+                    Text("One small next step").font(Tokens.rounded(.title3, .semibold))
                         .help("Suggestions use only your task and project notes. They can miss details; choose what helps.")
                     Spacer()
                     Button { c.cancelNextActions() } label: { Image(systemName: "xmark") }
                         .buttonStyle(.plain).accessibilityLabel("Close next steps").help("Close next steps").keyboardShortcut(.cancelAction)
                 }
                 if c.nextActions.isWorking {
-                    HStack(spacing: 10) { ProgressView().controlSize(.small); Text("Finding a starting point on this Mac").font(Tokens.text(14)).foregroundStyle(Tokens.ink2) }
+                    HStack(spacing: 10) { ProgressView().controlSize(.small); Text("Finding a starting point on this Mac").font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2) }
                         .frame(minHeight: 110, alignment: .leading).transition(.opacity)
                 } else if let actions = c.nextActions.value {
                     VStack(spacing: 8) {
@@ -27,7 +27,7 @@ struct StuckCard: View {
                         }
                     }.transition(.rise(reduce: reduceMotion))
                 } else {
-                    Text("Focus has no suggestion right now. You can write one small action to try.").font(Tokens.text(14)).foregroundStyle(Tokens.ink2)
+                    Text("Focus has no suggestion right now. You can write one small action to try.").font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2)
                     HStack {
                         TextField("One thing you can do next", text: $manual).textFieldStyle(.roundedBorder).onSubmit(useManual)
                             .accessibilityLabel("Your next action")

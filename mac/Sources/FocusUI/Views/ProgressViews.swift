@@ -23,11 +23,16 @@ struct GoalBar: View {
 struct WeekStrip: View {
     var week: [(day: Date, mark: Rewards.DayMark)]
     var body: some View {
-        HStack(spacing: 10) {
+        // The usual gap needs 212 points; a narrower Focus panel gets a tighter one instead of a column pushed wider than the panel.
+        ViewThatFits(in: .horizontal) { days(spacing: Space.s); days(spacing: Space.xxs) }
+    }
+
+    func days(spacing: CGFloat) -> some View {
+        HStack(spacing: spacing) {
             ForEach(Array(week.enumerated()), id: \.offset) { _, d in
-                VStack(spacing: 5) {
+                VStack(spacing: Space.xxs) {
                     mark(d.mark).frame(width: 20, height: 20)
-                    Text(d.day.formatted(.dateTime.weekday(.narrow))).font(Tokens.text(11.5)).foregroundStyle(Tokens.ink2)
+                    Text(d.day.formatted(.dateTime.weekday(.narrow))).font(Tokens.text(.caption2)).foregroundStyle(Tokens.ink2)
                 }
                 .accessibilityElement().accessibilityLabel("\(d.day.formatted(.dateTime.weekday(.wide))), \(label(d.mark))")
             }
@@ -55,14 +60,15 @@ struct WeekStrip: View {
 /// A short line while working: back on task quickly, goal reached, longest stretch. Gone after a few seconds, never a popup.
 struct MomentLine: View {
     var moment: Confirmation
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: Space.xs) {
             RingView(.done, color: Tokens.accent).frame(width: 16, height: 16)
-            Text(moment.text).font(Tokens.text(13, .semibold))
+            Text(moment.text).font(Tokens.text(.body, .semibold))
         }
-        .padding(.leading, 8).padding(.trailing, 12).frame(height: 28)
+        .padding(.leading, Space.xs).padding(.trailing, Space.s).frame(height: 28)
         .background(Capsule().fill(Tokens.accentSoft))
-        .transition(.asymmetric(insertion: .opacity.combined(with: .scale(scale: 0.9, anchor: .leading)), removal: .opacity))
+        .transition(reduceMotion ? .opacity : .asymmetric(insertion: .opacity.combined(with: .scale(scale: 0.9, anchor: .leading)), removal: .opacity))
         .accessibilityElement(children: .ignore).accessibilityLabel(moment.text)
     }
 }
@@ -71,9 +77,9 @@ struct MomentLine: View {
 struct HighlightLine: View {
     var highlight: Rewards.Highlight
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
+        HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
             RingView(highlight == .rough ? .paused : .done, color: highlight == .rough ? Tokens.ink2 : Tokens.accent).frame(width: 14, height: 14)
-            Text(Rewards.text(highlight)).font(Tokens.text(14, .medium)).fixedSize(horizontal: false, vertical: true)
+            Text(Rewards.text(highlight)).font(Tokens.text(.callout, .medium)).fixedSize(horizontal: false, vertical: true)
         }
     }
 }

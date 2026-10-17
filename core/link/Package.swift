@@ -10,10 +10,13 @@ let package = Package(
     products: [
         .library(name: "FocusLinkWire", targets: ["FocusLinkWire"]),
         .library(name: "FocusLinkNet", targets: ["FocusLinkNet"]),
+        // Insights through the person's own iCloud (docs/ICLOUD-SYNC.md). Kept apart so the local link never imports CloudKit.
+        .library(name: "FocusLinkCloud", targets: ["FocusLinkCloud"]),
     ],
     targets: [
         .target(name: "FocusLinkWire"),
         .target(name: "FocusLinkNet", dependencies: ["FocusLinkWire"]),
-        .testTarget(name: "FocusLinkTests", dependencies: ["FocusLinkWire", "FocusLinkNet"]),
+        .target(name: "FocusLinkCloud", dependencies: ["FocusLinkWire"]),
+        .testTarget(name: "FocusLinkTests", dependencies: ["FocusLinkWire", "FocusLinkNet", "FocusLinkCloud"]),
     ]
 )

@@ -4,13 +4,14 @@ import FocusBrain
 // The pieces of Today between sessions.
 
 /// The start surface. One field, Return to begin. With no text, Return continues the last project, so a returning user presses one key.
+/// The form itself is shared with the start sheet (`StartForm`).
 struct StartCard: View {
     @Bindable var c: SessionController
     @Binding var showStart: Bool
     var intro: Bool
     var body: some View {
         Tile(padding: 24) {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: Space.m) {
                 StartForm(c: c) {}
                 if intro { Button("See how it works") { c.showExample() }.buttonStyle(FocusButtonStyle(.plain, small: true)).help("Try an example with made-up windows") }
             }
@@ -23,9 +24,9 @@ struct StartCard: View {
         let isTimed = timed || p.minutes != nil
         return Plan(task: p.task, projectId: nil, mode: isTimed ? .timed : .open, duration: isTimed ? Double((p.minutes ?? minutes) * 60) : nil)
     }
-
 }
 
+/// A project you can pick up with one click: its name, and either the next step you left or when you last worked on it.
 struct ProjectChip: View {
     @Bindable var c: SessionController
     var project: Project
@@ -36,20 +37,21 @@ struct ProjectChip: View {
         let sessions = c.store?.sessions(for: project.id) ?? []
         let detail = project.nextStep.isEmpty ? (sessions.first.map { $0.start.formatted(.relative(presentation: .named)) } ?? "No sessions yet") : "Next: \(project.nextStep)"
         Button { onStart(); _ = c.startWithDraft(task: project.name, projectId: project.id) } label: {
-            HStack(spacing: 10) {
+            HStack(spacing: Space.s) {
                 Image(systemName: "play.fill").font(.system(size: 10, weight: .bold)).foregroundStyle(Tokens.onAccent)
                     .frame(width: 24, height: 24).background(Circle().fill(Tokens.accent))
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(project.name).font(Tokens.text(13.5, .semibold)).lineLimit(1)
-                    Text(detail).font(Tokens.text(12)).foregroundStyle(Tokens.ink2).lineLimit(1)
+                    Text(project.name).font(Tokens.text(.body, .semibold)).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                    Text(detail).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(1)
                 }
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 12).frame(maxWidth: 230, minHeight: 46)
-            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(hover ? Tokens.controlHover : Tokens.control))
-            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .padding(.horizontal, Space.s).padding(.vertical, Space.xs).frame(maxWidth: .infinity, minHeight: 46, maxHeight: .infinity)
+            .background(RoundedRectangle(cornerRadius: Tokens.radiusInset, style: .continuous).fill(hover ? Tokens.controlHover : Tokens.control))
+            .contentShape(RoundedRectangle(cornerRadius: Tokens.radiusInset, style: .continuous))
         }
         .buttonStyle(.plain).onHover { hover = $0 }.disabled(c.isActive)
+        .help(project.name)
         .accessibilityLabel("Continue \(project.name)").accessibilityHint(detail)
     }
 }
@@ -62,46 +64,38 @@ struct JustFinishedCard: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         if let s = c.summary {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Image(systemName: "checkmark.circle").font(.system(size: 17, weight: .semibold)).foregroundStyle(Tokens.accent)
-                        .modifier(DrawOn(hidden: !drawn && !reduceMotion))
-                        .accessibilityHidden(true)
-                    Text("Session finished").font(Tokens.rounded(18, .semibold))
-                    Spacer()
-                }
-                .task { try? await Task.sleep(for: .milliseconds(220)); drawn = true }
-                Text(sentence(s)).font(Tokens.text(14)).foregroundStyle(Tokens.ink2)
-                if let h = c.highlight { HighlightLine(highlight: h) }
-                if c.shortSessionOffer {
-                    HStack {
-                        Button("Keep going") { c.keepGoing() }.buttonStyle(FocusButtonStyle(.primary, small: true))
-                        Button("Finish") { c.finishFiveMinutes() }.buttonStyle(FocusButtonStyle(.plain, small: true))
-                    }
-                } else { SessionGoalResult(c: c) }
-                if !c.shortSessionOffer && (c.sessionGoal.isEmpty || c.goalDisposition != nil) { RecapBlock(c: c) }
-                if !c.shortSessionOffer && (c.sessionGoal.isEmpty || c.goalDisposition != nil), let p = c.projectForNote { PickUpNote(c: c, project: p) }
-                if c.askLoudness && !c.shortSessionOffer && (c.sessionGoal.isEmpty || c.goalDisposition != nil) {
-                    Divider().overlay(Tokens.line)
-                    HStack(spacing: 8) {
-                        Text("Was Focus too loud?").font(Tokens.text(13, .semibold))
+            let settled = !c.shortSessionOffer && (c.sessionGoal.isEmpty || c.goalDisposition != nil)
+            Tile {
+                VStack(alignment: .leading, spacing: Space.s) {
+                    HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
+                        Image(systemName: "checkmark.circle").font(.system(size: 17, weight: .semibold)).foregroundStyle(Tokens.accent)
+                            .modifier(DrawOn(hidden: !drawn && !reduceMotion))
+                            .accessibilityHidden(true)
+                        Text("Session finished").font(Tokens.rounded(.title3, .semibold))
                         Spacer()
-                        Button("Too quiet") { c.prefs.answerLoudness(.tooQuiet) }.buttonStyle(FocusButtonStyle(.plain, small: true))
-                        Button("About right") { c.prefs.answerLoudness(.aboutRight) }.buttonStyle(FocusButtonStyle(.plain, small: true))
-                        Button("Too loud") { c.prefs.answerLoudness(.tooLoud) }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                    }
+                    .task { try? await Task.sleep(for: .milliseconds(220)); drawn = true }
+                    Text(sentence(s)).font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2)
+                    if let h = c.highlight { HighlightLine(highlight: h) }
+                    if c.shortSessionOffer {
+                        FlowRow(spacing: Space.xs) {
+                            Button("Keep going") { c.keepGoing() }.buttonStyle(FocusButtonStyle(.primary, small: true))
+                            Button("Finish") { c.finishFiveMinutes() }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                        }
+                    } else { SessionGoalResult(c: c) }
+                    if settled { RecapBlock(c: c) }
+                    if settled, let p = c.projectForNote { PickUpNote(c: c, project: p) }
+                    if c.askLoudness && settled {
+                        Divider().overlay(Tokens.line)
+                        FlowRow(spacing: Space.xs) {
+                            Text("Was Focus too loud?").font(Tokens.text(.body, .semibold))
+                            Button("Too quiet") { c.prefs.answerLoudness(.tooQuiet) }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                            Button("About right") { c.prefs.answerLoudness(.aboutRight) }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                            Button("Too loud") { c.prefs.answerLoudness(.tooLoud) }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                        }
                     }
                 }
             }
-            .padding(22)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            // Light blooms in from the card's empty corner as it arrives, the one moment in a session worth marking. It settles faint.
-            .background {
-                GeometryReader { g in
-                    Halftone(pattern: .bloom(from: UnitPoint(x: 1, y: 0), aspect: g.size.width / max(1, g.size.height)), followsPointer: false)
-                }
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            }
-            .modifier(CardSurface(radius: 10))
         }
     }
     func sentence(_ s: SessionSummary) -> String {
@@ -118,10 +112,9 @@ struct PickUpNote: View {
     @State private var text = ""
     @State private var loaded = false
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Where to pick up next time").font(Tokens.text(13, .semibold))
-            TextField("One small thing", text: $text).textFieldStyle(.plain).padding(.horizontal, 12).frame(height: 36)
-                .background(RoundedRectangle(cornerRadius: Tokens.radiusControl).fill(Tokens.control))
+        VStack(alignment: .leading, spacing: Space.xs) {
+            Text("Where to pick up next time").font(Tokens.text(.body, .semibold))
+            TextField("One small thing", text: $text).font(Tokens.text(.body)).wellField()
                 .onSubmit { c.setProjectNextStep(text) }
                 .onChange(of: text) { _, v in if loaded { c.setProjectNextStep(v) } }
         }
@@ -138,12 +131,12 @@ struct DaySection: View {
         let total = DayStats.total(store.sessions, on: today)
         if total.sessions > 0 {
             let slices = DayStats.slices(store.sessions, on: today)
-            Panel { VStack(alignment: .leading, spacing: 14) {
+            Panel { VStack(alignment: .leading, spacing: Space.m) {
                 HStack(alignment: .firstTextBaseline) {
                     SectionTitle(text: "Your day")
                     Spacer()
                     Text("\(durationText(total.onTaskSeconds)) on task \u{00B7} \(total.sessions) \(total.sessions == 1 ? "session" : "sessions") \u{00B7} \(total.slips == 0 ? "no slips" : (total.slips == 1 ? "1 slip" : "\(total.slips) slips"))")
-                        .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
+                        .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
                 }
                 DayTrack(slices: slices, range: DayStats.axis(for: slices), nowHour: DayStats.hourOfDay(today, .current))
             } }
@@ -157,12 +150,12 @@ struct WeekSection: View {
         let week = DayStats.week(store.sessions, endingOn: .now)
         if week.contains(where: { $0.hours > 0 }) {
             let best = week.max { $0.hours < $1.hours }!
-            Panel { VStack(alignment: .leading, spacing: 14) {
+            Panel { VStack(alignment: .leading, spacing: Space.m) {
                 HStack(alignment: .firstTextBaseline) {
                     SectionTitle(text: "This week")
                     Spacer()
                     Text("\(durationText(week.reduce(0) { $0 + $1.hours } * 3600)) on task \u{00B7} longest on \(best.day.formatted(.dateTime.weekday(.wide)))")
-                        .font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
+                        .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
                 }
                 WeekBars(days: week)
             } }
@@ -180,28 +173,29 @@ struct GoalCluster: View {
         if c.prefs.showProgress, c.prefs.dailyGoalMinutes > 0 {
             let goal = Rewards.Goal(seconds: c.todayOnTaskSeconds(), goalSeconds: Double(c.prefs.dailyGoalMinutes) * 60)
             let streak = Rewards.streak(store.sessions, today: .now)
-            Tile(padding: 20) {
-                VStack(spacing: 18) {
+            // Flat, in the Focus panel: a heading, the ring and the week, no card around them.
+            Group {
+                VStack(spacing: Space.m) {
                     HStack {
-                        Text("Today's goal").font(Tokens.text(14, .semibold)).accessibilityAddTraits(.isHeader)
+                        Text("Today's goal").font(Tokens.text(.caption, .semibold)).foregroundStyle(Tokens.ink2).accessibilityAddTraits(.isHeader)
                         Spacer()
                         Button { editing = true } label: { Image(systemName: "slider.horizontal.3").foregroundStyle(Tokens.ink2).frame(width: 28, height: 28).contentShape(Rectangle()) }
                             .buttonStyle(.plain).help("Change the daily goal").accessibilityLabel("Change the daily goal")
                             .popover(isPresented: $editing, arrowEdge: .bottom) { GoalEditor(prefs: c.prefs) }
                     }
-                    GoalRing(goal: goal).frame(width: 148, height: 148)
+                    GoalRing(goal: goal).frame(width: 120 * TextScale.shared.factor, height: 120 * TextScale.shared.factor)   // grows with the text it holds
                     if !store.sessions.isEmpty {
-                        VStack(spacing: 10) {
+                        VStack(spacing: Space.s) {
                             WeekStrip(week: streak.week)
                             Text(streak.current == 0 ? "Ready when you are" : (streak.current == 1 ? "1 focus day" : "\(streak.current) focus days in a row"))
-                                .font(Tokens.text(13, .semibold))
+                                .font(Tokens.text(.body, .semibold))
                                 .help(streak.current == 0 ? "A focus day is \(Int(Rewards.focusDaySeconds / 60)) minutes on task." : "Rest days keep it going: \(Rewards.restDaysPerWeek - streak.restUsed) of \(Rewards.restDaysPerWeek) left this week.")
                         }
                     }
                     if let pace = c.paceLine {
-                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
                             RingView(c.pressure >= .behind ? .drift : .on, color: c.pressure >= .behind ? Tokens.ink : Tokens.accent).frame(width: 14, height: 14)
-                            Text(pace).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                            Text(pace).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
                         }
                         .accessibilityElement(children: .combine)
                     }
@@ -216,14 +210,14 @@ struct GoalCluster: View {
 struct GoalEditor: View {
     var prefs: Preferences
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Daily goal").font(Tokens.text(13, .semibold))
+        VStack(alignment: .leading, spacing: Space.s) {
+            Text("Daily goal").font(Tokens.text(.body, .semibold))
             Stepper(value: Binding(get: { prefs.dailyGoalMinutes }, set: { prefs.dailyGoalMinutes = $0 }), in: 15...480, step: 15) {
-                Text("\(prefs.dailyGoalMinutes) minutes on task").font(Tokens.text(13)).monospacedDigit()
+                Text("\(prefs.dailyGoalMinutes) minutes on task").font(Tokens.text(.body)).monospacedDigit()
             }
-            Text("Turn it off in Settings.").font(Tokens.text(12)).foregroundStyle(Tokens.ink2)
+            Text("Turn it off in Settings.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
         }
-        .padding(16).frame(width: 240)
+        .padding(Space.m).frame(width: 240)
     }
 }
 
@@ -238,8 +232,8 @@ struct GoalRing: View {
                 .stroke(Tokens.accent, style: StrokeStyle(lineWidth: 12, lineCap: .round)).rotationEffect(.degrees(-90))
                 .animation(reduceMotion ? nil : .easeOut(duration: 0.4), value: goal.fraction)
             VStack(spacing: 0) {
-                Text("\(goal.minutes)").font(Tokens.rounded(38, .semibold)).monospacedDigit()
-                Text(goal.reached ? "goal reached" : "of \(goal.goalMinutes) min").font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2)
+                Text("\(goal.minutes)").font(Tokens.rounded(.display, .semibold)).monospacedDigit()
+                Text(goal.reached ? "goal reached" : "of \(goal.goalMinutes) min").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
             }
         }
         .accessibilityElement().accessibilityLabel("Daily goal").accessibilityValue("\(goal.minutes) of \(goal.goalMinutes) minutes")
@@ -250,22 +244,22 @@ struct GoalRing: View {
 struct HowDecidesButton: View {
     @State private var open = false
     var body: some View {
-        Button { open = true } label: { Label("How Focus decides", systemImage: "info.circle").font(Tokens.text(13, .medium)).foregroundStyle(Tokens.ink2) }
+        Button { open = true } label: { Label("How Focus decides", systemImage: "info.circle").font(Tokens.text(.body, .medium)).foregroundStyle(Tokens.ink2) }
             .buttonStyle(.plain)
             .popover(isPresented: $open, arrowEdge: .bottom) {
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: Space.m) {
                     step("It reads the window", "The app, window title and page or file address, on this Mac. The words on screen too, if you turn that on.")
                     step("It compares with your task", "Words the window shares with your task count at once. The model judges the rest by meaning.")
                     step("It waits to be sure", "Not sure does nothing. A nudge needs two checks that agree and a drift that lasts.")
-                    Text("Apple's on-device model can be wrong.").font(Tokens.text(12)).foregroundStyle(Tokens.ink2)
+                    Text("Apple's on-device model can be wrong.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
                 }
-                .padding(18).frame(width: 320)
+                .padding(Space.l).frame(width: 320)
             }
     }
     func step(_ title: String, _ text: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(title).font(Tokens.text(13, .semibold))
-            Text(text).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+            Text(title).font(Tokens.text(.body, .semibold))
+            Text(text).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
         }
     }
 }
@@ -278,29 +272,32 @@ struct HowItWorks: View {
     @State private var shown = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: Space.s) {
             HStack(alignment: .firstTextBaseline) {
                 SectionTitle(text: "How Focus works")
                 Spacer()
                 Button("Hide") { c.prefs.introSeen = true }.buttonStyle(FocusButtonStyle(.plain, small: true))
             }
-            HStack(alignment: .top, spacing: 14) {
-                step("text.cursor", "Say what you are working on", "One line is enough. Focus keeps it as a project for next time.").arrive(0, shown, reduceMotion)
-                step("macwindow", "It compares the window in front", "The app, the title and the page, read on this Mac. Words that match your task count at once.").arrive(1, shown, reduceMotion)
-                step("hand.raised", "Not sure does nothing", "A nudge needs two checks that agree and a drift that lasts. The model can be wrong.").arrive(2, shown, reduceMotion)
+            // A real sequence, so it is numbered: one inset, three short steps, no grid of look-alike cards.
+            Inset(padding: Space.l) {
+                VStack(alignment: .leading, spacing: Space.m) {
+                    step(1, "Say what you are working on", "Kept as a project for next time").arrive(0, shown, reduceMotion)
+                    step(2, "It compares the window in front", "App, title and page, read on this Mac").arrive(1, shown, reduceMotion)
+                    step(3, "Not sure does nothing", "It can be wrong, so a nudge needs a drift that lasts").arrive(2, shown, reduceMotion)
+                }
             }
         }
         .onAppear { shown = true }
     }
-    func step(_ symbol: String, _ title: String, _ text: String) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Image(systemName: symbol).font(.system(size: 15, weight: .medium)).foregroundStyle(Tokens.accent)
-                .frame(width: 32, height: 32).background(Circle().fill(Tokens.accentSoft)).accessibilityHidden(true)
-            Text(title).font(Tokens.text(13.5, .semibold))
-            Text(text).font(Tokens.text(12.5)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+    func step(_ n: Int, _ title: String, _ text: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: Space.s) {
+            Text("\(n)").font(Tokens.rounded(.body, .semibold)).foregroundStyle(Tokens.accentInk)
+                .frame(width: 24, height: 24).background(Circle().fill(Tokens.accentSoft)).accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(Tokens.text(.body, .semibold))
+                Text(text).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+            }
         }
-        .padding(18).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Tokens.well))
         .accessibilityElement(children: .combine)
     }
 }

@@ -19,6 +19,7 @@ struct RootView: View {
         .selectionFeedback(tab)
         .successFeedback(model.pairedCount)
         .onOpenURL { model.open($0) }
+        .task { await model.cloud.refresh() }
         .fullScreenCover(isPresented: $model.showingGuard) { GuardBounceView() }
         .overlay(alignment: .top) { LinkingBanner().padding(.top, 4) }
         .sheet(isPresented: $model.showPairingSheet, onDismiss: { model.dismissLinking() }) { PairingView(prefill: model.pendingCode) }

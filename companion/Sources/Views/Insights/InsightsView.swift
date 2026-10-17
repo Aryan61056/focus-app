@@ -9,8 +9,9 @@ struct InsightsView: View {
             ZStack {
                 Palette.canvas.ignoresSafeArea()
                 ScrollView {
-                    if let i = model.insights {
+                    if let i = model.displayedInsights {
                         VStack(spacing: 16) {
+                            if let asOf = model.insightsAsOf { AsOfNote(date: asOf).reveal(0, key: "insights") }
                             TodayCard(insights: i).reveal(0, key: "insights")
                             WeekCard(insights: i).reveal(1, key: "insights")
                             if let r = i.returnSeconds, i.returnCount > 0 { ReturnCard(seconds: r, count: i.returnCount).reveal(2, key: "insights") }
@@ -26,7 +27,18 @@ struct InsightsView: View {
             .navigationTitle("Insights")
             .toolbar { ToolbarItem(placement: .topBarTrailing) { ConnectionChip() } }
         }
-        .motion(Motion.settle, value: model.insights != nil)
+        .motion(Motion.settle, value: model.displayedInsights != nil)
+    }
+}
+
+/// Says these numbers are from iCloud and when, so a quiet Mac is not mistaken for a quiet day.
+private struct AsOfNote: View {
+    let date: Date
+    var body: some View {
+        Label("From your Mac, \(date.formatted(.relative(presentation: .named)))", systemImage: "icloud")
+            .font(.footnote).foregroundStyle(Palette.ink2)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
     }
 }
 
@@ -35,7 +47,7 @@ private struct EmptyInsights: View {
         ContentUnavailableView {
             Label("Nothing here yet", systemImage: "chart.bar.xaxis")
         } description: {
-            Text("Connect your Mac and finish a session. Your days and sessions show up here.")
+            Text("Connect your Mac, or turn on Keep Insights in iCloud there, and finish a session. Your days and sessions show up here.")
         }
     }
 }

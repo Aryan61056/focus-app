@@ -11,6 +11,8 @@ Written 2026-10-13 by Claude with Aarav, and merged to main the same day at Aara
 - Touched in existing files: `mac/Package.swift` (one dependency, one target, one test target), `FocusApp.swift` (9 lines: import, one state
   property, `attach`, a Window scene, a menu item), `tools/build_app.sh` (two Info.plist keys for local network use).
 
+Insights can also reach the phone through the user's own iCloud when the Mac is away: `ICLOUD-SYNC.md`. Live control is still this link.
+
 ## How the link works
 - Direct over the local network (Bonjour `_focuslink._tcp`, TCP, peer-to-peer allowed). No accounts, no servers of ours, no internet.
 - **Pairing:** the Mac shows an 80-bit code (16 characters). The phone proves it knows it with HMAC (the code is never sent) and the Mac then

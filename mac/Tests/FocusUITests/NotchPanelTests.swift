@@ -57,6 +57,67 @@ final class NotchPanelTests: XCTestCase {
         await spin(NotchPanelController.tuckSeconds + 0.2)
         XCTAssertFalse(panel.anyWindowVisibleForTesting, "and the window is gone once the tuck is done")
     }
+
+    /// Owner, 2026-10-15: bugs around the notch. The window is bigger than the shape, and it used to swallow every click in its frame,
+    /// so the menu bar next to the notch and a browser's tab bar could not be clicked for a whole session.
+    func testClicksPassThroughEverythingExceptTheShape() async throws {
+        _ = NSApplication.shared
+        guard NSScreen.main != nil else { throw XCTSkip("no screen") }
+        let c = SessionController(judge: ScriptedJudge(markers: [("Notes", .on)]), now: { 0 })
+        c.prefs.showNotch = true
+        let panel = NotchPanelController(controller: c)
+        panel.start(); defer { panel.stop() }
+        c.windowChanged(WindowSnapshot(app: "Notes", title: "Calc homework"))
+        c.begin(task: "Calc homework", preset: .standard, shadow: false)
+        await spin()
+        let box = try XCTUnwrap(panel.hoverBoxForTesting), win = try XCTUnwrap(panel.panelForTesting)
+        let shape = try XCTUnwrap(box.shapeOnScreen()), frame = win.frame
+        XCTAssertGreaterThan(frame.height, shape.height + 20, "the window is bigger than the resting shape")
+
+        box.pointerMoved(at: NSPoint(x: shape.midX, y: shape.minY - 30))   // in the window, under the shape
+        XCTAssertTrue(win.ignoresMouseEvents, "empty window area lets the click through")
+        box.pointerMoved(at: NSPoint(x: frame.minX - 50, y: frame.midY))
+        XCTAssertTrue(win.ignoresMouseEvents)
+        box.pointerMoved(at: NSPoint(x: shape.midX, y: shape.midY))
+        XCTAssertFalse(win.ignoresMouseEvents, "the shape itself takes clicks (Back to task)")
+        box.pointerMoved(at: NSPoint(x: shape.midX, y: shape.minY - 30))
+        XCTAssertTrue(win.ignoresMouseEvents, "and lets go again when the pointer leaves it")
+
+        c.end(); await spin(NotchPanelController.tuckSeconds + 0.2)
+    }
+
+    /// Owner, 2026-10-15: "the notch doesn't collapse when I don't hover over it". A click that came before the hover delay had run
+    /// opened the card without the hover ever registering, so leaving did nothing.
+    func testAClickBeforeTheHoverDelayStillClosesWhenThePointerLeaves() async throws {
+        _ = NSApplication.shared
+        guard NSScreen.main != nil else { throw XCTSkip("no screen") }
+        let c = SessionController(judge: ScriptedJudge(markers: [("Notes", .on)]), now: { 0 })
+        c.prefs.showNotch = true
+        let panel = NotchPanelController(controller: c)
+        panel.start(); defer { panel.stop() }
+        c.windowChanged(WindowSnapshot(app: "Notes", title: "Calc homework"))
+        c.begin(task: "Calc homework", preset: .standard, shadow: false)
+        await spin()
+        let box = try XCTUnwrap(panel.hoverBoxForTesting)
+        let rest = try XCTUnwrap(panel.shownSizeForTesting).height
+        let shape = try XCTUnwrap(box.shapeOnScreen())
+        func move(_ p: NSPoint) { box.pointerForTesting = p; box.pointerMoved() }
+
+        move(NSPoint(x: shape.midX, y: shape.midY))   // arrives
+        panel.setExpandedForTesting(true)                            // and clicks at once, before the 0.2 s hover delay
+        await spin(0.1)
+        XCTAssertGreaterThan(try XCTUnwrap(panel.shownSizeForTesting).height, rest, "the click opened it")
+        move(NSPoint(x: shape.midX, y: shape.minY - 300))   // leaves
+        await spin(0.6)
+        XCTAssertEqual(try XCTUnwrap(panel.shownSizeForTesting).height, rest, "and leaving closes it")
+
+        // And the ordinary way: hover long enough to register, click, leave.
+        move(NSPoint(x: shape.midX, y: shape.midY)); await spin(0.5)
+        panel.setExpandedForTesting(true); await spin(0.1)
+        move(NSPoint(x: shape.midX, y: shape.minY - 300)); await spin(0.6)
+        XCTAssertEqual(try XCTUnwrap(panel.shownSizeForTesting).height, rest)
+        c.end(); await spin(NotchPanelController.tuckSeconds + 0.2)
+    }
 }
 
 /// The notch is for looking. These fail if a way out of a nudge is ever put back on it (owner, 2026-10-13).

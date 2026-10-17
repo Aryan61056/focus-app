@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Focus. Gentle focus for your Mac</title>
+  <meta name="description" content="Tell Focus what you are working on. An on-device AI compares the window in front with it, and nudges you gently when you drift. No account, no cloud.">
+  <meta name="theme-color" content="#135e3d">
+  <link rel="icon" href="assets/app/icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script>document.documentElement.classList.add("js")</script>
+  <script type="module" src="main.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- The nav is a notch: a bar hanging from the top edge with concave fillets, white over the sky, deep green over paper. -->
+<header class="nav" data-tone="sky">
+  <nav class="nav__pill" aria-label="Main">
+    <a class="nav__logo" href="#top" aria-label="Focus home">
+      <img src="assets/app/icon.png" alt="" width="26" height="26">
+      <span>Focus</span>
+    </a>
+    <div class="nav__links" id="nav-links">
+      <a class="nav__link" href="#island">The notch</a>
+      <a class="nav__link" href="#decides">How it decides</a>
+      <a class="nav__link" href="#features">Features</a>
+      <a class="nav__link" href="#promises">Privacy</a>
+      <a class="nav__link" href="#faq">FAQ</a>
+    </div>
+    <a class="btn btn--nav" href="#download">Download</a>
+    <button class="nav__menu" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nav-links"><span></span><span></span></button>
+  </nav>
+</header>
+
+<main id="main">
+
+<!-- Hero ------------------------------------------------------------------------------------------------------- -->
+<section class="hero sky" id="top" data-tone="sky">
+  <div class="sky__fog" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+  <canvas class="hero__art" aria-hidden="true"></canvas>
+  <div class="hero__icon-wrap">
+    <img class="hero__icon" src="assets/app/icon.png" alt="Focus app icon" width="148" height="148">
+  </div>
+  <div class="hero__inner">
+    <p class="hero__kicker reveal" data-reveal-load style="--d:120ms">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="3"/></svg>
+      Made for Mac. Runs on your Mac.
+    </p>
+    <h1 class="hero__title reveal" data-reveal-load style="--d:200ms"><span class="soft">Notice the drift.</span> Come back gently.</h1>
+    <p class="hero__sub reveal" data-reveal-load style="--d:300ms">Tell Focus what you are working on. An on-device AI compares the window in front with it, and nudges you softly when you wander.</p>
+    <div class="hero__actions reveal" data-reveal-load style="--d:400ms">
+      <a class="btn btn--white" href="#download">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9m0 0 3.5-3.5M10 12 6.5 8.5M4 15.5h12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Download for macOS
+      </a>
+      <a class="btn btn--glass" href="#decides">See how it decides</a>
+    </div>
+    <p class="hero__note reveal" data-reveal-load style="--d:480ms">No account. Nothing to sign up for.</p>
+  </div>
+
+  <div class="showcase">
+    <figure class="showcase__frame">
+      <img src="assets/app/today.jpg" alt="The Focus window during a session: the task Calc homework, a green ring that says on task, and a panel called What Focus is reading that explains its call." width="2480" height="1600" loading="eager">
+    </figure>
+  </div>
+</section>
+
+<!-- Interactive notch ------------------------------------------------------------------------------------------ -->
+<section class="island" id="island" data-tone="night">
+  <div class="island__head">
+    <h2 class="reveal">Your notch keeps watch. Quietly.</h2>
+    <p class="reveal" style="--d:80ms">A ring, your task and the time. It only opens when you have drifted for a while.</p>
+  </div>
+
+  <div class="island__stage reveal" style="--d:140ms">
+    <div class="mac" data-step="0">
+      <div class="mac__bar" aria-hidden="true">
+        <span class="mac__bar-left"><b>Notes</b><i>File</i><i>Edit</i><i>View</i></span>
+        <span class="mac__bar-right"><i>Wed 14 Oct</i><i>9:41</i></span>
+      </div>
+      <!-- The notch: the hardware cut-out in the middle, Focus's wings around it. Sized by a spring in main.js. -->
+      <div class="notch" role="status" aria-live="polite">
+        <div class="notch__rest">
+          <svg class="ring" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/></svg>
+          <span class="notch__task">Calc homework</span>
+          <span class="notch__time" data-clock>24:10</span>
+        </div>
+        <div class="notch__open">
+          <svg class="ring ring--big" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/></svg>
+          <div class="notch__copy">
+            <strong>Back to Calc homework?</strong>
+            <span>You have been away from Calc homework for a while.</span>
+          </div>
+          <button class="notch__back" type="button">Back to task</button>
+        </div>
+      </div>
+
+      <div class="mac__window" aria-hidden="true">
+        <div class="mac__win-bar"><i></i><i></i><i></i><span data-win-title>Calc homework</span></div>
+        <div class="mac__win-body" data-win-body></div>
+      </div>
+
+      <p class="mac__read" aria-live="polite"><span class="mac__read-label">Focus read</span> <span data-read>Notes, “Calc homework”. Shares words with your task.</span> <b data-call>On task</b></p>
+    </div>
+
+    <div class="island__controls">
+      <ol class="steps" role="tablist" aria-label="Session story">
+        <li><button role="tab" data-go="0" aria-selected="true">On task</button></li>
+        <li><button role="tab" data-go="1">Not sure</button></li>
+        <li><button role="tab" data-go="2">Drifting</button></li>
+        <li><button role="tab" data-go="3">Nudge</button></li>
+        <li><button role="tab" data-go="4">Back</button></li>
+      </ol>
+      <button class="playpause" type="button" aria-label="Pause the story" data-playing="true">
+        <svg class="i-pause" viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="4" width="3.2" height="12" rx="1"/><rect x="11.8" y="4" width="3.2" height="12" rx="1"/></svg>
+        <svg class="i-play" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4.5v11l9.5-5.5z"/></svg>
+      </button>
+    </div>
+    <p class="island__caption" aria-live="polite" data-caption>The ring is closed. You are on task, so Focus says nothing.</p>
+  </div>
+</section>
+
+<!-- How it decides: carousel ------------------------------------------------------------------------------------ -->
+<section class="decides paper" id="decides" data-tone="paper">
+  <div class="wrap">
+    <h2 class="section-title reveal">How Focus decides</h2>
+    <p class="section-sub reveal" style="--d:80ms">Every call is shown to you. The model can be wrong, so Focus leans quiet.</p>
+  </div>
+  <div class="rail" data-rail>
+    <ul class="rail__track" data-track>
+      <li class="slide">
+        <div class="slide__media art" data-art="wanderer" data-ax="0.2" data-ay="0.4">
+          <div class="ui ui--window" data-ui>
+            <div class="ui-win__bar"><i></i><i></i><i></i></div>
+            <div class="ui-win__row"><span class="app-dot app-dot--notes"></span><div><b>Notes</b><span>Calc homework</span></div></div>
+            <div class="ui-win__row muted"><span class="app-dot app-dot--msg"></span><div><b>Messages</b><span>Never read</span></div></div>
+          </div>
+        </div>
+        <p class="slide__cap"><b>It reads the window in front.</b> App, title and page address. Messages and music are never read.</p>
+      </li>
+      <li class="slide">
+        <div class="slide__media art" data-art="thinker" data-ax="0.5" data-ay="0.3">
+          <div class="ui ui--compare" data-ui>
+            <div class="chip">Task: Calc homework</div>
+            <div class="chip">Window: Notes, “Calc homework”</div>
+            <svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v15m0 0-5-5m5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <div class="chip chip--call"><svg class="ring" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/></svg>On task</div>
+          </div>
+        </div>
+        <p class="slide__cap"><b>It compares with your task.</b> Your task and project notes, judged by Apple’s model on this Mac.</p>
+      </li>
+      <li class="slide">
+        <div class="slide__media art" data-art="wanderer" data-ax="0.5" data-ay="0.6">
+          <div class="ui ui--checks" data-ui>
+            <div class="check"><span class="tick"></span>First check: drifting</div>
+            <div class="check"><span class="tick"></span>Second check agrees</div>
+            <div class="check"><span class="tick tick--wait"></span>Drift lasts</div>
+            <div class="bar"><i></i></div>
+          </div>
+        </div>
+        <p class="slide__cap"><b>Two checks have to agree.</b> And the drift has to last before anything happens.</p>
+      </li>
+      <li class="slide">
+        <div class="slide__media art" data-art="thinker" data-ax="0.5" data-ay="0.2">
+          <div class="ui ui--unsure" data-ui>
+            <svg class="ring ring--dashed ring--huge" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/></svg>
+            <b>Not sure</b>
+            <span>No nudge. Nothing happens.</span>
+          </div>
+        </div>
+        <p class="slide__cap"><b>Not sure does nothing.</b> A false nudge costs more than a missed one.</p>
+      </li>
+      <li class="slide">
+        <div class="slide__media art" data-art="wanderer" data-ax="0.9" data-ay="0.3">
+          <div class="ui ui--nudge" data-ui>
+            <svg class="ring ring--gapped" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/></svg>
+            <div><b>Back to Calc homework?</b><span>It never names where you went.</span></div>
+            <span class="ui-btn">Back to task</span>
+          </div>
+        </div>
+        <p class="slide__cap"><b>Then, a gentle nudge.</b> In the notch, without sound, and never naming the distraction.</p>
+      </li>
+    </ul>
+    <div class="rail__controls">
+      <div class="pager" role="tablist" aria-label="Choose a slide" data-pager></div>
+      <button class="playpause playpause--light" type="button" aria-label="Pause the slides" data-playing="true" data-rail-play>
+        <svg class="i-pause" viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="4" width="3.2" height="12" rx="1"/><rect x="11.8" y="4" width="3.2" height="12" rx="1"/></svg>
+        <svg class="i-play" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4.5v11l9.5-5.5z"/></svg>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- Features: bento --------------------------------------------------------------------------------------------- -->
+<section class="features paper" id="features" data-tone="paper">
+  <div class="wrap">
+    <h2 class="section-title reveal">Focus is there <span class="soft">when you drift.</span></h2>
+    <div class="bento">
+      <article class="tile tile--wide art art--fog reveal" data-art="wanderer" data-ay="0.2">
+        <div class="ui ui--notchrest" data-ui>
+          <svg class="ring" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/></svg>
+          <span class="hw" aria-hidden="true"></span>
+          <span>24:10</span>
+        </div>
+        <div class="tile__cap"><h3>Never invisible</h3><p>While Focus watches, a ring sits in the notch and the menu bar.</p></div>
+      </article>
+      <article class="tile tile--shot reveal" style="--d:70ms">
+        <img src="assets/app/projects.jpg" alt="The Projects page: a project called Calc homework with a box for what Focus should know about it." loading="lazy" width="2480" height="1600">
+        <div class="tile__cap tile__cap--on-light"><h3>Projects remember</h3><p>A sentence about the work beats any list of rules.</p></div>
+      </article>
+      <article class="tile art reveal" data-art="jerome" data-ax="0.2" data-ay="0.3" style="--d:0ms">
+        <div class="ui ui--list" data-ui>
+          <div class="row"><span class="app-dot app-dot--msg"></span>Messages<em>Not read</em></div>
+          <div class="row"><span class="app-dot app-dot--music"></span>Music<em>Not read</em></div>
+          <div class="row"><span class="app-dot app-dot--tab"></span>New tab<em>Not read</em></div>
+        </div>
+        <div class="tile__cap"><h3>Some things stay private</h3><p>Messaging, music and blank tabs are never read or judged.</p></div>
+      </article>
+      <article class="tile art reveal" data-art="thinker" data-ax="0.5" data-ay="0.3" style="--d:70ms">
+        <div class="ui ui--keys" data-ui><kbd>⌃</kbd><kbd>⌥</kbd><kbd>F</kbd></div>
+        <div class="tile__cap"><h3>One keypress to start</h3><p>Control, Option, F starts a session, or pauses one.</p></div>
+      </article>
+      <article class="tile art reveal" data-art="wanderer" data-ax="0.5" data-ay="0.75" style="--d:140ms">
+        <div class="ui ui--tray" data-ui>
+          <div class="tray-file"><span class="file-ico"></span>chapter-3.pdf</div>
+          <div class="tray-file"><span class="file-ico file-ico--b"></span>notes.md</div>
+        </div>
+        <div class="tile__cap"><h3>A tray in the notch</h3><p>Drop files on the notch, drag them out when you need them.</p></div>
+      </article>
+      <article class="tile tile--wide art reveal" data-art="jerome" data-ax="0.6" data-ay="0.7">
+        <div class="ui ui--review" data-ui>
+          <div class="rv"><b>10:42</b><span>Read as drifting. Two checks agreed.</span><em>That was fine</em></div>
+          <div class="rv"><b>11:05</b><span>Read as on task. Shares words with your task.</span></div>
+        </div>
+        <div class="tile__cap"><h3>Review shows why</h3><p>See why each moment was flagged, and tell Focus when it got one wrong.</p></div>
+      </article>
+      <article class="tile art reveal" data-art="thinker" data-ax="0.5" data-ay="0.15" style="--d:70ms">
+        <div class="ui ui--words" data-ui>
+          <span class="w">integral</span><span class="w">substitution</span><span class="w">dx</span>
+          <small>Words only. Never the picture.</small>
+        </div>
+        <div class="tile__cap"><h3>Screen reading, if you want it</h3><p>Off until you turn it on. Words stay in memory for seconds.</p></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- Promises: card row ----------------------------------------------------------------------------------------- -->
+<section class="promises paper" id="promises" data-tone="paper">
+  <div class="wrap">
+    <h2 class="section-title reveal">Calm by design, <span class="soft">private by default.</span></h2>
+  </div>
+  <div class="cards" data-cards>
+    <ul class="cards__track">
+      <li class="pcard reveal">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 20h8"/></svg>
+        <p>Runs on your Mac.<br>No account. No cloud.</p>
+        <button class="pcard__more" type="button" aria-expanded="false" aria-label="More about running on your Mac"><i></i></button>
+        <div class="pcard__detail"><p>The judge is Apple’s on-device model. There is nothing to sign up for and no analytics.</p></div>
+      </li>
+      <li class="pcard reveal" style="--d:60ms">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16M12 4v16" transform="rotate(45 12 12)"/></svg>
+        <p>Never names<br>the distraction.</p>
+        <button class="pcard__more" type="button" aria-expanded="false" aria-label="More about nudges"><i></i></button>
+        <div class="pcard__detail"><p>A nudge talks about your task, not where you went. Safe on a shared screen.</p></div>
+      </li>
+      <li class="pcard reveal" style="--d:120ms">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9v6h4l5 4V5L9 9z"/><path d="M18 9l4 6M22 9l-4 6"/></svg>
+        <p>No sound.<br>No mascot.</p>
+        <button class="pcard__more" type="button" aria-expanded="false" aria-label="More about quiet defaults"><i></i></button>
+        <div class="pcard__detail"><p>Quiet by default. The better you are doing, the less you see.</p></div>
+      </li>
+      <li class="pcard reveal" style="--d:180ms">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" stroke-dasharray="4 3"/></svg>
+        <p>Not sure?<br>It does nothing.</p>
+        <button class="pcard__more" type="button" aria-expanded="false" aria-label="More about uncertainty"><i></i></button>
+        <div class="pcard__detail"><p>A nudge needs two checks that agree and a drift that lasts.</p></div>
+      </li>
+      <li class="pcard reveal" style="--d:240ms">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></svg>
+        <p>See and delete<br>what it learned.</p>
+        <button class="pcard__more" type="button" aria-expanded="false" aria-label="More about your data"><i></i></button>
+        <div class="pcard__detail"><p>Reasons live in memory. Sessions keep counts, never window text.</p></div>
+      </li>
+      <li class="pcard reveal" style="--d:300ms">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.5"/></svg>
+        <p>Screen reading<br>is opt-in.</p>
+        <button class="pcard__more" type="button" aria-expanded="false" aria-label="More about screen reading"><i></i></button>
+        <div class="pcard__detail"><p>Pictures never reach the model, and nothing is saved to disk.</p></div>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- Quiet room: big art section --------------------------------------------------------------------------------- -->
+<section class="room sky" data-tone="sky">
+  <canvas class="room__art" aria-hidden="true"></canvas>
+  <div class="room__inner">
+    <h2 class="reveal">A quiet room, <span class="soft">on a busy Mac.</span></h2>
+    <p class="reveal" style="--d:80ms">Focus starts gentle. It notices when you wander and says so softly. Stricter steps are there if you ask for them.</p>
+    <ul class="levels reveal" style="--d:160ms" aria-label="Nudge styles">
+      <li><b>Gentle</b><span>A nudge in the notch, then it waits.</span></li>
+      <li><b>Standard</b><span>Asks once more, then a pause screen.</span></li>
+      <li><b>Strict</b><span>Sooner, and hides the app you drifted into.</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- Word scroll ------------------------------------------------------------------------------------------------- -->
+<section class="wordscroll paper" data-tone="paper">
+  <div class="wordscroll__stage">
+    <img class="wordscroll__icon" src="assets/app/icon.png" alt="" width="96" height="96">
+    <p class="wordscroll__text" data-wordsplit>Say what you are working on. Focus reads the window in front, compares, and stays quiet unless it is sure.</p>
+    <p class="wordscroll__ask" data-wordsplit>What will you finish today?</p>
+  </div>
+</section>
+
+<!-- Get it ------------------------------------------------------------------------------------------------------ -->
+<section class="get paper" id="download" data-tone="paper">
+  <div class="wrap get__grid">
+    <div class="getcard reveal">
+      <div class="getcard__head">
+        <img src="assets/app/icon.png" alt="" width="56" height="56">
+        <div><h2>Focus for Mac</h2><p>Early build</p></div>
+      </div>
+      <ul class="getcard__list">
+        <li>Apple’s on-device model, nothing to download</li>
+        <li>Projects, history, insights and review</li>
+        <li>Notch, menu bar and a one-key start</li>
+        <li>Open sessions, or set a timer</li>
+        <li>Nudges that never name the distraction</li>
+      </ul>
+      <!-- TODO(owner): distribution is not decided yet. Point this at the real download once it exists. -->
+      <a class="btn btn--accent btn--block" href="#download" data-download>
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9m0 0 3.5-3.5M10 12 6.5 8.5M4 15.5h12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Download for macOS
+      </a>
+    </div>
+    <div class="get__art art art--tall reveal" data-art="thinker" data-fit="contain" data-ax="0.5" data-ay="1" style="--d:100ms" aria-hidden="true"></div>
+  </div>
+</section>
+
+<!-- FAQ --------------------------------------------------------------------------------------------------------- -->
+<section class="faq paper" id="faq" data-tone="paper">
+  <div class="wrap wrap--narrow">
+    <h2 class="section-title reveal">Questions</h2>
+    <div class="qa">
+      <div class="q reveal">
+        <button type="button" aria-expanded="false"><span>What does Focus look at?</span><i></i></button>
+        <div class="a"><div><p>The app, window title and page address of the window in front, only during a session. If you turn on screen reading, it also reads the words in that window. The model sees words, never the picture.</p></div></div>
+      </div>
+      <div class="q q--r reveal">
+        <button type="button" aria-expanded="false"><span>Does anything leave my Mac?</span><i></i></button>
+        <div class="a"><div><p>Focus judges with Apple’s on-device model. There is no account, no cloud service of ours and no analytics. Pictures and screen words stay in memory and are dropped when the window changes.</p></div></div>
+      </div>
+      <div class="q reveal">
+        <button type="button" aria-expanded="false"><span>What if it gets it wrong?</span><i></i></button>
+        <div class="a"><div><p>It will, sometimes. That is why a nudge needs two checks that agree and a drift that lasts, and why not sure does nothing. In Review, “That was fine” teaches it.</p></div></div>
+      </div>
+      <div class="q q--r reveal">
+        <button type="button" aria-expanded="false"><span>Will it say what I was looking at?</span><i></i></button>
+        <div class="a"><div><p>No. Nudges talk about your task, never the distraction, so Focus is safe to have on screen next to a colleague.</p></div></div>
+      </div>
+      <div class="q reveal">
+        <button type="button" aria-expanded="false"><span>Does it read my messages?</span><i></i></button>
+        <div class="a"><div><p>No. Messaging apps, music players and blank tabs are on a never-judged list by default. You can edit that list in Settings.</p></div></div>
+      </div>
+      <div class="q q--r reveal">
+        <button type="button" aria-expanded="false"><span>Is there an iPhone app?</span><i></i></button>
+        <div class="a"><div><p>A companion is in testing. It follows your Mac session over your local network and can shield apps you pick while you work. You can lift it any time.</p></div></div>
+      </div>
+      <div class="q reveal">
+        <button type="button" aria-expanded="false"><span>Can I work without a timer?</span><i></i></button>
+        <div class="a"><div><p>Yes. Open sessions run until you end them. Timed sessions end on their own.</p></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Outro ------------------------------------------------------------------------------------------------------- -->
+<section class="outro paper" data-tone="paper">
+  <div class="wrap wrap--narrow">
+    <h2 class="reveal">Ready to finish what you started?</h2>
+    <p class="reveal" style="--d:80ms">A ring in the notch, a gentle nudge when you drift, and an AI that stays on your Mac.</p>
+    <div class="hero__actions reveal" style="--d:160ms">
+      <a class="btn btn--accent" href="#download">Download for macOS</a>
+      <a class="btn btn--soft" href="#decides">How it decides</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer" data-tone="sky">
+  <canvas class="footer__art" aria-hidden="true"></canvas>
+  <div class="footer__inner wrap">
+    <div class="footer__brand">
+      <a class="footer__logo" href="#top"><img src="assets/app/icon.png" alt="" width="44" height="44"><span>Focus</span></a>
+      <p class="footer__line">A calm colleague for focused work.</p>
+      <p class="footer__blurb">Projects, gentle nudges and a ring in the notch. Everything runs on your Mac.</p>
+      <a class="btn btn--white btn--sm" href="#download">Download for macOS</a>
+    </div>
+    <nav class="footer__col" aria-label="Footer">
+      <h3>Product</h3>
+      <a href="#island">The notch</a>
+      <a href="#decides">How it decides</a>
+      <a href="#features">Features</a>
+      <a href="#promises">Privacy</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="footer__col footer__credits">
+      <h3>Art</h3>
+      <p>Auguste Rodin, <i>The Thinker</i>. Photo by AndrewHorne, public domain, via Wikimedia Commons.</p>
+      <p>Albrecht Dürer, <i>Saint Jerome in His Study</i>, 1514. National Gallery of Art, CC0.</p>
+      <p>Caspar David Friedrich, <i>Wanderer above the Sea of Fog</i>, about 1818. Public domain.</p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

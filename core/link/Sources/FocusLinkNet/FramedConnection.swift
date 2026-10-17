@@ -18,6 +18,8 @@ enum LinkTransport {
     var onFrame: ((Data) -> Void)?
     var onClose: ((String?) -> Void)?
     private var reader = FrameReader()
+    /// The largest frame accepted from the other side; a server lowers it until the peer has authenticated.
+    var frameLimit: Int { get { reader.maxFrame } set { reader.maxFrame = newValue } }
     private var closed = false
 
     init(_ connection: NWConnection) { self.connection = connection }
