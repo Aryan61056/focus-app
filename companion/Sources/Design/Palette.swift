@@ -13,19 +13,21 @@ extension Color {
     }
 }
 
-/// The Mac app's "Lichen" direction on a phone: one calm green, ink instead of black, and shape (not color) carrying state.
+/// The Mac app's "Workspace" look on a phone: neutral grays, one green accent, amber only for a slip, and shape (not color) carrying state.
 enum Palette {
     static let accent = Color(light: 0x1B7548, dark: 0x78D59D)
     static let onAccent = Color(light: 0xFFFFFF, dark: 0x041B0E)
     static let accentSoft = Color(light: 0xD9F3E2, dark: 0x1E3D2A)
-    static let ink = Color(light: 0x161C18, dark: 0xEEF3EF)
-    static let ink2 = Color(light: 0x4D554F, dark: 0xB1BAB4)
-    static let canvas = Color(light: 0xF3F7F4, dark: 0x0D110E)
-    static let surface = Color(light: 0xFFFFFF, dark: 0x1A201B)
-    static let line = Color(light: 0x161C18, dark: 0xFFFFFF).opacity(0.1)
-    static let track = Color(light: 0x161C18, dark: 0xFFFFFF).opacity(0.14)
-    /// Drift is quiet on purpose: a warmer ink, never an alarm red.
-    static let drift = Color(light: 0x7A4A12, dark: 0xE9B878)
+    static let ink = Color(light: 0x1A1B1B, dark: 0xEDEEEE)
+    static let ink2 = Color(light: 0x56595A, dark: 0xA9ADAE)
+    static let canvas = Color(light: 0xF7F7F6, dark: 0x1B1B1B)
+    static let surface = Color(light: 0xFFFFFF, dark: 0x242424)
+    /// Wells (fields, the Focus bar) sunk into the canvas.
+    static let well = Color(light: 0xF0F0EF, dark: 0x202020)
+    static let line = Color(light: 0x1A1B1B, dark: 0xFFFFFF).opacity(0.1)
+    static let track = Color(light: 0x1A1B1B, dark: 0xFFFFFF).opacity(0.16)
+    /// A slip is amber, the Mac's `Tokens.slip`: never an alarm red, never the only sign.
+    static let drift = Color(light: 0xB86A00, dark: 0xF0B060)
 }
 
 enum Metrics {
