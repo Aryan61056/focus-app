@@ -273,7 +273,8 @@ else if CommandLine.arguments.contains("--popups") { await popupShots() } else {
     let fresh = SessionController(judge: judge, store: DataStore(), now: { t })
     let used = SessionController(judge: judge, store: seededStore(), now: { t })
     func both<V: View>(_ name: String, _ size: CGSize, @ViewBuilder _ v: @escaping () -> V) {
-        for dark in [false, true] { WindowShot.shot(v(), size: size, name: name, dark: dark, dir: outDir) }
+        // The offscreen window is never the active one, so controls would draw gray; say it is, as it is when you are using the app.
+        for dark in [false, true] { WindowShot.shot(v().environment(\.controlActiveState, .key), size: size, name: name, dark: dark, dir: outDir) }
     }
     both("start-new-user", CGSize(width: 560, height: 360)) { CuePreview.startSheet(fresh, typed: "", asking: false) }
     both("start-returning", CGSize(width: 560, height: 400)) { CuePreview.startSheet(used, typed: "", asking: false) }
