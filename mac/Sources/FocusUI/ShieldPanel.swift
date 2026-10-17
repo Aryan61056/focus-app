@@ -113,9 +113,9 @@ struct ShieldCard: View {
         if c.prefs.holdToReturn {
             HoldPad(c: c).frame(height: 44).help(CueCopy.backHoldLine())
         } else if shield.asking {
-            Button("Back to task") { c.shieldBackToTask() }.buttonStyle(ShieldButtonStyle(primary ? .primary : .secondary))
+            Button("Back to task") { c.shieldBackToTask() }.buttonStyle(ShieldButtonStyle(primary ? .primary : .secondary)).goesTo(c.returnPlace)
         } else {
-            Button("Back to task") { c.shieldBackToTask() }.buttonStyle(ShieldButtonStyle(primary ? .primary : .secondary)).keyboardShortcut(.defaultAction)
+            Button("Back to task") { c.shieldBackToTask() }.buttonStyle(ShieldButtonStyle(primary ? .primary : .secondary)).goesTo(c.returnPlace).keyboardShortcut(.defaultAction)
         }
     }
 }

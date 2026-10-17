@@ -42,7 +42,7 @@ struct Inset<Content: View>: View {
 }
 
 extension View {
-    /// A card that floats over the page (nudge, check-in, rhythm prompt, next step): the shared opaque float surface, never glass,
+    /// A card that floats over the page (nudge, check-in, rhythm prompt): the shared opaque float surface, never glass,
     /// because it must read the same whether or not the window is active.
     func floatingCard(width: CGFloat = 340) -> some View {
         padding(Space.l).frame(width: width).cueSurface()

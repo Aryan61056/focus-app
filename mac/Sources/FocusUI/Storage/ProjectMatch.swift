@@ -1,7 +1,7 @@
 import Foundation
 
 /// Finding the project you probably mean when you type a task name, so a slightly different spelling continues the old project
-/// (its next step, its description, its rules) instead of quietly starting a second one. Pure string work on this Mac: no model, no network.
+/// (its description, its rules) instead of quietly starting a second one. Pure string work on this Mac: no model, no network.
 public enum ProjectMatch {
     /// Lowercase letters and digits with single spaces: "Do AP  Euro-Vocab!" and "do ap euro vocab" are the same.
     public static func normalize(_ s: String) -> String {

@@ -59,12 +59,12 @@ public final class DataStore {
     public func existingProject(named name: String) -> Project? { ProjectMatch.exact(name, in: projects) }
 
     /// Projects an earlier build made while a name was being typed: one per keystroke, so each is a shorter start of a longer name that
-    /// was made within minutes after it, and holds nothing (no sessions, description, next step or rules). Removes only those, once,
+    /// was made within minutes after it, and holds nothing (no sessions, description or rules). Removes only those, once,
     /// keeping a copy of the file first. Returns how many went.
     @discardableResult
     public func removeTypingLeftovers() -> Int {
         func holdsNothing(_ p: Project) -> Bool {
-            sessions.allSatisfy { $0.projectId != p.id } && p.context.isEmpty && p.nextStep.isEmpty && p.profile == ProjectProfile()
+            sessions.allSatisfy { $0.projectId != p.id } && p.context.isEmpty && p.profile == ProjectProfile()
         }
         let leftovers = projects.filter { p in
             let n = ProjectMatch.normalize(p.name)

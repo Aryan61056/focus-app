@@ -193,7 +193,6 @@ struct FakeWindow<Over: View>: View {
     let store = DataStore()
     var calc = store.addProject(name: "Calc homework")
     calc.context = "Calculus II, chapter 5: integration by parts. The textbook is the PDF in Documents."
-    calc.nextStep = "Check problem 4"
     calc.profile.alwaysAllowApps = ["Preview", "Notes", "Calculator"]
     calc.profile.alwaysAllowDomains = ["khanacademy.org", "desmos.com", "wolframalpha.com"]
     calc.profile.linkedPaths = ["~/Documents/Calc II"]
@@ -291,7 +290,7 @@ if CommandLine.arguments.contains("--popups") { await popupShots() } else { awai
     both("pop-welcome-2-small", CGSize(width: 960, height: 600)) { WelcomePreview.view(fresh, step: 1, asked: true) }
     // The start sheet on a name close to an older project: the hint while typing, then the question Start asks.
     let near = SessionController(judge: judge, store: DataStore(), now: { t })
-    if let store = near.store { var p = store.addProject(name: "Calc homework"); p.nextStep = "Problems 12 to 20"; store.update(p) }
+    if let store = near.store { _ = store.addProject(name: "Calc homework") }
     both("pop-start-near", CGSize(width: 560, height: 360)) { CuePreview.startSheet(near, typed: "calc homwork", asking: false) }
     both("pop-start-asking", CGSize(width: 560, height: 420)) { CuePreview.startSheet(near, typed: "calc homwork", asking: true) }
     // The notch on task, in every state it can be in without a nudge, at this Mac's real notch (185 x 32 pt).

@@ -14,8 +14,7 @@ public struct Sharpened: Equatable, Sendable {
 /// A short account of a finished session. Deliberately names no sites or apps: naming happens only when the user asks.
 public struct Recap: Equatable, Sendable {
     public var summary: String
-    public var nextStep: String
-    public init(summary: String, nextStep: String) { self.summary = summary; self.nextStep = nextStep }
+    public init(summary: String) { self.summary = summary }
 }
 
 /// The on-device model used for writing, as opposed to judging. Implementations must not touch the network.
@@ -66,7 +65,7 @@ public enum AssistantText {
 
     Summarize the finished session in at most two short sentences: how long the user stayed on task and how their attention went. \
     Do not name any website, app or window; describe them generally, for example "a stretch away from the task". \
-    Do not quote the reading counts. Then suggest one small, concrete next step for this exact task, at most 12 words, starting with a verb, that uses words from the task. Base it only on the task and project facts.
+    Do not quote the reading counts.
     """
 
     public static let answerInstructions = common + """
@@ -114,8 +113,6 @@ public struct AppleAssistant: Assistant {
     struct RecapOutput {
         @Guide(description: "At most two short sentences about the session. Names no site or app")
         var summary: String
-        @Guide(description: "One small next step starting with a verb, at most 12 words")
-        var next_step: String
     }
 
     @Generable
@@ -158,7 +155,7 @@ public struct AppleAssistant: Assistant {
     public func recap(facts: String) async -> Recap? {
         guard let out = await run(AssistantText.recapInstructions, AssistantText.block(facts), RecapOutput.self) else { return nil }
         let s = Self.clean(out.summary, max: 260)
-        return s.isEmpty ? nil : Recap(summary: s, nextStep: Self.clean(out.next_step, max: 120))
+        return s.isEmpty ? nil : Recap(summary: s)
     }
 
     public func answer(question: String, facts: String) async -> String? {

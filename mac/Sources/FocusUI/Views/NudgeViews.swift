@@ -36,9 +36,9 @@ struct NudgeCard: View {
             HStack(spacing: Space.xs) {
                 if c.longDetour {
                     Button(NudgeCopy.breakButton()) { c.takeNudgeBreak() }.buttonStyle(FocusButtonStyle(.primary, small: true))
-                    Button("Back to task") { c.act(.backToTask) }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+                    Button("Back to task") { c.act(.backToTask) }.buttonStyle(FocusButtonStyle(.secondary, small: true)).goesTo(c.returnPlace)
                 } else {
-                    Button("Back to task") { c.act(.backToTask) }.buttonStyle(FocusButtonStyle(.primary, small: true))
+                    Button("Back to task") { c.act(.backToTask) }.buttonStyle(FocusButtonStyle(.primary, small: true)).goesTo(c.returnPlace)
                     Button("This is part of it") { c.claimOnTask() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
                 }
             }
@@ -76,7 +76,7 @@ struct CheckInCard: View {
                 Text(CueCopy.checkInMeta)
             }
             HStack(spacing: Space.xs) {
-                Button("Back to task") { c.answerCheckIn(onTask: false) }.buttonStyle(FocusButtonStyle(.primary, small: true))
+                Button("Back to task") { c.answerCheckIn(onTask: false) }.buttonStyle(FocusButtonStyle(.primary, small: true)).goesTo(c.returnPlace)
                 Button("Yes, this is part of it") { c.answerCheckIn(onTask: true) }.buttonStyle(FocusButtonStyle(.secondary, small: true))
             }
             .padding(.leading, 24 + Space.s)
@@ -111,19 +111,5 @@ struct RhythmCard: View {
             .floatingCard()
             .accessibilityElement(children: .contain)
         }
-    }
-}
-
-struct ReentryCard: View {
-    @Bindable var c: SessionController
-    @State private var text = ""
-    var body: some View {
-        VStack(alignment: .leading, spacing: Space.s) {
-            Text("What is the next step?").font(Tokens.text(.headline, .semibold))
-            TextField("One small thing", text: $text).font(Tokens.text(.body)).onSubmit { if !text.isEmpty { c.saveNextStep(text) } }.wellField()
-            HStack { Spacer(); Button("Skip") { c.manualNextStep = false; c.act(.nextStep) }.buttonStyle(FocusButtonStyle(.plain, small: true))
-                Button("Save") { c.saveNextStep(text) }.buttonStyle(FocusButtonStyle(.primary, small: true)).disabled(text.isEmpty) }
-        }
-        .floatingCard()
     }
 }

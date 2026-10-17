@@ -194,13 +194,6 @@ public struct RootView: View {
             .motion(Motion.out(0.24), value: c.surface)
             .motion(Motion.out(0.24), value: c.checkIn)
             .motion(Motion.out(0.24), value: c.banner)
-            ZStack(alignment: .topTrailing) {
-                if c.reentryOpen || c.manualNextStep {
-                    ReentryCard(c: c).padding(Space.l).padding(.top, c.surface == nil && c.rhythmPrompt == nil ? 0 : 190)
-                        .transition(.card(from: .topTrailing, reduce: reduceMotion))
-                }
-            }
-            .motion(Motion.out(0.24), value: c.reentryOpen || c.manualNextStep)
         }
         .background { WindowBackdrop() }
     }

@@ -26,7 +26,7 @@ struct StartCard: View {
     }
 }
 
-/// A project you can pick up with one click: its name, and either the next step you left or when you last worked on it.
+/// A project you can pick up with one click: its name and when you last worked on it.
 struct ProjectChip: View {
     @Bindable var c: SessionController
     var project: Project
@@ -35,7 +35,7 @@ struct ProjectChip: View {
 
     var body: some View {
         let sessions = c.store?.sessions(for: project.id) ?? []
-        let detail = project.nextStep.isEmpty ? (sessions.first.map { $0.start.formatted(.relative(presentation: .named)) } ?? "No sessions yet") : "Next: \(project.nextStep)"
+        let detail = sessions.first.map { $0.start.formatted(.relative(presentation: .named)) } ?? "No sessions yet"
         Button { onStart(); _ = c.startWithDraft(task: project.name, projectId: project.id) } label: {
             HStack(spacing: Space.s) {
                 Image(systemName: "play.fill").font(.system(size: 10, weight: .bold)).foregroundStyle(Tokens.onAccent)
@@ -84,7 +84,6 @@ struct JustFinishedCard: View {
                         }
                     } else { SessionGoalResult(c: c) }
                     if settled { RecapBlock(c: c) }
-                    if settled, let p = c.projectForNote { PickUpNote(c: c, project: p) }
                     if c.askLoudness && settled {
                         Divider().overlay(Tokens.line)
                         FlowRow(spacing: Space.xs) {
@@ -108,24 +107,6 @@ struct JustFinishedCard: View {
         let on = Int(((s.activeSeconds - s.offTopicSeconds - s.unsureSeconds) / 60).rounded())
         let slips = s.drifts == 0 ? "No slips." : (s.drifts == 1 ? "One slip." : "\(s.drifts) slips.")
         return "\(max(on, 0)) minutes on task. \(slips)"
-    }
-}
-
-/// After a session: where to pick up next time. Saved on the project, offered on the start surface. Optional.
-struct PickUpNote: View {
-    @Bindable var c: SessionController
-    var project: Project
-    @State private var text = ""
-    @State private var loaded = false
-    var body: some View {
-        VStack(alignment: .leading, spacing: Space.xs) {
-            Text("Where to pick up next time").font(Tokens.text(.body, .semibold))
-            TextField("One small thing", text: $text).font(Tokens.text(.body)).wellField()
-                .onSubmit { c.setProjectNextStep(text) }
-                .onChange(of: text) { _, v in if loaded { c.setProjectNextStep(v) } }
-        }
-        .frame(maxWidth: 420, alignment: .leading)
-        .onAppear { text = project.nextStep; loaded = true }
     }
 }
 

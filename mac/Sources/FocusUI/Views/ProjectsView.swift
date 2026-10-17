@@ -93,9 +93,6 @@ struct ProjectDetail: View {
                     }
                     .frame(height: 92).wellField(height: nil)
                 }
-                field("Next step", help: "Shown when you start this project again.") {
-                    TextField("One small thing", text: binding.nextStep).font(Tokens.text(.body)).wellField()
-                }
                 AskFocusBox(c: c, project: store.project(project.id) ?? project)
                 recent
                 RulesDisclosure(profile: binding.profile)

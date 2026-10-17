@@ -102,14 +102,13 @@ struct StartForm: View {
         guard let s = store?.sessions(for: p.id).first else { return "" }
         return " " + s.start.formatted(.relative(presentation: .named))
     }
-    /// One calm line under the field: what Return will do, and the next step left on that project.
+    /// One calm line under the field: what Return will do.
     @ViewBuilder var hint: some View {
         if asking, let p = similar.first {
             // The question. Nothing has been created yet; either answer starts the session.
             VStack(alignment: .leading, spacing: Space.s) {
                 Text("You worked on \u{201C}\(p.name)\u{201D}\(Self.when(p, c.store)). Continue it, or start \u{201C}\(parsed.task)\u{201D} as a new project?")
                     .font(Tokens.text(.body)).fixedSize(horizontal: false, vertical: true)
-                if !p.nextStep.isEmpty { Text("Next: \(p.nextStep)").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(1) }
                 HStack(spacing: Space.xs) {
                     Button { start(continuing: p) } label: { Text("Continue \u{201C}\(p.name)\u{201D}").lineLimit(1) }.buttonStyle(FocusButtonStyle(.primary, small: true))
                     Button { start(forceNew: true) } label: { Text("Start new").lineLimit(1) }.buttonStyle(FocusButtonStyle(.plain, small: true))
@@ -118,10 +117,8 @@ struct StartForm: View {
             .padding(Space.s).frame(maxWidth: .infinity, alignment: .leading)
             .background(RoundedRectangle(cornerRadius: Tokens.radiusInset, style: .continuous).fill(Tokens.accentSoft))
         } else if parsed.task.isEmpty, let p = last {
-            Text(p.nextStep.isEmpty ? "Return continues \u{201C}\(p.name)\u{201D}." : "Return continues \u{201C}\(p.name)\u{201D}. Next: \(p.nextStep)")
+            Text("Return continues \u{201C}\(p.name)\u{201D}.")
                 .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(2)
-        } else if let p = existing, !p.nextStep.isEmpty {
-            Label("Next step: \(p.nextStep)", systemImage: "arrow.turn.down.right").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(2)
         } else if let p = similar.first, existing == nil {
             HStack(spacing: Space.xs) {
                 Text("Did you mean \u{201C}\(p.name)\u{201D}?").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(1)

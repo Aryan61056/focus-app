@@ -6,7 +6,6 @@ public struct Project: Codable, Identifiable, Equatable, Sendable {
     public var id = UUID()
     public var name: String
     public var context = ""
-    public var nextStep = ""
     public var carriedGoal: String?
     public var profile = ProjectProfile()
     public var createdAt = Date()

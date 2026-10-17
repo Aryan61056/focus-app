@@ -6,7 +6,7 @@ import FocusJudge
 /// Records what the assistant was given, so the tests can check what the model is allowed to see.
 final class SpyAssistant: Assistant, @unchecked Sendable {
     var recapFacts = "", answerFacts = "", sharpenInput = ""
-    var recapOut: Recap? = Recap(summary: "You stayed with it for most of the session.", nextStep: "Finish problem 4")
+    var recapOut: Recap? = Recap(summary: "You stayed with it for most of the session.")
     func sharpen(task: String, context: String) async -> Sharpened? { sharpenInput = task; return Sharpened(task: "Calculus homework, chapter 3", counts: "Textbook pages and worked examples.") }
     func recap(facts: String) async -> Recap? { recapFacts = facts; return recapOut }
     func answer(question: String, facts: String) async -> String? { answerFacts = facts; return "You were on a video page at 10:02." }
@@ -30,7 +30,7 @@ final class AssistantTests: XCTestCase {
         c.begin(task: "Calc homework", preset: .standard, shadow: false)
         while t < 5 { t += 1; c.tick(); await c.waitForJudgments() }
         c.end(); await settle(c)
-        XCTAssertEqual(c.recap.value?.nextStep, "Finish problem 4")
+        XCTAssertEqual(c.recap.value?.summary, "You stayed with it for most of the session.")
         XCTAssertFalse(spy.recapFacts.contains("secret-title"), "the recap sees counts, not window titles")
         XCTAssertFalse(spy.recapFacts.lowercased().contains("youtube"))
     }

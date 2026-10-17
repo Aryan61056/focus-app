@@ -86,6 +86,18 @@ public final class SessionController {
     @ObservationIgnored var warnedAt: Double?
     /// The last window Focus read as on task, so the ladder can switch a browser back to it. Memory only, dropped with the session.
     @ObservationIgnored var lastOnTask: WindowSnapshot?
+    /// The windows, tabs and documents you worked in, with the time in each, so "Back to task" can go to the right one (Places.swift).
+    @ObservationIgnored public internal(set) var places = TaskPlaces()
+    /// Changes when the place "Back to task" would go to, or the places on offer, change, so views redraw then and not every second a place's time grows.
+    public internal(set) var placesVersion = 0
+    /// How the last trip back went, for the landing cue and the menu. Nil until you have gone back this session.
+    public internal(set) var lastReturn: ReturnReport?
+    @ObservationIgnored var lastPlaceTick: Double?
+    /// Bring this window, tab or document forward and say how far it got. The app does it with Accessibility and AppleScript.
+    /// `allowTabs` is false when steering browser tabs is switched off or this is a practice session.
+    @ObservationIgnored public var onGoToPlace: ((_ place: WindowSnapshot, _ allowTabs: Bool) -> ReturnOutcome)?
+    /// The name of the app in front, so the landing cue can wait until the place has actually come forward.
+    @ObservationIgnored public var frontAppName: (() -> String?)?
     /// Rounds of the last step carried out since the warning: the first switches, later ones hide or, on Strict, close.
     public internal(set) var enforceActions = 0
     /// Switch the browser to the tab you were last working in. Returns true when it did. The app does it with AppleScript.
@@ -102,6 +114,7 @@ public final class SessionController {
     @ObservationIgnored private var floorTo = 0.0
     @ObservationIgnored private var floorStartedAt = 0.0
     @ObservationIgnored private var veilPreviewStart: Double?
+    @ObservationIgnored private var edgePreviewStart: Double?
     /// Bring the Focus window forward on the pointer's screen (the pause screen lives there).
     @ObservationIgnored public var onForeground: (() -> Void)?
     /// Hide the app you drifted into (the last step of the ladder). The name only; the app decides how.
@@ -152,9 +165,6 @@ public final class SessionController {
     public private(set) var offTopic = TimerState()
     public private(set) var clock = ClockState()
     public private(set) var surface: Surface?
-    public private(set) var reentryOpen = false
-    /// "Next step" chosen from the menu bar: shows the same one-line card without waiting for a drift.
-    public var manualNextStep = false
     public private(set) var askResume: String?
     public private(set) var wrapUp = false
     public private(set) var shadowMarks = 0
@@ -330,6 +340,7 @@ public final class SessionController {
         priorBestStretch = Rewards.bestStretch(finished)
         summary = nil; shadowMarks = 0; learnedRules = []; wrapUp = false; askResume = nil; readings = []; appByWindowKey = [:]; stats = ReadStats(); previewFrame = nil; previewHeld = nil; screenText = ""
         var c = SessionConfig(); c.taskId = task; c.mode = deadline == nil ? mode : .open; c.durationSeconds = deadline == nil ? duration : nil; c.preset = preset ?? prefs.preset; c.shadow = shadow; c.sound = prefs.nudgeSound; c.checkScale = prefs.checkRate.scale * pressure.factor
+        c.reentryPrompt = false   // the brain still knows the prompt; the app no longer asks for one
         isActive = true
         send(.sessionStart(c))
         if let w = currentWindow { windowChanged(w) }
@@ -433,21 +444,35 @@ public final class SessionController {
     }
 
     // MARK: screen-wide veil
-    /// Percent of gray (0 to 100) the whole screen should show now: the brain's own veil, or the ladder's floor if that is higher.
-    public func veilLevel() -> Double {
-        let t = now()
-        if let start = veilPreviewStart, let p = Self.previewLevel(t - start) { return p }
-        guard isSensing, !shadow, prefs.screenGrayscale else { return 0 }
+    /// How far the drift has gone, 0 to 100: the brain's own veil, or the ladder's floor if that is higher. The gray and the closing edges share it.
+    private func driftLevel(_ t: Double) -> Double {
         let from = veilFrom, to = Double(veilTarget)
         let raw = veilDuration <= 0 || t - veilStartedAt >= Double(veilDuration) ? to : from + (to - from) * (t - veilStartedAt) / Double(veilDuration)
         // The brain's own veil tops out at 60 percent (Standard) at 1 point a second. Counting that as 40 makes the screen fully gray about 40 s after the first flagged moment (about 2.5 points a second).
         let brain = raw * 100 / Self.brainVeilCap
         return max(0, min(100, max(brain, floorLevel(t))))
     }
+
+    /// Percent of gray (0 to 100) the whole screen should show now.
+    public func veilLevel() -> Double {
+        let t = now()
+        if let start = veilPreviewStart, let p = Self.previewLevel(t - start) { return p }
+        guard isSensing, !shadow, prefs.screenGrayscale else { return 0 }
+        return driftLevel(t)
+    }
+    /// Percent (0 to 100) the edges of every display should be closed in now. Same ramp as the gray, its own switch.
+    public func edgeLevel() -> Double {
+        let t = now()
+        if let start = edgePreviewStart, let p = Self.previewLevel(t - start) { return p }
+        guard isSensing, !shadow, prefs.screenEdges else { return 0 }
+        return driftLevel(t)
+    }
     /// Settings "Preview": the screen goes fully gray for a few seconds so you can see what the veil does.
     /// It fades up over 4 s, holds for 2 s and fades back over 4 s, which is what a real drift looks like, only faster.
     public func previewVeil() { veilPreviewStart = now() }
+    public func previewEdges() { edgePreviewStart = now() }
     public var isPreviewingVeil: Bool { veilPreviewStart.map { Self.previewLevel(now() - $0) != nil } ?? false }
+    public var isPreviewingEdges: Bool { edgePreviewStart.map { Self.previewLevel(now() - $0) != nil } ?? false }
     static let brainVeilCap = 40.0
     static let previewUp = 4.0, previewHold = 2.0, previewDown = 4.0
     static func previewLevel(_ e: Double) -> Double? {
@@ -628,7 +653,7 @@ public final class SessionController {
     /// Newest first, and a window that is read again replaces its own latest line instead of repeating it.
     func record(_ r: Reading) {
         noteForHeadsUp(r)
-        if r.call == .on, r.source == .model || r.source == .rule, let w = currentWindow, Keys.window(w) == r.key { lastOnTask = w }
+        if r.call == .on, r.source == .model || r.source == .rule, let w = currentWindow, Keys.window(w) == r.key { lastOnTask = w; notePlace(w) }
         switch r.source { case .model: stats.model += 1; case .rule: stats.rule += 1; case .skipped: stats.skipped += 1; case .sensitive: break }
         if r.source == .model || r.source == .rule { switch r.call { case .on: stats.onTask += 1; case .unsure: stats.unsure += 1; case .off: stats.offTask += 1 } }
         if let first = readings.first, first.key == r.key, first.call == r.call, first.source == r.source { readings[0].at = r.at; readings[0].date = r.date; readings[0].reason = r.reason; readings[0].sawScreen = readings[0].sawScreen || r.sawScreen; return }
@@ -662,20 +687,8 @@ public final class SessionController {
     }
     public func end() { manuallyEnded = true; send(.sessionEnd) }
 
-    /// "What is the next step?": saved on the project (the start sheet shows it next time), then the brain is told it was answered.
-    /// The project of the session that just ended (or is running), for the "where to pick up" note on Today.
+    /// The project of the session that just ended (or is running).
     public var projectForNote: Project? { store?.project(projectId) }
-    public func setProjectNextStep(_ text: String) {
-        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let store, let pid = projectId, var p = store.project(pid) { p.nextStep = String(t.prefix(200)); store.update(p) }
-    }
-
-    public func saveNextStep(_ text: String) {
-        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !t.isEmpty, let store, let pid = projectId, var p = store.project(pid) { p.nextStep = String(t.prefix(200)); store.update(p) }
-        manualNextStep = false
-        act(.nextStep)
-    }
 
     /// "Ask Focus about a window": runs the same judge on text the user typed. Nothing is read from the screen.
     public func ask(app: String, title: String, project p: Project) async -> Judgement {
@@ -716,8 +729,8 @@ public final class SessionController {
                 if k == "gate" { gateHoldUntil = t }
                 fire(k == "gate" ? .pauseScreen : .warning, title: nudgeTitle)
             case .withdraw(let what):
-                if what == "reentry" { reentryOpen = false } else { surface = nil }
-            case .reentryPrompt: reentryOpen = true
+                if what != "reentry" { surface = nil }
+            case .reentryPrompt: break
             case .wrapUp: wrapUp = true
             case .askResume(let r): askResume = r
             case .shadowMark(_, _, let wk):
@@ -730,8 +743,7 @@ public final class SessionController {
                 if let store, let pid = projectId { store.apply(rule, to: pid); if let p = store.project(pid) { project = p.profile } }
             case .bringBack(let w):
                 onBringBack?(w)
-                if let w, let app = appByWindowKey[w], !app.isEmpty { onBringBackToApp?(app) }
-                returnToTaskTab()
+                goBack(windowKey: w)
             case .cue: onCue?()
             case .requestJudgment(let id, _, _, let wk, _): requestJudgment(id: id, windowKey: wk, observedAt: t)
             case .summary(let a, let o, let u, let d, let i, let r):
@@ -758,7 +770,7 @@ public final class SessionController {
                 startRecap()
                 previewFrame = nil; previewHeld = nil; screenText = ""
                 cancelNextActions()
-                isActive = false; clearEscalation(); resetCues(); veilTarget = 0; manualNextStep = false; surface = nil; reentryOpen = false; askResume = nil; wrapUp = false
+                isActive = false; clearEscalation(); resetCues(); veilTarget = 0; surface = nil; askResume = nil; wrapUp = false
                 timer?.invalidate(); timer = nil
             }
             if case .beacon(let s, _) = e, s != "paused" { askResume = nil }

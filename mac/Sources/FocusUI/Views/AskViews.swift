@@ -68,7 +68,7 @@ struct AskPanel: View {
     }
 }
 
-/// After a session: two plain sentences from the model, with a next step you can take or ignore. Names no site or app.
+/// After a session: two plain sentences from the model. Names no site or app.
 struct RecapBlock: View {
     @Bindable var c: SessionController
     var body: some View {
@@ -80,12 +80,6 @@ struct RecapBlock: View {
             VStack(alignment: .leading, spacing: Space.xs) {
                 HStack(spacing: Space.s) { Text("Recap").font(Tokens.text(.body, .semibold)); AITag() }
                 Text(r.summary).font(Tokens.text(.callout)).fixedSize(horizontal: false, vertical: true)
-                if !r.nextStep.isEmpty, let p = c.projectForNote, p.nextStep.isEmpty {
-                    HStack(spacing: Space.xs) {
-                        Text("Suggested next step: \(r.nextStep)").font(Tokens.text(.body)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
-                        Button("Use it") { c.setProjectNextStep(r.nextStep) }.buttonStyle(FocusButtonStyle(.plain, small: true))
-                    }
-                }
             }
             .padding(Space.m).frame(maxWidth: .infinity, alignment: .leading)
             // Inside the finished-session card, so a well (the card's own white would make it vanish in light mode).

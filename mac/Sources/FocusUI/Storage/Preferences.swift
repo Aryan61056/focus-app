@@ -68,6 +68,10 @@ public final class Preferences {
     public var escalate: Bool { didSet { defaults.set(escalate, forKey: "escalate") } }
     /// The whole screen, every display, fades toward gray while you are off task (not only Focus's own window).
     public var screenGrayscale: Bool { didSet { defaults.set(screenGrayscale, forKey: "screenGrayscale") } }
+    /// While you are off task the edges of every display darken and close in toward the middle, deeper the longer you stay. Off by default.
+    public var screenEdges: Bool { didSet { defaults.set(screenEdges, forKey: "screenEdges") } }
+    /// After "Back to task", a soft ring marks the window you land in.
+    public var landingRing: Bool { didSet { defaults.set(landingRing, forKey: "landingRing") } }
     /// The last step of the ladder. Hiding an app is reversible (click it in the Dock) and never closes it or loses its work.
     public var hideDistractingApp: Bool { didSet { defaults.set(hideDistractingApp, forKey: "hideDistractingApp") } }
     /// The first time the ladder acts on a browser, it switches to the tab you were last working in instead of only hiding the app.
@@ -131,6 +135,8 @@ public final class Preferences {
         sensitivity = Sensitivity(rawValue: defaults.string(forKey: "sensitivity") ?? "") ?? .proactive
         escalate = defaults.object(forKey: "escalate") as? Bool ?? true
         screenGrayscale = defaults.object(forKey: "screenGrayscale") as? Bool ?? true
+        screenEdges = defaults.object(forKey: "screenEdges") as? Bool ?? false
+        landingRing = defaults.object(forKey: "landingRing") as? Bool ?? true
         hideDistractingApp = defaults.object(forKey: "hideDistractingApp") as? Bool ?? true
         offerUpdates = defaults.object(forKey: "offerUpdates") as? Bool ?? true
         switchTabs = defaults.object(forKey: "switchTabs") as? Bool ?? true

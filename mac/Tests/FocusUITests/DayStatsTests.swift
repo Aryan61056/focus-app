@@ -190,7 +190,7 @@ final class FirstRunTests: XCTestCase {
 final class LevelZeroStartTests: XCTestCase {
     func testStartSheetOffersTheProjectWorkedOnLast() {
         let store = DataStore()
-        var a = store.addProject(name: "Essay"); a.nextStep = "Add citations"; store.update(a)
+        let a = store.addProject(name: "Essay")
         let b = store.addProject(name: "Calc homework")
         let t = Date()
         store.record(SessionRecord(projectId: a.id, task: a.name, timed: false, start: t.addingTimeInterval(-7200), end: t.addingTimeInterval(-3600), activeSeconds: 3600, offTopicSeconds: 0, unsureSeconds: 0, drifts: 0, interrupts: 0, refusals: 0, shadowMarks: 0, segments: []))
@@ -242,18 +242,6 @@ final class StoreSafetyTests: XCTestCase {
         XCTAssertTrue(files.contains { $0.hasPrefix("store.unreadable-") }, "the bad file is kept: \(files)")
         XCTAssertEqual(DataStore(url: url).projects.map(\.name), ["New"])
         try? FileManager.default.removeItem(at: dir)
-    }
-}
-
-@MainActor
-final class NextStepTests: XCTestCase {
-    func testSavingTheNextStepKeepsItOnTheProject() {
-        let store = DataStore()
-        let c = SessionController(judge: ScriptedJudge(markers: [("Notes", .on)]), store: store, now: { 0 })
-        c.windowChanged(WindowSnapshot(app: "Notes", title: "Calc homework"))
-        c.begin(task: "Calc homework", preset: .standard, shadow: false)
-        c.saveNextStep("  Check problem 4  ")
-        XCTAssertEqual(store.projectNamed("Calc homework").nextStep, "Check problem 4")
     }
 }
 
