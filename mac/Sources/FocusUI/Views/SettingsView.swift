@@ -122,6 +122,24 @@ struct SettingsView: View {
                             Toggle("", isOn: Binding(get: { c.prefs.screenGrayscale }, set: { c.prefs.screenGrayscale = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                         }
                     }
+                    row("Fog the screen", "While you are off task the screen blurs a little more the longer you stay, until it can be made out but not read, and clears when you return. It goes where the gray goes (every display, or only the window you drifted into). Harsh, so it is off until you want it. Preview shows a 10 second fog.") {
+                        HStack(spacing: Space.s) {
+                            Button("Preview") { c.previewFog() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+                            Toggle("", isOn: Binding(get: { c.prefs.screenFog }, set: { c.prefs.screenFog = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
+                        }
+                    }
+                    row("Gray only the window you drifted into", "The gray covers just the window you are off task in, so the task window beside it stays in color and looks like the way back. If Focus cannot tell which window that is, nothing is grayed. Preview always grays the whole screen.") {
+                        Toggle("", isOn: Binding(get: { c.prefs.grayWindowOnly }, set: { c.prefs.grayWindowOnly = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
+                    }
+                    row("Ease the sound down", "While Focus is nudging you on a video site, the Mac's volume eases down to about a third of where you had it and comes back when you return, the session ends or you pause. If you change the volume yourself it lets go. It never mutes, and it does nothing in a call or in practice.") {
+                        toggle(\.easeSound)
+                    }
+                    row("A ring around the pointer", "While you are off task, a ring appears around the pointer and grows the longer you stay away, then goes when you return. It covers nothing and you can click through it. Preview shows a 10 second growth.") {
+                        HStack(spacing: Space.s) {
+                            Button("Preview") { c.previewHalo() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+                            Toggle("", isOn: Binding(get: { c.prefs.cursorHalo }, set: { c.prefs.cursorHalo = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
+                        }
+                    }
                     row("Close in the edges of the screen", "While you are off task, the edges of every display darken and close in toward the middle, deeper the longer you stay away, and it opens again when you return. It works with the gray or on its own. Preview shows a 10 second fade. Nothing is captured.") {
                         HStack(spacing: Space.s) {
                             Button("Preview") { c.previewEdges() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
@@ -135,6 +153,24 @@ struct SettingsView: View {
                         row("Hide the app you drifted into", "The last step. It hides the app like Command-H: nothing is closed and no work is lost. Click the app in the Dock to bring it back. Focus, Finder and system apps are never hidden.") {
                             Toggle("", isOn: Binding(get: { c.prefs.hideDistractingApp }, set: { c.prefs.hideDistractingApp = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                         }
+                    }
+                    row("Open it again if it was closed", "If the document, folder or page you were working in has been closed, or its app quit, \u{201C}Back to task\u{201D} opens it again instead of only bringing the app forward. Only things you had open and Focus read as on task, and only when you press Back to task.") {
+                        toggle(\.reopenClosed)
+                    }
+                    row("Bring your other windows too", "\u{201C}Back to task\u{201D} also brings forward up to two other windows you really worked in (the notes beside the page), then the main one on top, so the distraction ends up behind all of them.") {
+                        toggle(\.bringWorkingSet)
+                    }
+                    row("Put it away when I go back", "When you press Back to task from an app you drifted into, that app is hidden, like Command-H. Nothing is closed and no work is lost; click it in the Dock to bring it back. Focus, Finder, system apps and apps on your never-judged list are never hidden.") {
+                        toggle(\.putAwayOnReturn)
+                    }
+                    row("Let a link or the Dock do it", "The link focusapp://back and the Dock icon's menu do \u{201C}Back to task\u{201D} during a session, so Shortcuts, Raycast or a button on a Stream Deck can. Nothing else can be started that way, and a burst of links counts once.") {
+                        toggle(\.allowBackLink)
+                    }
+                    row("Back to your spot", "While you work, Focus notes how far the window was scrolled and where the text cursor was (numbers, never the words, in memory only). \u{201C}Back to task\u{201D} puts both back. Not every app lets Focus do this.") {
+                        toggle(\.restoreSpot)
+                    }
+                    row("Mark the way back", "While Focus is nudging you, a faint ring outlines the window \u{201C}Back to task\u{201D} would take you to, even if something is on top of it, and goes the moment you are back. It asks for nothing. A steady ring with Reduce Motion on.") {
+                        toggle(\.beaconRing)
                     }
                     row("Ring the window you land in", "After \u{201C}Back to task\u{201D}, a soft ring marks the window that came forward for a second or two, so you can see where the task is. A fainter ring means only the app came forward, not the exact window. No motion with Reduce Motion on.") {
                         toggle(\.landingRing)
@@ -278,6 +314,10 @@ struct SettingsView: View {
                     Picker("Park a thought", selection: Binding(get: { c.prefs.parkingShortcut }, set: { c.prefs.parkingShortcut = $0 })) {
                         ForEach(ParkingShortcut.allCases) { Text($0.label).tag($0) }
                     }.help("Open the thought input from any app")
+                    Picker("Back to task", selection: Binding(get: { c.prefs.backShortcut }, set: { c.prefs.backShortcut = $0 })) {
+                        ForEach(BackShortcut.allCases) { Text($0.label).tag($0) }
+                    }.help("Go back to the window you were working in, from any app, during a session")
+                    if let error = c.backShortcutError { Text(error).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
                     if let error = c.parkingShortcutError { Text(error).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
                     row("Start or pause from anywhere", "Press Control, Option and F. With no session it opens the start sheet on the project you worked on last. During a session it pauses or resumes.") {
                         Text("\u{2303}\u{2325}F").font(Tokens.rounded(.callout, .semibold)).foregroundStyle(Tokens.ink2)

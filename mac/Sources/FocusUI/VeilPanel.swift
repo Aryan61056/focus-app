@@ -10,6 +10,8 @@ import QuartzCore
 /// `clearUntil` is how far from the middle (0) toward the middle of an edge (1) the screen stays untouched; `edgeAlpha` is how dark the edge gets.
 /// At the top the middle 40 percent stays clear and the edges are 72 percent dark, so the work in the middle stays readable and the room goes dim.
 public enum Vignette {
+    /// Blur radius in points for a fog level of 0 to 100. Soft at the start, at the top the screen can be made out but not read.
+    public static func fogRadius(_ percent: Double) -> Double { percent > 0 ? 0.5 + 0.14 * min(100, percent) : 0 }
     public static func shape(_ percent: Double) -> (clearUntil: Double, edgeAlpha: Double) {
         let p = max(0, min(100, percent)) / 100
         return (0.86 - 0.46 * p, 0.72 * p)
@@ -19,13 +21,17 @@ public enum Vignette {
 final class VeilPanel: NSPanel {
     private let backdrop: CALayer?
     private let filter: NSObject?
+    /// The second filter on the same backdrop: a blur for "fog". Nil when the window server's filter classes are missing.
+    private let blur: NSObject?
     private let wash = CALayer()
     private let edges = CAGradientLayer()
 
     var usesBackdrop: Bool { backdrop != nil && filter != nil }
+    var usesBlur: Bool { usesBackdrop && blur != nil }
+    private var gray = 0.0, fog = 0.0
 
     init() {
-        var layer: CALayer?, f: NSObject?
+        var layer: CALayer?, f: NSObject?, bl: NSObject?
         if let cls = NSClassFromString("CABackdropLayer") as? CALayer.Type, let fcls = NSClassFromString("CAFilter") as? NSObject.Type,
            let made = fcls.perform(NSSelectorFromString("filterWithType:"), with: "colorSaturate")?.takeUnretainedValue() as? NSObject {
             let b = cls.init()
@@ -34,8 +40,12 @@ final class VeilPanel: NSPanel {
             made.setValue(1.0, forKey: "inputAmount")
             b.setValue([made], forKey: "filters")
             layer = b; f = made
+            if let fcls2 = NSClassFromString("CAFilter") as? NSObject.Type, let blurFilter = fcls2.perform(NSSelectorFromString("filterWithType:"), with: "gaussianBlur")?.takeUnretainedValue() as? NSObject {
+                blurFilter.setValue(0.0, forKey: "inputRadius")
+                bl = blurFilter
+            }
         }
-        backdrop = layer; filter = f
+        backdrop = layer; filter = f; blur = bl
         super.init(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         isOpaque = false; backgroundColor = .clear; hasShadow = false
         // Above windows and the Dock, below the notch panel (.statusBar) so a nudge there stays unveiled.
@@ -67,18 +77,27 @@ final class VeilPanel: NSPanel {
     }
 
     /// `percent` is 0 (no change) to 100 (fully gray).
-    func apply(_ percent: Double) {
-        let p = max(0, min(100, percent)) / 100
+    func apply(_ percent: Double) { gray = percent; render() }
+
+    /// `percent` is 0 (no change) to 100 (the most fog: the screen blurred so that it can be made out but not read).
+    func applyFog(_ percent: Double) { fog = percent; render() }
+
+    private func render() {
+        let p = max(0, min(100, gray)) / 100, f = max(0, min(100, fog)) / 100
         CATransaction.begin(); CATransaction.setDisableActions(true)
         let bounds = contentView?.bounds ?? .zero
         backdrop?.frame = bounds; wash.frame = bounds
         if let filter, let backdrop {
             filter.setValue(1 - p, forKey: "inputAmount")
-            backdrop.setValue([filter], forKey: "filters")   // reassigned so the window server sees the new amount
+            var list: [NSObject] = [filter]
+            if let blur, f > 0.003 { blur.setValue(Vignette.fogRadius(fog), forKey: "inputRadius"); list.append(blur) }
+            backdrop.setValue(list, forKey: "filters")   // reassigned so the window server sees the new amounts
         }
         // Full gray removes all color; the wash also darkens and flattens it so the top of the range is unmistakable.
-        // Without the real filter the wash is all there is.
-        wash.opacity = Float(p * (usesBackdrop ? 0.62 : 0.85))
+        // Without the real filter the wash is all there is. Fog without the filter falls back to a pale veil.
+        let grayWash = p * (usesBackdrop ? 0.62 : 0.85)
+        let fogWash = usesBlur ? 0.0 : f * 0.5
+        wash.opacity = Float(max(grayWash, fogWash))
         CATransaction.commit()
     }
 }
@@ -89,6 +108,8 @@ final class VeilPanel: NSPanel {
 public final class VeilController {
     private let c: SessionController
     private var panels: [CGDirectDisplayID: VeilPanel] = [:]
+    /// The one panel for "gray only the window you drifted into".
+    private var windowPanel: VeilPanel?
     private var timer: Timer?
     public private(set) var lastLevel = 0.0
     private var shown = false
@@ -102,12 +123,20 @@ public final class VeilController {
     public func stop() { timer?.invalidate(); timer = nil; hide() }
 
     public var panelCountForTesting: Int { panels.values.filter { $0.isVisible }.count }
+    public var windowPanelFrameForTesting: NSRect? { windowPanel.flatMap { $0.isVisible ? $0.frame : nil } }
     public var usesBackdropForTesting: Bool { panels.values.first?.usesBackdrop ?? false }
 
     func update() {
-        let level = c.veilLevel(), edge = c.edgeLevel()
+        let level = c.veilLevel(), edge = c.edgeLevel(), fogLevel = c.fogLevel()
         lastLevel = level
-        guard level >= 0.3 || edge >= 0.3 else { if shown { hide() }; return }
+        // Gray and fog on every display, or only on the window you drifted into (then the edges, if on, still close in on every display).
+        var screenGray = 0.0, windowGray = 0.0, screenFog = 0.0, windowFog = 0.0, windowRect: CGRect?
+        switch c.veilRegion(windowFrame: c.prefs.grayWindowOnly ? c.frontWindowFrame?() : nil) {
+        case .screens: screenGray = level; screenFog = fogLevel
+        case .window(let r): windowGray = level; windowFog = fogLevel; windowRect = r
+        case .none: break
+        }
+        guard screenGray >= 0.3 || windowGray >= 0.3 || screenFog >= 0.3 || windowFog >= 0.3 || edge >= 0.3 else { if shown { hide() }; return }
         shown = true
         let screens = NSScreen.screens
         var live = Set<CGDirectDisplayID>()
@@ -117,12 +146,19 @@ public final class VeilController {
             let p = panels[id] ?? VeilPanel()
             panels[id] = p
             if p.frame != s.frame { p.setFrame(s.frame, display: false) }
-            p.apply(level)
+            p.apply(screenGray); p.applyFog(screenFog)
             p.applyEdges(edge)
             p.orderFrontRegardless()
         }
         for (id, p) in panels where !live.contains(id) { p.orderOut(nil); panels[id] = nil }
+        if windowGray >= 0.3 || windowFog >= 0.3, let r = windowRect, let primary = screens.first {
+            let w = windowPanel ?? VeilPanel(); windowPanel = w
+            let target = CueLayout.cocoaRect(fromCG: r, primaryHeight: primary.frame.height)
+            if w.frame != target { w.setFrame(target, display: false) }
+            w.apply(windowGray); w.applyFog(windowFog); w.applyEdges(0)
+            w.orderFrontRegardless()
+        } else { windowPanel?.orderOut(nil) }
     }
 
-    private func hide() { shown = false; panels.values.forEach { $0.orderOut(nil) } }
+    private func hide() { shown = false; panels.values.forEach { $0.orderOut(nil) }; windowPanel?.orderOut(nil) }
 }

@@ -12,10 +12,12 @@ public enum Landing {
         case exact
         /// Only the app came forward, so the ring is lighter: it marks the window in front without claiming it is the very one.
         case approximate
+        /// While you are away: a faint ring on the window Back to task would take you to, so the way back is visible.
+        case beacon
     }
 
     public static func style(for outcome: ReturnOutcome) -> Style {
-        switch outcome { case .exact: return .exact; case .appOnly: return .approximate; case .notFound, .alreadyThere: return .none }
+        switch outcome { case .exact, .reopened: return .exact; case .appOnly: return .approximate; case .notFound, .alreadyThere: return .none }
     }
 
     /// Seconds to fade in, to stay, and to fade out. With Reduce Motion it just appears and goes.
@@ -28,7 +30,7 @@ public enum Landing {
     /// A short pause before looking, so the screen still showing the app you left is never ringed.
     static let firstLookSeconds = 0.15
     static func width(_ s: Style) -> CGFloat { s == .exact ? 3 : 2 }
-    static func opacity(_ s: Style) -> Float { s == .exact ? 0.95 : 0.6 }
+    static func opacity(_ s: Style) -> Float { s == .exact ? 0.95 : (s == .beacon ? 0.5 : 0.6) }
 }
 
 final class LandingPanel: NSPanel {
@@ -130,5 +132,56 @@ public final class LandingController {
         }
         hide = out
         DispatchQueue.main.asyncAfter(deadline: .now() + tl.fadeIn + tl.hold, execute: out)
+    }
+}
+
+/// The beacon: while Focus is nudging you, a faint ring outlines the window "Back to task" would take you to, even when something else is
+/// on top of it, so the way back is something you can see and not something you have to remember. It asks for nothing, it is click-through,
+/// and it is gone the moment you are back. Off by default. A steady ring with Reduce Motion on; otherwise it breathes slowly.
+@MainActor
+public final class BeaconController {
+    private let c: SessionController
+    private var panel: LandingPanel?
+    private var timer: Timer?
+
+    public init(controller: SessionController) { self.c = controller }
+    public var isShowing: Bool { panel?.isVisible ?? false }
+    var frameForTesting: NSRect? { panel?.frame }
+
+    public func start() {
+        guard timer == nil else { return }
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in MainActor.assumeIsolated { self?.update() } }
+    }
+    public func stop() { timer?.invalidate(); timer = nil; hide() }
+
+    /// Looked at once a second, and only does anything while there is a real nudge and the switch is on.
+    func update() {
+        guard let place = c.beaconPlace, let cg = c.frameForPlace?(place.window), cg.width > 120, cg.height > 80,
+              let primary = NSScreen.screens.first else { hide(); return }
+        let rect = CueLayout.cocoaRect(fromCG: cg, primaryHeight: primary.frame.height)
+        guard NSScreen.screens.contains(where: { $0.frame.intersects(rect) }) else { hide(); return }
+        let p = panel ?? LandingPanel(); panel = p
+        let target = rect.insetBy(dx: -3, dy: -3)
+        let appeared = !p.isVisible
+        if p.frame != target { p.setFrame(target, display: false) }
+        if appeared {
+            p.apply(.beacon)
+            p.alphaValue = 1
+            p.orderFrontRegardless()
+            if !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+                let breathe = CABasicAnimation(keyPath: "opacity")
+                breathe.fromValue = 0.25; breathe.toValue = Landing.opacity(.beacon); breathe.duration = 2.4
+                breathe.autoreverses = true; breathe.repeatCount = .infinity
+                breathe.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                p.ring.add(breathe, forKey: "breathe")
+            }
+        } else {
+            p.apply(.beacon)   // follows the window if it moved
+        }
+    }
+
+    private func hide() {
+        panel?.ring.removeAllAnimations()
+        panel?.orderOut(nil)
     }
 }

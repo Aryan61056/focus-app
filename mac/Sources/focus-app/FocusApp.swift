@@ -56,6 +56,7 @@ struct FocusApp: App {
     @State private var previewWatcher: PreviewWatcher?
     @State private var hotKey = GlobalHotKey()
     @State private var parkingHotKey = GlobalHotKey()
+    @State private var backHotKey = GlobalHotKey()
     @State private var parkingPanel: ParkingPanelController?
     @State private var updater: Updater?
 
@@ -67,6 +68,8 @@ struct FocusApp: App {
     @State private var veil: VeilController?
     @State private var banner: BannerController?
     @State private var landing: LandingController?
+    @State private var beacon: BeaconController?
+    @State private var halo: HaloController?
     @State private var shield: ShieldController?
     @State private var cueClock: CueClock?
     @State private var voice = Voice()
@@ -79,6 +82,13 @@ struct FocusApp: App {
         let key = controller.prefs.parkingShortcut
         let registered = parkingHotKey.register(keyCode: key.keyCode, modifiers: key.carbonModifiers) { controller.onParkThought?() }
         controller.parkingShortcutError = registered ? nil : "That shortcut is in use. Choose another, or use Session > Park a thought."
+    }
+
+    private func registerBackShortcut() {
+        let key = controller.prefs.backShortcut
+        guard key.isOn else { backHotKey.unregister(); controller.backShortcutError = nil; return }
+        let registered = backHotKey.register(keyCode: key.keyCode, modifiers: key.carbonModifiers) { controller.backToTaskFromShortcut() }
+        controller.backShortcutError = registered ? nil : "That shortcut is in use. Choose another."
     }
 
     /// Friends (docs/SOCIAL.md). The demo gets made-up friends and never touches iCloud; FOCUS_DEMO_FRIENDS=1 turns sharing on in it.
@@ -140,6 +150,18 @@ struct FocusApp: App {
                     controller.frontWindowFrame = { AXWindowSource.frontWindowFrame() }
                     if banner == nil { let b = BannerController(controller: controller); banner = b; b.start() }
                     if landing == nil { let l = LandingController(controller: controller); landing = l; l.start() }
+                    controller.frameForPlace = { Place.frame(of: $0) }
+                    // The Mac's volume, for "Ease the sound down". Never in the scripted demo, which must not touch the owner's volume.
+                    // The lowered volume is remembered so a crash or a force quit is put right at the next launch.
+                    if ProcessInfo.processInfo.environment["FOCUS_DEMO"] != "1" {
+                        controller.systemVolume = MacVolume()
+                        controller.onSoundSaved = { saved in
+                            if let saved { UserDefaults.standard.set(saved.text, forKey: "easedSoundSaved") } else { UserDefaults.standard.removeObject(forKey: "easedSoundSaved") }
+                        }
+                        controller.recoverSound(saved: UserDefaults.standard.string(forKey: "easedSoundSaved").flatMap(SoundEase.Saved.init(text:)))
+                    }
+                    if halo == nil { let h = HaloController(controller: controller); halo = h; h.start() }
+                    if beacon == nil { let b = BeaconController(controller: controller); beacon = b; b.start() }
                     if shield == nil { let f = ShieldController(controller: controller); shield = f; f.start() }
                     if cueClock == nil { let k = CueClock(controller: controller); cueClock = k; k.start() }
                     controller.onHaptic = { Haptics.play($0) }
@@ -153,11 +175,17 @@ struct FocusApp: App {
                         NSWorkspace.shared.runningApplications.first { $0.localizedName == name && $0.activationPolicy == .regular }?.activate()
                     }
                     // "Back to task" goes to the window, tab or document you were working in, not only the app.
-                    controller.onGoToPlace = { w, tabs in Place.go(to: w, allowTabs: tabs) }
+                    FocusAppDelegate.onLink = { url in controller.handleLink(url) }
+                    FocusAppDelegate.dockBack = { (controller.backToTaskTitle, controller.isActive && controller.prefs.allowBackLink) }
+                    FocusAppDelegate.onDockBack = { controller.backToTaskFromShortcut() }
+                    controller.onGoToPlace = { w, tabs, reopen in Place.go(to: w, allowTabs: tabs, reopen: reopen) }
+                    // Where you are in the window (scroll, cursor): numbers only, so a trip back can put you at your spot.
+                    controller.onReadPosition = { PositionReader.read(of: $0) }
+                    controller.onRestorePosition = { PositionReader.restore($0, $1) }
                     controller.frontAppName = { NSWorkspace.shared.frontmostApplication?.localizedName }
                     // Quitting during a session ends it, so the session is saved instead of vanishing.
                     NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { _ in
-                        MainActor.assumeIsolated { if controller.isActive { controller.end() } }
+                        MainActor.assumeIsolated { if controller.isActive { controller.end() }; controller.restoreSound() }
                     }
                     controller.onOpenModelSettings = {
                         if let url = URL(string: "x-apple.systempreferences:com.apple.Siri-Settings.extension") { NSWorkspace.shared.open(url) }
@@ -169,6 +197,7 @@ struct FocusApp: App {
                     if parkingPanel == nil { parkingPanel = ParkingPanelController(controller: controller) }
                     controller.onParkThought = { parkingPanel?.show() }
                     registerParkingShortcut()
+                    registerBackShortcut()
                     hotKey.register {
                         if controller.isActive { controller.act(controller.isPaused ? .resume : .pause) }
                         else { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); controller.requestStart() }
@@ -214,6 +243,7 @@ struct FocusApp: App {
                 }
         }
         .onChange(of: controller.prefs.parkingShortcut) { _, _ in registerParkingShortcut() }
+        .onChange(of: controller.prefs.backShortcut) { _, _ in registerBackShortcut() }
         .onChange(of: controller.example != nil) { _, shown in
             if shown, let example = controller.example {
                 let panel = NotchPanelController(controller: example.controller)
@@ -296,6 +326,30 @@ final class FocusAppDelegate: NSObject, NSApplicationDelegate {
         didSet { if let f = onAcceptShare { pendingShares.forEach(f); pendingShares = [] } }
     }
     nonisolated(unsafe) static var onRemoteNotification: (([String: Any]) -> Void)?
+    /// A `focusapp://back` link, and the Dock menu's Back to task. Set once the controller exists.
+    nonisolated(unsafe) static var onLink: ((URL) -> Void)?
+    nonisolated(unsafe) static var dockBack: (() -> (title: String, enabled: Bool))?
+    nonisolated(unsafe) static var onDockBack: (() -> Void)?
+
+    // URL events are taken here and not by SwiftUI, which would open a new window for every link.
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        NSAppleEventManager.shared().setEventHandler(self, andSelector: #selector(handleURLEvent(_:reply:)),
+                                                     forEventClass: AEEventClass(kInternetEventClass), andEventID: AEEventID(kAEGetURL))
+    }
+    @objc func handleURLEvent(_ event: NSAppleEventDescriptor, reply: NSAppleEventDescriptor) {
+        guard let s = event.paramDescriptor(forKeyword: keyDirectObject)?.stringValue, let url = URL(string: s), url.scheme?.lowercased() == FocusLink.scheme else { return }
+        Task { @MainActor in Self.onLink?(url) }
+    }
+
+    func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+        guard let info = Self.dockBack?(), info.enabled else { return nil }
+        let menu = NSMenu()
+        let item = NSMenuItem(title: info.title, action: #selector(dockBackToTask), keyEquivalent: "")
+        item.target = self
+        menu.addItem(item)
+        return menu
+    }
+    @objc func dockBackToTask() { Task { @MainActor in Self.onDockBack?() } }
 
     func application(_ application: NSApplication, userDidAcceptCloudKitShareWith metadata: CKShare.Metadata) {
         if let f = Self.onAcceptShare { f(metadata) } else { Self.pendingShares.append(metadata) }

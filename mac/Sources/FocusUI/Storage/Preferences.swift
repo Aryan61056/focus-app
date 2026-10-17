@@ -69,13 +69,35 @@ public final class Preferences {
     /// The whole screen, every display, fades toward gray while you are off task (not only Focus's own window).
     public var screenGrayscale: Bool { didSet { defaults.set(screenGrayscale, forKey: "screenGrayscale") } }
     /// While you are off task the edges of every display darken and close in toward the middle, deeper the longer you stay. Off by default.
+    /// The gray covers only the window you drifted into, so the task window beside it stays in color and looks like the way back.
+    public var grayWindowOnly: Bool { didSet { defaults.set(grayWindowOnly, forKey: "grayWindowOnly") } }
+    /// A ring around the pointer that grows the longer you are off task.
+    /// While Focus is nudging you on a video site, the Mac's volume eases down to about a third and comes back when you return.
+    public var easeSound: Bool { didSet { defaults.set(easeSound, forKey: "easeSound") } }
+    /// While you are off task the screen (or the window you drifted into) blurs a little more the longer you stay, then clears when you return.
+    public var screenFog: Bool { didSet { defaults.set(screenFog, forKey: "screenFog") } }
+    public var cursorHalo: Bool { didSet { defaults.set(cursorHalo, forKey: "cursorHalo") } }
     public var screenEdges: Bool { didSet { defaults.set(screenEdges, forKey: "screenEdges") } }
     /// After "Back to task", a soft ring marks the window you land in.
     public var landingRing: Bool { didSet { defaults.set(landingRing, forKey: "landingRing") } }
+    /// While Focus is nudging you, a faint ring outlines the window Back to task would take you to (when Focus can find it).
+    public var beaconRing: Bool { didSet { defaults.set(beaconRing, forKey: "beaconRing") } }
     /// The last step of the ladder. Hiding an app is reversible (click it in the Dock) and never closes it or loses its work.
     public var hideDistractingApp: Bool { didSet { defaults.set(hideDistractingApp, forKey: "hideDistractingApp") } }
     /// The first time the ladder acts on a browser, it switches to the tab you were last working in instead of only hiding the app.
     public var switchTabs: Bool { didSet { defaults.set(switchTabs, forKey: "switchTabs") } }
+    /// "Back to task" opens the document or page again when it was closed, instead of only bringing the app forward.
+    public var reopenClosed: Bool { didSet { defaults.set(reopenClosed, forKey: "reopenClosed") } }
+    /// "Back to task" also brings forward the other windows you really worked in (up to two), then the place itself on top.
+    public var bringWorkingSet: Bool { didSet { defaults.set(bringWorkingSet, forKey: "bringWorkingSet") } }
+    /// While you work, Focus notes how far the window was scrolled and where the cursor sat (numbers, in memory), and "Back to task" puts them back.
+    public var restoreSpot: Bool { didSet { defaults.set(restoreSpot, forKey: "restoreSpot") } }
+    /// When you press Back to task from an app you drifted into, that app is hidden (like Command-H). Nothing is closed.
+    public var putAwayOnReturn: Bool { didSet { defaults.set(putAwayOnReturn, forKey: "putAwayOnReturn") } }
+    /// A link (`focusapp://back`) or the Dock menu can do Back to task.
+    public var allowBackLink: Bool { didSet { defaults.set(allowBackLink, forKey: "allowBackLink") } }
+    /// A key from any app that does "Back to task".
+    public var backShortcut: BackShortcut { didSet { defaults.set(backShortcut.rawValue, forKey: "backShortcut") } }
     /// On Strict, the later rounds close the browser tab you were warned about. Never other apps, never private or never-judged windows.
     public var closeOnStrict: Bool { didSet { defaults.set(closeOnStrict, forKey: "closeOnStrict") } }
     /// Offer to restart into a newer build found on this Mac. Local only; it never installs anything by itself.
@@ -135,11 +157,22 @@ public final class Preferences {
         sensitivity = Sensitivity(rawValue: defaults.string(forKey: "sensitivity") ?? "") ?? .proactive
         escalate = defaults.object(forKey: "escalate") as? Bool ?? true
         screenGrayscale = defaults.object(forKey: "screenGrayscale") as? Bool ?? true
+        grayWindowOnly = defaults.object(forKey: "grayWindowOnly") as? Bool ?? false
+        easeSound = defaults.object(forKey: "easeSound") as? Bool ?? false
+        screenFog = defaults.object(forKey: "screenFog") as? Bool ?? false
+        cursorHalo = defaults.object(forKey: "cursorHalo") as? Bool ?? false
         screenEdges = defaults.object(forKey: "screenEdges") as? Bool ?? false
         landingRing = defaults.object(forKey: "landingRing") as? Bool ?? true
+        beaconRing = defaults.object(forKey: "beaconRing") as? Bool ?? false
         hideDistractingApp = defaults.object(forKey: "hideDistractingApp") as? Bool ?? true
         offerUpdates = defaults.object(forKey: "offerUpdates") as? Bool ?? true
         switchTabs = defaults.object(forKey: "switchTabs") as? Bool ?? true
+        reopenClosed = defaults.object(forKey: "reopenClosed") as? Bool ?? true
+        putAwayOnReturn = defaults.object(forKey: "putAwayOnReturn") as? Bool ?? false
+        allowBackLink = defaults.object(forKey: "allowBackLink") as? Bool ?? true
+        bringWorkingSet = defaults.object(forKey: "bringWorkingSet") as? Bool ?? true
+        restoreSpot = defaults.object(forKey: "restoreSpot") as? Bool ?? true
+        backShortcut = BackShortcut(rawValue: defaults.string(forKey: "backShortcut") ?? "") ?? .controlOptionB
         closeOnStrict = defaults.object(forKey: "closeOnStrict") as? Bool ?? true
         showBanner = defaults.object(forKey: "showBanner") as? Bool ?? true
         headsUp = defaults.object(forKey: "headsUp") as? Bool ?? true

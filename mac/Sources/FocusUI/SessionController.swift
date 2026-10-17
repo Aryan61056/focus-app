@@ -95,7 +95,28 @@ public final class SessionController {
     @ObservationIgnored var lastPlaceTick: Double?
     /// Bring this window, tab or document forward and say how far it got. The app does it with Accessibility and AppleScript.
     /// `allowTabs` is false when steering browser tabs is switched off or this is a practice session.
-    @ObservationIgnored public var onGoToPlace: ((_ place: WindowSnapshot, _ allowTabs: Bool) -> ReturnOutcome)?
+    /// `reopen` is true when a place that is gone may be opened again (a document, a page): only on a trip you asked for, not the ladder's own.
+    @ObservationIgnored public var onGoToPlace: ((_ place: WindowSnapshot, _ allowTabs: Bool, _ reopen: Bool) -> ReturnOutcome)?
+    /// The frame of this window on screen (Core Graphics coordinates, top left origin), or nil when it cannot be found or is not showing.
+    @ObservationIgnored public var frameForPlace: ((_ place: WindowSnapshot) -> CGRect?)?
+    /// Where you are in the front window (scroll, cursor), for the window `of`. Nil when it cannot say. Numbers only.
+    @ObservationIgnored public var onReadPosition: ((_ of: WindowSnapshot) -> PlacePosition?)?
+    /// Put the scroll and cursor back in the window that came forward. True when something moved.
+    @ObservationIgnored public var onRestorePosition: ((_ place: WindowSnapshot, _ position: PlacePosition) -> Bool)?
+    @ObservationIgnored var pendingSpot: (place: TaskPlace, tries: Int)?
+    @ObservationIgnored var lastPositionAt: Double?
+    /// The window you were in when you pressed Back to task, if it was somewhere off the task, so it can be put away after the trip.
+    @ObservationIgnored var awayAtPress: WindowSnapshot?
+    /// The Mac's output volume (the app provides it) and what Focus did to it, so it can always be given back.
+    @ObservationIgnored public var systemVolume: SystemVolume?
+    @ObservationIgnored var easedSound: EasedSound?
+    @ObservationIgnored var soundLetGo = false
+    /// Remember (or, with nil, forget) that the volume is lowered, so a crash can be put right at the next launch.
+    @ObservationIgnored public var onSoundSaved: ((SoundEase.Saved?) -> Void)?
+    @ObservationIgnored var lastLinkAt: Date?
+    /// Whether the last trip back also put the scroll and cursor back. Nil when there was nothing to put back.
+    public internal(set) var lastSpotRestored: Bool?
+    public var backShortcutError: String?
     /// The name of the app in front, so the landing cue can wait until the place has actually come forward.
     @ObservationIgnored public var frontAppName: (() -> String?)?
     /// Rounds of the last step carried out since the warning: the first switches, later ones hide or, on Strict, close.
@@ -115,6 +136,8 @@ public final class SessionController {
     @ObservationIgnored private var floorStartedAt = 0.0
     @ObservationIgnored private var veilPreviewStart: Double?
     @ObservationIgnored private var edgePreviewStart: Double?
+    @ObservationIgnored private var haloPreviewStart: Double?
+    @ObservationIgnored private var fogPreviewStart: Double?
     /// Bring the Focus window forward on the pointer's screen (the pause screen lives there).
     @ObservationIgnored public var onForeground: (() -> Void)?
     /// Hide the app you drifted into (the last step of the ladder). The name only; the app decides how.
@@ -283,8 +306,10 @@ public final class SessionController {
     @ObservationIgnored var totalSeconds = 0.0
     // Rewards bookkeeping for the running session (seconds only).
     @ObservationIgnored private var awayStart: Double?
-    @ObservationIgnored private var awayFlagged = false
+    @ObservationIgnored var awayFlagged = false
     @ObservationIgnored private var returnTimes: [Double] = []
+    @ObservationIgnored var cueTrace = CueTrace()
+    @ObservationIgnored private var returnCues: [ReturnCue] = []
     @ObservationIgnored private var baselineToday = 0.0
     @ObservationIgnored private var priorBestStretch = 0.0
     @ObservationIgnored private var goalNotified = false
@@ -333,7 +358,7 @@ public final class SessionController {
         taskName = task; self.mode = mode; totalSeconds = duration ?? 0
         sessionPreset = preset ?? prefs.preset; clearEscalation(); resetCues(); veilFrom = 0; veilStartedAt = now(); veilTarget = 0
         recapTask?.cancel(); recap = .idle; answer = .idle; sharpened = .idle
-        moment = nil; highlight = nil; awayStart = nil; awayFlagged = false; returnTimes = []; stretchNotified = false
+        moment = nil; highlight = nil; awayStart = nil; awayFlagged = false; returnTimes = []; returnCues = []; cueTrace.reset(); stretchNotified = false
         let finished = store?.sessions ?? []
         baselineToday = DayStats.total(finished, on: date()).onTaskSeconds
         goalNotified = prefs.dailyGoalMinutes <= 0 || baselineToday >= Double(prefs.dailyGoalMinutes) * 60
@@ -460,6 +485,15 @@ public final class SessionController {
         guard isSensing, !shadow, prefs.screenGrayscale else { return 0 }
         return driftLevel(t)
     }
+    /// Where the gray goes. Every display by default; with "only the window you drifted into", just that window's frame, and nowhere when
+    /// that window cannot be told (Focus itself is in front, or the frame is unknown) or is somewhere you worked on the task. A Settings
+    /// preview always covers the screen, because there is no drifted window to show it on.
+    public enum VeilRegion: Equatable, Sendable { case screens, window(CGRect), none }
+    public func veilRegion(windowFrame: CGRect?) -> VeilRegion {
+        guard prefs.grayWindowOnly, !isPreviewingVeil, !isPreviewingFog else { return .screens }
+        guard let f = windowFrame, f.width > 120, f.height > 80, let w = currentWindow, !places.contains(w) else { return .none }
+        return .window(f)
+    }
     /// Percent (0 to 100) the edges of every display should be closed in now. Same ramp as the gray, its own switch.
     public func edgeLevel() -> Double {
         let t = now()
@@ -471,6 +505,24 @@ public final class SessionController {
     /// It fades up over 4 s, holds for 2 s and fades back over 4 s, which is what a real drift looks like, only faster.
     public func previewVeil() { veilPreviewStart = now() }
     public func previewEdges() { edgePreviewStart = now() }
+    public func previewHalo() { haloPreviewStart = now() }
+    public func previewFog() { fogPreviewStart = now() }
+    public var isPreviewingFog: Bool { fogPreviewStart.map { Self.previewLevel(now() - $0) != nil } ?? false }
+    /// Percent (0 to 100) of fog now. Same ramp as the gray, its own switch; it goes where the gray goes (the screen, or the drifted window).
+    public func fogLevel() -> Double {
+        let t = now()
+        if let start = fogPreviewStart, let p = Self.previewLevel(t - start) { return p }
+        guard isSensing, !shadow, prefs.screenFog else { return 0 }
+        return driftLevel(t)
+    }
+    public var isPreviewingHalo: Bool { haloPreviewStart.map { Self.previewLevel(now() - $0) != nil } ?? false }
+    /// Percent (0 to 100) the ring around the pointer should have grown to. Same ramp as the gray and the edges, its own switch.
+    public func haloLevel() -> Double {
+        let t = now()
+        if let start = haloPreviewStart, let p = Self.previewLevel(t - start) { return p }
+        guard isSensing, !shadow, prefs.cursorHalo else { return 0 }
+        return driftLevel(t)
+    }
     public var isPreviewingVeil: Bool { veilPreviewStart.map { Self.previewLevel(now() - $0) != nil } ?? false }
     public var isPreviewingEdges: Bool { edgePreviewStart.map { Self.previewLevel(now() - $0) != nil } ?? false }
     static let brainVeilCap = 40.0
@@ -520,10 +572,11 @@ public final class SessionController {
             if let a = awayStart, awayFlagged {
                 let secs = max(1, t - 15 - a)
                 returnTimes.append(secs)
+                returnCues.append(cueTrace.finish(returnedAt: t - 15, sinceDrift: secs))
                 if prefs.showProgress { moment = Confirmation(kind: .backOnTrack(seconds: Int(secs.rounded())), at: t) }
             }
-            awayStart = nil; awayFlagged = false
-        default: awayStart = nil; awayFlagged = false
+            awayStart = nil; awayFlagged = false; cueTrace.reset()
+        default: awayStart = nil; awayFlagged = false; cueTrace.reset()
         }
     }
 
@@ -682,6 +735,7 @@ public final class SessionController {
         // the brain stays "interrupted" until the next window read, and the banner would ask "Back to ...?" over the task you went back to.
         // The ladder's own return leaves it up: there the banner says what was done and what comes next.
         if a == .backToTask, !ladderReturning { headsUpAt = nil; bannerHidden = true }
+        if a == .backToTask { markAway() }
         send(.userAction(a, minutes: minutes))
         if a == .backToTask { refreshBanner(now()) }
     }
@@ -752,7 +806,8 @@ public final class SessionController {
                 var record = SessionRecord(projectId: projectId, task: taskName, timed: mode == .timed, start: startedAt, end: date(), activeSeconds: a,
                                            offTopicSeconds: o, unsureSeconds: u, drifts: d, interrupts: i, refusals: r, shadowMarks: shadowMarks,
                                            segments: segments.filter { $0.seconds >= 1 }, reads: stats,
-                                           returns: returnTimes.isEmpty ? nil : returnTimes, practice: shadow ? true : nil)
+                                           returns: returnTimes.isEmpty ? nil : returnTimes, practice: shadow ? true : nil,
+                                           returnCues: returnCues.isEmpty ? nil : returnCues)
                 record.goal = sessionGoal.isEmpty ? nil : sessionGoal
                 finishedRecordID = record.id
                 shortSessionOffer = fiveMinuteStart && !manuallyEnded && a >= 299

@@ -10,6 +10,10 @@ import Carbon.HIToolbox
     private static var actions: [UInt32: () -> Void] = [:]
     private static var handler: EventHandlerRef?
     init() { Self.nextID += 1; id = Self.nextID }
+    func unregister() {
+        if let ref { UnregisterEventHotKey(ref) }
+        ref = nil; combination = nil; Self.actions[id] = nil
+    }
     @discardableResult func register(keyCode: UInt32 = UInt32(kVK_ANSI_F), modifiers: UInt32 = UInt32(controlKey | optionKey), _ action: @escaping () -> Void) -> Bool {
         if Self.handler == nil {
             var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))

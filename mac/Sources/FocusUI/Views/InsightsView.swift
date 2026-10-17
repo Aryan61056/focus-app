@@ -201,7 +201,9 @@ struct ProgressInsights: View {
         let trend = Rewards.returnTrend(store.sessions, today: .now)
         let streak = Rewards.streak(store.sessions, today: .now)
         let best = Rewards.bestStretch(store.sessions)
-        if trend != nil || best >= Rewards.notableStretch || streak.best >= 2 {
+        let cues = Rewards.cueResponses(store.sessions, today: .now)
+        let timing = Rewards.slipTiming(store.sessions, today: .now)
+        if trend != nil || best >= Rewards.notableStretch || streak.best >= 2 || cues.count >= 2 || timing != nil {
             Panel {
                 VStack(alignment: .leading, spacing: Space.m) {
                     Text("Getting back on track").font(Tokens.text(.callout, .semibold)).accessibilityAddTraits(.isHeader)
@@ -216,6 +218,8 @@ struct ProgressInsights: View {
                         if best >= Rewards.notableStretch { fact("Longest stretch without a slip", Rewards.duration(best)) }
                         if streak.best >= 2 { fact("Most focus days in a row", "\(streak.best)") }
                     }
+                    if let timing { SlipTimingBars(timing: timing) }
+                    if cues.count >= 2 { CueResponseRows(cues: cues) }
                     if trend != nil {
                         Text("A return is the time from drifting to being back on task. Practice sessions and weeks with fewer than three returns are left out.")
                             .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
@@ -234,6 +238,63 @@ struct ProgressInsights: View {
         VStack(spacing: 0) {
             Divider().overlay(Tokens.line)
             HStack { Text(k).foregroundStyle(Tokens.ink2); Spacer(); Text(v).monospacedDigit() }.font(Tokens.text(.body)).padding(.vertical, Space.xs)
+        }
+    }
+}
+
+/// What brings you back: the typical time from each cue appearing to being back on task, as small bars. It shows what was on screen when
+/// you came back, not what caused it, and says so. Only cues with at least three returns appear, and only when two or more can be compared.
+struct CueResponseRows: View {
+    var cues: [Rewards.CueResponse]
+    var body: some View {
+        let slowest = max(cues.map(\.median).max() ?? 1, 1)
+        VStack(alignment: .leading, spacing: Space.xs) {
+            HStack(spacing: Space.xs) {
+                Text("What brings you back").font(Tokens.text(.body, .semibold))
+                InfoTip(text: "The typical time from each cue appearing to you being back on task, over the last 30 days. It shows what was on screen when you came back, not proof that it was the reason. Focus does not change anything because of it.")
+            }
+            ForEach(Array(cues.enumerated()), id: \.offset) { _, r in
+                HStack(spacing: Space.s) {
+                    Text(r.cue?.label ?? "Before any cue").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).frame(width: 118, alignment: .leading)
+                    GeometryReader { g in
+                        Capsule().fill(Tokens.accent.opacity(0.55)).frame(width: max(6, g.size.width * r.median / slowest))
+                    }.frame(height: 6)
+                    Text(Rewards.duration(r.median)).font(Tokens.text(.caption)).monospacedDigit().frame(width: 52, alignment: .trailing)
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(r.cue?.label ?? "Before any cue"): about \(Rewards.duration(r.median)), \(r.count) times")
+            }
+        }
+    }
+}
+
+/// When slips start, in ten-minute steps of a session, as six small bars. A peak is named only when it holds a clear share.
+struct SlipTimingBars: View {
+    var timing: Rewards.SlipTiming
+    var body: some View {
+        let top = max(timing.buckets.max() ?? 1, 1)
+        VStack(alignment: .leading, spacing: Space.xs) {
+            HStack(spacing: Space.xs) {
+                Text("When slips start").font(Tokens.text(.body, .semibold))
+                InfoTip(text: "Minutes into a session when you first drifted, over the last 30 days. Only the minute is kept, never what you drifted into.")
+            }
+            HStack(alignment: .bottom, spacing: Space.xs) {
+                ForEach(0..<6, id: \.self) { i in
+                    VStack(spacing: 3) {
+                        RoundedRectangle(cornerRadius: Tokens.radiusTiny, style: .continuous)
+                            .fill(timing.peak == i ? Tokens.accent : Tokens.accent.opacity(0.35))
+                            .frame(height: max(4, 44 * CGFloat(timing.buckets[i]) / CGFloat(top)))
+                        Text(Rewards.SlipTiming.label(i)).font(Tokens.text(.caption2)).foregroundStyle(Tokens.ink2).lineLimit(1).minimumScaleFactor(0.7)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .bottom)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("\(Rewards.SlipTiming.label(i)) minutes in: \(timing.buckets[i]) slips")
+                }
+            }
+            .frame(height: 64, alignment: .bottom)
+            if let p = timing.peak {
+                Text("Most slips start \(Rewards.SlipTiming.label(p)) minutes in.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
+            }
         }
     }
 }

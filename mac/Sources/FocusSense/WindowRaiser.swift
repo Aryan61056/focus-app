@@ -49,6 +49,9 @@ public enum WindowRaiser {
         let app = AXUIElementCreateApplication(pid)
         AXUIElementSetMessagingTimeout(app, 0.5)   // a hung app must not freeze Focus
         var ref: CFTypeRef?
+        if AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &ref) != .success || (ref as? [AXUIElement])?.isEmpty != false {
+            askForAccessibility(app)   // an Electron app shows its windows only after this; the next trip finds them
+        }
         guard AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &ref) == .success, let windows = ref as? [AXUIElement], !windows.isEmpty else { return false }
         let cands = windows.map {
             Candidate(title: AXWindowSource.string($0, kAXTitleAttribute),
@@ -65,5 +68,75 @@ public enum WindowRaiser {
         AXUIElementSetAttributeValue(w, kAXMainAttribute as CFString, kCFBooleanTrue)
         AXUIElementSetAttributeValue(app, kAXFocusedWindowAttribute as CFString, w)
         return raised
+    }
+
+    /// Electron apps (VS Code, Slack, Notion, Discord, Obsidian) build their accessibility tree only when asked, so their windows and tabs are
+    /// invisible to Focus until then. Asking is harmless to other apps (they answer "unsupported"). The app keeps it on until it quits.
+    @MainActor static func askForAccessibility(_ app: AXUIElement) {
+        AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+    }
+
+    /// Every tab strip button in every window of the app, with its window: a tab bar is an AXTabGroup whose children are radio buttons or tabs
+    /// (Terminal, Finder, Firefox, Preview, TextEdit, Xcode and others). Bounded, so a huge window cannot stall Focus.
+    @MainActor static func tabButtons(app: AXUIElement, windows: [AXUIElement]) -> [(window: AXUIElement, button: AXUIElement, title: String)] {
+        var found: [(AXUIElement, AXUIElement, String)] = []
+        for win in windows {
+            var queue: [(AXUIElement, Int)] = [(win, 0)], seen = 0
+            while !queue.isEmpty, seen < 160 {
+                let (cur, depth) = queue.removeFirst(); seen += 1
+                if AXWindowSource.string(cur, kAXRoleAttribute) == "AXTabGroup" {
+                    for b in PositionReader.children(cur) {
+                        let role = AXWindowSource.string(b, kAXRoleAttribute)
+                        guard role == "AXRadioButton" || role == "AXTab" else { continue }
+                        var title = AXWindowSource.string(b, kAXTitleAttribute)
+                        if title.isEmpty { title = AXWindowSource.string(b, kAXDescriptionAttribute) }
+                        if !title.isEmpty { found.append((win, b, title)) }
+                    }
+                    continue
+                }
+                if depth < 6 { queue += PositionReader.children(cur).prefix(24).map { ($0, depth + 1) } }
+            }
+        }
+        return found
+    }
+
+    /// Presses the tab whose title is `target`'s, in whichever window of the process holds it, then raises that window. This is what takes
+    /// Back to task to the right tab in a terminal, a Finder window, Firefox or a document app, where no script can. True when a tab was pressed.
+    @MainActor public static func raiseTab(pid: pid_t, matching target: WindowSnapshot) -> Bool {
+        guard AXIsProcessTrusted() else { return false }
+        let app = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(app, 0.5)
+        var ref: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &ref) == .success, let windows = ref as? [AXUIElement], !windows.isEmpty else { return false }
+        let tabs = tabButtons(app: app, windows: windows)
+        guard let i = pick(for: target, among: tabs.map { Candidate(title: $0.title) }) else { return false }
+        let t = tabs[i]
+        guard AXUIElementPerformAction(t.button, kAXPressAction as CFString) == .success else { return false }
+        AXUIElementPerformAction(t.window, kAXRaiseAction as CFString)
+        AXUIElementSetAttributeValue(app, kAXFrontmostAttribute as CFString, kCFBooleanTrue)
+        return true
+    }
+
+    /// Where this window is on screen (top left origin, like Core Graphics), or nil when it cannot be found or is minimized. A browser whose
+    /// tab is not the front one has a window titled for another tab, so with a single window the app has, that window is taken.
+    @MainActor public static func frame(pid: pid_t, matching target: WindowSnapshot) -> CGRect? {
+        guard AXIsProcessTrusted() else { return nil }
+        let app = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(app, 0.3)
+        var ref: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &ref) == .success, let all = ref as? [AXUIElement], !all.isEmpty else { return nil }
+        func minimized(_ w: AXUIElement) -> Bool {
+            var m: CFTypeRef?
+            return AXUIElementCopyAttributeValue(w, kAXMinimizedAttribute as CFString, &m) == .success && (m as? Bool) == true
+        }
+        let showing = all.filter { !minimized($0) }
+        let cands = showing.map { Candidate(title: AXWindowSource.string($0, kAXTitleAttribute), documentPath: AXWindowSource.address(AXWindowSource.string($0, kAXDocumentAttribute)).path) }
+        guard let w = pick(for: target, among: cands).map({ showing[$0] }) ?? (showing.count == 1 ? showing[0] : nil) else { return nil }
+        var pos: CFTypeRef?, size: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(w, kAXPositionAttribute as CFString, &pos) == .success, AXUIElementCopyAttributeValue(w, kAXSizeAttribute as CFString, &size) == .success,
+              let pv = pos, let sv = size, CFGetTypeID(pv) == AXValueGetTypeID(), CFGetTypeID(sv) == AXValueGetTypeID() else { return nil }
+        var p = CGPoint.zero, z = CGSize.zero
+        guard AXValueGetValue(pv as! AXValue, .cgPoint, &p), AXValueGetValue(sv as! AXValue, .cgSize, &z) else { return nil }
+        return CGRect(origin: p, size: z)
     }
 }

@@ -10,7 +10,8 @@ extension SessionController {
     static let checkInPromptSeconds = 90.0
 
     func resetCues() {
-        lastOnTask = nil; lastEnforce = nil; places.reset(); placesVersion &+= 1; lastReturn = nil; lastPlaceTick = nil
+        restoreSound()
+        lastOnTask = nil; lastEnforce = nil; places.reset(); placesVersion &+= 1; lastReturn = nil; lastPlaceTick = nil; pendingSpot = nil; lastPositionAt = nil; lastSpotRestored = nil
         banner = nil; shield = nil; backHoldStart = nil; overrideLockedUntil = nil; rhythmPrompt = nil
         driftWatch.reset(); headsUpAt = nil; bannerHidden = false
         blockedSites = [:]; passedPages = [:]; claimsAccepted = 0; acceptedClaimWords = []; frictionQuietUntil = 0; frictionStrikes = [:]; lastFrictionEnforce = -1000; explainStrikes = 0; overrideLocks = 0; lastPulseAt = -1000
@@ -116,7 +117,24 @@ extension SessionController {
     /// The small cross on the banner. A reminder stays hidden until you have been back on task and drift again.
     public func dismissBanner() { headsUpAt = nil; bannerHidden = true; refreshBanner(now()) }
 
+    /// Notes which of Focus's cues are on screen while you are away, for "What brings you back" in Insights. Reads state, changes nothing.
+    func observeCues(_ t: Double) {
+        guard awayFlagged, !shadow else { return }
+        var v = Set<CueKind>()
+        if let b = banner, b.kind == .early || b.kind == .reminder { v.insert(.banner) }
+        if surface != nil { v.insert(.card) }
+        if !isPreviewingVeil, prefs.screenGrayscale, veilLevel() >= 15 { v.insert(.gray) }
+        if !isPreviewingFog, prefs.screenFog, fogLevel() >= 15 { v.insert(.fog) }
+        if !isPreviewingEdges, prefs.screenEdges, edgeLevel() >= 15 { v.insert(.edges) }
+        if checkIn != nil { v.insert(.checkIn) }
+        if shield?.kind == .pause { v.insert(.pauseScreen) }
+        if enforceActions >= 1 { v.insert(.hidden) }
+        cueTrace.observe(v, at: t)
+    }
+
     func tickCues(_ t: Double) {
+        observeCues(t)
+        tickSound()
         tickPlaces(t)
         refreshBanner(t)
         tickRhythm(t)
