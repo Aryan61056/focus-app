@@ -131,7 +131,9 @@ public final class VeilController {
         lastLevel = level
         // Gray and fog on every display, or only on the window you drifted into (then the edges, if on, still close in on every display).
         var screenGray = 0.0, windowGray = 0.0, screenFog = 0.0, windowFog = 0.0, windowRect: CGRect?
-        switch c.veilRegion(windowFrame: c.prefs.grayWindowOnly ? c.frontWindowFrame?() : nil) {
+        // The front window's frame is a window-list query: asked only when there is gray or fog to place, not ten times a second at rest.
+        let needsFrame = c.prefs.grayWindowOnly && (level >= 0.3 || fogLevel >= 0.3)
+        switch c.veilRegion(windowFrame: needsFrame ? c.frontWindowFrame?() : nil) {
         case .screens: screenGray = level; screenFog = fogLevel
         case .window(let r): windowGray = level; windowFog = fogLevel; windowRect = r
         case .none: break

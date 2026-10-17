@@ -334,7 +334,8 @@ final class ReopenPolicyTests: XCTestCase {
 
     func testAnythingThatRunsOrIsGoneIsNeverOpened() {
         XCTAssertNil(file("/Users/a/Essay.pages", exists: false), "the file was deleted")
-        for bad in ["/Applications/Sketchy.app", "/Users/a/run.command", "/Users/a/x.sh", "/Users/a/inst.pkg", "/Users/a/x.dmg", "/Users/a/a.scpt", "/Users/a/Evil.webloc", "/Users/a/x.py", "/Users/a/x.JAR"] {
+        for bad in ["/Applications/Sketchy.app", "/Users/a/run.command", "/Users/a/x.sh", "/Users/a/inst.pkg", "/Users/a/x.dmg", "/Users/a/a.scpt", "/Users/a/Evil.webloc", "/Users/a/x.py", "/Users/a/x.JAR",
+                    "/Users/a/Wifi.mobileconfig", "/Users/a/x.prefPane", "/Users/a/x.dylib"] {
             XCTAssertNil(file(bad), bad)
         }
         XCTAssertNil(file("/Users/a/tool", runs: true), "a plain file with the execute bit is a program")
@@ -804,10 +805,14 @@ final class GrayOnlyTheDriftedWindowTests: XCTestCase {
     func testThePanelSitsOnThatWindowAndGoesWhenYouAreBack() async throws {
         try XCTSkipIf(NSScreen.screens.isEmpty, "needs a display")
         let c = make()
-        c.frontWindowFrame = { [unowned self] in frame }
+        var asked = 0
+        c.frontWindowFrame = { [unowned self] in asked += 1; return frame }
         let v = VeilController(controller: c)
-        await advance(c, to: 60); c.windowChanged(slack); await advance(c, to: 300)
+        await advance(c, to: 30); v.update()
+        XCTAssertEqual(asked, 0, "on task there is nothing to place, so the window list is not queried")
+        c.windowChanged(slack); await advance(c, to: 300)
         v.update()
+        XCTAssertGreaterThan(asked, 0)
         let f = try XCTUnwrap(v.windowPanelFrameForTesting)
         let primaryH = NSScreen.screens[0].frame.height
         XCTAssertEqual(f.minX, 200, accuracy: 0.5); XCTAssertEqual(f.width, 900, accuracy: 0.5)
@@ -1041,10 +1046,11 @@ final class SoundEaseRulesTests: XCTestCase {
 
 final class FakeVolume: SystemVolume {
     var level: Float?
+    var reads = 0
     var writes: [Float] = []
     var canWrite = true
     init(_ v: Float?) { level = v }
-    func read() -> Float? { level }
+    func read() -> Float? { reads += 1; return level }
     func write(_ value: Float) -> Bool { guard canWrite else { return false }; level = value; writes.append(value); return true }
 }
 
@@ -1153,6 +1159,7 @@ final class SoundEaseInSessionTests: XCTestCase {
         let o = make(on: false, volume: off)
         await advance(o, to: 60); o.windowChanged(video); await advance(o, to: 260)
         XCTAssertTrue(off.writes.isEmpty, "switched off")
+        XCTAssertEqual(off.reads, 0, "and the volume is not even looked at every second when there is nothing to do")
     }
 
     func testAfterACrashTheNextLaunchPutsTheVolumeRight() {

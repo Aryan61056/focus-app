@@ -7,7 +7,8 @@ import Foundation
 public enum ReopenPolicy {
     /// File types that run or install things. A document you were writing is never one of these.
     static let neverOpen: Set<String> = ["app", "command", "sh", "zsh", "bash", "tool", "pkg", "mpkg", "dmg", "workflow", "action", "scpt", "scptd",
-                                         "terminal", "webloc", "url", "jar", "exe", "bat", "py", "pl", "rb", "js", "wflow", "osax", "plugin", "kext", "xpc"]
+                                         "terminal", "webloc", "url", "jar", "exe", "bat", "py", "pl", "rb", "js", "wflow", "osax", "plugin", "kext", "xpc",
+                                         "mobileconfig", "prefpane", "saver", "service", "dylib", "so", "ps1", "appex", "ipa", "lnk", "inetloc"]
 
     /// The file or folder to open for a document place (a Finder window's folder, an editor's project), or nil when it is gone or runs code.
     public static func fileURL(documentPath: String, exists: (String) -> Bool = { FileManager.default.fileExists(atPath: $0) },

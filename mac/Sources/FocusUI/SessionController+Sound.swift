@@ -11,6 +11,8 @@ extension SessionController {
 
     func tickSound() {
         guard let volume = systemVolume else { return }
+        // Nothing eased, nothing to hand back and nothing to start: do not even ask the system for the volume (this runs every second).
+        guard easedSound != nil || soundLetGo || soundShouldEase else { return }
         guard let now = volume.read() else { return }
         // You moved the volume yourself during this nudge: it stays yours until the nudge is over.
         if soundLetGo { if !soundShouldEase { soundLetGo = false }; return }
