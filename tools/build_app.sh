@@ -73,6 +73,10 @@ BUILD_ID="$(date -u +%Y%m%d%H%M%S)-$(git rev-parse --short HEAD 2>/dev/null || e
 # Assets.car holds the layered icon; the system finds it by name.
 if [ -n "$ICON_NAME" ]; then /usr/libexec/PlistBuddy -c "Add :CFBundleIconName string $ICON_NAME" "$APP/Contents/Info.plist"; fi
 plutil -lint "$APP/Contents/Info.plist" >/dev/null
+# The iPhone app, when one was built (tools/build_iphone.sh): carried inside so the iPhone window can install it on a plugged-in phone.
+# Copied as it is, with its own signature; it sits in Resources, so signing the outer app below leaves it alone.
+IPHONE_APP="${FOCUS_IPHONE_APP:-$(pwd)/../companion/.build/Focus for iPhone.app}"
+if [ -d "$IPHONE_APP" ]; then ditto "$IPHONE_APP" "$APP/Contents/Resources/Focus for iPhone.app"; echo "carrying the iPhone app from $IPHONE_APP"; fi
 if [ "$SIGNED" = 1 ]; then
   # Signed for iCloud: the profile travels inside the bundle and the entitlements must be allowed by it.
   cp "$FOCUS_PROVISIONING_PROFILE" "$APP/Contents/embedded.provisionprofile"

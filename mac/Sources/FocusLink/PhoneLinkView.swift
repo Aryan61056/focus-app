@@ -56,11 +56,70 @@ public struct PhoneLinkView: View {
     }
 
     private var idle: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        let installer = link.installer
+        // While Focus is offering to install the app, that is the step in front of you and pairing waits its turn.
+        let installing: Bool = { if case .ready = installer.state { return true }; if case .installing = installer.state { return true }; return false }()
+        return VStack(alignment: .leading, spacing: 16) {
             phones
+            installBlock(installer)
             Button { link.beginPairing() } label: { Label(link.phones.isEmpty ? "Pair an iPhone" : "Pair another iPhone", systemImage: "iphone").frame(maxWidth: .infinity) }
-                .buttonStyle(FocusButtonStyle(.primary, expand: true))
-            Text("Install Focus on your iPhone first, then press the button. It takes about ten seconds.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
+                .buttonStyle(FocusButtonStyle(installing ? .secondary : .primary, expand: true))
+            Text(installer.state == .notIncluded ? "Install Focus on your iPhone first, then press the button. It takes about ten seconds."
+                                                  : "Open Focus on your iPhone, then press the button. It takes about ten seconds.")
+                .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+        }
+        // Looks for a plugged-in iPhone while this step is on screen, so plugging one in is noticed.
+        .task { await installer.watch() }
+    }
+
+    /// Step one: get the app onto the phone. Shown only when this copy of Focus carries an iPhone build.
+    @ViewBuilder private func installBlock(_ installer: PhoneInstaller) -> some View {
+        if installer.state != .notIncluded {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Put Focus on your iPhone").font(Tokens.text(.callout, .semibold)).foregroundStyle(Tokens.ink)
+                switch installer.state {
+                case .notIncluded: EmptyView()
+                case .idle, .looking:
+                    HStack(spacing: 8) { ProgressView().controlSize(.small); Text("Looking for your iPhone\u{2026}").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
+                case .needsXcode:
+                    Text("Installing from here needs Xcode on this Mac.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
+                case .noPhone:
+                    Text("Plug in your iPhone with a cable, unlock it and tap Trust. It appears here.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
+                        .fixedSize(horizontal: false, vertical: true)
+                case .ready(let targets):
+                    ForEach(targets) { target in
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "iphone").foregroundStyle(Tokens.accentInk)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(target.name).font(Tokens.text(.body, .medium)).foregroundStyle(Tokens.ink).lineLimit(1)
+                                    if !target.model.isEmpty { Text(target.model).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
+                                }
+                                Spacer()
+                                Button("Install Focus") { Task { await installer.install(on: target) } }.buttonStyle(FocusButtonStyle(.primary, small: true))
+                            }
+                            if target.needsDeveloperMode {
+                                Text("Turn on Developer Mode on this iPhone first: Settings, Privacy & Security.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                case .installing(let name):
+                    HStack(spacing: 8) { ProgressView().controlSize(.small); Text("Installing on \(name). Keep it unlocked.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
+                case .installed(let name):
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill").foregroundStyle(Tokens.accent)
+                        Text("Focus is on \(name). Open it there, then pair below.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                case .failed(let message):
+                    Text(message).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                    Button("Try again") { Task { await installer.again() } }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                }
+            }
+            .padding(14).frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: Tokens.radiusCard).fill(Tokens.well))
+            .animation(.smooth(duration: 0.25), value: installer.state)
         }
     }
 

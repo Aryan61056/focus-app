@@ -23,6 +23,8 @@ public final class PhoneLink {
 
     /// Insights in the person's own iCloud, for when the Mac is off or far away. Separate from the local link; off until turned on.
     public let sync: PhoneSync
+    /// Puts the iPhone app on a plugged-in iPhone, for the first step of the iPhone window. Needs an iPhone build inside this app and Xcode.
+    public let installer: PhoneInstaller
     @ObservationIgnored let server: LinkServer
     @ObservationIgnored private let macID: UUID
     @ObservationIgnored private var wakeObserver: NSObjectProtocol?
@@ -39,13 +41,14 @@ public final class PhoneLink {
 
     private static let enabledKey = "focus.link.enabled", macIDKey = "focus.link.macID"
 
-    public init(registry: (any DeviceRegistry)? = nil, advertise: Bool = true, defaults: UserDefaults? = nil, macName: String? = nil, sync: PhoneSync? = nil) {
+    public init(registry: (any DeviceRegistry)? = nil, advertise: Bool = true, defaults: UserDefaults? = nil, macName: String? = nil, sync: PhoneSync? = nil, installer: PhoneInstaller? = nil) {
         // FOCUS_TEST_STORE=<folder> (the app's testing switch) keeps paired phones and the on/off setting out of the real ones.
         let testFolder = ProcessInfo.processInfo.environment["FOCUS_TEST_STORE"].flatMap { $0.isEmpty ? nil : URL(fileURLWithPath: $0, isDirectory: true) }
         let reg = registry ?? FileDeviceRegistry(url: testFolder?.appendingPathComponent("paired-phones.json") ?? FileDeviceRegistry.defaultURL)
         let defaults = defaults ?? testFolder.flatMap { UserDefaults(suiteName: "focus-app.test.\($0.lastPathComponent)") } ?? .standard
         self.registry = reg; self.defaults = defaults
         self.sync = sync ?? PhoneSync(defaults: defaults)
+        self.installer = installer ?? PhoneInstaller()
         enabled = defaults.bool(forKey: Self.enabledKey)
         let macID = defaults.string(forKey: Self.macIDKey).flatMap(UUID.init) ?? { let id = UUID(); defaults.set(id.uuidString, forKey: Self.macIDKey); return id }()
         self.macID = macID
