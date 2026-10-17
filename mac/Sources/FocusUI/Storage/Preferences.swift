@@ -35,6 +35,10 @@ public final class Preferences {
     public var practiceRemoved: Bool { didSet { defaults.set(practiceRemoved, forKey: "practiceRemoved"); if practiceRemoved { practiceSessionsLeft = 0 } } }
     /// Quiet rewards: today's progress toward a daily goal, a streak with rest days, longest stretch, how fast you get back. Off hides all of it.
     public var showProgress: Bool { didSet { defaults.set(showProgress, forKey: "showProgress") } }
+    /// Friends (docs/SOCIAL.md): your daily numbers go to the friends you invite through iCloud. Off by default; turning it off deletes them.
+    public var shareWithFriends: Bool { didSet { defaults.set(shareWithFriends, forKey: "shareWithFriends") } }
+    /// The name friends see. Empty until you type one.
+    public var friendName: String { didSet { defaults.set(friendName, forKey: "friendName") } }
     public var dailyGoalMinutes: Int { didSet { defaults.set(dailyGoalMinutes, forKey: "dailyGoalMinutes") } }
     /// Wording of nudges only. Curated lines, never model-written, and none ever names what you were looking at.
     public var nudgeTone: NudgeTone { didSet { defaults.set(nudgeTone.rawValue, forKey: "nudgeTone") } }
@@ -98,6 +102,8 @@ public final class Preferences {
         useModel = defaults.object(forKey: "useModel") as? Bool ?? true
         aiHelp = defaults.object(forKey: "aiHelp") as? Bool ?? true
         showProgress = defaults.object(forKey: "showProgress") as? Bool ?? true
+        shareWithFriends = defaults.bool(forKey: "shareWithFriends")
+        friendName = defaults.string(forKey: "friendName") ?? ""
         dailyGoalMinutes = defaults.object(forKey: "dailyGoalMinutes") as? Int ?? 90
         nudgeTone = NudgeTone(rawValue: defaults.string(forKey: "nudgeTone") ?? "") ?? .neutral
         checkRate = CheckRate(rawValue: defaults.string(forKey: "checkRate") ?? "") ?? .often

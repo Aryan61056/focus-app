@@ -216,6 +216,8 @@ public final class SessionController {
     public private(set) var updateOffer: UpdateOffer?
     @ObservationIgnored private var updateDismissed: String?
     @ObservationIgnored public var onCheckUpdates: (() -> Void)?
+    /// Friends, when the app set them up (docs/SOCIAL.md). nil in tests and snapshots.
+    public var friends: FriendsStore?
     @ObservationIgnored public var onInstallUpdate: ((UpdateOffer) -> Void)?
     /// The offer to show: only between sessions, only if the user left updates on, and not for a build they said "Later" to.
     public var visibleUpdate: UpdateOffer? {
@@ -695,6 +697,7 @@ public final class SessionController {
                     highlight = h
                 }
                 store?.record(record)
+                friends?.sessionSaved()
                 moment = nil
                 prefs.sessionFinished(wasPractice: shadow)
                 startRecap()
