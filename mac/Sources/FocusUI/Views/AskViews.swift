@@ -19,11 +19,11 @@ struct AskPanel: View {
                         Spacer()
                     }
                 }
-                HStack(spacing: Space.xs) {
-                    TextField(compact ? "Ask about this session" : "Why did you flag that window?", text: $question).font(Tokens.text(.callout))
-                        .wellField(focused: focused)
-                        .focused($focused).onSubmit(ask)
-                    Button("Ask") { ask() }.buttonStyle(FocusButtonStyle(.secondary)).disabled(question.trimmingCharacters(in: .whitespaces).isEmpty || c.answer.isWorking)
+                // The button beside the field when there is room for both; under it, at the right, when the panel is narrow, so the
+                // field's hint is never cut off.
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: Space.xs) { field.frame(minWidth: 160 * TextScale.shared.factor); askButton() }
+                    VStack(spacing: Space.xs) { field; askButton(fill: true) }
                 }
                 if case .idle = c.answer {
                     FlowRow(spacing: Space.xs) {
@@ -49,6 +49,16 @@ struct AskPanel: View {
                 }
             }
         }
+    }
+
+    var field: some View {
+        TextField(compact ? "Ask about this session" : "Why did you flag that window?", text: $question).font(Tokens.text(.callout))
+            .wellField(focused: focused)
+            .focused($focused).onSubmit(ask)
+    }
+    func askButton(fill: Bool = false) -> some View {
+        Button { ask() } label: { Text("Ask").frame(maxWidth: fill ? .infinity : nil) }
+            .buttonStyle(FocusButtonStyle(.secondary)).disabled(question.trimmingCharacters(in: .whitespaces).isEmpty || c.answer.isWorking)
     }
 
     func ask() { c.askFocus(question) }

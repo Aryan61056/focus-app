@@ -9,17 +9,15 @@ struct ReviewView: View {
     var body: some View {
         let open = store.review.filter { $0.answer == nil }
         PanelLayout {
-            Scroller {
-                VStack(alignment: .leading, spacing: Space.l) {
-                    if c.prefs.practiceActive { practice }
-                    if open.isEmpty {
-                        EmptyState(symbol: "checkmark", title: "All caught up", text: "Moments Focus would have nudged about land here.")
-                    } else {
-                        VStack(spacing: Space.s) { ForEach(open) { m in moment(m) } }
-                    }
+            VStack(alignment: .leading, spacing: Space.l) {
+                if c.prefs.practiceActive { practice }
+                if open.isEmpty {
+                    EmptyState(symbol: "checkmark", title: "All caught up", text: "Moments Focus would have nudged about land here.")
+                } else {
+                    VStack(spacing: Space.s) { ForEach(open) { m in moment(m) } }
                 }
-                .padding(.horizontal, Space.xl).padding(.top, Space.l).padding(.bottom, Space.xl).frame(maxWidth: 860, alignment: .leading)
             }
+            .padding(.horizontal, Space.xl).padding(.top, Space.l).padding(.bottom, Space.xl).frame(maxWidth: 860, alignment: .leading)
         } side: {
             FocusPanelColumn {
                 let a = store.agreement

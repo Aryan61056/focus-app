@@ -11,20 +11,18 @@ struct HistoryView: View {
                 .padding(Space.xl).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         } else {
             PanelLayout {
-                Scroller {
-                    VStack(alignment: .leading, spacing: Space.l) {
-                        Totals(items: Self.totals(store.sessions, now: .now))
-                        VStack(alignment: .leading, spacing: 0) {
-                            let longest = store.sessions.map(\.activeSeconds).max() ?? 1
-                            ForEach(Self.days(store.sessions), id: \.day) { group in
-                                Text(Self.dayTitle(group.day)).font(Tokens.text(.caption, .semibold)).foregroundStyle(Tokens.ink2)
-                                    .padding(.horizontal, Space.s).padding(.top, Space.m).padding(.bottom, Space.xxs).accessibilityAddTraits(.isHeader)
-                                ForEach(group.sessions) { s in row(s, longest: longest) }
-                            }
+                VStack(alignment: .leading, spacing: Space.l) {
+                    Totals(items: Self.totals(store.sessions, now: .now))
+                    VStack(alignment: .leading, spacing: 0) {
+                        let longest = store.sessions.map(\.activeSeconds).max() ?? 1
+                        ForEach(Self.days(store.sessions), id: \.day) { group in
+                            Text(Self.dayTitle(group.day)).font(Tokens.text(.caption, .semibold)).foregroundStyle(Tokens.ink2)
+                                .padding(.horizontal, Space.s).padding(.top, Space.m).padding(.bottom, Space.xxs).accessibilityAddTraits(.isHeader)
+                            ForEach(group.sessions) { s in row(s, longest: longest) }
                         }
                     }
-                    .padding(.horizontal, Space.xl).padding(.top, Space.l).padding(.bottom, Space.xl)
                 }
+                .padding(.horizontal, Space.xl).padding(.top, Space.l).padding(.bottom, Space.xl)
             } side: {
                 FocusPanelColumn {
                     if let s = store.sessions.first(where: { $0.id == (selected ?? store.sessions.first?.id) }) { SessionDrawer(store: store, session: s) }
@@ -50,7 +48,7 @@ struct HistoryView: View {
                 Text(s.task).font(Tokens.text(.body, .semibold)).lineLimit(1)
                 Text("\(s.start.formatted(.dateTime.hour().minute())) \u{00B7} \(durationText(s.activeSeconds))").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).monospacedDigit().lineLimit(1)
             }
-            .frame(width: 180 * k, alignment: .leading)
+            .frame(minWidth: 110 * k, idealWidth: 180 * k, maxWidth: 180 * k, alignment: .leading)
             GeometryReader { g in
                 MiniTimeline(segments: s.segments, height: 12).frame(width: max(24, g.size.width * min(1, s.activeSeconds / max(1, longest))))
                     .frame(maxHeight: .infinity)
@@ -89,8 +87,14 @@ struct SessionDrawer: View {
         VStack(alignment: .leading, spacing: Space.l) {
             VStack(alignment: .leading, spacing: Space.xxs) {
                 Text(session.task).font(Tokens.rounded(.title3, .semibold)).lineLimit(2)
-                Text("\(session.start.formatted(.dateTime.weekday().day().month().hour().minute())) \u{00B7} \(durationText(session.activeSeconds)) \u{00B7} \(session.timed ? "Timed" : "Open")")
-                    .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
+                let when = session.start.formatted(.dateTime.weekday().day().month().hour().minute())
+                let how = "\(durationText(session.activeSeconds)) \u{00B7} \(session.timed ? "Timed" : "Open")"
+                // One line when it fits; otherwise the day and time, then the length, so a separator never starts a line.
+                ViewThatFits(in: .horizontal) {
+                    Text("\(when) \u{00B7} \(how)").lineLimit(1)
+                    VStack(alignment: .leading, spacing: 0) { Text(when); Text(how) }
+                }
+                .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
                 MiniTimeline(segments: session.segments, height: 16).padding(.top, Space.xs)
                 FlowRow(spacing: Space.s) { legend("On task", .on); legend("Unsure", .unsure); legend("Off topic", .off) }.font(Tokens.text(.caption2)).foregroundStyle(Tokens.ink2)
             }
@@ -119,7 +123,7 @@ struct SessionDrawer: View {
         HStack(spacing: Space.xs) {
             Image(systemName: symbol).font(Tokens.symbol(13)).foregroundStyle(color).frame(width: 16).accessibilityHidden(true)
             Text("\(n)").font(Tokens.text(.body, .semibold)).monospacedDigit()
-            Text(label).font(Tokens.text(.body)).foregroundStyle(Tokens.ink2).lineLimit(1)
+            Text(label).font(Tokens.text(.body)).foregroundStyle(Tokens.ink2).lineLimit(2)
         }
         .accessibilityElement(children: .combine)
     }

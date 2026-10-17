@@ -11,7 +11,7 @@ struct TodayView: View {
 
     var body: some View {
         PanelLayout {
-            Scroller { content.padding(.horizontal, Space.xl).padding(.top, Space.l).padding(.bottom, Space.xl).frame(maxWidth: 960, alignment: .leading) }
+            content.padding(.horizontal, Space.xl).padding(.top, Space.l).padding(.bottom, Space.xl).frame(maxWidth: 960, alignment: .leading)
         } side: {
             TodayPanel(c: c)
         }

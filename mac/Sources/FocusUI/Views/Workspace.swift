@@ -286,16 +286,25 @@ struct PanelSection<Content: View>: View {
     }
 }
 
+/// True while a page's Focus panel sits under the page instead of beside it (a narrow window), where the page's own scroll carries both.
+private struct PanelStackedKey: EnvironmentKey { static let defaultValue = false }
+extension EnvironmentValues { var panelStacked: Bool { get { self[PanelStackedKey.self] } set { self[PanelStackedKey.self] = newValue } } }
+
 /// The right-hand column. Its own surface, a step off the page, like the sidebar on the left.
 struct FocusPanelColumn<Content: View>: View {
+    @Environment(\.panelStacked) private var stacked
     @ViewBuilder var content: Content
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Space.l) { content }
-                .padding(Space.m).frame(maxWidth: .infinity, alignment: .leading)
+        let column = VStack(alignment: .leading, spacing: Space.l) { content }
+        if stacked {
+            // Under the page there is no height of its own to scroll in: it is as tall as it needs to be, and its text lines up with the page's.
+            column.padding(.horizontal, Space.xl).padding(.vertical, Space.m).frame(maxWidth: .infinity, alignment: .leading)
+                .background(Tokens.sidebar.opacity(SnapshotMode.on ? 1 : 0.6))
+        } else {
+            ScrollView { column.padding(Space.m).frame(maxWidth: .infinity, alignment: .leading) }
+                .scrollIndicators(.never)
+                .background(Tokens.sidebar.opacity(SnapshotMode.on ? 1 : 0.6))
         }
-        .scrollIndicators(.never)
-        .background(Tokens.sidebar.opacity(SnapshotMode.on ? 1 : 0.6))
     }
 }
 
@@ -322,27 +331,38 @@ struct CanBeWrong: View {
     }
 }
 
-/// A page with the Focus panel at its right: the page scrolls on its own and the panel keeps a fixed width. On a narrow window the
-/// panel goes under the page instead, so nothing is hidden.
+/// A page with the Focus panel at its right: the page scrolls on its own and the panel keeps a fixed width. The panel gives up some of
+/// that width before the page does, so a smaller window keeps a readable page. When the page would still be squeezed (a narrow window, or
+/// the sidebar open in a small one) the panel goes under the page inside the same scroll, so nothing is hidden.
+/// `main` is the page's content, not a scroll view: this layout supplies the scrolling in both arrangements.
 struct PanelLayout<Main: View, Side: View>: View {
     var panelWidth: CGFloat = 264
     @ViewBuilder var main: Main
     @ViewBuilder var side: Side
     @State private var width: CGFloat = 1000
+
+    /// Narrowest panel, and the narrowest this layout runs side by side: the page keeps about 415 points beside it.
+    static var narrowestPanel: CGFloat { 224 }
+    static var stackBelow: CGFloat { 640 }
+
     var body: some View {
+        // A little wider at larger text sizes, so its lines and buttons still fit.
+        let k = 1 + (TextScale.shared.factor - 1) * 0.6
+        let panel = max(Self.narrowestPanel, min(panelWidth, width * 0.32)) * k
         Group {
-            if width >= 700 {
+            if width >= Self.stackBelow {
                 HStack(spacing: 0) {
-                    main.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    Scroller { main }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     Rectangle().fill(Tokens.line).frame(width: 1)
-                    // A little wider at larger text sizes, so its lines and buttons still fit.
-                    side.frame(width: panelWidth * (1 + (TextScale.shared.factor - 1) * 0.6)).frame(maxHeight: .infinity, alignment: .top)
+                    side.frame(width: panel).frame(maxHeight: .infinity, alignment: .top)
                 }
             } else {
-                VStack(spacing: 0) {
-                    main.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    Rectangle().fill(Tokens.line).frame(height: 1)
-                    side.frame(maxHeight: 260)
+                Scroller {
+                    VStack(spacing: 0) {
+                        main.frame(maxWidth: .infinity, alignment: .top)
+                        Rectangle().fill(Tokens.line).frame(height: 1)
+                        side.environment(\.panelStacked, true)
+                    }
                 }
             }
         }

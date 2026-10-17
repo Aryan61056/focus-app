@@ -14,6 +14,8 @@ struct StartCard: View {
     @FocusState private var focused: Bool
     /// Start was pressed on a name close to an older project: ask whether to continue that one before anything is created.
     @State private var asking = false
+    /// Width the Pick up chips have, to choose between three across and one column.
+    @State private var pickWidth: CGFloat = 0
 
     var parsed: (task: String, minutes: Int?) { StartSheet.parse(task) }
     var projects: [Project] { c.store?.projects ?? [] }
@@ -28,15 +30,10 @@ struct StartCard: View {
             VStack(alignment: .leading, spacing: Space.l) {
                 VStack(alignment: .leading, spacing: Space.s) {
                     Text(intro ? "Your first session" : "What are you working on?").font(Tokens.text(.callout, .semibold))
-                    HStack(spacing: Space.s) {
-                        TextField(last?.name ?? "Lab report on pendulums", text: $task)
-                            .font(Tokens.rounded(.title3, .medium))
-                            .wellField(height: 52, focused: focused)
-                            .focused($focused).onSubmit { start() }
-                            .onChange(of: task) { _, _ in asking = false }
-                        Button { start() } label: { Text(parsed.task.isEmpty && last != nil ? "Continue" : "Start").frame(minWidth: 64) }
-                            .buttonStyle(FocusButtonStyle(.primary)).controlSize(.large).frame(height: 52)
-                            .disabled(!canStart).keyboardShortcut(.defaultAction)
+                    // Side by side when the field keeps room to show a name; the button under it, at the right, when it would not.
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: Space.s) { taskField.frame(minWidth: 230 * TextScale.shared.factor); startButton }
+                        VStack(alignment: .trailing, spacing: Space.s) { taskField; startButton }
                     }
                     hint
                 }
@@ -53,6 +50,19 @@ struct StartCard: View {
             }
         }
         .onAppear { focused = true }
+    }
+
+    var taskField: some View {
+        TextField(last?.name ?? "Lab report on pendulums", text: $task)
+            .font(Tokens.rounded(.title3, .medium))
+            .wellField(height: 52, focused: focused)
+            .focused($focused).onSubmit { start() }
+            .onChange(of: task) { _, _ in asking = false }
+    }
+    var startButton: some View {
+        Button { start() } label: { Text(parsed.task.isEmpty && last != nil ? "Continue" : "Start").frame(minWidth: 64) }
+            .buttonStyle(FocusButtonStyle(.primary)).controlSize(.large).frame(height: 52)
+            .disabled(!canStart).keyboardShortcut(.defaultAction)
     }
 
     /// One calm line under the field: what Return will do.
@@ -76,10 +86,10 @@ struct StartCard: View {
             Text("Return starts a \(m) minute session on \u{201C}\(parsed.task)\u{201D}.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
         } else if parsed.task.isEmpty, let p = last {
             Text(p.nextStep.isEmpty ? "Return continues \u{201C}\(p.name)\u{201D}." : "Return continues \u{201C}\(p.name)\u{201D}. Next: \(p.nextStep)")
-                .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(1)
+                .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(2)
         } else if let p = existing {
             Text(p.nextStep.isEmpty ? "Return continues \u{201C}\(p.name)\u{201D}." : "Return continues \u{201C}\(p.name)\u{201D}. Next: \(p.nextStep)")
-                .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(1)
+                .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(2)
         } else if let p = similar.first {
             HStack(spacing: Space.xs) {
                 Text("Did you mean \u{201C}\(p.name)\u{201D}?").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(1)
@@ -108,12 +118,21 @@ struct StartCard: View {
         if let projects = c.store?.projects.prefix(3), !projects.isEmpty {
             VStack(alignment: .leading, spacing: Space.xs) {
                 Text("Pick up").font(Tokens.text(.caption, .medium)).foregroundStyle(Tokens.ink2)
-                // The chips share the row and match heights, so a longer project name wraps instead of being cut to a few letters.
-                HStack(alignment: .top, spacing: Space.s) {
-                    ForEach(Array(projects)) { p in ProjectChip(c: c, project: p, onStart: { markSeen() }) }
+                // Side by side while every chip has room for a name (a longer one wraps); otherwise one column, so a name is never cut
+                // to a few letters and no chip is left alone in a row.
+                if pickWidth >= 190 * TextScale.shared.factor * CGFloat(projects.count) {
+                    HStack(alignment: .top, spacing: Space.s) {
+                        ForEach(Array(projects)) { p in ProjectChip(c: c, project: p, onStart: { markSeen() }) }
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    VStack(spacing: Space.xs) {
+                        ForEach(Array(projects)) { p in ProjectChip(c: c, project: p, onStart: { markSeen() }) }
+                    }
                 }
-                .fixedSize(horizontal: false, vertical: true)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { pickWidth = $0 }
         }
     }
 
@@ -292,7 +311,7 @@ struct GoalCluster: View {
                             .buttonStyle(.plain).help("Change the daily goal").accessibilityLabel("Change the daily goal")
                             .popover(isPresented: $editing, arrowEdge: .bottom) { GoalEditor(prefs: c.prefs) }
                     }
-                    GoalRing(goal: goal).frame(width: 120, height: 120)
+                    GoalRing(goal: goal).frame(width: 120 * TextScale.shared.factor, height: 120 * TextScale.shared.factor)   // grows with the text it holds
                     if !store.sessions.isEmpty {
                         VStack(spacing: Space.s) {
                             WeekStrip(week: streak.week)

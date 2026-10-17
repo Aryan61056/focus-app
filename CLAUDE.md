@@ -100,6 +100,8 @@ python3 tools/check_contrast.py                                                #
 ./tools/check_notch_hover.sh                                                    # moves the real pointer onto the notch area; fails if the demo app crashes (needs the bundle built)
 open -n --env FOCUS_TEST_STORE="$TMPDIR/focus-test" mac/.build/Focus.app                                # real sensing and judge, throwaway store and settings (use this when driving the app with computer control)
 open -n --env FOCUS_DEMO=1 [--env FOCUS_DEMO_NOSESSION=1] [--env FOCUS_DEMO_ACTIONS=section:settings,start] --env FOCUS_SELFSHOT=/tmp/shots mac/.build/Focus.app   # demo app renders its own windows (main window, notch panel) to PNGs after 12 s, then quits; no screen capture, no permission
+# Quiet renders (nothing on the owner's screen): add --env FOCUS_SELFSHOT_QUIET=1 and launch with `open -g -n` (window sits under the desktop picture, no focus taken); FOCUS_SELFSHOT_SIZE=760x520 sets the window size, FOCUS_DEMO_ACTIONS accepts `sidebar`.
+# Do it from a COPY of Focus.app whose CFBundleIdentifier is changed and re-signed ad hoc: a render saves the window size and sidebar width, and with the real bundle id they land in the owner's own settings.
 ./tools/build_app.sh                                                            # local ad-hoc-signed mac/.build/Focus.app (dev only, not for distribution)
 (cd mac && swift run -q focus-sense-check)                                     # Accessibility allowed? and the front app's name (never a title)
 (cd mac && swift test)                                                         # Swift judge port + brain (golden traces, scenarios, property tests)

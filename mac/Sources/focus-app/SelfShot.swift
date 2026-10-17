@@ -6,7 +6,7 @@ import FocusUI
 @MainActor
 enum SelfShot {
     /// FOCUS_DEMO_ACTIONS="section:settings,start" runs these on the controller after 3 s (demo only), in place of clicks and keys I cannot send:
-    /// section:<today|projects|history|insights|review|settings>, page:<settings page>, text:<1 to 1.5>, pause, nonotch, hide, start (opens the start sheet), readscreen (turns screen reading on), veil (the whole-screen gray fade, 10 s), nogray (no whole-screen gray).
+    /// section:<today|projects|history|insights|review|settings>, page:<settings page>, text:<1 to 1.5>, pause, nonotch, sidebar (shows or hides it, as the toolbar button does), hide, start (opens the start sheet), readscreen (turns screen reading on), veil (the whole-screen gray fade, 10 s), nogray (no whole-screen gray).
     static func runActions(_ controller: SessionController) {
         let env = ProcessInfo.processInfo.environment
         guard env["FOCUS_DEMO"] == "1", let list = env["FOCUS_DEMO_ACTIONS"] else { return }
@@ -18,6 +18,9 @@ enum SelfShot {
                 else if a == "readscreen" { controller.prefs.readScreen = true }
                 else if a == "pause" { controller.act(.pause) }   // the held state: nothing is read until resume
                 else if a.hasPrefix("text:"), let f = Double(a.dropFirst(5)) { controller.prefs.textScale = f }   // text:1.5, the Text size setting
+                else if a == "sidebar", let w = NSApp.windows.first(where: { $0.canBecomeMain && $0.sheetParent == nil }),
+                        let e = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [.control, .command], timestamp: 0, windowNumber: w.windowNumber,
+                                                 context: nil, characters: "s", charactersIgnoringModifiers: "s", isARepeat: false, keyCode: 1) { _ = w.performKeyEquivalent(with: e) }   // the sidebar button's own shortcut
                 else if a == "hide" { NSApp.hide(nil) }   // the window out of sight, as during most of a session
                 else if a == "nonotch" { controller.prefs.showNotch = false }   // for measuring what the notch costs
                 else if a == "veil" { controller.previewVeil() }   // the whole-screen gray, so its windows can be listed
@@ -28,11 +31,28 @@ enum SelfShot {
         }
     }
 
+    /// The main window drops to a level under the desktop picture, so it is never seen on any display but is still a real window the
+    /// window server can copy; the notch panel and menu bar item go fully transparent. Windows that appear later (a sheet follows its
+    /// parent) are caught by the timer that calls this.
+    static func keepQuiet() {
+        for w in NSApp.windows where w.sheetParent == nil {
+            w.ignoresMouseEvents = true
+            if w is NSPanel || !w.canBecomeMain { w.alphaValue = 0 }
+            else { w.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopWindow)) - 1) }
+        }
+    }
+
     static func scheduleIfRequested(after seconds: Double = 12) {
         let env = ProcessInfo.processInfo.environment
         guard env["FOCUS_DEMO"] == "1", let dir = env["FOCUS_SELFSHOT"] else { return }
         // FOCUS_SELFSHOT_APPEARANCE=light|dark renders in that appearance whatever the system uses.
         if let a = env["FOCUS_SELFSHOT_APPEARANCE"] { NSApp.appearance = NSAppearance(named: a == "light" ? .aqua : .darkAqua) }
+        // FOCUS_SELFSHOT_QUIET=1 puts the main window under the desktop picture and makes the rest transparent and deaf to the pointer for the whole run,
+        // so a render never shows anything on the screen or takes a click. Launch it with `open -g` so it does not take focus either.
+        if env["FOCUS_SELFSHOT_QUIET"] == "1" {
+            keepQuiet()
+            Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { _ in MainActor.assumeIsolated { SelfShot.keepQuiet() } }
+        }
         // FOCUS_SELFSHOT_SIZE=960x600 resizes the main window first, so the smallest and a large window can both be checked.
         if let s = env["FOCUS_SELFSHOT_SIZE"]?.split(separator: "x").compactMap({ Double($0) }), s.count == 2 {
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
@@ -43,7 +63,7 @@ enum SelfShot {
             try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
             // What was there, so a missing image can be told from a window that was not on screen.
             let listing = NSApp.windows.enumerated().map { i, w in
-                "\(i) \(type(of: w)) visible=\(w.isVisible) canHide=\(w.canHide) number=\(w.windowNumber) occluded=\(!w.occlusionState.contains(.visible)) frame=\(Int(w.frame.width))x\(Int(w.frame.height))"
+                "\(i) \(type(of: w)) visible=\(w.isVisible) canHide=\(w.canHide) number=\(w.windowNumber) occluded=\(!w.occlusionState.contains(.visible)) frame=\(Int(w.frame.width))x\(Int(w.frame.height)) at \(Int(w.frame.origin.x)),\(Int(w.frame.origin.y))"
             }.joined(separator: "\n")
             try? listing.write(toFile: "\(dir)/windows.txt", atomically: true, encoding: .utf8)
             // While the app is hidden AppKit reports every window as not visible, even the panels that stay on screen (canHide off).

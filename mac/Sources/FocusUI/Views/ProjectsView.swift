@@ -25,8 +25,8 @@ struct ProjectsView: View {
                     if let p = store.project(selected ?? store.projects.first?.id) { ProjectDetail(c: c, store: store, project: p, confirmDelete: $confirmDelete) }
                 }
             }
-            Spacer(minLength: 0)
         }
+        .frame(maxHeight: .infinity, alignment: .top)
         .onAppear { if selected == nil { selected = store.projects.first?.id } }
     }
 
@@ -81,6 +81,7 @@ struct ProjectDetail: View {
                 HStack { Spacer(); Button("Delete project") { confirmDelete = true }.buttonStyle(FocusButtonStyle(.plain, small: true)) }
             }
             .padding(Space.xl).modifier(CardSurface())
+            .padding(.bottom, Space.xl)   // the page has no bottom padding of its own, so this scrolls to the window's edge instead of stopping above it
         }
         .confirmationDialog("Delete \(project.name)?", isPresented: $confirmDelete) {
             Button("Delete project", role: .destructive) { store.deleteProject(project.id) }

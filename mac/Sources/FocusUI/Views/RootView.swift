@@ -31,6 +31,11 @@ public struct RootView: View {
     @State private var forward: [SidebarItem] = []
     @State private var travelling = false
     @State private var columns = NavigationSplitViewVisibility.all
+    /// A narrow window hides the sidebar so the page keeps its room, and brings it back when the window widens again, unless you chose.
+    @State private var roomForSidebar = true
+    @State private var sidebarAutoHidden = false
+    /// Window width under which the sidebar and a page with its Focus panel no longer sit together comfortably.
+    static let sidebarFits: CGFloat = 940
     /// The project picked inside the Projects screen's own list.
     @State private var listProject: UUID?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -72,12 +77,14 @@ public struct RootView: View {
                 // back and forward, and one action on the right.
                 NavigationSplitView(columnVisibility: $columns) {
                     SourceList(c: c, item: Binding(get: { current }, set: { if let v = $0 { go(v) } }), selection: selection)
+                        // The column width alone left the sidebar near 144 points (names cut short) while no width was saved; a minimum on the content holds 200.
+                        .frame(minWidth: 200)
                         .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 280)
                         // The sidebar button sits at the sidebar's own right edge, where Droppy has it.
                         .toolbar(removing: .sidebarToggle)
                         .toolbar {
                             ToolbarItem(placement: .automatic) {
-                                Button { withAnimation(Motion.glide) { columns = columns == .detailOnly ? .all : .detailOnly } } label: {
+                                Button { sidebarAutoHidden = false; withAnimation(Motion.glide) { columns = columns == .detailOnly ? .all : .detailOnly } } label: {
                                     Label("Show or hide the sidebar", systemImage: "sidebar.left")
                                 }
                                 .keyboardShortcut("s", modifiers: [.command, .control])
@@ -94,12 +101,20 @@ public struct RootView: View {
                                 Button { travel(from: &forward, to: &back) } label: { Label("Forward", systemImage: "chevron.right") }
                                     .disabled(forward.isEmpty).keyboardShortcut("]", modifiers: .command)
                             }
-                            ToolbarItemGroup(placement: .primaryAction) { SessionToolbar(c: c, showStart: $showStart) }
+                            ToolbarItemGroup(placement: .primaryAction) { SessionToolbar(c: c, showStart: $showStart, compact: !roomForSidebar) }
                         }
                 }
             }
         }
-        .frame(minWidth: 960, minHeight: 600)
+        // The welcome fills the window and its last step needs about 540 points, so it keeps the old minimum height; the app itself goes smaller.
+        .frame(minWidth: 760, minHeight: c.showsWelcome ? 600 : 520)
+        .onGeometryChange(for: Bool.self) { $0.size.width >= Self.sidebarFits } action: { fits in
+            // Only when the width crosses the line, so a sidebar you opened in a narrow window stays while you drag.
+            guard fits != roomForSidebar else { return }
+            roomForSidebar = fits
+            if !fits, columns == .all { sidebarAutoHidden = true; withAnimation(Motion.glide) { columns = .detailOnly } }
+            else if fits, sidebarAutoHidden { sidebarAutoHidden = false; withAnimation(Motion.glide) { columns = .all } }
+        }
         .foregroundStyle(Tokens.ink)
         .onChange(of: current) { old, _ in
             if travelling { travelling = false } else { back.append(old); forward.removeAll() }
@@ -150,7 +165,7 @@ public struct RootView: View {
                 // Today, History and Review lay out their own page and Focus panel across the whole window. Settings is one centred
                 // form; Projects and Insights use the width up to a readable maximum.
                 .frame(maxWidth: ownsLayout ? .infinity : (selection == .settings ? 700 : Tokens.contentWidth))
-                .padding(.horizontal, ownsLayout || selection == .settings ? 0 : Space.xl).padding(.top, ownsLayout || selection == .settings ? 0 : Space.s).padding(.bottom, ownsLayout || selection == .settings ? 0 : Space.xl)
+                .padding(.horizontal, ownsLayout || selection == .settings ? 0 : Space.xl).padding(.top, ownsLayout || selection == .settings ? 0 : Space.s)
                 // A page taller than the window scrolls inside itself; it must never make the split view (and so the window) taller.
                 .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .top)
                 .clipped()
@@ -186,6 +201,8 @@ public struct RootView: View {
 struct SessionToolbar: View {
     @Bindable var c: SessionController
     @Binding var showStart: Bool
+    /// A narrow window folds Break and End into one menu, so the toolbar keeps room for the sidebar button and the page's name.
+    var compact = false
     var body: some View {
         if c.isActive {
             // Clocks that change every second do not roll their digits: a roll each second is motion that never ends, and in the glass
@@ -206,11 +223,20 @@ struct SessionToolbar: View {
                 Label(c.isPaused ? "Resume" : "Pause", systemImage: c.isPaused ? "play.fill" : "pause.fill").contentTransition(.symbolEffect(.replace))
             }
             .help(c.isPaused ? "Resume" : "Pause")
-            Menu {
-                ForEach([5, 10, 15], id: \.self) { m in Button("\(m) minute break") { c.act(.breakTime, minutes: m) } }
-            } label: { Label("Break", systemImage: "cup.and.saucer") }
-            .help("Take a break")
-            Button { c.end() } label: { Label("End", systemImage: "stop.fill") }.help("End the session")
+            if compact {
+                Menu {
+                    ForEach([5, 10, 15], id: \.self) { m in Button("\(m) minute break") { c.act(.breakTime, minutes: m) } }
+                    Divider()
+                    Button("End session") { c.end() }
+                } label: { Label("Break or end", systemImage: "ellipsis") }
+                .help("Take a break, or end the session")
+            } else {
+                Menu {
+                    ForEach([5, 10, 15], id: \.self) { m in Button("\(m) minute break") { c.act(.breakTime, minutes: m) } }
+                } label: { Label("Break", systemImage: "cup.and.saucer") }
+                .help("Take a break")
+                Button { c.end() } label: { Label("End", systemImage: "stop.fill") }.help("End the session")
+            }
         } else {
             Button { showStart = true } label: { Label("Start session", systemImage: "play.fill").labelStyle(.titleAndIcon) }
                 .keyboardShortcut("n", modifiers: [.command, .shift])

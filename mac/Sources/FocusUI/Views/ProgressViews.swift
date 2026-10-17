@@ -23,7 +23,12 @@ struct GoalBar: View {
 struct WeekStrip: View {
     var week: [(day: Date, mark: Rewards.DayMark)]
     var body: some View {
-        HStack(spacing: Space.s) {
+        // The usual gap needs 212 points; a narrower Focus panel gets a tighter one instead of a column pushed wider than the panel.
+        ViewThatFits(in: .horizontal) { days(spacing: Space.s); days(spacing: Space.xxs) }
+    }
+
+    func days(spacing: CGFloat) -> some View {
+        HStack(spacing: spacing) {
             ForEach(Array(week.enumerated()), id: \.offset) { _, d in
                 VStack(spacing: Space.xxs) {
                     mark(d.mark).frame(width: 20, height: 20)

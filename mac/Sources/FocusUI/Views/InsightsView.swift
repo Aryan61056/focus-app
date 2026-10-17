@@ -28,6 +28,7 @@ struct InsightsView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
+            .padding(.bottom, Space.xl)   // the page has no bottom padding of its own, so this scrolls to the window's edge
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
         }.scrollIndicators(.hidden)
     }

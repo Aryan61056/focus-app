@@ -36,7 +36,7 @@ struct FriendsView: View {
         Group {
             if friends.sharing {
                 PanelLayout(panelWidth: 272) {
-                    Scroller { page.padding(.horizontal, Space.xl).padding(.top, Space.l).padding(.bottom, Space.xl) }
+                    page.padding(.horizontal, Space.xl).padding(.top, Space.l).padding(.bottom, Space.xl)
                 } side: {
                     FocusPanelColumn { FriendsPanel(c: c, friends: friends) }
                 }
