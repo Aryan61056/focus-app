@@ -51,6 +51,7 @@ let package = Package(
         .testTarget(name: "FocusUITests", dependencies: ["FocusUI", "FocusBrain", "FocusJudge"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .testTarget(name: "FocusSenseTests", dependencies: ["FocusSense", "FocusUI", "FocusJudge"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .testTarget(name: "FocusLinkBridgeTests", dependencies: ["FocusLink", "FocusUI", "FocusJudge", .product(name: "FocusLinkNet", package: "link")], swiftSettings: [.swiftLanguageMode(.v5)]),
+        .testTarget(name: "FocusSocialTests", dependencies: ["FocusSocial", "FocusUI"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .testTarget(name: "FocusBrainTests", dependencies: ["FocusBrain", "BrainTraces", "BrainSim"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .testTarget(name: "FocusJudgeTests", dependencies: ["FocusJudge"], swiftSettings: [.swiftLanguageMode(.v5)]),
     ]

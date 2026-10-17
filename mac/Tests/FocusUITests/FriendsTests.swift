@@ -206,4 +206,59 @@ final class FriendsTests: XCTestCase {
         XCTAssertEqual(again.friends.count, 4)
         XCTAssertEqual(again.newCheers, 0)
     }
+
+    // MARK: pushes, account changes and quiet publishing
+
+    func testAnUnchangedCardIsNotPublishedAgain() async {
+        let t = DemoFriendsTransport.sample(today: date(16), calendar: cal)
+        let store = DataStore(); store.record(rec(16, onMinutes: 45))
+        let s = FriendsStore(transport: t, prefs: prefs(), store: store); s.now = { self.date(16) }
+        await s.setSharing(true)
+        await s.refresh(); await s.refresh()
+        XCTAssertEqual(t.published.count, 1)
+        store.record(rec(16, onMinutes: 20))
+        await s.refresh()
+        XCTAssertEqual(t.published.count, 2, "a changed card goes out")
+    }
+
+    func testAPushReadsFriendsButNeverPublishes() async {
+        let t = DemoFriendsTransport.sample(today: date(16), calendar: cal)
+        let s = FriendsStore(transport: t, prefs: prefs(), store: DataStore())
+        var clock = date(16); s.now = { clock }
+        await s.setSharing(true)
+        XCTAssertNotNil(t.handler, "sharing on starts listening")
+        let before = t.published.count
+        t.cards.append(card("zed", "Zed", [(16, 30, 0)]))
+        clock = clock.addingTimeInterval(60)
+        t.fire(.remoteChange)
+        for _ in 0..<50 where s.friends.count < 5 { try? await Task.sleep(nanoseconds: 20_000_000) }
+        XCTAssertEqual(s.friends.count, 5)
+        XCTAssertEqual(t.published.count, before, "pull is read only, or two friends would wake each other forever")
+    }
+
+    func testPushesRightAfterASyncAreIgnored() async {
+        let t = DemoFriendsTransport.sample(today: date(16), calendar: cal)
+        let s = FriendsStore(transport: t, prefs: prefs(), store: DataStore()); s.now = { self.date(16) }
+        await s.setSharing(true)
+        t.cards.append(card("zed", "Zed", [(16, 30, 0)]))
+        await s.pull()
+        XCTAssertEqual(s.friends.count, 4)
+    }
+
+    func testAnAccountChangeChecksICloudAgain() async {
+        let t = DemoFriendsTransport.sample(today: date(16), calendar: cal)
+        let s = FriendsStore(transport: t, prefs: prefs(), store: DataStore())
+        await s.setSharing(true)
+        t.answer = .noAccount
+        t.fire(.accountChanged)
+        for _ in 0..<50 where s.status == .ready { try? await Task.sleep(nanoseconds: 20_000_000) }
+        XCTAssertEqual(s.status, .unavailable("Sign in to iCloud in System Settings to share with friends."))
+    }
+
+    func testTurningSharingOffStopsListening() async {
+        let t = DemoFriendsTransport.sample(today: date(16), calendar: cal)
+        let s = FriendsStore(transport: t, prefs: prefs(), store: DataStore())
+        await s.setSharing(true); await s.setSharing(false)
+        XCTAssertNil(t.handler)
+    }
 }

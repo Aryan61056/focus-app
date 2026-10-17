@@ -20,6 +20,9 @@ public struct FriendsSnapshot: Sendable {
     public init(cards: [FriendCard], cheers: [Cheer], audience: Set<String>) { self.cards = cards; self.cheers = cheers; self.audience = audience }
 }
 
+/// Something the transport noticed on its own: a friend's numbers changed (a push from iCloud), or the iCloud account changed.
+public enum FriendsEvent: Sendable { case remoteChange, accountChanged }
+
 /// How friends' numbers travel. The real one (CloudKit) lives in the FocusSocial module, so this module never imports a networking
 /// framework (tools/check_privacy.py); the demo and the tests use `DemoFriendsTransport`.
 @MainActor public protocol FriendsTransport: AnyObject {
@@ -34,6 +37,14 @@ public struct FriendsSnapshot: Sendable {
     func remove(_ friend: String) async throws
     /// Deletes everything you shared: your card, the share, and cheers sent to you.
     func stopSharing() async throws
+    /// Starts telling the store when a friend's numbers change or the iCloud account changes, so it need not poll.
+    func listen(_ handler: @escaping @MainActor (FriendsEvent) -> Void) async
+    func stopListening() async
+}
+
+public extension FriendsTransport {
+    func listen(_ handler: @escaping @MainActor (FriendsEvent) -> Void) async {}
+    func stopListening() async {}
 }
 
 /// Friends state for the app: your sharing switch, friends' cards, cheers. Off until you turn sharing on.
@@ -63,6 +74,12 @@ public final class FriendsStore {
     @ObservationIgnored let store: DataStore?
     @ObservationIgnored private let url: URL?
     @ObservationIgnored var now: () -> Date = Date.init
+    @ObservationIgnored private var listening = false
+    /// The card last put in iCloud, so an unchanged card is not written again (every write wakes your friends' Macs).
+    @ObservationIgnored private var published: (card: FriendCard, at: Date)?
+    static let republishAfter: TimeInterval = 6 * 3_600
+    /// A push right after a sync adds nothing; this also stops your own writes echoing back as work.
+    static let pushPause: TimeInterval = 15
 
     public init(transport: FriendsTransport, prefs: Preferences, store: DataStore?, url: URL? = nil) {
         self.transport = transport; self.prefs = prefs; self.store = store; self.url = url
@@ -115,6 +132,8 @@ public final class FriendsStore {
             prefs.shareWithFriends = false
             status = .syncing
             do { try await transport.stopSharing(); status = .off } catch { status = .failed(Self.say(error)) }
+            listening = false; published = nil
+            await transport.stopListening()
             friends = []; cheers = []; audience = []; you = nil; save()
         }
     }
@@ -132,13 +151,45 @@ public final class FriendsStore {
         }
         status = .syncing
         do {
-            try await transport.publish(myCard)
-            let snap = try await transport.fetch()
-            friends = snap.cards.filter { $0.id != you }
-            cheers = snap.cheers.sorted { $0.at > $1.at }
-            audience = snap.audience
-            lastSync = now(); status = .ready; save()
+            let card = myCard
+            if needsPublish(card) { try await transport.publish(card); published = (card, now()) }
+            try await apply(transport.fetch())
+            status = .ready
+            await startListening()
         } catch { status = .failed(Self.say(error)) }
+    }
+
+    /// Reads friends without writing anything. A push from iCloud lands here, never in `refresh`: two friends who both
+    /// published on every push would wake each other forever.
+    public func pull() async {
+        guard sharing, you != nil, status != .syncing, status != .checking else { return }
+        if let last = lastSync, now().timeIntervalSince(last) < Self.pushPause { return }
+        status = .syncing
+        do { try await apply(transport.fetch()); status = .ready } catch { status = .failed(Self.say(error)) }
+    }
+
+    private func apply(_ snap: FriendsSnapshot) {
+        friends = snap.cards.filter { $0.id != you }
+        cheers = snap.cheers.sorted { $0.at > $1.at }
+        audience = snap.audience
+        lastSync = now(); save()
+    }
+
+    private func needsPublish(_ card: FriendCard) -> Bool {
+        guard let p = published, now().timeIntervalSince(p.at) < Self.republishAfter else { return true }
+        return p.card.id != card.id || p.card.name != card.name || p.card.emoji != card.emoji || p.card.streak != card.streak || p.card.days != card.days
+    }
+
+    private func startListening() async {
+        guard !listening else { return }
+        listening = true
+        await transport.listen { [weak self] event in
+            guard let self else { return }
+            switch event {
+            case .remoteChange: Task { await self.pull() }
+            case .accountChanged: Task { self.you = nil; self.published = nil; await self.refresh() }
+            }
+        }
     }
 
     /// The demo's stand-in transport, so the demo can act out going offline. nil with the real one.
@@ -229,6 +280,11 @@ public final class FriendsStore {
     public func invite() async throws { invites += 1 }
     public func remove(_ friend: String) async throws { cards.removeAll { $0.id == friend } }
     public func stopSharing() async throws { published = []; cheers = [] }
+    public private(set) var handler: (@MainActor (FriendsEvent) -> Void)?
+    public func listen(_ handler: @escaping @MainActor (FriendsEvent) -> Void) async { self.handler = handler }
+    public func stopListening() async { handler = nil }
+    /// Tests and the demo: act out a push from iCloud or an account change.
+    public func fire(_ event: FriendsEvent) { handler?(event) }
 
     /// Synthetic friends for the demo: four people with believable, different weeks. Names are made up.
     public static func sample(today: Date = .now, calendar cal: Calendar = .current) -> DemoFriendsTransport {

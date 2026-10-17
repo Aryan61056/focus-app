@@ -87,6 +87,7 @@ struct FocusApp: App {
                 await f.refresh()
             }
         }
+        FocusAppDelegate.onRemoteNotification = { info in Task { @MainActor in ck.receive(info) } }
         if f.sharing { Task { await f.refresh() } }
     }
 
@@ -224,10 +225,19 @@ struct FocusApp: App {
     }
 }
 
-/// Only here for iCloud invites: macOS hands an accepted share to the app delegate, which SwiftUI has no other way to receive.
+/// Only here for iCloud: macOS hands an accepted invite and remote notifications to the app delegate, which SwiftUI has no other way to receive.
 final class FocusAppDelegate: NSObject, NSApplicationDelegate {
-    nonisolated(unsafe) static var onAcceptShare: ((CKShare.Metadata) -> Void)?
+    /// An invite opened before the window set Friends up is kept and handed over when it does.
+    nonisolated(unsafe) static var pendingShares: [CKShare.Metadata] = []
+    nonisolated(unsafe) static var onAcceptShare: ((CKShare.Metadata) -> Void)? {
+        didSet { if let f = onAcceptShare { pendingShares.forEach(f); pendingShares = [] } }
+    }
+    nonisolated(unsafe) static var onRemoteNotification: (([String: Any]) -> Void)?
+
     func application(_ application: NSApplication, userDidAcceptCloudKitShareWith metadata: CKShare.Metadata) {
-        Self.onAcceptShare?(metadata)
+        if let f = Self.onAcceptShare { f(metadata) } else { Self.pendingShares.append(metadata) }
+    }
+    func application(_ application: NSApplication, didReceiveRemoteNotification userInfo: [String: Any]) {
+        Self.onRemoteNotification?(userInfo)
     }
 }

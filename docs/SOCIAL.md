@@ -51,12 +51,31 @@ What still holds:
 - Cheers you send are records in your own zone, addressed to a friend; they read them from your zone. Nobody writes into
   anyone else's zone, and a reader trusts only records the zone's owner created. Card fields and cheers use CloudKit's
   encrypted values.
-- Refresh: when the Friends page opens, after each session is saved, and on request. No background polling.
+- Refresh: when the Friends page opens, after each session is saved, and on request. No timer polling. While sharing is on,
+  iCloud pushes (database subscriptions on your private and shared databases) wake a read-only pull when a friend's card
+  changes or someone accepts your invite. A push never publishes, or two friends would wake each other forever. An
+  unchanged card is not written again for six hours. Switching off deletes the subscriptions.
+- The invite sheet offers private, read-only invites only; if a participant still ends up with write access, the share is
+  tightened to read-only after it saves. A reader also ignores records the zone's owner did not create.
+- An iCloud account change (sign out, switch) re-checks availability. Rate limits and busy zones are retried once after
+  the wait iCloud asks for (at most 8 s); other errors become one plain sentence on the page.
+- An invite opened before the window finished starting is kept and accepted once Friends is ready.
+
+## Trying it for real (needs the owner's Apple developer team)
+`tools/build_app.sh` builds the ad-hoc app by default, where Friends says it is not set up. For iCloud, create an App ID with
+iCloud (CloudKit) and Push Notifications, an iCloud container, and a macOS development provisioning profile; then run it with
+`FOCUS_SIGN_IDENTITY`, `FOCUS_TEAM_ID`, `FOCUS_PROVISIONING_PROFILE` and optionally `FOCUS_BUNDLE_ID` and
+`FOCUS_CLOUD_CONTAINER` (see the script header). `mac/Resources/Focus.entitlements` is the template it signs with. Two Macs
+on two Apple IDs are needed to see a real board. In the development environment CloudKit creates the record types
+(`FocusCard`, `FocusCheer`) on first save; before shipping, deploy the schema to production in the CloudKit Dashboard.
 
 ## Not verified and not decided
 - CloudKit needs a paid Apple developer team, an iCloud container and a provisioned, signed build. The local ad-hoc build
   has none, so the app detects the missing entitlement and shows "not available in this build" instead of crashing.
   Nothing here has run against real iCloud. The demo build uses a fake transport with synthetic friends.
 - The container name (`iCloud.com.example.focus-app`) is a placeholder: it follows the bundle ID, which waits on the
-  owner's Mac distribution decision.
+  owner's Mac distribution decision. A signed build names its container in Info.plist (`FocusCloudContainer`).
+- Tested without iCloud: the record mapping, trust and size limits (`FocusSocialTests`), and the store's push, account-change
+  and publish-once behavior against the stand-in transport. Not tested: CloudKit calls, the invite sheet, share acceptance,
+  push delivery, and whether a zone-wide share behaves as assumed in a shared database.
 - Windows has no CloudKit; a Windows friends feature needs its own transport and is not designed.
