@@ -42,7 +42,7 @@ let package = Package(
         .executableTarget(name: "brain-sim", dependencies: ["BrainSim"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .target(name: "FocusUI", dependencies: ["FocusBrain", "FocusJudge"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .target(name: "FocusSense", dependencies: ["FocusUI"], swiftSettings: [.swiftLanguageMode(.v5)]),
-        .target(name: "FocusLink", dependencies: ["FocusUI", "FocusBrain", .product(name: "FocusLinkNet", package: "link")], swiftSettings: [.swiftLanguageMode(.v5)]),
+        .target(name: "FocusLink", dependencies: ["FocusUI", "FocusBrain", .product(name: "FocusLinkNet", package: "link"), .product(name: "FocusLinkCloud", package: "link")], swiftSettings: [.swiftLanguageMode(.v5)]),
         // Friends over iCloud (docs/SOCIAL.md): the only CloudKit code, kept out of the engine modules check_privacy.py scans.
         .target(name: "FocusSocial", dependencies: ["FocusUI"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .executableTarget(name: "focus-sense-check", dependencies: ["FocusSense"], swiftSettings: [.swiftLanguageMode(.v5)]),

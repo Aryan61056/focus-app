@@ -27,12 +27,32 @@ public struct PhoneLinkView: View {
                     Toggle("Let paired phones connect", isOn: Binding(get: { link.enabled }, set: { link.setEnabled($0) })).toggleStyle(.switch).font(Tokens.text(.caption))
                 }
             }
+            Divider()
+            iCloudRow
             Text("Your phone talks to this Mac directly over your Wi-Fi. There is no account and no server of ours in between. Turn the switch off and Focus stops listening.")
                 .font(Tokens.text(.caption2)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
         }
         .padding(22).frame(width: 440, height: 560, alignment: .topLeading).background(Tokens.window)
         .animation(.smooth(duration: 0.3), value: link.pairingCode)
         .animation(.smooth(duration: 0.3), value: link.justPaired)
+    }
+
+    /// The phone's Insights through the person's own iCloud. Says exactly what is stored, because it is the one place these numbers leave the Mac.
+    private var iCloudRow: some View {
+        let sync = link.sync
+        return VStack(alignment: .leading, spacing: 4) {
+            Toggle("Keep Insights in iCloud", isOn: Binding(get: { sync.enabled }, set: { on in Task { await sync.setEnabled(on) } }))
+                .toggleStyle(.switch).font(Tokens.text(.caption))
+            Group {
+                switch sync.status {
+                case .off: Text("Your phone shows your days and sessions anywhere. Stored: times, counts and the task names you typed, in your own iCloud, readable only by your devices. Never windows or screen text.")
+                case .checking: Text("Checking iCloud\u{2026}")
+                case .ready(let at): Text("Up to date, \(at.formatted(date: .omitted, time: .shortened)).")
+                case .unavailable(let why), .failed(let why): Text(why)
+                }
+            }
+            .font(Tokens.text(.caption2)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     private var idle: some View {

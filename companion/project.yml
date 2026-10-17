@@ -16,6 +16,10 @@ settings:
     # it; for a phone, set this to App/ScreenTime.entitlements once you have a paid team (see README). Left empty, a free team still
     # builds and runs; the Block tab then says Screen Time is not available in this build.
     FOCUS_SCREEN_TIME_ENTITLEMENTS: ""
+    # iCloud (Insights from the Mac, docs/ICLOUD-SYNC.md) also needs a paid team. Name the container here (the same one the Mac app uses,
+    # e.g. iCloud.com.yourteam.focus) and point the entitlements at App/ICloud.entitlements, or App/ScreenTimeICloud.entitlements if you
+    # use Block as well. Left empty, the app builds and runs and the phone simply does not use iCloud.
+    FOCUS_CLOUD_CONTAINER: ""
     "CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]": App/ScreenTime.entitlements
     "CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]": $(FOCUS_SCREEN_TIME_ENTITLEMENTS)
 packages:
@@ -29,6 +33,8 @@ targets:
     dependencies:
       - package: FocusLinkKit
         product: FocusLinkNet
+      - package: FocusLinkKit
+        product: FocusLinkCloud
       - target: FocusCompanionWidgets
       - target: FocusCompanionMonitor
       - target: FocusCompanionShield
@@ -46,6 +52,8 @@ targets:
         NSLocalNetworkUsageDescription: Focus finds your Mac on your Wi-Fi so this phone can show and control your session. Nothing leaves your network.
         NSBonjourServices: [_focuslink._tcp]
         NSSupportsLiveActivities: true
+        FocusCloudContainer: $(FOCUS_CLOUD_CONTAINER)
+        UIBackgroundModes: [remote-notification]
         ITSAppUsesNonExemptEncryption: false
     settings:
       base:

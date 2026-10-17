@@ -21,6 +21,8 @@ public final class PhoneLink {
     public var connected: [LinkServer.Phone] { server.connected }
     public var isListening: Bool { server.port != nil }
 
+    /// Insights in the person's own iCloud, for when the Mac is off or far away. Separate from the local link; off until turned on.
+    public let sync: PhoneSync
     @ObservationIgnored let server: LinkServer
     @ObservationIgnored private let macID: UUID
     @ObservationIgnored private var wakeObserver: NSObjectProtocol?
@@ -37,12 +39,13 @@ public final class PhoneLink {
 
     private static let enabledKey = "focus.link.enabled", macIDKey = "focus.link.macID"
 
-    public init(registry: (any DeviceRegistry)? = nil, advertise: Bool = true, defaults: UserDefaults? = nil, macName: String? = nil) {
+    public init(registry: (any DeviceRegistry)? = nil, advertise: Bool = true, defaults: UserDefaults? = nil, macName: String? = nil, sync: PhoneSync? = nil) {
         // FOCUS_TEST_STORE=<folder> (the app's testing switch) keeps paired phones and the on/off setting out of the real ones.
         let testFolder = ProcessInfo.processInfo.environment["FOCUS_TEST_STORE"].flatMap { $0.isEmpty ? nil : URL(fileURLWithPath: $0, isDirectory: true) }
         let reg = registry ?? FileDeviceRegistry(url: testFolder?.appendingPathComponent("paired-phones.json") ?? FileDeviceRegistry.defaultURL)
         let defaults = defaults ?? testFolder.flatMap { UserDefaults(suiteName: "focus-app.test.\($0.lastPathComponent)") } ?? .standard
         self.registry = reg; self.defaults = defaults
+        self.sync = sync ?? PhoneSync(defaults: defaults)
         enabled = defaults.bool(forKey: Self.enabledKey)
         let macID = defaults.string(forKey: Self.macIDKey).flatMap(UUID.init) ?? { let id = UUID(); defaults.set(id.uuidString, forKey: Self.macIDKey); return id }()
         self.macID = macID
@@ -59,6 +62,7 @@ public final class PhoneLink {
     /// Hand over the controller once the app has one. Starts listening if the user had turned the link on.
     public func attach(_ controller: SessionController) {
         self.controller = controller
+        sync.attach(controller)
         // Testing hook: FOCUS_LINK_PAIR_FILE=<path> turns the link on, opens pairing and writes the code there, so a script can pair a phone.
         if let path = ProcessInfo.processInfo.environment["FOCUS_LINK_PAIR_FILE"], !path.isEmpty {
             setEnabled(true)

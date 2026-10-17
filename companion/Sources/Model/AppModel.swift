@@ -1,6 +1,7 @@
 import SwiftUI
 import Observation
 import FocusLinkNet
+import FocusLinkCloud
 
 /// Everything the screens read. One source of truth for "what is the Mac doing", whether that is a real Mac or the demo.
 @MainActor @Observable
@@ -11,7 +12,11 @@ final class AppModel {
     }
 
     private(set) var clock = SessionClock(state: .idle, receivedAt: .now)
+    /// Insights from the Mac over the local link, the freshest the phone has when it is connected.
     private(set) var insights: Insights?
+    /// Insights from the person's iCloud, for when the Mac is off or not on this Wi-Fi.
+    let cloud = CloudInsights()
+    @ObservationIgnored private var linkInsightsAt: Date?
     private(set) var mac: PairedMac?
     private(set) var isDemo = false
     /// A short, plain line about something the Mac declined or that went wrong. Clears itself.
@@ -58,12 +63,27 @@ final class AppModel {
         client.onMessage = { [weak self] in self?.receive($0) }
         client.onConnected = { [weak self] in self?.heardThisConnection = false; self?.client.send(.requestState); self?.client.send(.requestInsights) }
         demo.onState = { [weak self] in self?.apply($0) }
-        demo.onInsights = { [weak self] in self?.insights = $0 }
+        demo.onInsights = { [weak self] in self?.insights = $0; self?.linkInsightsAt = .now }
         demo.onResult = { [weak self] r in if case .refused(let why) = r { self?.show(why) } }
         if startInDemo { startDemo() } else if let mac { client.follow(mac) }
     }
 
     var state: SessionState { clock.state }
+
+    /// What the Insights tab shows: the Mac's own numbers while connected, otherwise the newer of the last ones it sent and iCloud's.
+    var displayedInsights: Insights? { source.insights }
+    /// When the shown numbers are from iCloud and not live, the moment they were worked out. Nil when they are live.
+    var insightsAsOf: Date? { source.asOf }
+
+    private var source: (insights: Insights?, asOf: Date?) {
+        if isDemo { return (insights, nil) }
+        if connection == .connected, let insights { return (insights, nil) }
+        if let snap = cloud.snapshot {
+            if let at = linkInsightsAt, at > snap.asOf, let insights { return (insights, nil) }
+            return (snap.shown(), snap.asOf)
+        }
+        return (insights, nil)
+    }
 
     var connection: Connection {
         if isDemo { return .demo }
@@ -188,7 +208,7 @@ final class AppModel {
     private func receive(_ m: LinkMessage) {
         switch m {
         case .state(let s): heardThisConnection = true; apply(s)
-        case .insights(let i): insights = i
+        case .insights(let i): insights = i; linkInsightsAt = .now
         case .result(_, .refused(let why)): show(why)
         case .result, .command, .requestState, .requestInsights: break
         }
@@ -196,7 +216,7 @@ final class AppModel {
 
     /// The app went to the background: if a session is running, a gentle reminder is scheduled. See PickupReminder.
     func leftApp() { pickup.arm(clock: clock, live: connection.isLive) }
-    func cameBack() { pickup.disarm() }
+    func cameBack() { pickup.disarm(); Task { await cloud.refresh() } }
 
     private func apply(_ s: SessionState) {
         if s.phase == .drifting, clock.state.phase != .drifting { driftCount += 1 }

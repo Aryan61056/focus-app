@@ -1,8 +1,10 @@
 import SwiftUI
+import UIKit
 
 @main
 struct FocusCompanionApp: App {
     @State private var model: AppModel
+    @UIApplicationDelegateAdaptor(PushDelegate.self) private var pushDelegate
 
     /// Launch flags for screenshots and demos: `-demo` starts against the pretend Mac, `-demo-session` also starts a session,
     /// and `-tab insights|mac` opens that tab.
@@ -25,5 +27,12 @@ struct FocusCompanionApp: App {
                 .environment(model)
                 .tint(Palette.accent)
         }
+    }
+}
+
+/// Only here for iCloud: a push says the Mac wrote new Insights, and UIKit hands those to the app delegate, not to SwiftUI.
+final class PushDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any]) async -> UIBackgroundFetchResult {
+        await MainActor.run { AppModel.shared.cloud.receive(userInfo) } ? .newData : .noData
     }
 }
