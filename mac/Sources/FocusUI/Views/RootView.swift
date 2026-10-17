@@ -309,8 +309,6 @@ struct SourceList: View {
         }
         .listStyle(.sidebar)
         .searchable(text: $search, placement: .sidebar, prompt: "Search")
-        // Pinned under the list so connecting a phone is never more than one click away, whatever page or search is showing.
-        .safeAreaInset(edge: .bottom, spacing: 0) { PhoneConnectCard(c: c).padding(.horizontal, 10).padding(.bottom, 10).padding(.top, 6) }
     }
 
     func row(_ s: AppSection) -> some View {
