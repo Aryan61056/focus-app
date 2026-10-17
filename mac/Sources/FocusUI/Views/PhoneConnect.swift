@@ -22,7 +22,7 @@ struct PhoneConnectCard: View {
     }
     private var tile: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
+            RoundedRectangle(cornerRadius: Tokens.radiusControl, style: .continuous)
                 .fill(Tokens.accentSoft)
             PhoneGlyph(adding: c.phoneState == .none)
         }
@@ -57,8 +57,8 @@ struct PhoneConnectCard: View {
                 tile.frame(maxWidth: .infinity)
             }
             .padding(.horizontal, 8).padding(.vertical, 8)
-            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .glassSurface(RoundedRectangle(cornerRadius: 12, style: .continuous), interactive: true)
+            .contentShape(RoundedRectangle(cornerRadius: Tokens.radiusCard, style: .continuous))
+            .glassSurface(RoundedRectangle(cornerRadius: Tokens.radiusCard, style: .continuous), interactive: true)
         }
         .buttonStyle(PhoneCardPress())
         .motion(Motion.notchSettle, value: c.phoneState)
