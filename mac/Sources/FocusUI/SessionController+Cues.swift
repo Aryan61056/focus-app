@@ -10,7 +10,7 @@ extension SessionController {
     static let checkInPromptSeconds = 90.0
 
     func resetCues() {
-        lastOnTask = nil; lastEnforce = nil
+        lastOnTask = nil; lastEnforce = nil; places.reset(); placesVersion &+= 1; lastReturn = nil; lastPlaceTick = nil
         banner = nil; shield = nil; backHoldStart = nil; overrideLockedUntil = nil; rhythmPrompt = nil
         driftWatch.reset(); headsUpAt = nil; bannerHidden = false
         blockedSites = [:]; passedPages = [:]; claimsAccepted = 0; acceptedClaimWords = []; frictionQuietUntil = 0; frictionStrikes = [:]; lastFrictionEnforce = -1000; explainStrikes = 0; overrideLocks = 0; lastPulseAt = -1000
@@ -117,6 +117,7 @@ extension SessionController {
     public func dismissBanner() { headsUpAt = nil; bannerHidden = true; refreshBanner(now()) }
 
     func tickCues(_ t: Double) {
+        tickPlaces(t)
         refreshBanner(t)
         tickRhythm(t)
         syncShield()

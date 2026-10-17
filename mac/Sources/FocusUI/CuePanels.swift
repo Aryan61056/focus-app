@@ -137,10 +137,10 @@ struct BannerView: View {
         HStack(spacing: 8) {
             switch banner.kind {
             case .early, .reminder:
-                Button("Back to task") { c.bannerBackToTask() }.buttonStyle(FocusButtonStyle(.primary, small: true))
+                Button("Back to task") { c.bannerBackToTask() }.buttonStyle(FocusButtonStyle(.primary, small: true)).goesTo(c.returnPlace)
                 Button("This is part of it") { c.bannerPartOfIt() }.buttonStyle(FocusButtonStyle(.secondary, small: true))
             case .checkIn:
-                Button("Back to task") { c.answerCheckIn(onTask: false) }.buttonStyle(FocusButtonStyle(.primary, small: true))
+                Button("Back to task") { c.answerCheckIn(onTask: false) }.buttonStyle(FocusButtonStyle(.primary, small: true)).goesTo(c.returnPlace)
                 Button("Yes, this is part of it") { c.answerCheckIn(onTask: true) }.buttonStyle(FocusButtonStyle(.secondary, small: true))
             case .rhythm:
                 if case .breakDue(let m)? = rhythm {

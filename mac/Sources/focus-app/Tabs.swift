@@ -5,7 +5,7 @@ import FocusSense
 /// Steers a browser tab with AppleScript. The first run asks the user for Automation permission for that browser; if it is refused or
 /// the browser is slow, the call returns false and the ladder hides the app instead. Runs on the main thread, capped at 3 seconds.
 @MainActor enum Tabs {
-    private static func run(_ source: String?) -> String? {
+    static func run(_ source: String?) -> String? {
         guard let source, let script = NSAppleScript(source: source) else { return nil }
         var err: NSDictionary?
         let out = script.executeAndReturnError(&err)

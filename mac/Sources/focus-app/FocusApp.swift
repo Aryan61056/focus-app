@@ -66,6 +66,7 @@ struct FocusApp: App {
     }
     @State private var veil: VeilController?
     @State private var banner: BannerController?
+    @State private var landing: LandingController?
     @State private var shield: ShieldController?
     @State private var cueClock: CueClock?
     @State private var voice = Voice()
@@ -138,6 +139,7 @@ struct FocusApp: App {
                     // The quieter cues. Each one is silent except the voice, which is off until the user turns it on. The controller decides when.
                     controller.frontWindowFrame = { AXWindowSource.frontWindowFrame() }
                     if banner == nil { let b = BannerController(controller: controller); banner = b; b.start() }
+                    if landing == nil { let l = LandingController(controller: controller); landing = l; l.start() }
                     if shield == nil { let f = ShieldController(controller: controller); shield = f; f.start() }
                     if cueClock == nil { let k = CueClock(controller: controller); cueClock = k; k.start() }
                     controller.onHaptic = { Haptics.play($0) }
@@ -148,6 +150,9 @@ struct FocusApp: App {
                     controller.onBringBackToApp = { name in
                         NSWorkspace.shared.runningApplications.first { $0.localizedName == name && $0.activationPolicy == .regular }?.activate()
                     }
+                    // "Back to task" goes to the window, tab or document you were working in, not only the app.
+                    controller.onGoToPlace = { w, tabs in Place.go(to: w, allowTabs: tabs) }
+                    controller.frontAppName = { NSWorkspace.shared.frontmostApplication?.localizedName }
                     // Quitting during a session ends it, so the session is saved instead of vanishing.
                     NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { _ in
                         MainActor.assumeIsolated { if controller.isActive { controller.end() } }

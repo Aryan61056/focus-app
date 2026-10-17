@@ -6,10 +6,21 @@ import QuartzCore
 /// Core Animation classes (the same ones vibrancy uses), looked up by name; if either is missing the panel falls back to a plain gray wash,
 /// which still mutes the screen but cannot remove color. A faint gray wash is also laid over the backdrop so the effect is visible either way.
 /// Unverified on a real display: an agent cannot capture the screen. Settings has a Preview button to see it.
+/// The shape of the closing-in edges for a level of 0 to 100 (the same ramp as the gray). Pure, so it is tested.
+/// `clearUntil` is how far from the middle (0) toward the middle of an edge (1) the screen stays untouched; `edgeAlpha` is how dark the edge gets.
+/// At the top the middle 40 percent stays clear and the edges are 72 percent dark, so the work in the middle stays readable and the room goes dim.
+public enum Vignette {
+    public static func shape(_ percent: Double) -> (clearUntil: Double, edgeAlpha: Double) {
+        let p = max(0, min(100, percent)) / 100
+        return (0.86 - 0.46 * p, 0.72 * p)
+    }
+}
+
 final class VeilPanel: NSPanel {
     private let backdrop: CALayer?
     private let filter: NSObject?
     private let wash = CALayer()
+    private let edges = CAGradientLayer()
 
     var usesBackdrop: Bool { backdrop != nil && filter != nil }
 
@@ -34,9 +45,25 @@ final class VeilPanel: NSPanel {
         canHide = false   // hiding Focus does not lift the gray
         let v = NSView(); v.wantsLayer = true
         wash.backgroundColor = NSColor(white: 0.3, alpha: 1).cgColor; wash.opacity = 0
+        edges.type = .radial; edges.startPoint = CGPoint(x: 0.5, y: 0.5); edges.endPoint = CGPoint(x: 1, y: 1); edges.opacity = 0
         if let backdrop { v.layer!.addSublayer(backdrop) }
         v.layer!.addSublayer(wash)
+        v.layer!.addSublayer(edges)
         contentView = v
+    }
+
+    /// `percent` is 0 (open) to 100 (the edges as dark as they get).
+    func applyEdges(_ percent: Double) {
+        let (clear, alpha) = Vignette.shape(percent)
+        CATransaction.begin(); CATransaction.setDisableActions(true)
+        edges.frame = contentView?.bounds ?? .zero
+        edges.opacity = percent < 0.3 ? 0 : 1
+        let dark = { (a: Double) in NSColor(srgbRed: 0.03, green: 0.03, blue: 0.05, alpha: a).cgColor }
+        // An in-between stop keeps the fall-off soft instead of a visible ring.
+        let mid = (clear + 1) / 2
+        edges.colors = [dark(0), dark(0), dark(alpha * 0.4), dark(alpha)]
+        edges.locations = [0, NSNumber(value: clear), NSNumber(value: mid), 1]
+        CATransaction.commit()
     }
 
     /// `percent` is 0 (no change) to 100 (fully gray).
@@ -78,9 +105,9 @@ public final class VeilController {
     public var usesBackdropForTesting: Bool { panels.values.first?.usesBackdrop ?? false }
 
     func update() {
-        let level = c.veilLevel()
+        let level = c.veilLevel(), edge = c.edgeLevel()
         lastLevel = level
-        guard level >= 0.3 else { if shown { hide() }; return }
+        guard level >= 0.3 || edge >= 0.3 else { if shown { hide() }; return }
         shown = true
         let screens = NSScreen.screens
         var live = Set<CGDirectDisplayID>()
@@ -91,6 +118,7 @@ public final class VeilController {
             panels[id] = p
             if p.frame != s.frame { p.setFrame(s.frame, display: false) }
             p.apply(level)
+            p.applyEdges(edge)
             p.orderFrontRegardless()
         }
         for (id, p) in panels where !live.contains(id) { p.orderOut(nil); panels[id] = nil }

@@ -63,7 +63,8 @@ public struct MenuBarContent: View {
                 }
                 .padding(.horizontal, 4).padding(.vertical, 6)
                 Divider().padding(.vertical, 4)
-                item("Back to task") { c.act(.backToTask) }
+                BackToTaskRow(c: c)
+                OtherPlacesRows(c: c)
                 item("This is part of it") { c.claimOnTask() }
                 item("I'm stuck") { c.requestNextActions(); openApp() }
                 item("Set next step") { c.manualNextStep = true; openApp() }

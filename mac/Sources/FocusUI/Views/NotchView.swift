@@ -418,7 +418,7 @@ public struct NotchView: View {
                 nudgeMeta
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            if offersWayBack { pill("Back to task") { c.act(.backToTask) } }
+            if offersWayBack { pill("Back to task") { c.act(.backToTask) }.goesTo(c.returnPlace) }
         }
         .padding(.leading, hasNotch ? 22 : 16).padding(.trailing, hasNotch ? 14 : 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

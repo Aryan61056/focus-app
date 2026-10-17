@@ -165,6 +165,36 @@ public enum TabScript {
         """
     }
 
+    /// Brings forward the tab whose title contains `title`, for a page whose address changed since Focus read it (a single-page app, a redirect).
+    /// Too short a title is nil: it would match the wrong tab. Prints "ok" or "none".
+    public static func switchToTitle(app: String, title: String) -> String? {
+        guard let name = appName(app) else { return nil }
+        let want = TaskPlaces.pageTitle(title, app: app)
+        guard want.count >= 6 else { return nil }
+        let pick = isSafari(name) ? "set current tab of w to t" : "set active tab index of w to i"
+        let titleOf = isSafari(name) ? "name of t" : "title of t"   // Safari calls a tab's title its name, Chromium browsers call it title
+        return """
+        with timeout of 3 seconds
+        tell application \(quoted(name))
+            repeat with w in windows
+                set i to 0
+                repeat with t in tabs of w
+                    set i to i + 1
+                    try
+                        if (\(titleOf)) contains \(quoted(want)) then
+                            \(pick)
+                            set index of w to 1
+                            return "ok"
+                        end if
+                    end try
+                end repeat
+            end repeat
+        end tell
+        return "none"
+        end timeout
+        """
+    }
+
     /// Closes the front window's current tab only if it is still at `url`. Prints "ok", or "changed" when the tab is not that page any more.
     public static func close(app: String, url: String) -> String? {
         guard let name = appName(app), !bare(url).isEmpty else { return nil }
