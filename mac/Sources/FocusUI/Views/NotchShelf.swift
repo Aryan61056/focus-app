@@ -11,12 +11,12 @@ public enum NotchTab: String, CaseIterable, Sendable { case home, tray, widgets
 /// What can sit beside the session on home. Chosen on the widgets page or in Settings; read only, like everything in the notch.
 /// Everything here is worked out on this Mac from what Focus already keeps; nothing is fetched.
 public enum NotchWidget: String, CaseIterable, Identifiable, Sendable {
-    case today, goal, streak, week, next, parked, clock, battery, note, tray
+    case today, goal, streak, week, parked, clock, battery, note, tray
     public var id: String { rawValue }
     var title: String {
         switch self {
         case .today: return "Today"; case .goal: return "Goal"; case .streak: return "Streak"; case .week: return "Week"
-        case .next: return "Next step"; case .parked: return "Parked"; case .clock: return "Clock"; case .battery: return "Battery"
+        case .parked: return "Parked"; case .clock: return "Clock"; case .battery: return "Battery"
         case .note: return "My line"; case .tray: return "Tray"
         }
     }
@@ -26,7 +26,6 @@ public enum NotchWidget: String, CaseIterable, Identifiable, Sendable {
         case .goal: return "How far you are into your daily goal."
         case .streak: return "Focus days in a row, rest days allowed."
         case .week: return "Seven days of focus as small bars."
-        case .next: return "The next step you left for this project."
         case .parked: return "How many thoughts are waiting, and the latest."
         case .clock: return "The time and the date."
         case .battery: return "Charge left on this Mac."
@@ -37,7 +36,7 @@ public enum NotchWidget: String, CaseIterable, Identifiable, Sendable {
     var symbol: String {
         switch self {
         case .today: return "sun.max"; case .goal: return "target"; case .streak: return "flame"; case .week: return "chart.bar"
-        case .next: return "arrow.turn.down.right"; case .parked: return "tray.and.arrow.down"; case .clock: return "clock"
+        case .parked: return "tray.and.arrow.down"; case .clock: return "clock"
         case .battery: return "battery.75percent"; case .note: return "text.quote"; case .tray: return "tray.full"
         }
     }
@@ -233,10 +232,6 @@ struct WidgetValue: View {
                 MiniWeek(days: days, height: compact ? 14 : 28)
                 if !compact { Text("\(NotchView.minutes(days.reduce(0) { $0 + $1.hours } * 3600)) this week").font(Tokens.fixed(.caption2, .regular)).foregroundStyle(NotchView.ink2).lineLimit(1) }
             }
-        case .next:
-            let step = c.projectId.flatMap { c.store?.project($0)?.nextStep } ?? ""
-            if step.isEmpty { stat("None set", "set in the menu bar") }
-            else { Text(step).font(Tokens.fixed(compact ? .caption : .body, .medium, rounded: false)).lineLimit(compact ? 1 : 3).fixedSize(horizontal: false, vertical: true) }
         case .parked:
             let n = c.store?.thoughts.filter { !$0.completed }.count ?? 0
             stat(n == 0 ? "Nothing" : "\(n) \(n == 1 ? "thought" : "thoughts")", c.store?.thoughts.last(where: { !$0.completed })?.text ?? "waiting")

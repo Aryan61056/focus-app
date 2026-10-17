@@ -126,7 +126,7 @@ struct AllReadings: View {
     }
 }
 
-/// The Focus panel on Today. During a session: what Focus did, Ask Focus, the next step and the screen picture offer.
+/// The Focus panel on Today. During a session: what Focus did, Ask Focus and the screen picture offer.
 /// Between sessions: today's goal and how Focus decides.
 struct TodayPanel: View {
     @Bindable var c: SessionController
@@ -135,11 +135,6 @@ struct TodayPanel: View {
             if c.isActive {
                 PanelSection(title: "What Focus did", ai: true) { ActivityLog(readings: c.readings) }
                 if c.aiAvailable && !c.stuckShown && c.presence.reason != "break" { PanelSection(title: "Ask Focus", ai: true) { AskPanel(c: c, compact: true) } }
-                if let step = c.projectForNote?.nextStep, !step.isEmpty {
-                    PanelSection(title: "Next step") {
-                        Label(step, systemImage: "scope").font(Tokens.text(.body)).lineLimit(3)
-                    }
-                }
                 if !c.prefs.readScreen {
                     PanelSection(title: "Screen reading") {
                         Button { c.prefs.readScreen = true; c.onRequestPreviewAccess?() } label: { Label("Show the window here", systemImage: "eye") }

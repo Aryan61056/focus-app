@@ -165,9 +165,6 @@ public final class SessionController {
     public private(set) var offTopic = TimerState()
     public private(set) var clock = ClockState()
     public private(set) var surface: Surface?
-    public private(set) var reentryOpen = false
-    /// "Next step" chosen from the menu bar: shows the same one-line card without waiting for a drift.
-    public var manualNextStep = false
     public private(set) var askResume: String?
     public private(set) var wrapUp = false
     public private(set) var shadowMarks = 0
@@ -338,6 +335,7 @@ public final class SessionController {
         priorBestStretch = Rewards.bestStretch(finished)
         summary = nil; shadowMarks = 0; learnedRules = []; wrapUp = false; askResume = nil; readings = []; appByWindowKey = [:]; stats = ReadStats(); previewFrame = nil; previewHeld = nil; screenText = ""
         var c = SessionConfig(); c.taskId = task; c.mode = deadline == nil ? mode : .open; c.durationSeconds = deadline == nil ? duration : nil; c.preset = preset ?? prefs.preset; c.shadow = shadow; c.sound = prefs.nudgeSound; c.checkScale = prefs.checkRate.scale * pressure.factor
+        c.reentryPrompt = false   // the brain still knows the prompt; the app no longer asks for one
         isActive = true
         send(.sessionStart(c))
         if let w = currentWindow { windowChanged(w) }
@@ -684,20 +682,8 @@ public final class SessionController {
     }
     public func end() { manuallyEnded = true; send(.sessionEnd) }
 
-    /// "What is the next step?": saved on the project (the start sheet shows it next time), then the brain is told it was answered.
-    /// The project of the session that just ended (or is running), for the "where to pick up" note on Today.
+    /// The project of the session that just ended (or is running).
     public var projectForNote: Project? { store?.project(projectId) }
-    public func setProjectNextStep(_ text: String) {
-        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let store, let pid = projectId, var p = store.project(pid) { p.nextStep = String(t.prefix(200)); store.update(p) }
-    }
-
-    public func saveNextStep(_ text: String) {
-        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !t.isEmpty, let store, let pid = projectId, var p = store.project(pid) { p.nextStep = String(t.prefix(200)); store.update(p) }
-        manualNextStep = false
-        act(.nextStep)
-    }
 
     /// "Ask Focus about a window": runs the same judge on text the user typed. Nothing is read from the screen.
     public func ask(app: String, title: String, project p: Project) async -> Judgement {
@@ -738,8 +724,8 @@ public final class SessionController {
                 if k == "gate" { gateHoldUntil = t }
                 fire(k == "gate" ? .pauseScreen : .warning, title: nudgeTitle)
             case .withdraw(let what):
-                if what == "reentry" { reentryOpen = false } else { surface = nil }
-            case .reentryPrompt: reentryOpen = true
+                if what != "reentry" { surface = nil }
+            case .reentryPrompt: break
             case .wrapUp: wrapUp = true
             case .askResume(let r): askResume = r
             case .shadowMark(_, _, let wk):
@@ -779,7 +765,7 @@ public final class SessionController {
                 startRecap()
                 previewFrame = nil; previewHeld = nil; screenText = ""
                 cancelNextActions()
-                isActive = false; clearEscalation(); resetCues(); veilTarget = 0; manualNextStep = false; surface = nil; reentryOpen = false; askResume = nil; wrapUp = false
+                isActive = false; clearEscalation(); resetCues(); veilTarget = 0; surface = nil; askResume = nil; wrapUp = false
                 timer?.invalidate(); timer = nil
             }
             if case .beacon(let s, _) = e, s != "paused" { askResume = nil }

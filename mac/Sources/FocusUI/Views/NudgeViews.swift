@@ -113,17 +113,3 @@ struct RhythmCard: View {
         }
     }
 }
-
-struct ReentryCard: View {
-    @Bindable var c: SessionController
-    @State private var text = ""
-    var body: some View {
-        VStack(alignment: .leading, spacing: Space.s) {
-            Text("What is the next step?").font(Tokens.text(.headline, .semibold))
-            TextField("One small thing", text: $text).font(Tokens.text(.body)).onSubmit { if !text.isEmpty { c.saveNextStep(text) } }.wellField()
-            HStack { Spacer(); Button("Skip") { c.manualNextStep = false; c.act(.nextStep) }.buttonStyle(FocusButtonStyle(.plain, small: true))
-                Button("Save") { c.saveNextStep(text) }.buttonStyle(FocusButtonStyle(.primary, small: true)).disabled(text.isEmpty) }
-        }
-        .floatingCard()
-    }
-}

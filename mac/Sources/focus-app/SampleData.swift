@@ -11,14 +11,11 @@ enum SampleData {
         guard env["FOCUS_DEMO"] == "1", env["FOCUS_DEMO_SAMPLE"] == "1", let store, store.sessions.isEmpty else { return }
         var thesis = store.addProject(name: "Thesis chapter 3")
         thesis.context = "Writing the methods chapter: sampling, survey design, and the analysis plan. Zotero and the stats docs count."
-        thesis.nextStep = "Tighten the sampling paragraph"
         store.update(thesis)
         var calc = store.addProject(name: "Calc homework")
         calc.context = "Problem set 6, integration by parts. Khan Academy and the course site count."
         store.update(calc)
-        var deck = store.addProject(name: "Quarterly review deck")
-        deck.nextStep = "Charts for slide 4"
-        store.update(deck)
+        let deck = store.addProject(name: "Quarterly review deck")
 
         let cal = Calendar.current
         let today = cal.startOfDay(for: .now)

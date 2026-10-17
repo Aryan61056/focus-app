@@ -83,7 +83,7 @@ final class ProjectMatchTests: XCTestCase {
         }
         for (i, n) in ["f", "fd", "fdf", "fdfa", "fdfad"].enumerated() { add(n, Double(i)) }       // one project per keystroke
         add("Essay", 10_000)                                                                        // a real, older, empty project
-        add("Essay on sleep", 10_060) { $0.nextStep = "Outline" }                                   // typed a minute later, holds something
+        add("Essay on sleep", 10_060) { $0.context = "Outline" }                                   // typed a minute later, holds something
         add("Thesis", 20_000) { $0.context = "Chapter 3" }; add("Thesis chapter 3", 20_005)         // the shorter one holds a description
         XCTAssertEqual(store.removeTypingLeftovers(), 5, "f, fd, fdf, fdfa and the Essay prefix")
         let names = Set(store.projects.map(\.name))

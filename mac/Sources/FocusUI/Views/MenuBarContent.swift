@@ -67,7 +67,6 @@ public struct MenuBarContent: View {
                 OtherPlacesRows(c: c)
                 item("This is part of it") { c.claimOnTask() }
                 item("I'm stuck") { c.requestNextActions(); openApp() }
-                item("Set next step") { c.manualNextStep = true; openApp() }
                 if c.mode == .timed { item("Add 5 minutes") { c.act(.extend, minutes: 5) } }
             } else {
                 Text("No session running").font(Tokens.fixed(.callout, .semibold, rounded: true)).padding(10)
