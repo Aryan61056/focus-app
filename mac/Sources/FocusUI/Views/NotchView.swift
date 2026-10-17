@@ -110,9 +110,8 @@ public final class NotchModel {
     /// False while the shape is tucked into the hardware notch: just before it grows out at the start of a session, and while it
     /// tucks back in at the end. The controller sets it; the panel only orders out once the shape is back inside.
     public var presented = false
-    /// The open notch's page, and the widget home shows beside the session. Both stay as you left them, as Droppy's do.
+    /// The open notch's page. It stays as you left it, as Droppy's does. Which widgets home shows is a preference (`notchWidgets`).
     public var tab = NotchTab.home
-    public var widget = NotchWidget.today
     public init() {}
 }
 
@@ -395,7 +394,7 @@ public struct NotchView: View {
             switch model.tab {
             case .home: ShelfHome(c: c, model: model, tray: tray, tint: tint).transition(pageTransition)
             case .tray: TrayColumn(tray: tray, targeted: model.dropTargeted).transition(pageTransition)
-            case .widgets: ShelfWidgets(model: model).transition(pageTransition)
+            case .widgets: ShelfWidgets(c: c).transition(pageTransition)
             }
         }
         .frame(maxHeight: .infinity, alignment: .top)
@@ -467,7 +466,7 @@ public struct NotchView: View {
 }
 
 /// The notch's one button: brightens under the pointer and gives under the click, like a system control.
-private struct PillStyle: ButtonStyle {
+struct PillStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View { Inner(configuration: configuration) }
     struct Inner: View {
         let configuration: Configuration

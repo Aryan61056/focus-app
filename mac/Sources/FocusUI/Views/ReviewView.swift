@@ -6,6 +6,7 @@ import FocusJudge
 struct ReviewView: View {
     @Bindable var c: SessionController
     @Bindable var store: DataStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         let open = store.review.filter { $0.answer == nil }
         PanelLayout {
@@ -14,7 +15,13 @@ struct ReviewView: View {
                 if open.isEmpty {
                     EmptyState(symbol: "checkmark", title: "All caught up", text: "Moments Focus would have nudged about land here.")
                 } else {
-                    VStack(spacing: Space.s) { ForEach(open) { m in moment(m) } }
+                    VStack(spacing: Space.s) {
+                        ForEach(open) { m in
+                            moment(m)
+                                .transition(.asymmetric(insertion: .opacity, removal: reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.98, anchor: .top))))
+                        }
+                    }
+                    .motion(Motion.notchSettle, value: open.map(\.id))
                 }
             }
             .padding(.horizontal, Space.xl).padding(.top, Space.l).padding(.bottom, Space.xl).frame(maxWidth: 860, alignment: .leading)

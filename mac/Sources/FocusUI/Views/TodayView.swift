@@ -8,6 +8,7 @@ import FocusBrain
 struct TodayView: View {
     @Bindable var c: SessionController
     @Binding var showStart: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         PanelLayout {
@@ -19,12 +20,16 @@ struct TodayView: View {
 
     var content: some View {
         VStack(alignment: .leading, spacing: Space.xl) {
-            if let n = notice { NoticeRow(notice: n, c: c) }
+            if let n = notice { NoticeRow(notice: n, c: c).transition(.rise(reduce: reduceMotion)) }
             if c.isActive {
-                TodayLiveMain(c: c)
+                // A break shows the thoughts you parked; "I'm stuck" swaps the call for a few small next actions.
+                if c.presence.reason == "break", let store = c.store, !store.thoughts.isEmpty { ParkingLotCard(store: store) }
+                else if c.stuckShown { StuckCard(c: c).transition(.opacity) }
+                else { TodayLiveMain(c: c, onStuck: { c.requestNextActions() }) }
             } else {
                 DashHeader(c: c)
                 if c.summary != nil { JustFinishedCard(c: c) }
+                if let store = c.store, !store.thoughts.isEmpty { ParkingLotCard(store: store) }
                 StartCard(c: c, showStart: $showStart, intro: firstRun)
                 if firstRun { HowItWorks(c: c).fixedSize(horizontal: false, vertical: true) }
                 if let st = c.store, !st.sessions.isEmpty { DaySection(store: st); WeekSection(store: st) }
@@ -80,7 +85,7 @@ struct NoticeRow: View {
         switch notice {
         case .saveFailed: return "Focus could not save your data on this Mac, so new sessions may be lost. Check that the disk has room."
         case .resume(let r): return r == "meeting" ? "Your meeting looks over. Pick up where you left off?" : "Welcome back. Pick up where you left off?"
-        case .wrapUp: return "Two minutes left. Extend, or wrap up when you are ready."
+        case .wrapUp: return c.sessionDeadline == nil ? "Two minutes left. Extend, or wrap up when you are ready." : "Two minutes left. Wrap up when you are ready."
         case .modelOff(let why): return "\(why) Until then Focus will not nudge you."
         case .access: return "Allow Accessibility so Focus can read window titles."
         case .update: return "A newer build is ready. Restarting takes a few seconds."

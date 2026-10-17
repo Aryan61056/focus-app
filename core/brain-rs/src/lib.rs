@@ -46,7 +46,7 @@ pub struct WindowChangeInput { pub window_key: String, pub site_key: String, pub
 
 #[derive(Clone, Debug)]
 pub enum Event {
-    SessionStart(SessionConfig), SessionEnd, Tick, Judgment(JudgmentInput), WindowChange(WindowChangeInput),
+    SessionStart(SessionConfig), SessionEnd, TaskChanged, Tick, Judgment(JudgmentInput), WindowChange(WindowChangeInput),
     UserAction(UserAction, Option<i64>), Idle, Active, Sleep, Wake, MeetingStart, MeetingEnd,
     SensitiveEntered, SensitiveLeft, PowerChange { constrained: bool, critical: bool },
 }
@@ -161,7 +161,7 @@ pub struct Brain {
     focus: Focus, window: Option<WindowState>, block: Option<Block>, frozen: Option<Frozen>, return_pending_since: Option<f64>,
     recovering_since: f64, confirmed_at: f64, last_evidence: Option<Evidence>, last_on_task_window_key: Option<String>, last_resume_at: f64,
     interrupt_open: Option<OpenSurface>, reentry_open: bool, interrupt_history: Vec<f64>, session_rules: Vec<(String, String)>,
-    cache: Vec<CacheEntry>, next_check_at: f64, on_streak: usize, neutral_streak: usize, in_flight: Option<InFlight>, next_request_id: i64,
+    cache: Vec<CacheEntry>, next_check_at: f64, on_streak: usize, neutral_streak: usize, in_flight: Option<InFlight>, next_request_id: i64, minimum_request_id: i64,
     power_constrained: bool, power_critical: bool, stats: Stats, last_timer_seconds: f64, panic_veil: bool, force_clock: bool,
     em_beacon: BeaconState, seg: Segment, em_timer_visible: bool, em_timer_running: bool, em_clock_running: Option<bool>,
     one_shots: Vec<Effect>,
@@ -175,7 +175,7 @@ impl Brain {
             last_t: 0.0, session: None, holds: vec![], paused_accum: 0.0, paused_since: None, wrap_up_sent: false, focus: Focus::OnTask,
             window: None, block: None, frozen: None, return_pending_since: None, recovering_since: 0.0, confirmed_at: 0.0, last_evidence: None,
             last_on_task_window_key: None, last_resume_at: 0.0, interrupt_open: None, reentry_open: false, interrupt_history: vec![],
-            session_rules: vec![], cache: vec![], next_check_at: f64::INFINITY, on_streak: 0, neutral_streak: 0, in_flight: None, next_request_id: 1,
+            session_rules: vec![], cache: vec![], next_check_at: f64::INFINITY, on_streak: 0, neutral_streak: 0, in_flight: None, next_request_id: 1, minimum_request_id: 0,
             power_constrained: false, power_critical: false, stats: Stats::new(), last_timer_seconds: 0.0, panic_veil: false, force_clock: false,
             em_beacon: BeaconState { state: "off".into(), reason: None }, seg: Segment::default(), em_timer_visible: false, em_timer_running: false,
             em_clock_running: None, one_shots: vec![],
@@ -205,7 +205,7 @@ impl Brain {
         self.last_t = t;
         self.one_shots.clear();
         self.expire_interrupt(t);
-        self.settle(t);
+        if !matches!(event, Event::TaskChanged) { self.settle(t); }
         if self.session.is_some() {
             if !starting { self.apply(&event, t); }
             self.settle(t);
@@ -231,7 +231,7 @@ impl Brain {
         self.focus = Focus::OnTask; self.window = None; self.block = None; self.frozen = None; self.return_pending_since = None;
         self.last_evidence = None; self.last_on_task_window_key = None; self.last_resume_at = t;
         self.interrupt_open = None; self.reentry_open = false; self.interrupt_history.clear(); self.session_rules.clear(); self.cache.clear();
-        self.next_check_at = f64::INFINITY; self.on_streak = 0; self.neutral_streak = 0; self.in_flight = None; self.next_request_id = 1;
+        self.next_check_at = f64::INFINITY; self.on_streak = 0; self.neutral_streak = 0; self.in_flight = None; self.next_request_id = 1; self.minimum_request_id = 0;
         self.stats = Stats::new(); self.last_timer_seconds = 0.0;
     }
 
@@ -470,6 +470,13 @@ impl Brain {
         match event {
             Event::SessionStart(_) | Event::Tick => {}
             Event::SessionEnd => self.end_session(t),
+            Event::TaskChanged => {
+                self.close_block(t); self.close_frozen(); self.withdraw_open();
+                self.focus = Focus::OnTask; self.window = None; self.last_evidence = None; self.last_on_task_window_key = None;
+                self.return_pending_since = None; self.last_resume_at = t; self.last_timer_seconds = 0.0;
+                self.cache.clear(); self.session_rules.clear(); self.in_flight = None; self.next_check_at = f64::INFINITY;
+                self.minimum_request_id = self.next_request_id; self.on_streak = 0; self.neutral_streak = 0;
+            },
             Event::Judgment(j) => self.on_judgment(j, t),
             Event::WindowChange(w) => self.on_window_change(w, t),
             Event::UserAction(a, minutes) => self.on_user_action(*a, *minutes, t),
@@ -542,6 +549,7 @@ impl Brain {
 
     fn on_judgment(&mut self, j: &JudgmentInput, t: f64) {
         let w = match (&self.session, &self.window) { (Some(_), Some(w)) => w.clone(), _ => return };
+        if j.request_id.is_some_and(|id| id < self.minimum_request_id) { return; }
         let is_refusal = j.flag != Flag::None;
         if self.is_held() {
             // Held: ignored, except an ON result still refreshes the cache (never while a sensitive window is up).

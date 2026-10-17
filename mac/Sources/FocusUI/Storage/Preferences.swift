@@ -8,6 +8,7 @@ import FocusJudge
 @MainActor @Observable
 public final class Preferences {
     public static let practiceSessions = 3
+    public var parkingShortcut: ParkingShortcut { didSet { defaults.set(parkingShortcut.rawValue, forKey: "parkingShortcut") } }
     @ObservationIgnored private let defaults: UserDefaults
     public var preset: Preset { didSet { defaults.set(preset.rawValue, forKey: "preset") } }
     public var practiceSessionsLeft: Int { didSet { defaults.set(practiceSessionsLeft, forKey: "practiceLeft") } }
@@ -16,6 +17,17 @@ public final class Preferences {
     public var neverJudgedApps: [String] { didSet { defaults.set(neverJudgedApps, forKey: "neverJudgedApps") } }
     /// The notch (or floating pill) while a session runs. Aesthetic only; everything it does is also in the app and the menu bar.
     public var showNotch: Bool { didSet { defaults.set(showNotch, forKey: "showNotch") } }
+    /// Which widgets the open notch's home shows beside the session, in the order they were turned on, and the line the "My line" widget shows.
+    public var notchWidgets: [String] { didSet { defaults.set(notchWidgets, forKey: "notchWidgets") } }
+    public var notchNote: String { didSet { defaults.set(String(notchNote.prefix(90)), forKey: "notchNote") } }
+    public var notchWidgetList: [NotchWidget] { notchWidgets.compactMap(NotchWidget.init(rawValue:)).prefix(NotchWidget.onHomeLimit).map { $0 } }
+    /// Turns a widget on or off. A third one replaces whichever has been on longest.
+    public func toggleNotchWidget(_ w: NotchWidget) {
+        var list = notchWidgets.filter { NotchWidget(rawValue: $0) != nil }
+        if let i = list.firstIndex(of: w.rawValue) { list.remove(at: i) }
+        else { list.append(w.rawValue); if list.count > NotchWidget.onHomeLimit { list.removeFirst(list.count - NotchWidget.onHomeLimit) } }
+        notchWidgets = list
+    }
     /// A live picture of the window Focus is reading, shown in the app only. Off until the user asks for it (it needs Screen Recording).
     public var readScreen: Bool { didSet { defaults.set(readScreen, forKey: "readScreen") } }
     /// First-run intro shown once; and the one "too quiet, about right, too loud" question, asked once after the first session that actually nudged.
@@ -93,11 +105,14 @@ public final class Preferences {
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        parkingShortcut = ParkingShortcut(rawValue: defaults.string(forKey: "parkingShortcut") ?? "") ?? .controlOptionP
         preset = Preset(rawValue: defaults.string(forKey: "preset") ?? "") ?? .standard
         skipPersonal = defaults.object(forKey: "skipPersonal") as? Bool ?? true
         neverJudgedApps = defaults.stringArray(forKey: "neverJudgedApps") ?? Rules.defaultNeverJudgedApps
         showNotch = defaults.object(forKey: "showNotch") as? Bool ?? true
         readScreen = defaults.object(forKey: "readScreen") as? Bool ?? false
+        notchWidgets = defaults.stringArray(forKey: "notchWidgets") ?? ["today"]
+        notchNote = defaults.string(forKey: "notchNote") ?? ""
         introSeen = defaults.object(forKey: "introSeen") as? Bool ?? false
         welcomeSeen = defaults.object(forKey: "welcomeSeen") as? Bool ?? false
         loudnessAsked = defaults.object(forKey: "loudnessAsked") as? Bool ?? false

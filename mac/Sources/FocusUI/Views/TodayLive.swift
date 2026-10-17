@@ -6,8 +6,16 @@ import FocusBrain
 
 struct TodayLiveMain: View {
     @Bindable var c: SessionController
+    /// The guided example shows the call without the screen picture or the session's history.
+    var showPreview = true
+    var isExample = false
+    /// "I'm stuck", offered under the call while you work (nil on a break, or while its own card is open).
+    var onStuck: (() -> Void)?
     @State private var pinned: UUID?
     @State private var width: CGFloat = 800
+
+    /// The big picture only exists once screen reading is on; until then the Focus panel carries the invitation.
+    var showPreviewColumn: Bool { showPreview && pinned == nil && c.prefs.readScreen }
 
     var shown: Reading? { pinned.flatMap { id in c.readings.first { $0.id == id } } ?? c.latest }
 
@@ -23,14 +31,14 @@ struct TodayLiveMain: View {
                     }
                 }
             } else if let r = shown {
-                if c.prefs.readScreen && width >= 720 && pinned == nil {
+                if showPreviewColumn && width >= 720 {
                     HStack(alignment: .top, spacing: Space.xl) {
                         call(r).frame(maxWidth: .infinity, alignment: .leading)
                         PreviewCard(c: c).frame(width: min(400, width * 0.42))
                     }
                 } else {
                     call(r)
-                    if c.prefs.readScreen && pinned == nil { PreviewCard(c: c) }
+                    if showPreviewColumn { PreviewCard(c: c) }
                 }
             } else {
                 HStack(spacing: Space.m) {
@@ -38,18 +46,22 @@ struct TodayLiveMain: View {
                     Text("Switch to your work").font(Tokens.rounded(.title3, .semibold)).foregroundStyle(Tokens.ink2)
                 }
             }
-            TimelineView(.everySecond) { _ in
-                let now = c.nowSeconds()
-                VStack(alignment: .leading, spacing: Space.l) {
-                    SessionTimeline(readings: c.readings, start: c.startSeconds, now: now,
-                                    end: c.mode == .timed && c.totalSeconds > 0 ? c.startSeconds + c.totalSeconds : nil, pinned: $pinned)
-                    SessionCounts(stretches: SessionTimeline.stretches(c.readings, start: c.startSeconds, now: now))
-                    SessionWindows(readings: c.readings, start: c.startSeconds, now: now).padding(.top, Space.s)
+            if !isExample {
+                TimelineView(.everySecond) { _ in
+                    let now = c.nowSeconds()
+                    VStack(alignment: .leading, spacing: Space.l) {
+                        SessionTimeline(readings: c.readings, start: c.startSeconds, now: now,
+                                        end: c.mode == .timed && c.totalSeconds > 0 ? c.startSeconds + c.totalSeconds : nil, pinned: $pinned)
+                        SessionCounts(stretches: SessionTimeline.stretches(c.readings, start: c.startSeconds, now: now))
+                        SessionWindows(readings: c.readings, start: c.startSeconds, now: now).padding(.top, Space.s)
+                    }
                 }
+                if c.readings.count > 1 { AllReadings(readings: c.readings, pinned: $pinned) }
             }
-            if c.readings.count > 1 { AllReadings(readings: c.readings, pinned: $pinned) }
         }
-        .animation(.easeOut(duration: 0.2), value: shown?.id)
+        // A new reading with the same call only refreshes its words; a new call morphs the ring, label and tint with a settling spring.
+        .motion(Motion.out(0.2), value: shown?.id)
+        .motion(Motion.notchSettle, value: shown?.call)
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
         .onChange(of: c.isActive) { _, on in if !on { pinned = nil } }
     }
@@ -68,7 +80,14 @@ struct TodayLiveMain: View {
                 }
             }
             .motion(Motion.notchSettle, value: c.moment)
-            CanBeWrong()
+            HStack(alignment: .center, spacing: Space.s) {
+                CanBeWrong()
+                Spacer(minLength: Space.xs)
+                if let onStuck {
+                    Button(action: onStuck) { Label("I'm stuck", systemImage: "lifepreserver").lineLimit(1) }
+                        .buttonStyle(FocusButtonStyle(.secondary, small: true)).fixedSize().help("Find a smaller next action")
+                }
+            }
         }
     }
     var statusNote: String? {
@@ -115,7 +134,7 @@ struct TodayPanel: View {
         FocusPanelColumn {
             if c.isActive {
                 PanelSection(title: "What Focus did", ai: true) { ActivityLog(readings: c.readings) }
-                if c.aiAvailable { PanelSection(title: "Ask Focus", ai: true) { AskPanel(c: c, compact: true) } }
+                if c.aiAvailable && !c.stuckShown && c.presence.reason != "break" { PanelSection(title: "Ask Focus", ai: true) { AskPanel(c: c, compact: true) } }
                 if let step = c.projectForNote?.nextStep, !step.isEmpty {
                     PanelSection(title: "Next step") {
                         Label(step, systemImage: "scope").font(Tokens.text(.body)).lineLimit(3)

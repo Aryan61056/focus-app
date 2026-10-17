@@ -97,7 +97,7 @@ struct ProjectDetail: View {
         }
     }
     var startButton: some View {
-        Button { c.begin(task: project.name, projectId: project.id, autoTick: true) } label: { Label("Start session", systemImage: "play.fill") }
+        Button { _ = c.startWithDraft(task: project.name, projectId: project.id) } label: { Label("Start session", systemImage: "play.fill") }
             .buttonStyle(FocusButtonStyle(.primary)).disabled(c.isActive)
     }
 

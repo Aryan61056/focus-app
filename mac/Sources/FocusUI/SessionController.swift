@@ -53,9 +53,25 @@ public struct SessionSummary: Equatable, Sendable {
 @MainActor @Observable
 public final class SessionController {
     // UI state (everything the views read)
+    public var example: GuidedExample?
     public private(set) var isActive = false
-    public private(set) var taskName = ""
+    public internal(set) var taskName = ""
+    public internal(set) var nextActions = AIState<[String]>.idle
+    public internal(set) var stuckShown = false
+    @ObservationIgnored var nextActionsTask: Task<Void, Never>?
+    @ObservationIgnored var nextActionsTimeout: Task<Void, Never>?
+    @ObservationIgnored var nextActionsGeneration = 0
     public private(set) var mode = Mode.open
+    public let startDraft = StartDraft()
+    public internal(set) var sessionDeadline: Date?
+    public internal(set) var sessionGoal = ""
+    public internal(set) var goalDisposition: String?
+    public internal(set) var shortSessionOffer = false
+    var fiveMinuteStart = false
+    var manuallyEnded = false
+    var finishedRecordID: UUID?
+    public var onParkThought: (() -> Void)?
+    public var parkingShortcutError: String?
     public private(set) var presence = Presence(state: "off", reason: nil)
     public private(set) var veilTarget = 0
     public private(set) var veilDuration = 0
@@ -176,7 +192,7 @@ public final class SessionController {
     /// Open a particular Settings page (the scripted demo uses this; the window shows it).
     public private(set) var settingsPageRequest: (page: SettingsPage, serial: Int)?
     public func requestSettingsPage(_ p: SettingsPage) { settingsPageRequest = (p, (settingsPageRequest?.serial ?? 0) + 1) }
-    public func requestStart() { startRequests += 1 }
+    public func requestStart() { closeExample(); startRequests += 1 }
     public private(set) var judgeStatus = JudgeStatus.unknown
     public func setJudgeStatus(_ s: JudgeStatus) { if judgeStatus != s { judgeStatus = s } }
     @ObservationIgnored public var onOpenModelSettings: (() -> Void)?
@@ -270,9 +286,24 @@ public final class SessionController {
     }
 
     // MARK: session
+    /// A new user-approved goal preserves elapsed time while invalidating evidence about the previous one.
+    public func changeTask(to action: String) {
+        let text = action.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard isActive, !text.isEmpty else { return }
+        cancelNextActions()
+        tasks.forEach { $0.cancel() }; tasks = []
+        taskName = String(text.prefix(240)); readings = []
+        clearEscalation(); driftWatch.reset(); headsUpAt = nil; banner = nil; shield = nil
+        blockedSites = [:]; passedPages = [:]; lastOnTask = nil
+        send(.taskChanged)
+        if let window = currentWindow { windowChanged(window) }
+    }
+
     public func begin(task: String, mode: Mode = .open, duration: Double? = nil, preset: Preset? = nil,
-                      shadow: Bool? = nil, project: ProjectProfile = ProjectProfile(), projectId: UUID? = nil, autoTick: Bool = false) {
-        guard !isActive else { return }
+                      shadow: Bool? = nil, project: ProjectProfile = ProjectProfile(), projectId: UUID? = nil, autoTick: Bool = false, deadline: Date? = nil, goal: String? = nil, fiveMinuteStart: Bool = false) {
+        guard !isActive, deadline.map({ $0 > date() }) ?? true else { return }
+        sessionDeadline = deadline; sessionGoal = String((goal ?? "").trimmingCharacters(in: .whitespacesAndNewlines).prefix(240))
+        self.fiveMinuteStart = fiveMinuteStart; manuallyEnded = false; shortSessionOffer = false; goalDisposition = nil; finishedRecordID = nil
         var profile = project
         var pid = projectId
         if let store {
@@ -280,6 +311,7 @@ public final class SessionController {
             pid = p.id; profile = p.profile
             if !p.context.isEmpty { profile.context = p.context }   // the judge reads profile.context; Projects edits Project.context
         }
+        closeExample(); cancelNextActions()
         let shadow = prefs.practiceRemoved ? false : (shadow ?? prefs.practiceActive)
         self.project = profile; self.projectId = pid; self.shadow = shadow
         sessionId = UUID(); startedAt = date(); segments = []; segKind = nil; segStart = now(); startSeconds = segStart
@@ -292,7 +324,7 @@ public final class SessionController {
         goalNotified = prefs.dailyGoalMinutes <= 0 || baselineToday >= Double(prefs.dailyGoalMinutes) * 60
         priorBestStretch = Rewards.bestStretch(finished)
         summary = nil; shadowMarks = 0; learnedRules = []; wrapUp = false; askResume = nil; readings = []; appByWindowKey = [:]; stats = ReadStats(); previewFrame = nil; previewHeld = nil; screenText = ""
-        var c = SessionConfig(); c.taskId = task; c.mode = mode; c.durationSeconds = duration; c.preset = preset ?? prefs.preset; c.shadow = shadow; c.sound = prefs.nudgeSound; c.checkScale = prefs.checkRate.scale * pressure.factor
+        var c = SessionConfig(); c.taskId = task; c.mode = deadline == nil ? mode : .open; c.durationSeconds = deadline == nil ? duration : nil; c.preset = preset ?? prefs.preset; c.shadow = shadow; c.sound = prefs.nudgeSound; c.checkScale = prefs.checkRate.scale * pressure.factor
         isActive = true
         send(.sessionStart(c))
         if let w = currentWindow { windowChanged(w) }
@@ -312,6 +344,7 @@ public final class SessionController {
         if let s = surface, s.kind != "gate", now() >= s.at + 12 { surface = nil }
         if let m = moment, now() >= m.at + 8 { moment = nil }
         send(.tick)
+        guard isActive else { return }
         checkLiveMoments(now())
         checkEscalation(now())
         tickCues(now())
@@ -531,7 +564,8 @@ public final class SessionController {
     public func windowChanged(_ w: WindowSnapshot) {
         currentWindow = w; screenText = ""
         if isActive { appByWindowKey[Keys.window(w)] = w.app }
-        guard isSensing else { return }   // on hold: remembered, not read; the first look after the hold ends picks it up
+        // On hold: remembered, not read; the first look after the hold ends picks it up. A clock deadline still ends a held session.
+        guard isSensing else { if isActive, let d = sessionDeadline, date() >= d { send(.tick) }; return }
         updateFriction(w)
         let m = moment(w)
         previewHeld = nil
@@ -610,6 +644,10 @@ public final class SessionController {
 
     // MARK: actions from the UI
     public func act(_ a: UserAction, minutes: Int? = nil) {
+        if let deadline = sessionDeadline, isActive {
+            guard date() < deadline else { send(.sessionEnd); return }
+            if a == .extend { sessionDeadline = deadline.addingTimeInterval(Double(minutes ?? 5) * 60); totalSeconds += Double(minutes ?? 5) * 60; wrapUp = false; return }
+        }
         // Going back by any path (banner, check-in, shield, menu bar, notch, iPhone) puts the reminder away. The click is not evidence, so
         // the brain stays "interrupted" until the next window read, and the banner would ask "Back to ...?" over the task you went back to.
         // The ladder's own return leaves it up: there the banner says what was done and what comes next.
@@ -617,7 +655,7 @@ public final class SessionController {
         send(.userAction(a, minutes: minutes))
         if a == .backToTask { refreshBanner(now()) }
     }
-    public func end() { send(.sessionEnd) }
+    public func end() { manuallyEnded = true; send(.sessionEnd) }
 
     /// "What is the next step?": saved on the project (the start sheet shows it next time), then the brain is told it was answered.
     /// The project of the session that just ended (or is running), for the "where to pick up" note on Today.
@@ -650,6 +688,13 @@ public final class SessionController {
     // MARK: brain plumbing
     public func send(_ e: Event) {
         let t = now()
+        if isActive, let deadline = sessionDeadline {
+            if date() >= deadline {
+                // Expiry wins over a simultaneous reading or action, so no late nudge can escape.
+                apply(brain.step(t, .sessionEnd), t); return
+            }
+            wrapUp = deadline.timeIntervalSince(date()) <= 120
+        }
         apply(brain.step(t, e), t)
     }
 
@@ -687,10 +732,15 @@ public final class SessionController {
             case .summary(let a, let o, let u, let d, let i, let r):
                 summary = SessionSummary(activeSeconds: a, offTopicSeconds: o, unsureSeconds: u, drifts: d, interrupts: i, refusals: r)
                 markSegment("off", t)
-                let record = SessionRecord(projectId: projectId, task: taskName, timed: mode == .timed, start: startedAt, end: date(), activeSeconds: a,
+                var record = SessionRecord(projectId: projectId, task: taskName, timed: mode == .timed, start: startedAt, end: date(), activeSeconds: a,
                                            offTopicSeconds: o, unsureSeconds: u, drifts: d, interrupts: i, refusals: r, shadowMarks: shadowMarks,
                                            segments: segments.filter { $0.seconds >= 1 }, reads: stats,
                                            returns: returnTimes.isEmpty ? nil : returnTimes, practice: shadow ? true : nil)
+                record.goal = sessionGoal.isEmpty ? nil : sessionGoal
+                finishedRecordID = record.id
+                shortSessionOffer = fiveMinuteStart && !manuallyEnded && a >= 299
+                if sessionDeadline != nil { clock = ClockState() }
+                sessionDeadline = nil
                 highlight = nil
                 if prefs.showProgress, var h = Rewards.highlight(for: record, others: store?.sessions ?? [], goalMinutes: prefs.dailyGoalMinutes, calendar: .current) {
                     if shadow, h == .rough { h = .started }   // practice does not classify, so it cannot call a session rough
@@ -702,6 +752,7 @@ public final class SessionController {
                 prefs.sessionFinished(wasPractice: shadow)
                 startRecap()
                 previewFrame = nil; previewHeld = nil; screenText = ""
+                cancelNextActions()
                 isActive = false; clearEscalation(); resetCues(); veilTarget = 0; manualNextStep = false; surface = nil; reentryOpen = false; askResume = nil; wrapUp = false
                 timer?.invalidate(); timer = nil
             }
@@ -754,6 +805,7 @@ public final class SessionController {
         tasks.append(Task { [weak self] in
             let j = await Pipeline.judge(m, with: judge, useRules: false, minOffConfidence: minConfidence)
             self?.judging = max(0, (self?.judging ?? 1) - 1)
+            guard !Task.isCancelled else { return }
             self?.deliver(j, id: id, observedAt: observedAt, windowKey: windowKey, contentKey: content, sawScreen: sawScreen)
         })
     }
@@ -783,6 +835,7 @@ extension SessionController {
 
     /// Seconds shown on the clock right now: elapsed for Open, remaining for Timed.
     public func clockSeconds() -> Double {
+        if let deadline = sessionDeadline { return max(0, deadline.timeIntervalSince(date())) }
         let c = clock
         guard c.running else { return max(0, c.seconds) }
         let dt = nowSeconds() - c.at

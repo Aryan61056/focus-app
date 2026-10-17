@@ -5,12 +5,12 @@ import AppKit
 
 /// Settings split into pages, each its own row in the sidebar, the way System Settings and Droppy lay them out.
 public enum SettingsPage: String, CaseIterable, Identifiable, Hashable, Sendable {
-    case general = "General", nudges = "Nudges", cues = "Cues", rhythm = "Rhythm and goals", reading = "What Focus reads", privacy = "Privacy"
+    case general = "General", nudges = "Nudges", cues = "Cues", notch = "Notch", rhythm = "Rhythm and goals", reading = "What Focus reads", privacy = "Privacy"
     public var id: String { rawValue }
     var symbol: String {
         switch self {
         case .general: return "gearshape"; case .nudges: return "hand.wave"; case .cues: return "bell"
-        case .rhythm: return "metronome"; case .reading: return "eye"; case .privacy: return "hand.raised"
+        case .notch: return "rectangle.topthird.inset"; case .rhythm: return "metronome"; case .reading: return "eye"; case .privacy: return "hand.raised"
         }
     }
 }
@@ -34,6 +34,12 @@ struct SettingsView: View {
     }
     var body: some View {
         Form {
+                if page == .general {
+                    Section("Getting started") {
+                        Button("See how it works") { c.showExample() }.disabled(c.isActive)
+                            .help("A guided example with made-up windows. No permissions needed.")
+                    }
+                }
                 if page == .nudges {
                     // The page opens on the thing it sets: a nudge as the notch shows it, in the tone you picked. A plain black plate, no art.
                     Section {
@@ -42,6 +48,34 @@ struct SettingsView: View {
                             .background(RoundedRectangle(cornerRadius: Tokens.radiusCard, style: .continuous).fill(Color(white: 0.16)))
                             .listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
                             .accessibilityLabel("Preview of a nudge in the notch")
+                    }
+                }
+                group("Widgets on the notch", .notch) {
+                    // Everything here is worked out on this Mac. The notch only shows these; none of them is a button.
+                    ForEach(NotchWidget.allCases) { w in
+                        HStack(spacing: 12) {
+                            Image(systemName: w.symbol).font(.system(size: 15, weight: .regular)).foregroundStyle(Tokens.ink2).frame(width: 28, height: 28)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(w.title)
+                                Text(w.detail).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
+                            }
+                            Spacer(minLength: 12)
+                            Toggle("", isOn: Binding(get: { c.prefs.notchWidgetList.contains(w) }, set: { _ in withAnimation(Motion.notchSettle) { c.prefs.toggleNotchWidget(w) } }))
+                                .labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
+                        }
+                        .padding(.vertical, 2)
+                        .accessibilityElement(children: .combine)
+                    }
+                    Text("Up to \(NotchWidget.onHomeLimit) show on the notch's Home page at once. Turning on a third replaces the one that has been there longest. You can also pick them from the Widgets page in the open notch.")
+                        .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+                }
+                group("Your own line", .notch) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("What the My line widget says")
+                        TextField("A reminder for yourself", text: Binding(get: { c.prefs.notchNote }, set: { c.prefs.notchNote = String($0.prefix(90)) }))
+                            .wellField()
+                        Text("\(c.prefs.notchNote.count) of 90. Shown on the notch only while a session runs and My line is on.")
+                            .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).monospacedDigit()
                     }
                 }
                 group("Nudges", .nudges) {
@@ -232,6 +266,10 @@ struct SettingsView: View {
                     }
                 }
                 group("Shortcut", .general) {
+                    Picker("Park a thought", selection: Binding(get: { c.prefs.parkingShortcut }, set: { c.prefs.parkingShortcut = $0 })) {
+                        ForEach(ParkingShortcut.allCases) { Text($0.label).tag($0) }
+                    }.help("Open the thought input from any app")
+                    if let error = c.parkingShortcutError { Text(error).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
                     row("Start or pause from anywhere", "Press Control, Option and F. With no session it opens the start sheet on the project you worked on last. During a session it pauses or resumes.") {
                         Text("\u{2303}\u{2325}F").font(Tokens.rounded(.callout, .semibold)).foregroundStyle(Tokens.ink2)
                     }

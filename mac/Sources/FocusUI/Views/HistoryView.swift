@@ -95,7 +95,12 @@ struct SessionDrawer: View {
                     VStack(alignment: .leading, spacing: 0) { Text(when); Text(how) }
                 }
                 .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
-                MiniTimeline(segments: session.segments, height: 16).padding(.top, Space.xs)
+                if let goal = session.goal {
+                    Label(goal, systemImage: session.goalDone == true ? "checkmark.circle.fill" : "arrow.forward.circle")
+                        .font(Tokens.text(.body)).foregroundStyle(Tokens.ink2).help(session.goalDone == true ? "Marked done" : "Carried forward or not marked yet")
+                        .padding(.top, Space.xxs)
+                }
+                MiniTimeline(segments: session.segments, height: 16, animated: true).padding(.top, Space.xs)
                 FlowRow(spacing: Space.s) { legend("On task", .on); legend("Unsure", .unsure); legend("Off topic", .off) }.font(Tokens.text(.caption2)).foregroundStyle(Tokens.ink2)
             }
             PanelSection(title: "What Focus did", ai: true) {

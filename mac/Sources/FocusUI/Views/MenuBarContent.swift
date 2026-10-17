@@ -65,17 +65,25 @@ public struct MenuBarContent: View {
                 Divider().padding(.vertical, 4)
                 item("Back to task") { c.act(.backToTask) }
                 item("This is part of it") { c.claimOnTask() }
+                item("I'm stuck") { c.requestNextActions(); openApp() }
                 item("Set next step") { c.manualNextStep = true; openApp() }
                 if c.mode == .timed { item("Add 5 minutes") { c.act(.extend, minutes: 5) } }
             } else {
                 Text("No session running").font(Tokens.fixed(.callout, .semibold, rounded: true)).padding(10)
+                if c.shortSessionOffer {
+                    item("Keep going") { c.keepGoing() }
+                    item("Finish five minutes") { c.finishFiveMinutes() }
+                    Divider().padding(.vertical, 4)
+                }
                 item("Start a session") { c.requestStart(); openApp() }
+                item("Just five minutes") { c.startDraft.length = .five; c.requestStart(); openApp() }
             }
             if c.visibleUpdate != nil {
                 Divider().padding(.vertical, 4)
                 item("Restart to update") { c.installUpdate() }
             }
             Divider().padding(.vertical, 4)
+            item("Park a thought") { c.onParkThought?() }
             item("Open Focus", openApp)
         }
         .padding(8).frame(width: 296)

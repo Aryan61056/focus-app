@@ -66,10 +66,10 @@ struct VerdictView: View {
     var reading: Reading
     var body: some View {
         HStack(alignment: .center, spacing: Space.m) {
-            RingView(reading.ring, color: reading.call == .off ? Tokens.slip : (reading.call == .on ? Tokens.accent : Tokens.ink2)).frame(width: 52, height: 52)
+            LiveRing(reading.ring, color: reading.call == .off ? Tokens.slip : (reading.call == .on ? Tokens.accent : Tokens.ink2)).frame(width: 52, height: 52)
             VStack(alignment: .leading, spacing: 3) {
-                Text(reading.label).font(Tokens.rounded(.title2, .semibold))
-                Text(basis).font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2).lineLimit(1).help(reading.reason)
+                Text(reading.label).font(Tokens.rounded(.title2, .semibold)).contentTransition(.interpolate)
+                Text(basis).font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2).lineLimit(1).help(reading.reason).contentTransition(.opacity)
             }
             Spacer(minLength: 0)
         }

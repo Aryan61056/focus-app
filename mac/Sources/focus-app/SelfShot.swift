@@ -1,5 +1,7 @@
 import AppKit
+import SwiftUI
 import FocusUI
+import FocusJudge
 
 /// Developer tool, only with FOCUS_DEMO=1 and FOCUS_SELFSHOT=<folder>: after a few seconds, draws this app's own windows (the main window
 /// and the notch panel, with scripted demo data) to PNG files and quits. It renders views, it does not capture the screen, so it needs no permission.
@@ -14,6 +16,26 @@ enum SelfShot {
             for a in list.split(separator: ",").map(String.init) {
                 if a.hasPrefix("section:"), let s = AppSection.allCases.first(where: { $0.rawValue.lowercased() == a.dropFirst(8).lowercased() }) { controller.requestSection(s) }
                 else if a.hasPrefix("page:"), let p = SettingsPage.allCases.first(where: { $0.rawValue.lowercased().hasPrefix(a.dropFirst(5).lowercased()) }) { controller.requestSettingsPage(p) }
+                else if a.hasPrefix("example") {
+                    controller.showExample()
+                    let parts = a.split(separator: ":")
+                    if parts.count == 2, let step = Int(parts[1]) { controller.example?.select(step) }
+                }
+                else if a == "stuck" { controller.assistant = ExampleAssistant(); controller.requestNextActions() }
+                else if a == "park" || a == "park-long" { controller.onParkThought?() }
+                else if a == "parked-all" {
+                    for i in 1...12 { controller.store?.park("Synthetic thought \(i): ask about the lab materials") }
+                    controller.act(.breakTime, minutes: 5)
+                }
+                else if a == "parked" { controller.store?.park("Ask about the synthetic lab materials"); controller.store?.park("Pick up a notebook"); controller.act(.breakTime, minutes: 5) }
+                else if a == "start-until" {
+                    controller.startDraft.task = "Lab report"; controller.startDraft.length = .until
+                    controller.startDraft.done = "Write the methods section"; controller.startDraft.extras = true; controller.requestStart()
+                }
+                else if a == "goal-finished" {
+                    if controller.isActive { controller.end() }
+                    controller.begin(task: "Lab report", goal: "Write the methods section"); controller.end()
+                }
                 else if a == "start" { controller.requestStart() }
                 else if a == "readscreen" { controller.prefs.readScreen = true }
                 else if a == "pause" { controller.act(.pause) }   // the held state: nothing is read until resume
@@ -40,6 +62,14 @@ enum SelfShot {
             if w is NSPanel || !w.canBecomeMain { w.alphaValue = 0 }
             else { w.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopWindow)) - 1) }
         }
+    }
+
+    /// FOCUS_DEMO_MENU=1 (demo only) shows the menu bar popover's content in an ordinary window, since a status item cannot be clicked from here.
+    static func showMenuIfRequested(_ controller: SessionController) {
+        guard ProcessInfo.processInfo.environment["FOCUS_DEMO"] == "1", ProcessInfo.processInfo.environment["FOCUS_DEMO_MENU"] == "1" else { return }
+        let host = NSHostingController(rootView: MenuBarContent(controller: controller) {}.background(Color(nsColor: .windowBackgroundColor)))
+        let w = NSWindow(contentViewController: host)
+        w.title = "Menu"; w.styleMask = [.titled]; w.setFrameOrigin(NSPoint(x: 80, y: 120)); w.makeKeyAndOrderFront(nil)
     }
 
     static func scheduleIfRequested(after seconds: Double = 12) {
@@ -99,5 +129,14 @@ enum SelfShot {
         let f = unsafeBitCast(sym, to: Fn.self)
         // .null rect = the window's bounds; optionIncludingWindow = 1 << 3; boundsIgnoreFraming = 1 << 0, bestResolution = 1 << 3.
         return f(.null, 1 << 3, id, (1 << 0) | (1 << 3))?.takeRetainedValue()
+    }
+}
+
+private struct ExampleAssistant: Assistant {
+    func sharpen(task: String, context: String) async -> Sharpened? { nil }
+    func recap(facts: String) async -> Recap? { nil }
+    func answer(question: String, facts: String) async -> String? { nil }
+    func nextActions(task: String, context: String) async -> [String]? {
+        ["Choose u and dv for the first calculus integral.", "Differentiate your chosen calculus expression.", "Write the calculus rule beside your working."]
     }
 }

@@ -8,10 +8,41 @@ public enum NotchTab: String, CaseIterable, Sendable { case home, tray, widgets
     var title: String { switch self { case .home: return "Home"; case .tray: return "Tray"; case .widgets: return "Widgets" } }
 }
 
-/// What sits beside the session on home. Chosen on the widgets page; read only, like everything in the notch.
-public enum NotchWidget: String, CaseIterable, Sendable { case today, goal, tray
-    var title: String { switch self { case .today: return "Today"; case .goal: return "Goal"; case .tray: return "Tray" } }
-    var symbol: String { switch self { case .today: return "sun.max"; case .goal: return "target"; case .tray: return "tray.full" } }
+/// What can sit beside the session on home. Chosen on the widgets page or in Settings; read only, like everything in the notch.
+/// Everything here is worked out on this Mac from what Focus already keeps; nothing is fetched.
+public enum NotchWidget: String, CaseIterable, Identifiable, Sendable {
+    case today, goal, streak, week, next, parked, clock, battery, note, tray
+    public var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .today: return "Today"; case .goal: return "Goal"; case .streak: return "Streak"; case .week: return "Week"
+        case .next: return "Next step"; case .parked: return "Parked"; case .clock: return "Clock"; case .battery: return "Battery"
+        case .note: return "My line"; case .tray: return "Tray"
+        }
+    }
+    var detail: String {
+        switch self {
+        case .today: return "Time on task so far today."
+        case .goal: return "How far you are into your daily goal."
+        case .streak: return "Focus days in a row, rest days allowed."
+        case .week: return "Seven days of focus as small bars."
+        case .next: return "The next step you left for this project."
+        case .parked: return "How many thoughts are waiting, and the latest."
+        case .clock: return "The time and the date."
+        case .battery: return "Charge left on this Mac."
+        case .note: return "A line you write, such as a reminder."
+        case .tray: return "Files waiting on the notch."
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .today: return "sun.max"; case .goal: return "target"; case .streak: return "flame"; case .week: return "chart.bar"
+        case .next: return "arrow.turn.down.right"; case .parked: return "tray.and.arrow.down"; case .clock: return "clock"
+        case .battery: return "battery.75percent"; case .note: return "text.quote"; case .tray: return "tray.full"
+        }
+    }
+    /// At most this many sit on home at once, so each stays readable.
+    static let onHomeLimit = 2
 }
 
 /// Three small icons in the open card's top band, one per page. The current page sits on a lighter pill that slides between them.
@@ -64,7 +95,7 @@ struct ShelfHome: View {
         HStack(alignment: .center, spacing: 14) {
             SessionWidget(c: c).frame(maxWidth: .infinity, alignment: .leading)
             Rectangle().fill(Color.white.opacity(0.1)).frame(width: 1).padding(.vertical, 4)
-            SideWidget(c: c, model: model, tray: tray).frame(width: 84, alignment: .leading)
+            SideWidgets(c: c, tray: tray).frame(width: 104, alignment: .leading)
         }
     }
 }
@@ -127,46 +158,131 @@ struct ShelfTrack: View {
     }
 }
 
-/// The widget beside the session on home: its name, then its one number.
-struct SideWidget: View {
+/// The widgets beside the session on home: the one you chose (its name, then its number), or two of them stacked when you chose two.
+/// Nothing here is a button.
+struct SideWidgets: View {
     @Bindable var c: SessionController
-    @Bindable var model: NotchModel
     var tray: NotchTray
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 5) {
-                if model.widget == .goal, let f = goalFraction { MiniRing(fraction: f).frame(width: 10, height: 10) }
-                else { Image(systemName: model.widget.symbol).font(.system(size: 9, weight: .semibold)) }
-                Text(model.widget.title)
-            }
-            .font(Tokens.fixed(.caption2, .semibold)).foregroundStyle(NotchView.ink2)
-            Group {
-                switch model.widget {
-                case .today: stat(NotchView.minutes(c.todayOnTaskSeconds()), "on task")
-                case .goal:
-                    if c.prefs.dailyGoalMinutes > 0 { stat(NotchView.minutes(c.todayOnTaskSeconds()), "of " + NotchView.minutes(Double(c.prefs.dailyGoalMinutes) * 60)) }
-                    else { stat("None", "set in Settings") }
-                case .tray:
-                    if tray.items.isEmpty { stat("Empty", "drop files here") }
-                    else { stat("\(tray.items.count) \(tray.items.count == 1 ? "file" : "files")", tray.items.last?.name ?? "") }
+        let chosen = c.prefs.notchWidgetList
+        Group {
+            if chosen.isEmpty {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("No widgets").font(Tokens.fixed(.callout, .semibold, rounded: true))
+                    Text("pick some on Widgets").font(Tokens.fixed(.caption2, .regular)).foregroundStyle(NotchView.ink2).lineLimit(1)
+                }.frame(maxWidth: .infinity, alignment: .leading)
+            } else if chosen.count == 1 {
+                WidgetTile(widget: chosen[0], c: c, tray: tray, compact: false)
+            } else {
+                VStack(alignment: .leading, spacing: 5) {
+                    WidgetTile(widget: chosen[0], c: c, tray: tray, compact: true)
+                    Rectangle().fill(Color.white.opacity(0.08)).frame(height: 1)
+                    WidgetTile(widget: chosen[1], c: c, tray: tray, compact: true)
                 }
             }
-            .transition(.blurReplace)
         }
-        .motion(Motion.notchSettle, value: model.widget)
-        .accessibilityElement(children: .combine)
+        .motion(Motion.notchSettle, value: chosen)
     }
+}
 
+struct WidgetTile: View {
+    var widget: NotchWidget
+    @Bindable var c: SessionController
+    var tray: NotchTray
+    var compact: Bool
+    var body: some View {
+        VStack(alignment: .leading, spacing: compact ? 1 : 4) {
+            HStack(spacing: 5) {
+                if widget == .goal, let f = goalFraction { MiniRing(fraction: f).frame(width: 10, height: 10) }
+                else { Image(systemName: widget.symbol).font(.system(size: 9, weight: .semibold)) }
+                Text(widget.title)
+            }
+            .font(Tokens.fixed(.caption2, .semibold)).foregroundStyle(NotchView.ink2)
+            WidgetValue(widget: widget, c: c, tray: tray, compact: compact).transition(.blurReplace)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+        .help(widget.detail)
+    }
     var goalFraction: Double? {
         guard c.prefs.dailyGoalMinutes > 0 else { return nil }
         return min(1, c.todayOnTaskSeconds() / (Double(c.prefs.dailyGoalMinutes) * 60))
+    }
+}
+
+/// One widget's figure and caption. `compact` is the two-up layout: the figure alone, since the card has room for two lines each.
+struct WidgetValue: View {
+    var widget: NotchWidget
+    @Bindable var c: SessionController
+    var tray: NotchTray
+    var compact: Bool
+
+    var body: some View {
+        switch widget {
+        case .today:
+            stat(NotchView.minutes(c.todayOnTaskSeconds()), "on task")
+        case .goal:
+            if c.prefs.dailyGoalMinutes > 0 { stat(NotchView.minutes(c.todayOnTaskSeconds()), "of " + NotchView.minutes(Double(c.prefs.dailyGoalMinutes) * 60)) }
+            else { stat("None", "set in Settings") }
+        case .streak:
+            let s = Rewards.streak(c.store?.sessions ?? [], today: .now)
+            stat(s.current == 0 ? "None yet" : "\(s.current) \(s.current == 1 ? "day" : "days")", s.best > s.current ? "best \(s.best)" : "in a row")
+        case .week:
+            let days = DayStats.week(c.store?.sessions ?? [], endingOn: .now)
+            VStack(alignment: .leading, spacing: 2) {
+                MiniWeek(days: days, height: compact ? 14 : 28)
+                if !compact { Text("\(NotchView.minutes(days.reduce(0) { $0 + $1.hours } * 3600)) this week").font(Tokens.fixed(.caption2, .regular)).foregroundStyle(NotchView.ink2).lineLimit(1) }
+            }
+        case .next:
+            let step = c.projectId.flatMap { c.store?.project($0)?.nextStep } ?? ""
+            if step.isEmpty { stat("None set", "set in the menu bar") }
+            else { Text(step).font(Tokens.fixed(compact ? .caption : .body, .medium, rounded: false)).lineLimit(compact ? 1 : 3).fixedSize(horizontal: false, vertical: true) }
+        case .parked:
+            let n = c.store?.thoughts.filter { !$0.completed }.count ?? 0
+            stat(n == 0 ? "Nothing" : "\(n) \(n == 1 ? "thought" : "thoughts")", c.store?.thoughts.last(where: { !$0.completed })?.text ?? "waiting")
+        case .clock:
+            TimelineView(.everySecond) { ctx in
+                stat(ctx.date.formatted(date: .omitted, time: .shortened), ctx.date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated)))
+            }
+        case .battery:
+            TimelineView(.periodic(from: .now, by: 30)) { _ in
+                if let b = BatteryReader.read() { stat("\(b.percent)%", b.charging ? "charging" : (b.pluggedIn ? "plugged in" : "on battery")) }
+                else { stat("No battery", "plugged in") }
+            }
+        case .note:
+            let t = c.prefs.notchNote.trimmingCharacters(in: .whitespacesAndNewlines)
+            if t.isEmpty { stat("Your line", "write one in Settings") }
+            else { Text(t).font(Tokens.fixed(compact ? .caption : .callout, .semibold, rounded: true)).lineLimit(compact ? 1 : 3).fixedSize(horizontal: false, vertical: true) }
+        case .tray:
+            if tray.items.isEmpty { stat("Empty", "drop files here") }
+            else { stat("\(tray.items.count) \(tray.items.count == 1 ? "file" : "files")", tray.items.last?.name ?? "") }
+        }
     }
 
     func stat(_ value: String, _ caption: String) -> some View {
         VStack(alignment: .leading, spacing: 1) {
             Text(value).font(Tokens.fixed(.callout, .semibold, rounded: true)).monospacedDigit().lineLimit(1).minimumScaleFactor(0.7)
-            Text(caption).font(Tokens.fixed(.caption2, .regular)).foregroundStyle(NotchView.ink2).lineLimit(1).truncationMode(.middle)
+            if !compact { Text(caption).font(Tokens.fixed(.caption2, .regular)).foregroundStyle(NotchView.ink2).lineLimit(1).truncationMode(.middle) }
         }
+    }
+}
+
+/// Seven days as slim bars on the notch: they grow up in turn when the notch opens, today in the accent and the rest softer.
+struct MiniWeek: View {
+    var days: [(day: Date, hours: Double)]
+    var height: CGFloat
+    var body: some View {
+        let top = max(1, days.map(\.hours).max() ?? 1)
+        HStack(alignment: .bottom, spacing: 3) {
+            ForEach(Array(days.enumerated()), id: \.offset) { i, d in
+                let today = i == days.count - 1
+                Capsule().fill(today ? NotchView.accent : Color.white.opacity(d.hours > 0 ? 0.5 : 0.14))
+                    .frame(width: 8, height: max(3, height * d.hours / top))
+                    .modifier(GrowIn(index: i))
+            }
+        }
+        .frame(height: height, alignment: .bottom)
+        .accessibilityLabel("Focus hours, last seven days")
     }
 }
 
@@ -200,30 +316,32 @@ struct WidgetIcon: View {
     }
 }
 
-/// The widgets page: three icons in a row. Picking one puts it on home beside the session and goes back there.
+/// The widgets page: every widget as an icon. Tap to put one on home (up to two; a third replaces the one that has been there longest)
+/// and tap again to take it off. It stays on this page so a second pick is one more tap.
 struct ShelfWidgets: View {
-    @Bindable var model: NotchModel
+    @Bindable var c: SessionController
     @State private var hovered: NotchWidget?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 6), count: 5)
     var body: some View {
-        HStack(spacing: 22) {
-            ForEach(NotchWidget.allCases, id: \.self) { w in
-                Button { model.widget = w; model.tab = .home } label: {
-                    VStack(spacing: 6) {
-                        WidgetIcon(widget: w, size: 38, chosen: model.widget == w)
-                            .scaleEffect(hovered == w && !reduceMotion ? 1.06 : 1)
-                        Text(w.title).font(Tokens.fixed(.caption2, .medium)).foregroundStyle(model.widget == w ? NotchView.ink : NotchView.ink2)
-                    }
-                    .contentShape(Rectangle())
+        let on = c.prefs.notchWidgetList
+        LazyVGrid(columns: columns, spacing: 6) {
+            ForEach(NotchWidget.allCases) { w in
+                Button { withAnimation(reduceMotion ? nil : Motion.notchSettle) { c.prefs.toggleNotchWidget(w) } } label: {
+                    WidgetIcon(widget: w, size: 30, chosen: on.contains(w))
+                        .scaleEffect(hovered == w && !reduceMotion ? 1.07 : 1)
+                        .frame(maxWidth: .infinity)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(ShelfIconStyle())
                 .onHover { hovered = $0 ? w : (hovered == w ? nil : hovered) }
-                .accessibilityLabel("Show \(w.title) on home")
-                .accessibilityAddTraits(model.widget == w ? .isSelected : [])
+                .help("\(w.title): \(w.detail)")
+                .accessibilityLabel("\(w.title): \(w.detail)")
+                .accessibilityValue(on.contains(w) ? "On home" : "Off")
+                .accessibilityAddTraits(on.contains(w) ? .isSelected : [])
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .motion(Motion.notchPress, value: hovered)
-        .motion(Motion.notchSettle, value: model.widget)
     }
 }

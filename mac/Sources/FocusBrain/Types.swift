@@ -56,7 +56,7 @@ public struct WindowChangeInput: Sendable {
 public enum Event: Sendable {
     case sessionStart(SessionConfig)
     case sessionEnd
-    case tick
+    case tick, taskChanged
     case judgment(JudgmentInput)
     case windowChange(WindowChangeInput)
     case userAction(UserAction, minutes: Int?)

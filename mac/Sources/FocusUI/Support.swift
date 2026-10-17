@@ -71,6 +71,7 @@ public struct AdaptiveAssistant: Assistant {
     public func sharpen(task: String, context: String) async -> Sharpened? { await current().sharpen(task: task, context: context) }
     public func recap(facts: String) async -> Recap? { await current().recap(facts: facts) }
     public func answer(question: String, facts: String) async -> String? { await current().answer(question: question, facts: facts) }
+    public func nextActions(task: String, context: String) async -> [String]? { await current().nextActions(task: task, context: context) }
 }
 
 /// Deterministic judge for demos, snapshots and tests: a window whose prompt contains a marker gets that label.

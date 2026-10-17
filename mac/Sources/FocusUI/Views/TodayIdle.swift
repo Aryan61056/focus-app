@@ -4,166 +4,25 @@ import FocusBrain
 // The pieces of Today between sessions.
 
 /// The start surface. One field, Return to begin. With no text, Return continues the last project, so a returning user presses one key.
+/// The form itself is shared with the start sheet (`StartForm`).
 struct StartCard: View {
     @Bindable var c: SessionController
     @Binding var showStart: Bool
     var intro: Bool
-    @State private var task = ""
-    @State private var timed = false
-    @State private var minutes = 50
-    @FocusState private var focused: Bool
-    /// Start was pressed on a name close to an older project: ask whether to continue that one before anything is created.
-    @State private var asking = false
-    /// Width the Pick up chips have, to choose between three across and one column.
-    @State private var pickWidth: CGFloat = 0
-
-    var parsed: (task: String, minutes: Int?) { StartSheet.parse(task) }
-    var projects: [Project] { c.store?.projects ?? [] }
-    /// Older projects the typed name looks like (never when it matches one exactly).
-    var similar: [Project] { ProjectMatch.similar(to: parsed.task, in: projects, limit: 1) }
-    var existing: Project? { ProjectMatch.exact(parsed.task, in: projects) }
-    var last: Project? { StartSheet.lastProject(c.store) }
-    var canStart: Bool { !parsed.task.isEmpty || last != nil }
-
     var body: some View {
         Tile(padding: 24) {
-            VStack(alignment: .leading, spacing: Space.l) {
-                VStack(alignment: .leading, spacing: Space.s) {
-                    Text(intro ? "Your first session" : "What are you working on?").font(Tokens.text(.callout, .semibold))
-                    // Side by side when the field keeps room to show a name; the button under it, at the right, when it would not.
-                    ViewThatFits(in: .horizontal) {
-                        HStack(spacing: Space.s) { taskField.frame(minWidth: 230 * TextScale.shared.factor); startButton }
-                        VStack(alignment: .trailing, spacing: Space.s) { taskField; startButton }
-                    }
-                    hint
-                }
-                modeRow
-                pickUp
-                if c.prefs.practiceActive && !intro {
-                    HStack(spacing: Space.xs) {
-                        Image(systemName: "eye").foregroundStyle(Tokens.ink2)
-                        Text("Practice mode: Focus watches but will not interrupt. \(c.prefs.practiceSessionsLeft) practice \(c.prefs.practiceSessionsLeft == 1 ? "session" : "sessions") left.")
-                            .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
-                        Button("Nudge me now") { c.prefs.turnNudgesOnNow() }.buttonStyle(FocusButtonStyle(.plain, small: true))
-                    }
-                }
+            VStack(alignment: .leading, spacing: Space.m) {
+                StartForm(c: c) {}
+                if intro { Button("See how it works") { c.showExample() }.buttonStyle(FocusButtonStyle(.plain, small: true)).help("Try an example with made-up windows") }
             }
         }
-        .onAppear { focused = true }
     }
-
-    var taskField: some View {
-        TextField(last?.name ?? "Lab report on pendulums", text: $task)
-            .font(Tokens.rounded(.title3, .medium))
-            .wellField(height: 52, focused: focused)
-            .focused($focused).onSubmit { start() }
-            .onChange(of: task) { _, _ in asking = false }
-    }
-    var startButton: some View {
-        Button { start() } label: { Text(parsed.task.isEmpty && last != nil ? "Continue" : "Start").frame(minWidth: 64) }
-            .buttonStyle(FocusButtonStyle(.primary)).controlSize(.large).frame(height: 52)
-            .disabled(!canStart).keyboardShortcut(.defaultAction)
-    }
-
-    /// One calm line under the field: what Return will do.
-    @ViewBuilder var hint: some View {
-        if asking, let p = similar.first {
-            // The question. Nothing has been created yet; either answer starts the session.
-            VStack(alignment: .leading, spacing: Space.s) {
-                Text("You worked on \u{201C}\(p.name)\u{201D}\(Self.when(p, c.store)). Continue it, or start \u{201C}\(parsed.task)\u{201D} as a new project?")
-                    .font(Tokens.text(.body)).fixedSize(horizontal: false, vertical: true)
-                if !p.nextStep.isEmpty { Text("Next: \(p.nextStep)").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(1) }
-                HStack(spacing: Space.xs) {
-                    Button { start(continuing: p) } label: { Text("Continue \u{201C}\(p.name)\u{201D}").lineLimit(1) }.buttonStyle(FocusButtonStyle(.primary, small: true))
-                    Button { start(forceNew: true) } label: { Text("Start new").lineLimit(1) }.buttonStyle(FocusButtonStyle(.plain, small: true))
-                }
-            }
-            .padding(Space.s).frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: Tokens.radiusInset, style: .continuous).fill(Tokens.accentSoft))
-        } else if let m = parsed.minutes, existing == nil, let p = similar.first {
-            Text("Looks like \u{201C}\(p.name)\u{201D}. Return asks before starting \(m) minutes on a new project.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
-        } else if let m = parsed.minutes {
-            Text("Return starts a \(m) minute session on \u{201C}\(parsed.task)\u{201D}.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
-        } else if parsed.task.isEmpty, let p = last {
-            Text(p.nextStep.isEmpty ? "Return continues \u{201C}\(p.name)\u{201D}." : "Return continues \u{201C}\(p.name)\u{201D}. Next: \(p.nextStep)")
-                .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(2)
-        } else if let p = existing {
-            Text(p.nextStep.isEmpty ? "Return continues \u{201C}\(p.name)\u{201D}." : "Return continues \u{201C}\(p.name)\u{201D}. Next: \(p.nextStep)")
-                .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(2)
-        } else if let p = similar.first {
-            HStack(spacing: Space.xs) {
-                Text("Did you mean \u{201C}\(p.name)\u{201D}?").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).lineLimit(1)
-                Button("Use it") { task = p.name + (parsed.minutes.map { " \($0)" } ?? "") }.buttonStyle(FocusButtonStyle(.plain, small: true))
-            }
-        } else if !parsed.task.isEmpty, !projects.isEmpty {
-            Text("New project. You can describe it later under Projects.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
-        }
-    }
-
-    var modeRow: some View {
-        HStack(spacing: Space.xs) {
-            let typed = parsed.minutes != nil
-            chip("Open", on: !timed && !typed) { timed = false }
-            chip("Timed", on: timed || typed) { timed = true }
-            if timed && !typed {
-                Picker("Length", selection: $minutes) { ForEach([25, 50, 90], id: \.self) { Text("\($0) min").tag($0) } }
-                    .pickerStyle(.menu).labelsHidden().frame(width: 96)
-            }
-            Spacer()
-            Button("More options") { showStart = true }.buttonStyle(FocusButtonStyle(.plain, small: true)).keyboardShortcut("n")
-        }
-    }
-
-    @ViewBuilder var pickUp: some View {
-        if let projects = c.store?.projects.prefix(3), !projects.isEmpty {
-            VStack(alignment: .leading, spacing: Space.xs) {
-                Text("Pick up").font(Tokens.text(.caption, .medium)).foregroundStyle(Tokens.ink2)
-                // Side by side while every chip has room for a name (a longer one wraps); otherwise one column, so a name is never cut
-                // to a few letters and no chip is left alone in a row.
-                if pickWidth >= 190 * TextScale.shared.factor * CGFloat(projects.count) {
-                    HStack(alignment: .top, spacing: Space.s) {
-                        ForEach(Array(projects)) { p in ProjectChip(c: c, project: p, onStart: { markSeen() }) }
-                    }
-                    .fixedSize(horizontal: false, vertical: true)
-                } else {
-                    VStack(spacing: Space.xs) {
-                        ForEach(Array(projects)) { p in ProjectChip(c: c, project: p, onStart: { markSeen() }) }
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { pickWidth = $0 }
-        }
-    }
-
-    func markSeen() { c.prefs.introSeen = true }
-
-    /// What Return does. Typed text starts that task (a trailing number makes it timed); an empty field continues the last project.
     struct Plan: Equatable { var task: String; var projectId: UUID?; var mode: Mode; var duration: Double? }
     static func plan(text: String, timed: Bool, minutes: Int, last: Project?) -> Plan? {
         let p = StartSheet.parse(text)
         if p.task.isEmpty { return last.map { Plan(task: $0.name, projectId: $0.id, mode: .open, duration: nil) } }
         let isTimed = timed || p.minutes != nil
         return Plan(task: p.task, projectId: nil, mode: isTimed ? .timed : .open, duration: isTimed ? Double((p.minutes ?? minutes) * 60) : nil)
-    }
-
-    /// "3 days ago" style note for the question.
-    static func when(_ p: Project, _ store: DataStore?) -> String {
-        guard let s = store?.sessions(for: p.id).first else { return "" }
-        return " " + s.start.formatted(.relative(presentation: .named))
-    }
-
-    /// Return. A name close to an older project is asked about first (once per edit of the field); an exact name just continues that project.
-    func start(continuing project: Project? = nil, forceNew: Bool = false) {
-        guard let p = Self.plan(text: task, timed: timed, minutes: minutes, last: last) else { return }
-        if project == nil, !forceNew, !asking, p.projectId == nil, existing == nil, !similar.isEmpty { asking = true; return }
-        markSeen()
-        asking = false
-        c.begin(task: project?.name ?? p.task, mode: p.mode, duration: p.duration, projectId: project?.id ?? p.projectId ?? existing?.id, autoTick: true)
-    }
-
-    func chip(_ label: String, on: Bool, _ action: @escaping () -> Void) -> some View {
-        Button(label, action: action).buttonStyle(ChoiceStyle(on: on))
     }
 }
 
@@ -177,7 +36,7 @@ struct ProjectChip: View {
     var body: some View {
         let sessions = c.store?.sessions(for: project.id) ?? []
         let detail = project.nextStep.isEmpty ? (sessions.first.map { $0.start.formatted(.relative(presentation: .named)) } ?? "No sessions yet") : "Next: \(project.nextStep)"
-        Button { onStart(); c.begin(task: project.name, projectId: project.id, autoTick: true) } label: {
+        Button { onStart(); _ = c.startWithDraft(task: project.name, projectId: project.id) } label: {
             HStack(spacing: Space.s) {
                 Image(systemName: "play.fill").font(.system(size: 10, weight: .bold)).foregroundStyle(Tokens.onAccent)
                     .frame(width: 24, height: 24).background(Circle().fill(Tokens.accent))
@@ -200,23 +59,36 @@ struct ProjectChip: View {
 /// After a session: what happened, in one short block. Everything optional sits below it.
 struct JustFinishedCard: View {
     @Bindable var c: SessionController
+    /// The tick draws itself once when the card arrives: the one moment in a session worth a small flourish.
+    @State private var drawn = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         if let s = c.summary {
+            let settled = !c.shortSessionOffer && (c.sessionGoal.isEmpty || c.goalDisposition != nil)
             Tile {
                 VStack(alignment: .leading, spacing: Space.s) {
-                    HStack(alignment: .firstTextBaseline) {
+                    HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
+                        Image(systemName: "checkmark.circle").font(.system(size: 17, weight: .semibold)).foregroundStyle(Tokens.accent)
+                            .modifier(DrawOn(hidden: !drawn && !reduceMotion))
+                            .accessibilityHidden(true)
                         Text("Session finished").font(Tokens.rounded(.title3, .semibold))
                         Spacer()
                     }
+                    .task { try? await Task.sleep(for: .milliseconds(220)); drawn = true }
                     Text(sentence(s)).font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2)
                     if let h = c.highlight { HighlightLine(highlight: h) }
-                    RecapBlock(c: c)
-                    if let p = c.projectForNote { PickUpNote(c: c, project: p) }
-                    if c.askLoudness {
+                    if c.shortSessionOffer {
+                        FlowRow(spacing: Space.xs) {
+                            Button("Keep going") { c.keepGoing() }.buttonStyle(FocusButtonStyle(.primary, small: true))
+                            Button("Finish") { c.finishFiveMinutes() }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                        }
+                    } else { SessionGoalResult(c: c) }
+                    if settled { RecapBlock(c: c) }
+                    if settled, let p = c.projectForNote { PickUpNote(c: c, project: p) }
+                    if c.askLoudness && settled {
                         Divider().overlay(Tokens.line)
-                        HStack(spacing: Space.xs) {
+                        FlowRow(spacing: Space.xs) {
                             Text("Was Focus too loud?").font(Tokens.text(.body, .semibold))
-                            Spacer()
                             Button("Too quiet") { c.prefs.answerLoudness(.tooQuiet) }.buttonStyle(FocusButtonStyle(.plain, small: true))
                             Button("About right") { c.prefs.answerLoudness(.aboutRight) }.buttonStyle(FocusButtonStyle(.plain, small: true))
                             Button("Too loud") { c.prefs.answerLoudness(.tooLoud) }.buttonStyle(FocusButtonStyle(.plain, small: true))
@@ -396,6 +268,9 @@ struct HowDecidesButton: View {
 /// Gone after the first session or when hidden.
 struct HowItWorks: View {
     @Bindable var c: SessionController
+    /// First run only: the three steps arrive one after another, reading order, once.
+    @State private var shown = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s) {
             HStack(alignment: .firstTextBaseline) {
@@ -406,12 +281,13 @@ struct HowItWorks: View {
             // A real sequence, so it is numbered: one inset, three short steps, no grid of look-alike cards.
             Inset(padding: Space.l) {
                 VStack(alignment: .leading, spacing: Space.m) {
-                    step(1, "Say what you are working on", "Kept as a project for next time")
-                    step(2, "It compares the window in front", "App, title and page, read on this Mac")
-                    step(3, "Not sure does nothing", "It can be wrong, so a nudge needs a drift that lasts")
+                    step(1, "Say what you are working on", "Kept as a project for next time").arrive(0, shown, reduceMotion)
+                    step(2, "It compares the window in front", "App, title and page, read on this Mac").arrive(1, shown, reduceMotion)
+                    step(3, "Not sure does nothing", "It can be wrong, so a nudge needs a drift that lasts").arrive(2, shown, reduceMotion)
                 }
             }
         }
+        .onAppear { shown = true }
     }
     func step(_ n: Int, _ title: String, _ text: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: Space.s) {
@@ -423,5 +299,21 @@ struct HowItWorks: View {
             }
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// SF Symbols' draw-on where the system has it (macOS 26); earlier systems simply show the symbol.
+struct DrawOn: ViewModifier {
+    var hidden: Bool
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) { content.symbolEffect(.drawOn, isActive: hidden) } else { content }
+    }
+}
+
+extension View {
+    /// One of a few items arriving in order: rises a few points and fades in, 60 ms after the one before. Reduce Motion: a plain fade.
+    func arrive(_ index: Int, _ shown: Bool, _ reduce: Bool) -> some View {
+        opacity(shown ? 1 : 0).offset(y: shown || reduce ? 0 : 8)
+            .animation((reduce ? Motion.reduced : Motion.out(0.42)).delay(reduce ? 0 : 0.18 + Double(index) * 0.06), value: shown)
     }
 }

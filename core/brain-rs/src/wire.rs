@@ -26,6 +26,7 @@ pub fn decode_event(e: &J) -> Event {
             Event::SessionStart(c)
         }
         "SessionEnd" => Event::SessionEnd,
+        "TaskChanged" => Event::TaskChanged,
         "Judgment" => Event::Judgment(JudgmentInput {
             request_id: g("requestId").and_then(J::num).map(|n| n as i64), observed_at: g("observedAt").and_then(J::num).unwrap_or(0.0),
             window_key: g("windowKey").and_then(J::str).unwrap().into(), content_key: g("contentKey").and_then(J::str).unwrap_or("").into(),

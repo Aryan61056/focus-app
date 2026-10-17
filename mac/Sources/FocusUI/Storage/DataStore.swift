@@ -9,6 +9,7 @@ public final class DataStore {
     public private(set) var projects: [Project] = []
     public private(set) var sessions: [SessionRecord] = []
     public private(set) var review: [ReviewMoment] = []
+    public private(set) var thoughts: [ParkedThought] = []
     @ObservationIgnored private let url: URL?
     /// The last save did not reach the disk (full disk, no permission). Today says so, because the alternative is losing sessions without a word.
     public private(set) var saveFailed = false
@@ -23,7 +24,7 @@ public final class DataStore {
             try? FileManager.default.moveItem(at: url, to: aside)
             return
         }
-        projects = f.projects; sessions = f.sessions; review = f.review
+        projects = f.projects; sessions = f.sessions; review = f.review; thoughts = f.thoughts ?? []
     }
 
     public static var defaultURL: URL {
@@ -32,15 +33,16 @@ public final class DataStore {
         return dir.appendingPathComponent("store.json")
     }
 
-    func save() {
-        guard let url else { return }
-        guard let data = try? JSONEncoder.store.encode(StoreFile(projects: projects, sessions: sessions, review: review)) else { saveFailed = true; return }
+    @discardableResult func save() -> Bool {
+        guard let url else { return true }
+        guard let data = try? JSONEncoder.store.encode(StoreFile(projects: projects, sessions: sessions, review: review, thoughts: thoughts)) else { saveFailed = true; return false }
         do {
             try data.write(to: url, options: [.atomic])
             // Task and project names are personal: only this user may read the file (an atomic write makes a new file with the default 0644).
             try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
             if saveFailed { saveFailed = false }
-        } catch { saveFailed = true }
+            return true
+        } catch { saveFailed = true; return false }
     }
 
     public func retrySave() { save() }
@@ -96,6 +98,16 @@ public final class DataStore {
     public func deleteSession(_ id: UUID) { sessions.removeAll { $0.id == id }; review.removeAll { $0.sessionId == id }; save() }
     public func sessions(for project: UUID) -> [SessionRecord] { sessions.filter { $0.projectId == project } }
 
+    public func resolveGoal(for id: UUID, done: Bool) {
+        guard let i = sessions.firstIndex(where: { $0.id == id }), let goal = sessions[i].goal else { return }
+        sessions[i].goalDone = done
+        if let p = projects.firstIndex(where: { $0.id == sessions[i].projectId }) {
+            if !done { projects[p].carriedGoal = goal }
+            else if projects[p].carriedGoal == goal { projects[p].carriedGoal = nil }
+        }
+        save()
+    }
+
     // MARK: review queue
     public func addReview(_ m: ReviewMoment) { review.insert(m, at: 0); if review.count > 200 { review.removeLast() }; save() }
     public func answerReview(_ id: UUID, _ answer: String) { if let i = review.firstIndex(where: { $0.id == id }) { review[i].answer = answer; review[i].reason = nil; save() } }
@@ -132,9 +144,23 @@ public final class DataStore {
 
     static func add(_ v: String, to list: inout [String]) { if !list.contains(where: { $0.caseInsensitiveCompare(v) == .orderedSame }) { list.append(v) } }
 
+    @discardableResult public func park(_ text: String) -> Bool {
+        let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, text.count <= 2000 else { return false }
+        thoughts.append(ParkedThought(text: text))
+        guard save() else { thoughts.removeLast(); return false }; return true
+    }
+    public func completeThought(_ id: UUID, completed: Bool) {
+        guard let index = thoughts.firstIndex(where: { $0.id == id }) else { return }
+        thoughts[index].completed = completed; save()
+    }
+    public func clearThoughts(completedOnly: Bool = false) {
+        if completedOnly { thoughts.removeAll { $0.completed } } else { thoughts = [] }; save()
+    }
+
     // MARK: data ownership
-    public func deleteEverything() { projects = []; sessions = []; review = []; save() }
-    public func exportJSON() -> Data? { try? JSONEncoder.store.encode(StoreFile(projects: projects, sessions: sessions, review: review)) }
+    public func deleteEverything() { projects = []; sessions = []; review = []; thoughts = []; save() }
+    public func exportJSON() -> Data? { try? JSONEncoder.store.encode(StoreFile(projects: projects, sessions: sessions, review: review, thoughts: thoughts)) }
 }
 
 extension JSONEncoder { static var store: JSONEncoder { let e = JSONEncoder(); e.dateEncodingStrategy = .iso8601; e.outputFormatting = [.prettyPrinted, .sortedKeys]; return e } }

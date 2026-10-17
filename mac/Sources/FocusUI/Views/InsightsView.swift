@@ -74,11 +74,11 @@ struct InsightsView: View {
 
     func readingFacts(_ t: ReadStats) -> some View {
         VStack(spacing: 0) {
-            fact("Readings", "\(t.total)")
-            fact("Read by the model", "\(t.model)")
-            fact("Settled by your rules", "\(t.rule)")
+            fact("Readings", count: t.total)
+            fact("Read by the model", count: t.model)
+            fact("Settled by your rules", count: t.rule)
             if t.skipped > 0 { fact("Left alone (never-judged list)", "\(t.skipped)") }
-            fact("Sessions", "\(store.sessions.count)")
+            fact("Sessions", count: store.sessions.count)
         }
     }
 
@@ -89,33 +89,107 @@ struct InsightsView: View {
             HStack { Text(k).foregroundStyle(Tokens.ink2); Spacer(); Text(v).monospacedDigit() }.font(Tokens.text(.body)).padding(.vertical, Space.xs)
         }
     }
+    func fact(_ k: String, count: Int) -> some View {
+        VStack(spacing: 0) {
+            Divider().overlay(Tokens.line)
+            HStack { Text(k).foregroundStyle(Tokens.ink2); Spacer(); CountText(value: count) }.font(Tokens.text(.body)).padding(.vertical, 8)
+        }
+    }
 }
 
-/// Hours 8 to 19 down, Monday to Sunday across. Darkness is on-task time; the figure is in the accessibility label.
+/// A whole number that counts up from zero the first time it appears, with digits that roll. Shows the number at once with Reduce Motion.
+struct CountText: View {
+    var value: Int
+    @State private var shown = SnapshotMode.on
+    @Environment(\.accessibilityReduceMotion) private var shownAtOnce
+    var body: some View {
+        let v = shown || shownAtOnce ? value : 0
+        Text("\(v)").monospacedDigit().contentTransition(.numericText(value: Double(v)))
+            .animation(.smooth(duration: 0.9), value: v)
+            .onAppear { shown = true }
+            .accessibilityLabel("\(value)")
+    }
+}
+
+/// Hours 8 to 19 down, Monday to Sunday across, drawn as halftone: a bigger, brighter dot is more on-task time, the way the website prints
+/// its art. The dots grow in as a diagonal wave from the top-left, and the one under the pointer swells and lights its row and day.
+/// The figure is in each cell's accessibility label and help text.
 struct Heatmap: View {
     var grid: [[Double]]
+    @State private var hover: (day: Int, hour: Int)?
+    @State private var shown = SnapshotMode.on
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private static let days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
     var body: some View {
         let peak = max(grid.flatMap { $0 }.max() ?? 1, 1)
-        let days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        let on = shown || reduceMotion
         // The hour column grows with the Text size setting, so "10:00" never breaks.
         let labelWidth = 36 * TextScale.shared.factor
-        VStack(spacing: 3) {
-            HStack(spacing: 3) {
+        VStack(spacing: 2) {
+            HStack(spacing: 2) {
                 Text("").frame(width: labelWidth)
-                ForEach(days, id: \.self) { Text($0).font(Tokens.text(.caption2)).foregroundStyle(Tokens.ink2).frame(maxWidth: .infinity) }
+                ForEach(0..<7, id: \.self) { d in
+                    Text(Self.days[d]).font(Tokens.text(.caption2, hover?.day == d ? .semibold : .regular))
+                        .foregroundStyle(hover?.day == d ? Tokens.ink : Tokens.ink2).frame(maxWidth: .infinity)
+                }
             }
             ForEach(8..<20, id: \.self) { h in
-                HStack(spacing: 3) {
-                    Text("\(h):00").font(Tokens.rounded(.caption2)).foregroundStyle(Tokens.ink2).lineLimit(1).frame(width: labelWidth, alignment: .trailing)
+                HStack(spacing: 2) {
+                    Text("\(h):00").font(Tokens.rounded(.caption2, hover?.hour == h ? .bold : .semibold))
+                        .foregroundStyle(hover?.hour == h ? Tokens.ink : Tokens.ink2).lineLimit(1).frame(width: labelWidth, alignment: .trailing)
                     ForEach(0..<7, id: \.self) { d in
                         let v = grid[d][h]
-                        RoundedRectangle(cornerRadius: Tokens.radiusTiny).fill(Tokens.control).overlay { RoundedRectangle(cornerRadius: Tokens.radiusTiny).fill(Tokens.accent.opacity(0.15 + 0.85 * v / peak)).opacity(v > 0 ? 1 : 0) }
-                            .frame(height: 16)
-                            .accessibilityElement().accessibilityLabel("\(days[d]) \(h):00, \(Int(v / 60)) minutes on task")
+                        let f = v > 0 ? CGFloat(sqrt(v / peak)) : 0
+                        let here = hover?.day == d && hover?.hour == h
+                        let line = hover?.day == d || hover?.hour == h
+                        Circle()
+                            .fill(v > 0 ? Tokens.accent.opacity(0.35 + 0.65 * f) : Tokens.ink.opacity(line ? 0.22 : 0.12))
+                            .frame(width: v > 0 ? 4 + 11 * f : 3, height: v > 0 ? 4 + 11 * f : 3)
+                            .scaleEffect(on ? (here ? 1.3 : 1) : 0.001)
+                            .animation(reduceMotion ? nil : .spring(duration: 0.55, bounce: 0.25).delay(on && hover == nil ? Double(d + h - 8) * 0.03 : 0), value: on)
+                            .animation(reduceMotion ? nil : Motion.notchSettle, value: here)
+                            .frame(maxWidth: .infinity).frame(height: 19)
+                            .contentShape(Rectangle())
+                            .onHover { inside in if inside { hover = (d, h) } else if hover?.day == d && hover?.hour == h { hover = nil } }
+                            .help(v > 0 ? "\(Self.days[d]) \(h):00: \(Int(v / 60)) minutes on task" : "\(Self.days[d]) \(h):00: nothing yet")
+                            .accessibilityElement().accessibilityLabel("\(Self.days[d]) \(h):00, \(Int(v / 60)) minutes on task")
                     }
                 }
             }
+            // One line that answers the grid: the dot under the pointer, or the best hour when nothing is hovered. Beside it, what size means;
+            // in a narrow page the key goes under the line instead of squeezing it.
+            let line = Text(readout(peak))
+                .font(Tokens.text(.caption, .medium)).foregroundStyle(Tokens.ink).lineLimit(1)
+                .contentTransition(.interpolate).animation(reduceMotion ? nil : Motion.hover, value: readout(peak))
+            let key = HStack(spacing: 5) {
+                Text("Less").font(Tokens.text(.caption2)).foregroundStyle(Tokens.ink2)
+                ForEach([0.0, 0.25, 0.5, 0.75, 1.0], id: \.self) { f in
+                    Circle().fill(Tokens.accent.opacity(f == 0 ? 0.3 : 0.35 + 0.65 * sqrt(f))).frame(width: 4 + 11 * sqrt(f), height: 4 + 11 * sqrt(f)).frame(width: 15, height: 15)
+                }
+                Text("More").font(Tokens.text(.caption2)).foregroundStyle(Tokens.ink2)
+            }
+            .fixedSize()
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) { line.fixedSize(); Spacer(minLength: 8); key }
+                VStack(alignment: .leading, spacing: Space.xs) { line; key }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 12).padding(.leading, labelWidth + 2)
+            .accessibilityElement(children: .ignore).accessibilityLabel(readout(peak))
         }
+        .onAppear { shown = true }
+    }
+
+    func readout(_ peak: Double) -> String {
+        if let h = hover {
+            let v = grid[h.day][h.hour]
+            return v > 0 ? "\(Self.days[h.day]) \(h.hour):00 · \(Int(v / 60)) min on task" : "\(Self.days[h.day]) \(h.hour):00 · nothing yet"
+        }
+        var best: (Int, Int, Double)?
+        for d in 0..<7 { for hr in 8..<20 where grid[d][hr] > (best?.2 ?? 0) { best = (d, hr, grid[d][hr]) } }
+        guard let b = best else { return "Hover a dot to see the minutes" }
+        return "Best hour: \(Self.days[b.0]) \(b.1):00 · \(Int(b.2 / 60)) min on task"
     }
 }
 
