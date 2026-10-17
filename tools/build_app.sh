@@ -1,7 +1,8 @@
 #!/bin/bash
 # Builds mac/.build/Focus.app from the SwiftPM release build: a local, ad-hoc-signed development bundle.
 # Pass --install to also copy it to ~/Applications, where Spotlight finds it (no sudo).
-# Not for distribution (signing, notarization and the bundle id are owner decisions still open).
+# For a copy to hand to other people use tools/build_dmg.sh (it sets FOCUS_DISTRIBUTION=1). Signing, notarization and the bundle id are
+# owner decisions still open.
 #
 # Friends over iCloud (docs/SOCIAL.md) need a signed build. With no variables set you get the ad-hoc build, where Friends says
 # "not set up for it yet". To try iCloud, set all of:
@@ -69,7 +70,13 @@ sed -i '' "s|__BUNDLE_ID__|$BUNDLE_ID|" "$APP/Contents/Info.plist"
 if [ "$SIGNED" = 1 ]; then /usr/libexec/PlistBuddy -c "Add :FocusCloudContainer string $CLOUD_CONTAINER" "$APP/Contents/Info.plist"; fi
 # Which build this is, and where it came from: an installed copy watches that folder for a newer build (see Updater.swift). Local only.
 BUILD_ID="$(date -u +%Y%m%d%H%M%S)-$(git rev-parse --short HEAD 2>/dev/null || echo nogit)"
-/usr/libexec/PlistBuddy -c "Add :FocusBuildID string $BUILD_ID" -c "Add :FocusBuildSource string $(pwd)/$APP" "$APP/Contents/Info.plist"
+# FOCUS_DISTRIBUTION=1 (tools/build_dmg.sh) leaves the folder out: a copy on someone else's Mac has no business watching this one, and the
+# path would carry this Mac's user name into the app.
+if [ "${FOCUS_DISTRIBUTION:-}" = 1 ]; then
+  /usr/libexec/PlistBuddy -c "Add :FocusBuildID string $BUILD_ID" "$APP/Contents/Info.plist"
+else
+  /usr/libexec/PlistBuddy -c "Add :FocusBuildID string $BUILD_ID" -c "Add :FocusBuildSource string $(pwd)/$APP" "$APP/Contents/Info.plist"
+fi
 # Assets.car holds the layered icon; the system finds it by name.
 if [ -n "$ICON_NAME" ]; then /usr/libexec/PlistBuddy -c "Add :CFBundleIconName string $ICON_NAME" "$APP/Contents/Info.plist"; fi
 plutil -lint "$APP/Contents/Info.plist" >/dev/null
