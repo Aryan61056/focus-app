@@ -75,6 +75,20 @@ public final class PhoneLink {
             }
         } else if enabled { startListening() }
         track()
+        trackPhones()
+    }
+
+    /// Keeps the controller's `phoneState` current, so the sidebar card, toolbar button and menu bar row show whether a phone is paired and connected.
+    private func trackPhones() {
+        guard let controller else { return }
+        withObservationTracking {
+            let paired = self.phones, live = self.connected
+            let name = paired.first { p in live.contains { $0.id == p.id } }?.name
+            let state: SessionController.PhoneState = name.map { .connected($0) } ?? (paired.isEmpty ? .none : .paired(paired.count))
+            if controller.phoneState != state { controller.phoneState = state }
+        } onChange: { [weak self] in
+            Task { @MainActor [weak self] in self?.trackPhones() }
+        }
     }
 
     public func setEnabled(_ on: Bool) {

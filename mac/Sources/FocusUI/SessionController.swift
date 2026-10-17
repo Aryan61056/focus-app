@@ -193,6 +193,11 @@ public final class SessionController {
     public private(set) var settingsPageRequest: (page: SettingsPage, serial: Int)?
     public func requestSettingsPage(_ p: SettingsPage) { settingsPageRequest = (p, (settingsPageRequest?.serial ?? 0) + 1) }
     public func requestStart() { closeExample(); startRequests += 1 }
+    /// Where the iPhone link stands, so the sidebar, toolbar and menu bar can offer "Connect your iPhone" without knowing about the
+    /// link itself (FocusLink sets this; FocusUI only reads it).
+    public enum PhoneState: Equatable { case none, paired(Int), connected(String) }
+    public var phoneState = PhoneState.none
+    @ObservationIgnored public var onOpenPhone: (() -> Void)?
     public private(set) var judgeStatus = JudgeStatus.unknown
     public func setJudgeStatus(_ s: JudgeStatus) { if judgeStatus != s { judgeStatus = s } }
     @ObservationIgnored public var onOpenModelSettings: (() -> Void)?
