@@ -40,4 +40,21 @@ final class WindowRaiserTests: XCTestCase {
         XCTAssertNil(WindowRaiser.pick(for: win("Notes", ""), among: [C(title: "Anything")]))
         XCTAssertNil(WindowRaiser.pick(for: win("Notes", "Plan"), among: []))
     }
+
+    func testDiasProfileInFrontOfTheWindowTitleDoesNotGetInTheWay() {
+        let cands = [C(title: "Personal: Inbox"), C(title: "Personal: Lecture notes")]
+        XCTAssertEqual(WindowRaiser.pick(for: WindowSnapshot(app: "Dia", title: "Lecture notes", space: "Personal"), among: cands), 1)
+    }
+
+    func testADiaWindowWithAShortTitleIsFoundOnlyBecauseTheProfileIsStripped() {
+        // "Personal: Todo" would be a partial match for "Todo" only if both were 6 or more characters; the exact match after stripping needs no guess.
+        let cands = [C(title: "Personal: Inbox"), C(title: "Personal: Todo")]
+        XCTAssertEqual(WindowRaiser.pick(for: WindowSnapshot(app: "Dia", title: "Todo", space: "Personal"), among: cands), 1)
+        XCTAssertNil(WindowRaiser.pick(for: WindowSnapshot(app: "Dia", title: "Todo"), among: cands), "with no profile known the short title is still never guessed")
+    }
+
+    func testTheProfileIsOnlyStrippedWhenItLeadsTheTitle() {
+        let cands = [C(title: "Work: Plan"), C(title: "Home: Plan")]
+        XCTAssertNil(WindowRaiser.pick(for: WindowSnapshot(app: "Dia", title: "Plan", space: "Personal"), among: cands), "another profile's window is not this one")
+    }
 }

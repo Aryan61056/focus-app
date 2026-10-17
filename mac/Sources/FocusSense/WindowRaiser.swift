@@ -16,17 +16,23 @@ public enum WindowRaiser {
     /// contains the other (a document that gained "- Edited"); an ambiguous partial match is nil, because the wrong window is worse than the app.
     public static func pick(for target: WindowSnapshot, among cands: [Candidate]) -> Int? {
         func norm(_ s: String) -> String { TaskPlaces.pageTitle(s, app: target.app).lowercased() }
+        // Dia titles its windows "<profile>: <page title>" (read on the real app, 2026-10-17); without the profile the title is the page's.
+        func windowNorm(_ s: String) -> String {
+            let lead = target.space + ": "
+            if !target.space.isEmpty, s.lowercased().hasPrefix(lead.lowercased()) { return norm(String(s.dropFirst(lead.count))) }
+            return norm(s)
+        }
         let want = norm(target.title)
 
         if !target.documentPath.isEmpty {
             let same = cands.indices.filter { cands[$0].documentPath == target.documentPath }
-            if let exact = same.first(where: { norm(cands[$0].title) == want }) { return exact }
+            if let exact = same.first(where: { windowNorm(cands[$0].title) == want }) { return exact }
             if let first = same.first { return first }
         }
         guard !want.isEmpty else { return nil }
-        if let exact = cands.indices.first(where: { norm(cands[$0].title) == want }) { return exact }
+        if let exact = cands.indices.first(where: { windowNorm(cands[$0].title) == want }) { return exact }
         let partial = cands.indices.filter {
-            let have = norm(cands[$0].title)
+            let have = windowNorm(cands[$0].title)
             guard min(have.count, want.count) >= 6 else { return false }
             return have.contains(want) || want.contains(have)
         }
