@@ -1,15 +1,8 @@
 import SwiftUI
 import FocusLinkNet
 
-/// A soft glow behind the ring that changes with the state. It is what gives the glass something to bend.
+/// The plain canvas. (The soft glow behind the ring went with the Workspace look: the state is drawn by the ring's shape.)
 struct Backdrop: View {
     var phase: SessionState.Phase
-    var body: some View {
-        ZStack {
-            Palette.canvas
-            RadialGradient(colors: [phase.tint.opacity(phase == .idle ? 0.10 : 0.22), .clear], center: .init(x: 0.5, y: 0.34), startRadius: 10, endRadius: 380)
-        }
-        .motion(Motion.follow, value: phase)
-        .ignoresSafeArea()
-    }
+    var body: some View { Palette.canvas.ignoresSafeArea() }
 }

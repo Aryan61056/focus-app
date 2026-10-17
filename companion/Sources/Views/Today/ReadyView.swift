@@ -6,8 +6,6 @@ struct ReadyView: View {
     @State private var task = ""
     @State private var minutes: Int? = 25
     @State private var started = 0
-    /// Ticks when the connection changes, so the art sends a wave out: the phone found (or lost) the Mac.
-    @State private var pulse = 0
     @FocusState private var focused: Bool
 
     private var recentTasks: [String] {
@@ -18,11 +16,17 @@ struct ReadyView: View {
 
     var body: some View {
         VStack(spacing: 24) {
-            VStack(spacing: 12) {
-                HeroBanner(key: "today", pulse: pulse) { SessionPill() }
-                Text(model.connection.isLive ? "Starts on your Mac" : "Waiting for your Mac. Open Focus on it and click Connect your iPhone.")
-                    .multilineTextAlignment(.center)
-                    .font(.subheadline).foregroundStyle(Palette.ink2).contentTransition(.interpolate)
+            VStack(spacing: 14) {
+                HStack(spacing: 14) {
+                    FocusRing(phase: .idle, progress: nil, lineWidth: 6).frame(width: 56, height: 56)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Ready when you are").font(.title2.weight(.semibold))
+                        Text(model.connection.isLive ? "Starts on your Mac" : "Waiting for your Mac. Open Focus on it and click Connect your iPhone.")
+                            .font(.subheadline).foregroundStyle(Palette.ink2).contentTransition(.interpolate)
+                    }
+                    Spacer(minLength: 0)
+                }
+                FocusBar(phase: .idle)
             }
             .padding(.top, 8)
             .reveal(0, key: "today")
@@ -61,7 +65,6 @@ struct ReadyView: View {
         .frame(maxWidth: 520)
         .successFeedback(started)
         .motion(Motion.settle, value: model.notice)
-        .onChange(of: model.connection.isLive) { _, _ in pulse += 1 }
     }
 
     private func begin() {
