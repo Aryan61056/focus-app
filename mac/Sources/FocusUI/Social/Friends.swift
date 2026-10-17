@@ -23,9 +23,16 @@ public struct FriendCard: Codable, Equatable, Identifiable, Sendable {
     public var days: [ShareDay]
     public var streak: Int
     public var updated: Date
-    public init(id: String, name: String, days: [ShareDay], streak: Int, updated: Date) {
+    /// An avatar picked from `avatars`; nil shows the name's first letter. Anything not on the list is dropped when a card arrives.
+    public var emoji: String?
+    public init(id: String, name: String, days: [ShareDay], streak: Int, updated: Date, emoji: String? = nil) {
         self.id = id; self.name = name; self.days = days; self.streak = streak; self.updated = updated
+        self.emoji = emoji.flatMap { FriendCard.avatars.contains($0) ? $0 : nil }
     }
+
+    /// The avatars on offer. A fixed list, like cheers, so nothing typed travels.
+    public static let avatars = ["\u{1F98A}", "\u{1F43C}", "\u{1F438}", "\u{1F989}", "\u{1F419}", "\u{1F41D}",
+                                 "\u{1F335}", "\u{1F340}", "\u{1F680}", "\u{2B50}", "\u{1F3A7}", "\u{1F4DA}"]
 
     /// Days kept on a card: this week and last, whatever day the week starts on.
     public static let daysKept = 14
@@ -36,7 +43,7 @@ public struct FriendCard: Codable, Equatable, Identifiable, Sendable {
     }
 
     /// Your card, made from saved sessions. Practice sessions are left out: they do not classify, so their minutes say nothing.
-    public static func mine(id: String, name: String, sessions: [SessionRecord], today: Date, calendar cal: Calendar = .current) -> FriendCard {
+    public static func mine(id: String, name: String, emoji: String? = nil, sessions: [SessionRecord], today: Date, calendar cal: Calendar = .current) -> FriendCard {
         let counted = sessions.filter { $0.practice != true }
         let start = cal.startOfDay(for: today)
         var days: [ShareDay] = []
@@ -47,7 +54,7 @@ public struct FriendCard: Codable, Equatable, Identifiable, Sendable {
             days.append(ShareDay(day: key(d, cal), focusedSeconds: s.reduce(0) { $0 + $1.onTaskSeconds }.rounded(),
                                  slips: s.reduce(0) { $0 + $1.drifts }, sessions: s.count))
         }
-        return FriendCard(id: id, name: name, days: days, streak: Rewards.streak(counted, today: today, calendar: cal).current, updated: today)
+        return FriendCard(id: id, name: name, days: days, streak: Rewards.streak(counted, today: today, calendar: cal).current, updated: today, emoji: emoji)
     }
 }
 
@@ -102,6 +109,7 @@ public enum Scoreboard {
     public struct Entry: Identifiable, Equatable, Sendable {
         public var id: String
         public var name: String
+        public var emoji: String?
         public var isYou: Bool
         public var focusedSeconds: Double
         public var slips: Int
@@ -126,7 +134,7 @@ public enum Scoreboard {
         var out = cards.map { c -> Entry in
             let byDay = Dictionary(c.days.map { ($0.day, $0) }, uniquingKeysWith: { a, _ in a })
             let week = keys.map { byDay[$0] }
-            return Entry(id: c.id, name: c.name, isYou: c.id == you,
+            return Entry(id: c.id, name: c.name, emoji: c.emoji, isYou: c.id == you,
                          focusedSeconds: week.reduce(0) { $0 + ($1?.focusedSeconds ?? 0) },
                          slips: week.reduce(0) { $0 + ($1?.slips ?? 0) }, sessions: week.reduce(0) { $0 + ($1?.sessions ?? 0) },
                          streak: c.streak, week: week.map { $0?.focusedSeconds ?? 0 }, slipsByDay: week.map { $0?.slips ?? 0 }, rank: nil)

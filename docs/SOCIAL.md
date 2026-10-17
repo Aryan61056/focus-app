@@ -14,6 +14,12 @@ on it". Replies acknowledge each other's ups and downs.
   The existing rule holds: Focus never names a distraction unless you ask, and friends cannot ask.
 - Practice sessions are left out: they do not classify, so they would only add unearned minutes.
 
+## Look (owner, 2026-10-16: "should look a lot more fun than analytical")
+The one page outside Workspace's "not too playful": a podium for the top three with medals, everyone else on race tracks,
+emoji avatars (a fixed list of twelve, so nothing typed travels) on a soft color per friend, one-click emoji cheers that
+float up when sent, and cheers shown as speech bubbles. Amber still marks only slips, Reduce Motion drops the motion, and
+the footnote keeps "Focus can be wrong".
+
 ## How you respond (owner)
 An emoji or a pre-written line, picked from a fixed list. Nothing typed, so no free text ever leaves the Mac and there is
 nothing to moderate. At most three per friend per day (Claude's call: enough to cheer, not enough to spam).
@@ -40,10 +46,11 @@ What still holds:
 ## How it connects (Claude's calls)
 - Your private iCloud database holds one zone, `Friends`, with your card (numbers above) and a zone-wide share.
 - Inviting a friend opens Apple's iCloud sharing sheet for that share. A friend who accepts sees your card in their
-  shared database. If they share too, their app leaves a reply in your zone with their own share link, and your app
-  accepts it on the next refresh, so one invite links both ways.
-- Cheers are small records a friend writes into your zone (participants can write). Your app trusts only records whose
-  creator matches: your card must be yours, a cheer's sender is its creator.
+  shared database. Each person invites the other; a friend who shares with you but cannot see yours shows "Invite back".
+  (An automatic two-way link was dropped: it needed participants to write into each other's zones.)
+- Cheers you send are records in your own zone, addressed to a friend; they read them from your zone. Nobody writes into
+  anyone else's zone, and a reader trusts only records the zone's owner created. Card fields and cheers use CloudKit's
+  encrypted values.
 - Refresh: when the Friends page opens, after each session is saved, and on request. No background polling.
 
 ## Not verified and not decided

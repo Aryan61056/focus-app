@@ -11,11 +11,13 @@ public enum FriendsAvailability: Equatable, Sendable {
     case unavailable(String)
 }
 
-/// What a refresh brings back: friends' cards and the cheers sent to you.
+/// What a refresh brings back: friends' cards, the cheers sent to you, and who has accepted your invite (so the page can say
+/// "Invite back" to a friend who shares with you but cannot see yours yet).
 public struct FriendsSnapshot: Sendable {
     public var cards: [FriendCard]
     public var cheers: [Cheer]
-    public init(cards: [FriendCard], cheers: [Cheer]) { self.cards = cards; self.cheers = cheers }
+    public var audience: Set<String>
+    public init(cards: [FriendCard], cheers: [Cheer], audience: Set<String>) { self.cards = cards; self.cheers = cheers; self.audience = audience }
 }
 
 /// How friends' numbers travel. The real one (CloudKit) lives in the FocusSocial module, so this module never imports a networking
@@ -44,6 +46,8 @@ public final class FriendsStore {
     public private(set) var cheers: [Cheer] = []
     public private(set) var you: String?
     public private(set) var lastSync: Date?
+    /// Friends who accepted your invite and so see your numbers.
+    public private(set) var audience: Set<String> = []
     /// Cheers you have looked at, so the sidebar count only shows new ones.
     public private(set) var seen: Set<String> = []
     /// Cheers you sent today, per friend, for the daily limit.
@@ -65,11 +69,13 @@ public final class FriendsStore {
 
     public var sharing: Bool { prefs.shareWithFriends }
     public var newCheers: Int { cheers.filter { !seen.contains($0.id) }.count }
+    public func seesYou(_ id: String) -> Bool { audience.contains(id) }
     public func name(of id: String) -> String { id == you ? "You" : (friends.first { $0.id == id }?.name ?? "A friend") }
 
     /// Your card as friends would see it now. Built from the store each time, so it is never stale.
     public var myCard: FriendCard {
-        FriendCard.mine(id: you ?? "you", name: prefs.friendName.isEmpty ? "You" : prefs.friendName, sessions: store?.sessions ?? [], today: now())
+        FriendCard.mine(id: you ?? "you", name: prefs.friendName.isEmpty ? "You" : prefs.friendName, emoji: prefs.friendEmoji.isEmpty ? nil : prefs.friendEmoji,
+                        sessions: store?.sessions ?? [], today: now())
     }
 
     public func entries(_ board: Scoreboard.Board) -> [Scoreboard.Entry] {
@@ -98,7 +104,7 @@ public final class FriendsStore {
             prefs.shareWithFriends = false
             status = .syncing
             do { try await transport.stopSharing(); status = .off } catch { status = .failed(Self.say(error)) }
-            friends = []; cheers = []; you = nil; save()
+            friends = []; cheers = []; audience = []; you = nil; save()
         }
     }
 
@@ -119,6 +125,7 @@ public final class FriendsStore {
             let snap = try await transport.fetch()
             friends = snap.cards.filter { $0.id != you }
             cheers = snap.cheers.sorted { $0.at > $1.at }
+            audience = snap.audience
             lastSync = now(); status = .ready; save()
         } catch { status = .failed(Self.say(error)) }
     }
@@ -160,11 +167,12 @@ public final class FriendsStore {
         var seen: [String] = []
         var sent: [String: [Date]] = [:]
         var lastSync: Date?
+        var audience: [String] = []
     }
 
     func load() {
         guard let url, let data = try? Data(contentsOf: url), let f = try? JSONDecoder.store.decode(File.self, from: data) else { return }
-        friends = f.friends; cheers = f.cheers; seen = Set(f.seen); sent = f.sent; lastSync = f.lastSync
+        friends = f.friends; cheers = f.cheers; seen = Set(f.seen); sent = f.sent; lastSync = f.lastSync; audience = Set(f.audience)
     }
 
     func save() {
@@ -173,7 +181,7 @@ public final class FriendsStore {
         let ids = Set(cheers.map(\.id))
         let day = Calendar.current.startOfDay(for: now())
         let f = File(friends: friends, cheers: cheers, seen: seen.filter { ids.contains($0) },
-                     sent: sent.mapValues { $0.filter { $0 >= day } }.filter { !$0.value.isEmpty }, lastSync: lastSync)
+                     sent: sent.mapValues { $0.filter { $0 >= day } }.filter { !$0.value.isEmpty }, lastSync: lastSync, audience: audience.sorted())
         guard let data = try? JSONEncoder.store.encode(f) else { return }
         try? data.write(to: url, options: [.atomic])
         try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
@@ -186,6 +194,7 @@ public final class FriendsStore {
 @MainActor public final class DemoFriendsTransport: FriendsTransport {
     public var cards: [FriendCard]
     public var cheers: [Cheer]
+    public var audience: Set<String> = []
     public private(set) var published: [FriendCard] = []
     public private(set) var sentCheers: [(CheerKind, String)] = []
     public private(set) var invites = 0
@@ -195,7 +204,7 @@ public final class FriendsStore {
 
     public func availability() async -> FriendsAvailability { answer }
     public func publish(_ card: FriendCard) async throws { published.append(card) }
-    public func fetch() async throws -> FriendsSnapshot { FriendsSnapshot(cards: cards, cheers: cheers) }
+    public func fetch() async throws -> FriendsSnapshot { FriendsSnapshot(cards: cards, cheers: cheers, audience: audience) }
     public func send(_ kind: CheerKind, to friend: String) async throws { sentCheers.append((kind, friend)) }
     public func invite() async throws { invites += 1 }
     public func remove(_ friend: String) async throws { cards.removeAll { $0.id == friend } }
@@ -203,26 +212,28 @@ public final class FriendsStore {
 
     /// Synthetic friends for the demo: four people with believable, different weeks. Names are made up.
     public static func sample(today: Date = .now, calendar cal: Calendar = .current) -> DemoFriendsTransport {
-        func card(_ id: String, _ name: String, _ minutes: [Int], _ slips: [Int], streak: Int) -> FriendCard {
+        func card(_ id: String, _ name: String, emoji: String?, _ minutes: [Int], _ slips: [Int], streak: Int) -> FriendCard {
             let start = cal.startOfDay(for: today)
             var days: [ShareDay] = []
             for (i, m) in minutes.enumerated() where m > 0 {
                 guard let d = cal.date(byAdding: .day, value: -(minutes.count - 1 - i), to: start) else { continue }
                 days.append(ShareDay(day: FriendCard.key(d, cal), focusedSeconds: Double(m * 60), slips: slips[i], sessions: max(1, m / 45)))
             }
-            return FriendCard(id: id, name: name, days: days, streak: streak, updated: today)
+            return FriendCard(id: id, name: name, days: days, streak: streak, updated: today, emoji: emoji)
         }
         let cards = [
-            card("maya", "Maya", [95, 120, 0, 150, 110, 80, 135, 160, 90, 140, 70, 125, 145, 60], [1, 2, 0, 1, 0, 3, 1, 2, 0, 1, 1, 0, 2, 0], streak: 9),
-            card("jonah", "Jonah", [40, 0, 55, 70, 0, 30, 45, 50, 65, 0, 80, 40, 35, 25], [3, 0, 2, 4, 0, 1, 2, 3, 2, 0, 5, 2, 1, 1], streak: 3),
-            card("priya", "Priya", [180, 160, 200, 0, 0, 170, 190, 210, 150, 175, 0, 195, 185, 120], [0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0], streak: 14),
-            card("sam", "Sam", [0, 0, 20, 35, 0, 0, 25, 0, 30, 0, 15, 0, 20, 10], [0, 0, 1, 2, 0, 0, 1, 0, 2, 0, 1, 0, 0, 1], streak: 1),
+            card("maya", "Maya", emoji: "\u{1F989}", [95, 120, 0, 150, 110, 80, 135, 160, 90, 140, 70, 125, 145, 60], [1, 2, 0, 1, 0, 3, 1, 2, 0, 1, 1, 0, 2, 0], streak: 9),
+            card("jonah", "Jonah", emoji: "\u{1F680}", [40, 0, 55, 70, 0, 30, 45, 50, 65, 0, 80, 40, 35, 25], [3, 0, 2, 4, 0, 1, 2, 3, 2, 0, 5, 2, 1, 1], streak: 3),
+            card("priya", "Priya", emoji: "\u{1F98A}", [180, 160, 200, 0, 0, 170, 190, 210, 150, 175, 0, 195, 185, 120], [0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0], streak: 14),
+            card("sam", "Sam", emoji: nil, [0, 0, 20, 35, 0, 0, 25, 0, 30, 0, 15, 0, 20, 10], [0, 0, 1, 2, 0, 0, 1, 0, 2, 0, 1, 0, 0, 1], streak: 1),
         ]
         let cheers = [
             Cheer(id: "c1", from: "maya", kind: .keepGoing, at: today.addingTimeInterval(-1_800)),
             Cheer(id: "c2", from: "priya", kind: .fire, at: today.addingTimeInterval(-7_200)),
             Cheer(id: "c3", from: "jonah", kind: .withYou, at: today.addingTimeInterval(-86_400)),
         ]
-        return DemoFriendsTransport(cards: cards, cheers: cheers)
+        let t = DemoFriendsTransport(cards: cards, cheers: cheers)
+        t.audience = ["maya", "jonah", "priya"]   // Sam shares with you but has not accepted yours yet
+        return t
     }
 }

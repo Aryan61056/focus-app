@@ -3,12 +3,12 @@ import AppKit
 import FocusBrain
 
 public enum AppSection: String, CaseIterable, Identifiable {
-    case today = "Today", projects = "Projects", history = "History", insights = "Insights", review = "Review", settings = "Settings"
+    case today = "Today", projects = "Projects", history = "History", insights = "Insights", review = "Review", friends = "Friends", settings = "Settings"
     public var id: String { rawValue }
     var symbol: String {
         switch self {
         case .today: return "sun.max"; case .projects: return "folder"; case .history: return "clock"
-        case .insights: return "chart.xyaxis.line"; case .review: return "flag"; case .settings: return "gearshape"
+        case .insights: return "chart.xyaxis.line"; case .review: return "flag"; case .friends: return "person.2"; case .settings: return "gearshape"
         }
     }
 }
@@ -112,7 +112,7 @@ public struct RootView: View {
 
     /// Pages that draw the Focus panel beside themselves and so take the whole detail area.
     var ownsLayout: Bool {
-        switch current { case .section(.today), .section(.history), .section(.review): return true; default: return false }
+        switch current { case .section(.today), .section(.history), .section(.review), .section(.friends): return true; default: return false }
     }
 
     func travel(from a: inout [SidebarItem], to b: inout [SidebarItem]) {
@@ -133,6 +133,7 @@ public struct RootView: View {
                     case .section(.review) where !c.showsReview: TodayView(c: c, showStart: $showStart)
                     case .section(.review): if let st = c.store { ReviewView(c: c, store: st) } else { ComingNext(section: selection) }
                     case .section(.insights): if let st = c.store { InsightsView(c: c, store: st) } else { ComingNext(section: selection) }
+                    case .section(.friends): if let f = c.friends { FriendsView(c: c, friends: f) } else { ComingNext(section: selection) }
                     case .settings(let page): if let st = c.store { SettingsView(c: c, store: st, page: page) } else { ComingNext(section: selection) }
                     default: ComingNext(section: selection)
                     }
@@ -250,12 +251,14 @@ struct SourceList: View {
     var body: some View {
         let places = [AppSection.today, .projects].filter { shows($0.rawValue) }
         let records = [AppSection.history, .insights, .review].filter { ($0 != .review || c.showsReview) && shows($0.rawValue) }
+        let social = [AppSection.friends].filter { c.friends != nil && shows($0.rawValue) }
         let pages = SettingsPage.allCases.filter { shows($0.rawValue) }
         let projects = (c.store?.projects ?? []).filter { shows($0.name) }
         List(selection: $item) {
             // A group with nothing matching the search is left out, heading and all.
             if !places.isEmpty { Section { ForEach(places) { s in row(s) } } }
             if !records.isEmpty { Section { ForEach(records) { s in row(s) } } }
+            if !social.isEmpty { Section { ForEach(social) { s in row(s) } } }
             if !projects.isEmpty {
                 Section("Projects") {
                     ForEach(projects) { p in
@@ -273,7 +276,7 @@ struct SourceList: View {
                     ForEach(pages) { p in Label(p.rawValue, systemImage: p.symbol).tag(SidebarItem.settings(p)) }
                 }
             }
-            if places.isEmpty && records.isEmpty && pages.isEmpty && projects.isEmpty {
+            if places.isEmpty && records.isEmpty && social.isEmpty && pages.isEmpty && projects.isEmpty {
                 Text("Nothing called \u{201C}\(search)\u{201D}").font(Tokens.text(.caption)).foregroundStyle(.secondary).selectionDisabled()
             }
         }
@@ -284,7 +287,7 @@ struct SourceList: View {
     func row(_ s: AppSection) -> some View {
         Label(s.rawValue, systemImage: s.symbol)
             // Moments still waiting for an answer, as a count on Review. The tag goes last so the row stays selectable.
-            .badge(s == .review ? (c.store?.openReviewCount ?? 0) : 0)
+            .badge(s == .review ? (c.store?.openReviewCount ?? 0) : (s == .friends ? (c.friends?.newCheers ?? 0) : 0))
             .tag(SidebarItem.section(s))
     }
 }
@@ -312,7 +315,7 @@ struct Sidebar: View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: Space.s) { RingView(.on, color: Tokens.accent).frame(width: 20, height: 20); Text("Focus").font(Tokens.rounded(.callout, .semibold)) }
                 .padding(.horizontal, Space.xs).padding(.top, Space.l).padding(.bottom, Space.m)
-            ForEach(AppSection.allCases.filter { $0 != .settings && ($0 != .review || c.showsReview) }) { s in row(s) }
+            ForEach(AppSection.allCases.filter { $0 != .settings && ($0 != .review || c.showsReview) && ($0 != .friends || c.friends != nil) }) { s in row(s) }
             Spacer()
             ZStack {
                 if c.isActive {

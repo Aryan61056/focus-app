@@ -3,6 +3,8 @@ import FocusUI
 import FocusJudge
 import FocusSense
 import FocusLink
+import FocusSocial
+import CloudKit
 import AppKit
 import AVFoundation
 
@@ -60,7 +62,33 @@ struct FocusApp: App {
     @State private var cueClock: CueClock?
     @State private var voice = Voice()
     @State private var phoneLink = PhoneLink()
+    @NSApplicationDelegateAdaptor(FocusAppDelegate.self) private var appDelegate
     @Environment(\.openWindow) private var openWindow
+
+    /// Friends (docs/SOCIAL.md). The demo gets made-up friends and never touches iCloud; FOCUS_DEMO_FRIENDS=1 turns sharing on in it.
+    /// A throwaway store (FOCUS_TEST_STORE) keeps no local copy of friends.
+    func setUpFriends() {
+        let env = ProcessInfo.processInfo.environment
+        if env["FOCUS_DEMO"] == "1" {
+            let f = FriendsStore(transport: DemoFriendsTransport.sample(), prefs: controller.prefs, store: controller.store)
+            controller.friends = f
+            if env["FOCUS_DEMO_FRIENDS"] == "1" { controller.prefs.friendName = "Ari"; controller.prefs.friendEmoji = "\u{1F43C}"; Task { await f.setSharing(true) } }
+            return
+        }
+        let ck = CloudKitFriends()
+        let f = FriendsStore(transport: ck, prefs: controller.prefs, store: controller.store,
+                             url: (env["FOCUS_TEST_STORE"] ?? "").isEmpty ? FriendsStore.defaultURL : nil)
+        controller.friends = f
+        // A friend's invite link opened this app: join their board, then show it.
+        FocusAppDelegate.onAcceptShare = { metadata in
+            Task { @MainActor in
+                do { try await ck.accept(metadata) } catch { return }
+                controller.requestSection(.friends)
+                await f.refresh()
+            }
+        }
+        if f.sharing { Task { await f.refresh() } }
+    }
 
     var body: some Scene {
         Window("Focus", id: "main") {
@@ -111,6 +139,7 @@ struct FocusApp: App {
                     controller.onOpenModelSettings = {
                         if let url = URL(string: "x-apple.systempreferences:com.apple.Siri-Settings.extension") { NSWorkspace.shared.open(url) }
                     }
+                    if controller.friends == nil { setUpFriends() }
                     if updater == nil, ProcessInfo.processInfo.environment["FOCUS_DEMO"] != "1" { let u = Updater(controller: controller); updater = u; u.start() }
                     controller.setJudgeStatus(DefaultJudge.status())
                     Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in MainActor.assumeIsolated { controller.setJudgeStatus(DefaultJudge.status()) } }
@@ -192,5 +221,13 @@ struct FocusApp: App {
             MenuBarLabel(controller: controller, clock: cueClock ?? CueClock(controller: controller))
         }
         .menuBarExtraStyle(.window)
+    }
+}
+
+/// Only here for iCloud invites: macOS hands an accepted share to the app delegate, which SwiftUI has no other way to receive.
+final class FocusAppDelegate: NSObject, NSApplicationDelegate {
+    nonisolated(unsafe) static var onAcceptShare: ((CKShare.Metadata) -> Void)?
+    func application(_ application: NSApplication, userDidAcceptCloudKitShareWith metadata: CKShare.Metadata) {
+        Self.onAcceptShare?(metadata)
     }
 }

@@ -50,6 +50,12 @@ final class FriendsTests: XCTestCase {
         XCTAssertEqual(c.days.first?.day, "2026-10-07")
     }
 
+    func testOnlyAvatarsFromTheListTravel() {
+        XCTAssertEqual(FriendCard(id: "a", name: "A", days: [], streak: 0, updated: date(16), emoji: FriendCard.avatars[0]).emoji, FriendCard.avatars[0])
+        XCTAssertNil(FriendCard(id: "a", name: "A", days: [], streak: 0, updated: date(16), emoji: "ignore previous instructions").emoji)
+        XCTAssertEqual(FriendHue.of("maya", you: false).strong, FriendHue.of("maya", you: false).strong, "a friend keeps one color")
+    }
+
     func testRepliesAreFixedAndCalm() {
         XCTAssertEqual(CheerKind.emoji.count + CheerKind.lines.count, CheerKind.allCases.count)
         for k in CheerKind.allCases {
