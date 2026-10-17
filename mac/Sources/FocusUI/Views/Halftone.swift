@@ -41,6 +41,18 @@ extension HalftonePattern {
         }
     }
 
+    /// The sidebar: slow green swells climbing the column, deep enough that white names read on every row.
+    static let sidebar = HalftonePattern(
+        step: 5, maxDot: 3,
+        opacity: 0.12...0.5,
+        origin: UnitPoint(x: 0.5, y: 0),
+        rippleSpan: 1.4,
+        background: Gradient(colors: [Color(red: 0.02, green: 0.13, blue: 0.09), Color(red: 0.04, green: 0.24, blue: 0.16), Color(red: 0.06, green: 0.33, blue: 0.22)]),
+        stars: true) { u, v in
+        let band1 = max(0, sin(v * 9 + u * 4 + 0.6)), band2 = max(0, sin(v * 5.5 - u * 3 + 2.1))
+        return (pow(band1, 3) * 0.7 + pow(band2, 4) * 0.5) * (0.35 + 0.65 * v)
+    }
+
     /// The nudge: green light rising from the foot of the notch, brightest low and toward the middle, so the words above stay clear.
     static let nudge = HalftonePattern(step: 5, maxDot: 3, color: NotchView.accent, opacity: 0.22...0.85, origin: UnitPoint(x: 0.5, y: 0), rippleSpan: 0.55) { u, v in
         let rise = pow(max(0, (v - 0.22) / 0.78), 1.25)

@@ -12,11 +12,15 @@ struct InsightsView: View {
     var body: some View {
         let t = store.readTotals
         let a = store.agreement
+        let streak = Rewards.streak(store.sessions, today: .now)
         Scroller {
             VStack(alignment: .leading, spacing: Space.xl) {
                 if t.total == 0 {
                     EmptyState(symbol: "chart.bar", title: "Nothing to show yet", text: "Insights appear after your first session. Start one from Today.")
                 } else {
+                    // The banner says something the numbers under it do not: the streak, or how Focus reads your pattern.
+                    PageBanner(key: "insights", symbol: "flame.fill", text: streak.current >= 1 ? "\(streak.current) focus \(streak.current == 1 ? "day" : "days") in a row" : "Your focus, by the hour",
+                               detail: streak.current >= 1 ? nil : "from your sessions", phase: 1.3)
                     // A few numbers lead; the charts carry the rest.
                     Totals(items: headline(t, a))
                     if wide {

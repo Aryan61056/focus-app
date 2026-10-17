@@ -12,6 +12,8 @@ struct HistoryView: View {
         } else {
             PanelLayout {
                 VStack(alignment: .leading, spacing: Space.l) {
+                    PageBanner(key: "history", symbol: "clock.fill", text: "\(store.sessions.count) \(store.sessions.count == 1 ? "session" : "sessions")",
+                               detail: "newest first", phase: 2.4)
                     Totals(items: Self.totals(store.sessions, now: .now))
                     VStack(alignment: .leading, spacing: 0) {
                         let longest = store.sessions.map(\.activeSeconds).max() ?? 1

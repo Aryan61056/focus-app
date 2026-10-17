@@ -113,6 +113,8 @@ public final class Preferences {
     public var dockBounce: Bool { didSet { defaults.set(dockBounce, forKey: "dockBounce") } }
     /// A tap on the trackpad with a warning. Silent and private; it only works on a Force Touch trackpad with a finger resting on it.
     public var hapticTap: Bool { didSet { defaults.set(hapticTap, forKey: "hapticTap") } }
+    /// One soft tap on the trackpad for each physical thing the notch does under your hand: press, open, page change, a file arriving.
+    public var notchHaptics: Bool { didSet { defaults.set(notchHaptics, forKey: "notchHaptics") } }
     /// The Mac's own voice says the nudge aloud. Off by default because it is the one cue other people in the room can hear.
     public var speakNudges: Bool { didSet { defaults.set(speakNudges, forKey: "speakNudges") } }
     /// After a pause screen, opening the same site again asks for a short hold or a typed reason.
@@ -179,6 +181,7 @@ public final class Preferences {
         menuBarCue = defaults.object(forKey: "menuBarCue") as? Bool ?? true
         dockBounce = defaults.object(forKey: "dockBounce") as? Bool ?? true
         hapticTap = defaults.object(forKey: "hapticTap") as? Bool ?? true
+        notchHaptics = defaults.object(forKey: "notchHaptics") as? Bool ?? true
         speakNudges = defaults.object(forKey: "speakNudges") as? Bool ?? false
         frictionReturn = defaults.object(forKey: "frictionReturn") as? Bool ?? true
         holdToReturn = defaults.object(forKey: "holdToReturn") as? Bool ?? false

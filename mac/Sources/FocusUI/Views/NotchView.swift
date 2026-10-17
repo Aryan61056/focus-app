@@ -206,7 +206,12 @@ public struct NotchView: View {
         surface(shape: shape, size: size, box: box, shown: shown)
         // Mouse down squeezes it in from the sides before it springs open, the press Droppy gives.
         .scaleEffect(x: pressing && !big && !reduceMotion ? 0.87 : 1, y: 1, anchor: .top)
-        .onChange(of: model.dropTargeted) { _, on in if on { model.tab = .tray } }
+        .onChange(of: model.dropTargeted) { _, on in if on { model.tab = .tray; haptic(.entered) } }
+        // One tap for each thing you do to it, never for what it does on its own (a nudge has its own cue) or for hovering.
+        .onChange(of: pressing) { _, down in if down && !big { haptic(.pressed) } }
+        .onChange(of: model.expanded) { _, open in if open { haptic(.opened) } }
+        .onChange(of: model.tab) { _, _ in if big { haptic(.page) } }
+        .onChange(of: tray.drops) { _, _ in haptic(.landed) }
         .frame(width: box.width, height: box.height, alignment: .top)
         .ignoresSafeArea()
         .foregroundStyle(Self.ink)
@@ -260,6 +265,12 @@ public struct NotchView: View {
     }
 
     /// Widen for a moment and say the new state, then settle back. A second change while it shows just swaps the word.
+    /// A tap on the trackpad, unless this is a preview or the switch is off.
+    func haptic(_ kind: NotchHaptics.Kind) {
+        guard forced == nil, c.prefs.notchHaptics else { return }
+        NotchHaptics.play(kind)
+    }
+
     func announce(_ label: String) {
         guard forced == nil, model.presented, c.isActive else { return }
         flash = label
@@ -423,6 +434,8 @@ public struct NotchView: View {
         .padding(.leading, hasNotch ? 22 : 16).padding(.trailing, hasNotch ? 14 : 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.bottom, hasNotch ? 4 : 0)
+        // Green light rises from the foot of the notch as the nudge opens: it says "look here" without a sound or a flash. The shape clips it.
+        .background { Halftone(pattern: .nudge, ripple: .onAppear, followsPointer: false).allowsHitTesting(false) }
     }
 
     var nudgeText: String {

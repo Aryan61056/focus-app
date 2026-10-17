@@ -50,6 +50,14 @@ struct SettingsView: View {
                             .accessibilityLabel("Preview of a nudge in the notch")
                     }
                 }
+                group("Feel", .notch) {
+                    row("Tap the trackpad", "One soft tap when you press the notch, when it opens, when you change its page and when a file lands in the tray. Nothing while you only move the pointer over it. The Mac gives apps three tap shapes, so each moment gets its own. It only works on a Force Touch trackpad and only while a finger rests on it. Separate from the buzz that goes with a nudge.") {
+                        HStack(spacing: Space.s) {
+                            Button("Try") { NotchHaptics.play(.opened) }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+                            toggle(\.notchHaptics)
+                        }
+                    }
+                }
                 group("Widgets on the notch", .notch) {
                     // Everything here is worked out on this Mac. The notch only shows these; none of them is a button.
                     ForEach(NotchWidget.allCases) { w in

@@ -150,6 +150,11 @@ struct EmptyState<Action: View>: View {
         VStack(spacing: Space.m) {
             Image(systemName: symbol).font(.system(size: 22, weight: .medium)).foregroundStyle(Tokens.accent)
                 .frame(width: 52, height: 52).background(Circle().fill(Tokens.accentSoft))
+                .background {
+                    // Printed rings spread from the symbol when the page first shows; the one rare moment on these pages.
+                    Halftone(pattern: .rings(center: .center, aspect: 1), ripple: .onAppear, followsPointer: false)
+                        .frame(width: 260, height: 260).mask(Circle()).allowsHitTesting(false)
+                }
             VStack(spacing: Space.xs) {
                 Text(title).font(Tokens.rounded(.title3, .semibold))
                 Text(text).font(Tokens.text(.body)).foregroundStyle(Tokens.ink2).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
