@@ -41,6 +41,8 @@ public final class Preferences {
     public var friendName: String { didSet { defaults.set(friendName, forKey: "friendName") } }
     /// The avatar friends see, from FriendCard.avatars. Empty shows your first letter.
     public var friendEmoji: String { didSet { defaults.set(friendEmoji, forKey: "friendEmoji") } }
+    /// The Friends board last looked at, so the page opens where you left it.
+    public var friendsBoard: String { didSet { defaults.set(friendsBoard, forKey: "friendsBoard") } }
     public var dailyGoalMinutes: Int { didSet { defaults.set(dailyGoalMinutes, forKey: "dailyGoalMinutes") } }
     /// Wording of nudges only. Curated lines, never model-written, and none ever names what you were looking at.
     public var nudgeTone: NudgeTone { didSet { defaults.set(nudgeTone.rawValue, forKey: "nudgeTone") } }
@@ -107,6 +109,7 @@ public final class Preferences {
         shareWithFriends = defaults.bool(forKey: "shareWithFriends")
         friendName = defaults.string(forKey: "friendName") ?? ""
         friendEmoji = defaults.string(forKey: "friendEmoji") ?? ""
+        friendsBoard = defaults.string(forKey: "friendsBoard") ?? ""
         dailyGoalMinutes = defaults.object(forKey: "dailyGoalMinutes") as? Int ?? 90
         nudgeTone = NudgeTone(rawValue: defaults.string(forKey: "nudgeTone") ?? "") ?? .neutral
         checkRate = CheckRate(rawValue: defaults.string(forKey: "checkRate") ?? "") ?? .often

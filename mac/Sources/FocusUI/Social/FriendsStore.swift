@@ -55,6 +55,9 @@ public final class FriendsStore {
 
     public static let cheersPerFriendPerDay = 3
 
+    /// Which board the page shows. Remembered between launches.
+    public var board: Scoreboard.Board = .focused { didSet { prefs.friendsBoard = board.rawValue } }
+
     @ObservationIgnored let transport: FriendsTransport
     @ObservationIgnored let prefs: Preferences
     @ObservationIgnored let store: DataStore?
@@ -64,10 +67,18 @@ public final class FriendsStore {
     public init(transport: FriendsTransport, prefs: Preferences, store: DataStore?, url: URL? = nil) {
         self.transport = transport; self.prefs = prefs; self.store = store; self.url = url
         load()
+        board = Scoreboard.Board(rawValue: prefs.friendsBoard) ?? .focused
         if prefs.shareWithFriends { status = .checking }
     }
 
     public var sharing: Bool { prefs.shareWithFriends }
+    /// The very first fetch is still on its way, so "nobody here yet" would be wrong.
+    public var firstLoad: Bool { lastSync == nil && (status == .syncing || status == .checking) }
+    /// Cheers you got this calendar week.
+    public var cheersThisWeek: Int {
+        guard let week = Calendar.current.dateInterval(of: .weekOfYear, for: now()) else { return 0 }
+        return cheers.filter { week.contains($0.at) }.count
+    }
     public var newCheers: Int { cheers.filter { !seen.contains($0.id) }.count }
     public func seesYou(_ id: String) -> Bool { audience.contains(id) }
     public func name(of id: String) -> String { id == you ? "You" : (friends.first { $0.id == id }?.name ?? "A friend") }
@@ -129,6 +140,9 @@ public final class FriendsStore {
             lastSync = now(); status = .ready; save()
         } catch { status = .failed(Self.say(error)) }
     }
+
+    /// The demo's stand-in transport, so the demo can act out going offline. nil with the real one.
+    public var demoTransport: DemoFriendsTransport? { transport as? DemoFriendsTransport }
 
     public func sessionSaved() { if sharing { Task { await refresh() } } }
 
@@ -199,12 +213,18 @@ public final class FriendsStore {
     public private(set) var sentCheers: [(CheerKind, String)] = []
     public private(set) var invites = 0
     public var answer: FriendsAvailability = .available("demo-you")
+    /// Demo and tests: the next fetches fail as if offline.
+    public var offline = false
+    struct Offline: LocalizedError { var errorDescription: String? { "You seem to be offline. Friends will catch up when you're back online." } }
 
     public init(cards: [FriendCard] = [], cheers: [Cheer] = []) { self.cards = cards; self.cheers = cheers }
 
     public func availability() async -> FriendsAvailability { answer }
     public func publish(_ card: FriendCard) async throws { published.append(card) }
-    public func fetch() async throws -> FriendsSnapshot { FriendsSnapshot(cards: cards, cheers: cheers, audience: audience) }
+    public func fetch() async throws -> FriendsSnapshot {
+        if offline { throw Offline() }
+        return FriendsSnapshot(cards: cards, cheers: cheers, audience: audience)
+    }
     public func send(_ kind: CheerKind, to friend: String) async throws { sentCheers.append((kind, friend)) }
     public func invite() async throws { invites += 1 }
     public func remove(_ friend: String) async throws { cards.removeAll { $0.id == friend } }

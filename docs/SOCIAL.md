@@ -14,11 +14,11 @@ on it". Replies acknowledge each other's ups and downs.
   The existing rule holds: Focus never names a distraction unless you ask, and friends cannot ask.
 - Practice sessions are left out: they do not classify, so they would only add unearned minutes.
 
-## Look (owner, 2026-10-16: "should look a lot more fun than analytical")
-The one page outside Workspace's "not too playful": a podium for the top three with medals, everyone else on race tracks,
-emoji avatars (a fixed list of twelve, so nothing typed travels) on a soft color per friend, one-click emoji cheers that
-float up when sent, and cheers shown as speech bubbles. Amber still marks only slips, Reduce Motion drops the motion, and
-the footnote keeps "Focus can be wrong".
+## Look (owner, 2026-10-16: "a lot more fun than analytical", then "a bit less big", "not for kids", "not too much text")
+Fun but grown-up: a low podium for the top three with small gold, silver and bronze rank badges, everyone else on a race
+track, emoji avatars (a fixed list of twelve, so nothing typed travels) on a soft color per friend, one Cheer button per
+friend, cheers as speech bubbles. Explanations, including "Focus can be wrong", sit behind info buttons (hover or click),
+not on the page. Amber still marks only slips; Reduce Motion drops the motion.
 
 ## How you respond (owner)
 An emoji or a pre-written line, picked from a fixed list. Nothing typed, so no free text ever leaves the Mac and there is

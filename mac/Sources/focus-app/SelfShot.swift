@@ -21,7 +21,9 @@ enum SelfShot {
                 else if a == "hide" { NSApp.hide(nil) }   // the window out of sight, as during most of a session
                 else if a == "nonotch" { controller.prefs.showNotch = false }   // for measuring what the notch costs
                 else if a == "veil" { controller.previewVeil() }   // the whole-screen gray, so its windows can be listed
-                else if a == "nogray" { controller.prefs.screenGrayscale = false }   // keep the real display in color while panels are checked
+                else if a == "nogray" { controller.prefs.screenGrayscale = false }
+                else if a == "offline", let f = controller.friends { f.demoTransport?.offline = true; Task { await f.refresh() } }   // the "could not update" notice
+                else if a.hasPrefix("board:") { controller.friends?.board = Scoreboard.Board.allCases.first { "\($0)" == a.dropFirst(6) } ?? .focused }   // board:steady   // keep the real display in color while panels are checked
             }
         }
     }

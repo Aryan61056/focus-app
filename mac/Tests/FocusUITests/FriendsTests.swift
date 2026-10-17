@@ -157,6 +157,43 @@ final class FriendsTests: XCTestCase {
         XCTAssertTrue(s.cheers.isEmpty)
     }
 
+    func entry(_ id: String, _ minutes: Double, rank: Int?, you: Bool = false) -> Scoreboard.Entry {
+        Scoreboard.Entry(id: id, name: id.capitalized, emoji: nil, isYou: you, focusedSeconds: minutes * 60, slips: 0, sessions: 1, streak: 0,
+                         week: [], slipsByDay: [], rank: rank)
+    }
+
+    func testTheLeadLineFollowsTheRace() {
+        let line = { (e: [Scoreboard.Entry]) in FriendsView.leadLine(e, board: .focused) }
+        XCTAssertEqual(line([entry("me", 300, rank: 1, you: true), entry("ana", 120, rank: 2)]), "You're ahead by 3 h 00 min.")
+        XCTAssertEqual(line([entry("ana", 300, rank: 1), entry("me", 270, rank: 2, you: true)]), "30 min behind Ana. One session could do it.")
+        XCTAssertEqual(line([entry("ana", 300, rank: 1), entry("me", 0, rank: 2, you: true)]), "Ana leads. One session gets you on the board.")
+        XCTAssertEqual(line([entry("ana", 300, rank: 1), entry("me", 60, rank: 2, you: true)]), "Ana leads. You're 4 h 00 min behind.")
+        XCTAssertEqual(line([entry("me", 0, rank: 1, you: true)]), "Invite friends to start a race.")
+        for e in [[entry("me", 300, rank: 1, you: true), entry("ana", 120, rank: 2)], [entry("ana", 300, rank: 1), entry("me", 270, rank: 2, you: true)]] {
+            XCTAssertFalse(line(e).contains("!"))
+        }
+    }
+
+    func testAFailedUpdateKeepsTheLastBoardAndSaysWhy() async {
+        let t = DemoFriendsTransport.sample(today: date(16), calendar: cal)
+        let s = FriendsStore(transport: t, prefs: prefs(), store: DataStore())
+        await s.setSharing(true)
+        t.offline = true
+        await s.refresh()
+        if case .failed(let why) = s.status { XCTAssertTrue(why.contains("offline")) } else { XCTFail("expected failed, got \(s.status)") }
+        XCTAssertEqual(s.friends.count, 4, "the last board stays on screen")
+        XCTAssertNotNil(s.lastSync)
+        XCTAssertFalse(s.firstLoad)
+    }
+
+    func testTheBoardYouPickedIsRemembered() {
+        let p = prefs()
+        let s = FriendsStore(transport: DemoFriendsTransport(), prefs: p, store: DataStore())
+        XCTAssertEqual(s.board, .focused)
+        s.board = .steady
+        XCTAssertEqual(FriendsStore(transport: DemoFriendsTransport(), prefs: p, store: DataStore()).board, .steady)
+    }
+
     func testTheLocalCopyKeepsFriendsAcrossLaunches() async throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("friends-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
