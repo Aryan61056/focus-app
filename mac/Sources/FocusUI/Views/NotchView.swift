@@ -423,6 +423,8 @@ public struct NotchView: View {
         .padding(.leading, hasNotch ? 22 : 16).padding(.trailing, hasNotch ? 14 : 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.bottom, hasNotch ? 4 : 0)
+        // Green light rises from the foot of the notch as the nudge opens: it says "look here" without a sound or a flash. The shape clips it.
+        .background { Halftone(pattern: .nudge, ripple: .onAppear, followsPointer: false).allowsHitTesting(false) }
     }
 
     var nudgeText: String {

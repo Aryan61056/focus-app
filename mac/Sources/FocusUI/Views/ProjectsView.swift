@@ -9,6 +9,8 @@ struct ProjectsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.xl) {
+            PageBanner(key: "projects", symbol: "folder.fill", text: "\(store.projects.count) \(store.projects.count == 1 ? "project" : "projects")",
+                       detail: "pick one to start fast", phase: 3.6)
             HStack {
                 Spacer()
                 Button { let p = store.addProject(name: "New project"); selected = p.id } label: { Label("New project", systemImage: "plus") }
@@ -44,6 +46,25 @@ struct ProjectsView: View {
             Spacer(minLength: 0)
         }
         .frame(height: 50)
+        .modifier(ProjectDeleteMenu(c: c, project: p) { if selected == p.id { selected = store.projects.first?.id } })
+    }
+}
+
+/// Right-click (or a two-finger tap) on a project, anywhere it is listed: delete it. The project a session is running on stays.
+struct ProjectDeleteMenu: ViewModifier {
+    @Bindable var c: SessionController
+    var project: Project
+    var onDeleted: () -> Void = {}
+    @State private var asking = false
+    func body(content: Content) -> some View {
+        content
+            .contextMenu {
+                Button("Delete project…", role: .destructive) { asking = true }
+                    .disabled(c.isActive && c.projectId == project.id)
+            }
+            .confirmationDialog("Delete \(project.name)?", isPresented: $asking) {
+                Button("Delete project", role: .destructive) { c.store?.deleteProject(project.id); onDeleted() }
+            } message: { Text("Its rules are removed. Past sessions stay in History.") }
     }
 }
 

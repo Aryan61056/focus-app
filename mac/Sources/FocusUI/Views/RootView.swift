@@ -113,6 +113,8 @@ public struct RootView: View {
                 }
             }
         }
+        // The app is green, so system controls are too: sidebar icons, the selected length, links. No macOS blue anywhere.
+        .tint(Tokens.accent)
         // The welcome fills the window and its last step needs about 540 points, so it keeps the old minimum height; the app itself goes smaller.
         .frame(minWidth: 760, minHeight: c.showsWelcome ? 600 : 520)
         .onGeometryChange(for: Bool.self) { $0.size.width >= Self.sidebarFits } action: { fits in
@@ -252,10 +254,11 @@ struct SessionToolbar: View {
     }
 }
 
-/// The window's own surface: the system's plain window gray, as Droppy's pages sit on, so the grouped cards on top read as cards.
+/// The window's own surface: a deep green-black (pale green-white in light), the same family as the dotted sidebar, so the grouped cards
+/// on top read as cards and the sidebar does not look like a separate slab. Not the system gray, which is the one neutral left in the window.
 struct WindowBackdrop: View {
     var body: some View {
-        if SnapshotMode.on { Tokens.window } else { Color(nsColor: .windowBackgroundColor).ignoresSafeArea() }
+        if SnapshotMode.on { Tokens.window } else { Tokens.window.ignoresSafeArea() }
     }
 }
 
@@ -279,6 +282,7 @@ struct SourceList: View {
     var selection: AppSection
     @State private var search = ""
     @State private var settingsOpen = true
+    @State private var wave = 0
 
     func shows(_ name: String) -> Bool { search.isEmpty || name.localizedCaseInsensitiveContains(search) }
 
@@ -301,13 +305,14 @@ struct SourceList: View {
                             // The project the running session belongs to.
                             .badge(now ? Text("Now").foregroundStyle(Tokens.accent) : nil)
                             .tag(SidebarItem.project(p.id))
+                            .modifier(ProjectDeleteMenu(c: c, project: p) { if item == .project(p.id) { item = .section(.today) } })
                     }
                 }
             }
             if !pages.isEmpty {
                 // Every settings page keeps its own row; the group folds away when you do not need it.
                 Section("Settings", isExpanded: $settingsOpen) {
-                    ForEach(pages) { p in Label(p.rawValue, systemImage: p.symbol).tag(SidebarItem.settings(p)) }
+                    ForEach(pages) { p in Label { Text(p.rawValue) } icon: { Image(systemName: p.symbol).foregroundStyle(Tokens.accent) }.tag(SidebarItem.settings(p)) }
                 }
             }
             if places.isEmpty && records.isEmpty && social.isEmpty && pages.isEmpty && projects.isEmpty {
@@ -315,13 +320,18 @@ struct SourceList: View {
             }
         }
         .listStyle(.sidebar)
+        .scrollContentBackground(.hidden)
+        // The same printed dots as the page banners, deeper so the names stay clear on them. Each page you pick sends a wave through.
+        .background { Halftone(pattern: .sidebar, ripple: .oncePerLaunch("sidebar"), pulse: wave, followsPointer: false).ignoresSafeArea() }
+        .environment(\.colorScheme, .dark)
+        .onChange(of: item) { _, _ in wave += 1 }
         .searchable(text: $search, placement: .sidebar, prompt: "Search")
         // Pinned under the list so connecting a phone is never more than one click away, whatever page or search is showing.
         .safeAreaInset(edge: .bottom, spacing: 0) { PhoneConnectCard(c: c).padding(.horizontal, 10).padding(.bottom, 10).padding(.top, 6) }
     }
 
     func row(_ s: AppSection) -> some View {
-        Label(s.rawValue, systemImage: s.symbol)
+        Label { Text(s.rawValue) } icon: { Image(systemName: s.symbol).foregroundStyle(Tokens.accent) }
             // Moments still waiting for an answer, as a count on Review. The tag goes last so the row stays selectable.
             .badge(s == .review ? (c.store?.openReviewCount ?? 0) : (s == .friends ? (c.friends?.newCheers ?? 0) : 0))
             .tag(SidebarItem.section(s))
