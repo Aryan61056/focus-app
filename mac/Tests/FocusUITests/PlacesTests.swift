@@ -1290,6 +1290,32 @@ final class SpaceBrowserScriptTests: XCTestCase {
         XCTAssertEqual(TabScript.appName("arc"), "Arc"); XCTAssertEqual(TabScript.appName("Dia"), "Dia")
     }
 
+    /// Found on a real Arc on 2026-10-17: `set t to active tab of front window` (and the same for `front window` and `active space`) fails with
+    /// -1700 because Arc hands back an object AppleScript cannot keep in a variable. Chained reads and loop references work. A script that
+    /// stores one of those would quietly never match, so no Arc script may.
+    func testNoArcScriptStoresAReferenceToTheFrontWindowSpaceOrTab() throws {
+        let url = "https://docs.example.com/a"
+        let scripts = [TabScript.switchTo(app: "Arc", url: url, space: "S"), TabScript.switchToTitle(app: "Arc", title: "Lecture notes", space: "S"),
+                       TabScript.currentTab(app: "Arc"), TabScript.close(app: "Arc", url: url)]
+        for script in scripts {
+            let source = try XCTUnwrap(script)
+            for stored in ["set w to front window", "set s to active space", "set t to active tab", "to front window\n", "to active tab of"] {
+                XCTAssertFalse(source.contains(stored), "Arc cannot keep \(stored) in a variable")
+            }
+        }
+    }
+
+    func testArcClosesTheTabThatIsInFrontOnlyWhileItIsStillThatPage() throws {
+        let s = try XCTUnwrap(TabScript.close(app: "Arc", url: "https://docs.example.com/a?x=1"))
+        XCTAssertTrue(s.contains("set wantTab to (id of active tab of front window) as text"), "the tab in front is found by its id")
+        XCTAssertTrue(s.contains("repeat with t in tabs of s"), "through loop references, the form real Arc accepts")
+        XCTAssertTrue(s.contains(#""https://docs.example.com/a""#) && s.contains("close t"))
+        XCTAssertTrue(s.contains(#"return "changed""#), "a different page is left alone")
+        XCTAssertFalse(s.contains("x=1"), "the query is not part of the match")
+        let hostile = try XCTUnwrap(TabScript.close(app: "Arc", url: "https://a.com/x\"; do shell script \"rm -rf ~\"?q=1#f"))
+        XCTAssertTrue(hostile.contains("a.com/x\\\"; do shell script \\\"rm -rf ~\\\""), "every quote in the address is escaped, so it stays data")
+    }
+
     func testArcLooksThroughEverySpaceAndFocusesTheOneThatHoldsTheTab() throws {
         let s = try XCTUnwrap(TabScript.switchTo(app: "Arc", url: "https://notes.example.com/week3?x=1", space: "SPACE-1"))
         XCTAssertTrue(s.contains("spaces of w")); XCTAssertTrue(s.contains("tabs of s"))

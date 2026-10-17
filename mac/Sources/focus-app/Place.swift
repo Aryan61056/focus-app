@@ -23,6 +23,9 @@ import FocusSense
             // Only a definite "no such tab" lets the page be opened again; a refused permission or a slow browser is not "gone".
             pageIsGone = !exact && urlSaidNone && titleSaidNone
         }
+        // Arc cannot raise a window from a script (`set index of w to 1` fails there, checked on 2026-10-17), so after its script picked the
+        // tab the window holding it is brought forward with Accessibility as well. A miss changes nothing.
+        if exact, Enforcement.isSpaceBrowser(w.app) { _ = WindowRaiser.raise(pid: app.processIdentifier, matching: w) }
         if !exact { exact = WindowRaiser.raise(pid: app.processIdentifier, matching: w) }
         // The app's own tab bar, when no script reached the tab (Automation refused, or an app with no scripting).
         if !exact, allowTabs { exact = WindowRaiser.raiseTab(pid: app.processIdentifier, matching: w) }

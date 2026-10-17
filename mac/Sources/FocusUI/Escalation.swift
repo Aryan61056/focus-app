@@ -317,6 +317,33 @@ public enum TabScript {
     /// Closes the front window's current tab only if it is still at `url`. Prints "ok", or "changed" when the tab is not that page any more.
     public static func close(app: String, url: String) -> String? {
         guard let name = appName(app), !bare(url).isEmpty else { return nil }
+        // Real Arc refuses a stored reference (`set t to active tab of front window` fails with -1700, checked on 2026-10-17), so the tab is
+        // found the way the switch script finds it, through loop references, by the id of the tab that is in front.
+        if name == "Arc" {
+            return """
+            with timeout of 3 seconds
+            tell application "Arc"
+                try
+                    set wantTab to (id of active tab of front window) as text
+                    repeat with w in windows
+                        repeat with s in spaces of w
+                            repeat with t in tabs of s
+                                if ((id of t) as text) is wantTab then
+                                    if \(starts("(URL of t)", url)) then
+                                        close t
+                                        return "ok"
+                                    end if
+                                    return "changed"
+                                end if
+                            end repeat
+                        end repeat
+                    end repeat
+                end try
+            end tell
+            return "changed"
+            end timeout
+            """
+        }
         let current = isSafari(name) ? "current tab of front window" : "active tab of front window"
         return """
         with timeout of 3 seconds

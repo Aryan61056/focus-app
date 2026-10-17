@@ -47,6 +47,7 @@ let package = Package(
         .target(name: "FocusSocial", dependencies: ["FocusUI"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .executableTarget(name: "focus-sense-check", dependencies: ["FocusSense"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .executableTarget(name: "focus-app", dependencies: ["FocusUI", "FocusSense", "FocusLink", "FocusSocial"], swiftSettings: [.swiftLanguageMode(.v5)]),
+        .executableTarget(name: "script-dump", dependencies: ["FocusUI"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .executableTarget(name: "focus-snapshot", dependencies: ["FocusUI"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .testTarget(name: "FocusUITests", dependencies: ["FocusUI", "FocusBrain", "FocusJudge"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .testTarget(name: "FocusSenseTests", dependencies: ["FocusSense", "FocusUI", "FocusJudge"], swiftSettings: [.swiftLanguageMode(.v5)]),
