@@ -276,7 +276,6 @@ struct SourceList: View {
     @State private var search = ""
     @State private var settingsOpen = true
     @State private var wave = 0
-    @State private var hover: CGPoint?
 
     func shows(_ name: String) -> Bool { search.isEmpty || name.localizedCaseInsensitiveContains(search) }
 
@@ -303,9 +302,7 @@ struct SourceList: View {
         .listStyle(.sidebar)
         .scrollContentBackground(.hidden)
         // The same printed dots as the page banners, deeper so the names stay clear on them. Each page you pick sends a wave through.
-        // The dots sit behind the list, so the list listens for the pointer and hands it down; they swell and light up under it.
-        .background { Halftone(pattern: .sidebar, ripple: .oncePerLaunch("sidebar"), pulse: wave, followsPointer: false, globalPointer: hover).ignoresSafeArea() }
-        .overlay { PointerTracker { hover = $0 } }
+        .background { Halftone(pattern: .sidebar, ripple: .oncePerLaunch("sidebar"), pulse: wave, followsPointer: false).ignoresSafeArea() }
         .environment(\.colorScheme, .dark)
         .onChange(of: item) { _, _ in wave += 1 }
         .searchable(text: $search, placement: .sidebar, prompt: "Search")

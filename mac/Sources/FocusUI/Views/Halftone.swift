@@ -13,8 +13,6 @@ struct HalftonePattern {
     var rippleSpan = 1.1
     var background: Gradient?
     var stars = false
-    /// The pointer acts as a lens: dots near it swell, brighten, and the faint grid that is normally blank lights up under it.
-    var reveal = false
     var value: (CGFloat, CGFloat) -> CGFloat
 }
 
@@ -50,8 +48,7 @@ extension HalftonePattern {
         origin: UnitPoint(x: 0.5, y: 0),
         rippleSpan: 1.4,
         background: Gradient(colors: [Color(red: 0.02, green: 0.13, blue: 0.09), Color(red: 0.04, green: 0.24, blue: 0.16), Color(red: 0.06, green: 0.33, blue: 0.22)]),
-        stars: true,
-        reveal: true) { u, v in
+        stars: true) { u, v in
         let band1 = max(0, sin(v * 9 + u * 4 + 0.6)), band2 = max(0, sin(v * 5.5 - u * 3 + 2.1))
         return (pow(band1, 3) * 0.7 + pow(band2, 4) * 0.5) * (0.35 + 0.65 * v)
     }
@@ -89,9 +86,6 @@ struct Halftone: View {
     var ripple: Ripple = .onAppear
     var pulse = 0
     var followsPointer = true
-    /// A pointer position in window coordinates, for fields that sit behind other views and so cannot hear the hover themselves.
-    var globalPointer: CGPoint?
-    @State private var frame = CGRect.zero
     @State private var field = HalftoneField()
     @State private var live = false
     @State private var pointer: CGPoint?
@@ -110,12 +104,6 @@ struct Halftone: View {
             case .active(let p): pointer = p
             case .ended: pointer = nil
             }
-            wake(for: 1.2)
-        }
-        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
-        .onChange(of: globalPointer) { _, g in
-            guard !reduceMotion else { return }
-            pointer = g.map { CGPoint(x: $0.x - frame.minX, y: $0.y - frame.minY) }
             wake(for: 1.2)
         }
         .onAppear {
@@ -180,7 +168,7 @@ struct Halftone: View {
             while x < size.width {
                 let cloud = p.value(x / size.width, y / size.height)
                 let r = min(p.maxDot, cloud * p.maxDot * 0.94)
-                if r > p.maxDot * 0.11 || p.reveal {
+                if r > p.maxDot * 0.11 {
                     let level = min(Self.levels - 1, Int(min(1, cloud) * Double(Self.levels)))
                     dots.append(Dot(x: x, y: y, r: r, level: level, distance: hypot(x - o.x, y - o.y) / farthest))
                 }
@@ -209,11 +197,10 @@ struct Halftone: View {
         let rippling = rippleStart.map { now - $0 < p.rippleSpan + 1.1 } ?? false
         if !rippling { rippleStart = nil }
         let animate = !still && (rippling || power > 0.004 || !pulses.isEmpty)
-        let sigma2: CGFloat = p.reveal ? 74 * 74 : 70 * 70
+        let sigma2: CGFloat = 70 * 70
         var batches = Array(repeating: Path(), count: Self.levels)
         for d in dots {
             var s: CGFloat = 1
-            var lens: CGFloat = 0
             if animate {
                 if let start = rippleStart {
                     // Each dot waits for the wave to leave the origin, then grows in over 0.7 s.
@@ -223,8 +210,7 @@ struct Halftone: View {
                 }
                 if power > 0.004 {
                     let dx = d.x - follow.x, dy = d.y - follow.y
-                    let near = power * exp(-(dx * dx + dy * dy) / sigma2)
-                    if p.reveal { lens = near; s *= 1 + 0.9 * near } else { s *= 1 + 0.75 * near }
+                    s *= 1 + 0.75 * power * exp(-(dx * dx + dy * dy) / sigma2)
                 }
                 for pulse in pulses {
                     let age = (now - pulse) / Self.pulseLife
@@ -232,11 +218,9 @@ struct Halftone: View {
                     s *= 1 + 0.6 * CGFloat(1 - age) * exp(-gap * gap)
                 }
             }
-            // Under the lens a dot also grows from nothing and steps up in brightness, so the grid appears where the pointer is.
-            let r = d.r * s + lens * lens * p.maxDot * 0.9
+            let r = d.r * s
             if r < 0.3 { continue }
-            let level = min(Self.levels - 1, d.level + Int(lens * 4.2))
-            batches[level].addEllipse(in: CGRect(x: d.x - r / 2, y: d.y - r / 2, width: r, height: r))
+            batches[d.level].addEllipse(in: CGRect(x: d.x - r / 2, y: d.y - r / 2, width: r, height: r))
         }
         let lo = p.opacity.lowerBound, span = p.opacity.upperBound - lo
         for (i, path) in batches.enumerated() where !path.isEmpty {
@@ -248,32 +232,6 @@ struct Halftone: View {
                 let r: CGFloat = i % 3 == 0 ? 1.6 : 1
                 ctx.fill(Path(ellipseIn: CGRect(x: star.0 * size.width, y: star.1 * size.height, width: r * 2, height: r * 2)), with: .color(.white.opacity(0.7 * (still ? 1 : starsIn))))
             }
-        }
-    }
-}
-
-/// Reports the pointer in window coordinates (origin top left, like SwiftUI's .global) without ever taking a click or a hover from the
-/// views under it. A tracking area hears the pointer even where a list or a button underneath would swallow SwiftUI's own hover.
-struct PointerTracker: NSViewRepresentable {
-    var onMove: (CGPoint?) -> Void
-
-    func makeNSView(context: Context) -> TrackerView { let v = TrackerView(); v.onMove = onMove; return v }
-    func updateNSView(_ v: TrackerView, context: Context) { v.onMove = onMove }
-
-    final class TrackerView: NSView {
-        var onMove: (CGPoint?) -> Void = { _ in }
-        override func hitTest(_ point: NSPoint) -> NSView? { nil }
-        override func updateTrackingAreas() {
-            super.updateTrackingAreas()
-            trackingAreas.forEach(removeTrackingArea)
-            addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseMoved, .mouseEnteredAndExited, .activeInActiveApp, .inVisibleRect], owner: self))
-        }
-        override func mouseMoved(with event: NSEvent) { report(event) }
-        override func mouseEntered(with event: NSEvent) { report(event) }
-        override func mouseExited(with event: NSEvent) { onMove(nil) }
-        private func report(_ event: NSEvent) {
-            guard let h = window?.contentView?.bounds.height else { return }
-            onMove(CGPoint(x: event.locationInWindow.x, y: h - event.locationInWindow.y))
         }
     }
 }
