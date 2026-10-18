@@ -13,6 +13,9 @@ struct HalftonePattern {
     var rippleSpan = 1.1
     var background: Gradient?
     var stars = false
+    /// Idle life: slow breathing waves drift out from the origin and a few dots now and then glint. Off by default; it keeps a
+    /// light layer running (10 frames a second) while the field is on screen and the app is frontmost, and never under Reduce Motion.
+    var ambient = false
     var value: (CGFloat, CGFloat) -> CGFloat
 }
 
@@ -20,7 +23,7 @@ extension HalftonePattern {
     /// The hero: two printed hills under a night sky.
     static let hills = HalftonePattern(
         background: Gradient(colors: [Color(red: 0.03, green: 0.22, blue: 0.16), Color(red: 0.05, green: 0.40, blue: 0.27), Color(red: 0.10, green: 0.55, blue: 0.36)]),
-        stars: true) { u, v in
+        stars: true, ambient: true) { u, v in
         let hill1 = v - (0.72 - 0.18 * sin(u * 5.2 + 0.6) - 0.06 * sin(u * 13))
         let hill2 = v - (0.38 + 0.22 * cos(u * 3.4 + 1.9) + 0.05 * sin(u * 17 + 2))
         // Soft edges: dots are biggest on the crest of each hill and thin out away from it, like printed clouds.
@@ -32,7 +35,7 @@ extension HalftonePattern {
     static func ridge(phase: Double) -> HalftonePattern {
         HalftonePattern(
             background: Gradient(colors: [Color(red: 0.03, green: 0.22, blue: 0.16), Color(red: 0.05, green: 0.40, blue: 0.27), Color(red: 0.10, green: 0.55, blue: 0.36)]),
-            stars: true) { u, v in
+            stars: true, ambient: true) { u, v in
             let a = CGFloat(phase)
             let hill1 = v - (0.70 - 0.2 * sin(u * 4.4 + a) - 0.05 * sin(u * 11 + a))
             let hill2 = v - (0.34 + 0.2 * cos(u * 3.0 + a * 1.7) + 0.04 * sin(u * 15 + a))
@@ -62,7 +65,7 @@ extension HalftonePattern {
 
     /// Concentric printed rings around a symbol, for empty states. `center` is where the symbol sits.
     static func rings(center: UnitPoint, aspect: CGFloat) -> HalftonePattern {
-        HalftonePattern(step: 5, maxDot: 3.2, color: Tokens.accent, opacity: 0.2...0.7, origin: center, rippleSpan: 0.9) { u, v in
+        HalftonePattern(step: 5, maxDot: 3.2, color: Tokens.accent, opacity: 0.2...0.7, origin: center, rippleSpan: 0.9, ambient: true) { u, v in
             let d = hypot((u - center.x) * aspect, v - center.y)
             return pow(max(0, 1 - d * 1.05), 1.4) * (0.5 + 0.5 * cos(d * 24))
         }
@@ -70,7 +73,7 @@ extension HalftonePattern {
 
     /// A soft bloom from one corner, for a moment worth marking (a finished session).
     static func bloom(from corner: UnitPoint, aspect: CGFloat) -> HalftonePattern {
-        HalftonePattern(step: 5, maxDot: 3, color: Tokens.accent, opacity: 0.2...0.75, origin: corner, rippleSpan: 0.8) { u, v in
+        HalftonePattern(step: 5, maxDot: 3, color: Tokens.accent, opacity: 0.2...0.75, origin: corner, rippleSpan: 0.8, ambient: true) { u, v in
             let d = hypot((u - corner.x) * aspect, v - corner.y)
             return pow(max(0, 1 - d * 0.55), 1.7) * (0.7 + 0.3 * sin(u * 23 + v * 9))
         }
@@ -98,6 +101,9 @@ struct Halftone: View {
                 field.draw(&ctx, size: size, pattern: pattern, now: timeline.date.timeIntervalSinceReferenceDate, pointer: pointer, still: reduceMotion)
             }
         }
+        // Idle life sits on top of the resting field as its own AppKit layer on a plain timer, outside SwiftUI's view graph: a SwiftUI
+        // timeline would re-lay-out the whole window on every tick.
+        .overlay { if pattern.ambient && !reduceMotion { AmbientLife(field: field, pattern: pattern, paused: live).allowsHitTesting(false) } }
         .onContinuousHover { phase in
             guard followsPointer, !reduceMotion else { return }
             switch phase {
@@ -144,7 +150,7 @@ struct Halftone: View {
 @MainActor final class HalftoneField {
     static var rippled: Set<String> = []
     static let pulseLife = 1.5
-    private struct Dot { var x, y, r: CGFloat; var level: Int; var distance: CGFloat }
+    private struct Dot { var x, y, r: CGFloat; var level: Int; var distance: CGFloat; var phase: CGFloat }
     private static let levels = 6
     private var size = CGSize.zero
     private var dots: [Dot] = []
@@ -158,6 +164,12 @@ struct Halftone: View {
     func ripple(at t: Double) { rippleStart = t }
     func pulse(at t: Double) { pulses.append(t); if pulses.count > 3 { pulses.removeFirst() } }
 
+    /// A fixed pseudo-random 0...1 per dot, so each one keeps its own rhythm.
+    private static func hash(_ x: CGFloat, _ y: CGFloat) -> CGFloat {
+        let v = sin(Double(x) * 12.9898 + Double(y) * 78.233) * 43758.5453
+        return CGFloat(v - v.rounded(.down))
+    }
+
     private func layout(_ size: CGSize, _ p: HalftonePattern) {
         self.size = size; dots.removeAll(keepingCapacity: true)
         let o = CGPoint(x: p.origin.x * size.width, y: p.origin.y * size.height)
@@ -170,12 +182,34 @@ struct Halftone: View {
                 let r = min(p.maxDot, cloud * p.maxDot * 0.94)
                 if r > p.maxDot * 0.11 {
                     let level = min(Self.levels - 1, Int(min(1, cloud) * Double(Self.levels)))
-                    dots.append(Dot(x: x, y: y, r: r, level: level, distance: hypot(x - o.x, y - o.y) / farthest))
+                    dots.append(Dot(x: x, y: y, r: r, level: level, distance: hypot(x - o.x, y - o.y) / farthest, phase: Self.hash(x, y)))
                 }
                 x += p.step
             }
             y += p.step
         }
+    }
+
+    /// Idle life, drawn over the resting field: a slow swell leaves the origin about every eight seconds and brightens the dots on its
+    /// crest, and one dot in six glints now and then on its own clock. Only those dots are returned, so the resting field is not redrawn.
+    func life(size: CGSize, pattern p: HalftonePattern, now: Double) -> (crest: [CGRect], glints: [CGRect]) {
+        if size != self.size { layout(size, p) }
+        var crest: [CGRect] = [], glints: [CGRect] = []
+        for d in dots {
+            let wave = sin(now * 0.8 - Double(d.distance) * 5.5)
+            if wave > 0.35 {
+                let r = d.r * (1 + 0.3 * CGFloat((wave - 0.35) / 0.65))
+                crest.append(CGRect(x: d.x - r / 2, y: d.y - r / 2, width: r, height: r))
+            }
+            if d.phase > 0.84 {
+                let g = CGFloat(pow(max(0, sin(now * 0.55 + Double(d.phase) * 60)), 18))
+                if g > 0.05 {
+                    let r = d.r * (1 + 0.9 * g)
+                    glints.append(CGRect(x: d.x - r / 2, y: d.y - r / 2, width: r, height: r))
+                }
+            }
+        }
+        return (crest, glints)
     }
 
     func draw(_ ctx: inout GraphicsContext, size: CGSize, pattern p: HalftonePattern, now: Double, pointer: CGPoint?, still: Bool) {
@@ -202,6 +236,7 @@ struct Halftone: View {
         for d in dots {
             var s: CGFloat = 1
             if animate {
+
                 if let start = rippleStart {
                     // Each dot waits for the wave to leave the origin, then grows in over 0.7 s.
                     let t = min(1, max(0, (now - start - Double(d.distance) * p.rippleSpan) / 0.7))
@@ -232,6 +267,67 @@ struct Halftone: View {
                 let r: CGFloat = i % 3 == 0 ? 1.6 : 1
                 ctx.fill(Path(ellipseIn: CGRect(x: star.0 * size.width, y: star.1 * size.height, width: r * 2, height: r * 2)), with: .color(.white.opacity(0.7 * (still ? 1 : starsIn))))
             }
+        }
+    }
+}
+
+/// The idle life of a halftone field, drawn by AppKit on its own timer so SwiftUI never re-renders for it. It runs only while it is
+/// in a visible window of the frontmost app, and rests under Reduce Motion or while the field itself is busy with a ripple or swell.
+struct AmbientLife: NSViewRepresentable {
+    var field: HalftoneField
+    var pattern: HalftonePattern
+    var paused: Bool
+
+    func makeNSView(context: Context) -> LifeView { let v = LifeView(); v.field = field; v.pattern = pattern; v.setPaused(paused); return v }
+    func updateNSView(_ v: LifeView, context: Context) { v.pattern = pattern; v.setPaused(paused) }
+
+    @MainActor final class LifeView: NSView {
+        var field: HalftoneField?
+        var pattern = HalftonePattern { _, _ in 0 }
+        private var paused = false
+        private var timer: Timer?
+        private var tokens: [NSObjectProtocol] = []
+
+        override var isFlipped: Bool { true }
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+        func setPaused(_ p: Bool) { paused = p; isHidden = p; refresh() }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            tokens.forEach(NotificationCenter.default.removeObserver); tokens = []
+            if let w = window {
+                let nc = NotificationCenter.default
+                for name in [NSApplication.didBecomeActiveNotification, NSApplication.didResignActiveNotification] {
+                    tokens.append(nc.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in MainActor.assumeIsolated { self?.refresh() } })
+                }
+                tokens.append(nc.addObserver(forName: NSWindow.didChangeOcclusionStateNotification, object: w, queue: .main) { [weak self] _ in MainActor.assumeIsolated { self?.refresh() } })
+            }
+            refresh()
+        }
+
+        private func refresh() {
+            let run = !paused && (window?.occlusionState.contains(.visible) ?? false) && NSApp.isActive
+                && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+            if run, timer == nil {
+                let t = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in MainActor.assumeIsolated { self?.needsDisplay = true } }
+                RunLoop.main.add(t, forMode: .common); timer = t
+            } else if !run, let t = timer { t.invalidate(); timer = nil }
+        }
+
+        override func draw(_ dirtyRect: NSRect) {
+            guard let field, let cg = NSGraphicsContext.current?.cgContext, bounds.width > 1 else { return }
+            let shapes = field.life(size: bounds.size, pattern: pattern, now: Date.now.timeIntervalSinceReferenceDate)
+            let top = pattern.opacity.upperBound
+            let color = NSColor(pattern.color).usingColorSpace(.sRGB) ?? .white
+            func fill(_ rects: [CGRect], alpha: Double) {
+                guard !rects.isEmpty else { return }
+                cg.setFillColor(color.withAlphaComponent(alpha).cgColor)
+                for r in rects { cg.addEllipse(in: r) }
+                cg.fillPath()
+            }
+            fill(shapes.crest, alpha: top * 0.35)
+            fill(shapes.glints, alpha: min(1, top * 1.1))
         }
     }
 }
