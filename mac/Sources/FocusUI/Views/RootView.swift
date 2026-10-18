@@ -268,7 +268,7 @@ struct VisualEffect: NSViewRepresentable {
 
 
 /// The sidebar as a system source list, laid out like Droppy's: a search field, a header row for the session (where Droppy has the
-/// account), the app's places, every settings page as its own row, and your projects under their own heading. Each has a colored tile.
+/// account), the app's places and every settings page as its own row. Projects are on the Projects page, not listed here. Each has a colored tile.
 struct SourceList: View {
     @Bindable var c: SessionController
     @Binding var item: SidebarItem?
@@ -285,31 +285,18 @@ struct SourceList: View {
         let records = [AppSection.history, .insights, .review].filter { ($0 != .review || c.showsReview) && shows($0.rawValue) }
         let social = [AppSection.friends].filter { c.friends != nil && shows($0.rawValue) }
         let pages = SettingsPage.allCases.filter { shows($0.rawValue) }
-        let projects = (c.store?.projects ?? []).filter { shows($0.name) }
         List(selection: $item) {
             // A group with nothing matching the search is left out, heading and all.
             if !places.isEmpty { Section { ForEach(places) { s in row(s) } } }
             if !records.isEmpty { Section { ForEach(records) { s in row(s) } } }
             if !social.isEmpty { Section { ForEach(social) { s in row(s) } } }
-            if !projects.isEmpty {
-                Section("Projects") {
-                    ForEach(projects) { p in
-                        let now = c.isActive && c.projectId == p.id
-                        Label { Text(p.name).lineLimit(1) } icon: { ProjectDot(now: now) }
-                            // The project the running session belongs to.
-                            .badge(now ? Text("Now").foregroundStyle(Tokens.accent) : nil)
-                            .tag(SidebarItem.project(p.id))
-                            .modifier(ProjectDeleteMenu(c: c, project: p) { if item == .project(p.id) { item = .section(.today) } })
-                    }
-                }
-            }
             if !pages.isEmpty {
                 // Every settings page keeps its own row; the group folds away when you do not need it.
                 Section("Settings", isExpanded: $settingsOpen) {
                     ForEach(pages) { p in Label { Text(p.rawValue) } icon: { Image(systemName: p.symbol).foregroundStyle(Tokens.accent) }.tag(SidebarItem.settings(p)) }
                 }
             }
-            if places.isEmpty && records.isEmpty && social.isEmpty && pages.isEmpty && projects.isEmpty {
+            if places.isEmpty && records.isEmpty && social.isEmpty && pages.isEmpty {
                 Text("Nothing called \u{201C}\(search)\u{201D}").font(Tokens.text(.caption)).foregroundStyle(.secondary).selectionDisabled()
             }
         }
@@ -329,16 +316,6 @@ struct SourceList: View {
             // Moments still waiting for an answer, as a count on Review. The tag goes last so the row stays selectable.
             .badge(s == .review ? (c.store?.openReviewCount ?? 0) : (s == .friends ? (c.friends?.newCheers ?? 0) : 0))
             .tag(SidebarItem.section(s))
-    }
-}
-
-/// A project in the sidebar: a small ring, filled green for the project the running session belongs to.
-struct ProjectDot: View {
-    var now: Bool
-    var body: some View {
-        Circle().strokeBorder(now ? Tokens.accent : Tokens.ink2.opacity(0.6), lineWidth: 1.5)
-            .background(Circle().fill(now ? Tokens.accent : .clear).padding(3))
-            .frame(width: 12, height: 12).accessibilityHidden(true)
     }
 }
 
