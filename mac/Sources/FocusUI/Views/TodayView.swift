@@ -27,11 +27,11 @@ struct TodayView: View {
                 else if c.stuckShown { StuckCard(c: c).transition(.opacity) }
                 else { TodayLiveMain(c: c, onStuck: { c.requestNextActions() }) }
             } else {
-                HeroBanner(caption: "Your notch, live. Start below.", pulse: c.isActive ? 1 : 0) { NotchPreviewPill(c: c) }
                 DashHeader(c: c)
                 if c.summary != nil { JustFinishedCard(c: c) }
                 if let store = c.store, !store.thoughts.isEmpty { ParkingLotCard(store: store) }
                 StartCard(c: c, showStart: $showStart, intro: firstRun)
+                FocusPreviewCard(c: c).transition(.rise(reduce: reduceMotion))
                 if firstRun { HowItWorks(c: c).fixedSize(horizontal: false, vertical: true) }
                 if let st = c.store, !st.sessions.isEmpty { DaySection(store: st); WeekSection(store: st) }
             }

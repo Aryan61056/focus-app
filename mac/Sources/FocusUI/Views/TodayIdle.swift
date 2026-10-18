@@ -12,7 +12,7 @@ struct StartCard: View {
     var body: some View {
         Tile(padding: 24) {
             VStack(alignment: .leading, spacing: Space.m) {
-                StartForm(c: c) {}
+                StartForm(c: c, showsCoach: false) {}
                 if intro { Button("See how it works") { c.showExample() }.buttonStyle(FocusButtonStyle(.plain, small: true)).help("Try an example with made-up windows") }
             }
         }
