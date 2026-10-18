@@ -195,13 +195,13 @@ public struct NotchView: View {
     var hasNotch: Bool { notchWidth > 0 }
     var big: Bool { mode == .open || mode == .nudge }
     /// The ears are wide: under the pointer, or while a change of state is announced.
-    var wide: Bool { mode == .peek || (mode == .rest && (flash != nil || pausedByYou)) }
-    /// You paused it yourself: the ears stay wide and count how long it has been, so the clock never reads as frozen and stuck.
+    var wide: Bool { mode == .peek || (mode == .rest && flash != nil) }
+    /// You paused it yourself: the ears keep their size, show the pause mark, and count how long it has been instead of a frozen clock.
     var pausedByYou: Bool { c.isHeld && SessionController.asksAboutHold(c.presence.reason) }
 
     public var body: some View {
         let shown = forced != nil || model.presented
-        let sizeMode: NotchMode = mode == .rest && (flash != nil || pausedByYou) ? .peek : mode
+        let sizeMode: NotchMode = mode == .rest && flash != nil ? .peek : mode
         let size = shown ? NotchLayout.size(sizeMode, notchWidth: notchWidth, notchHeight: notchHeight) : NotchLayout.tucked(notchWidth: notchWidth, notchHeight: notchHeight)
         let r = NotchLayout.radii(sizeMode, shown: shown, pill: !hasNotch)
         let shape = NotchShape(bottom: r.bottom, top: r.top, pill: !hasNotch)
@@ -220,7 +220,6 @@ public struct NotchView: View {
         .foregroundStyle(Self.ink)
         .animation(morph(shown: shown), value: mode)
         .animation(morph(shown: shown), value: shown)
-        .animation(morph(shown: shown), value: pausedByYou)
         .animation(reduceMotion ? Motion.reduced : Motion.notchPeek, value: flash)
         .animation(reduceMotion ? nil : Motion.notchPress, value: pressing)
         // A file landing gives the whole shape a small bump, so the drop is felt as well as seen.

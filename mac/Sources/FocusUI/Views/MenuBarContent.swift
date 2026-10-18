@@ -78,9 +78,9 @@ public struct MenuBarContent: View {
                 item("Start a session") { c.requestStart(); openApp() }
                 item("Just five minutes") { c.startDraft.length = .minutes; c.startDraft.minutes = 5; c.startDraft.lengthTouched = true; c.requestStart(); openApp() }
             }
-            if c.visibleUpdate != nil {
+            if c.updateSource != nil, !c.isActive {
                 Divider().padding(.vertical, 4)
-                item("Restart to update") { c.installUpdate() }
+                item(c.updateBuild == .building ? "Updating\u{2026}" : c.visibleUpdate != nil ? "Restart to update" : "Update Focus") { c.updateNow() }
             }
             Divider().padding(.vertical, 4)
             item("Park a thought") { c.onParkThought?() }

@@ -27,7 +27,7 @@ extension SessionController {
         lastOnTask = nil; lastEnforce = nil; places.reset(); placesVersion &+= 1; lastReturn = nil; lastPlaceTick = nil; pendingSpot = nil; lastPositionAt = nil; lastSpotRestored = nil
         banner = nil; shield = nil; backHoldStart = nil; overrideLockedUntil = nil; rhythmPrompt = nil
         driftWatch.reset(); headsUpAt = nil; bannerHidden = false
-        blockedSites = [:]; passedPages = [:]; claimsAccepted = 0; acceptedClaimWords = []; frictionQuietUntil = 0; frictionStrikes = [:]; lastFrictionEnforce = -1000; explainStrikes = 0; overrideLocks = 0; lastPulseAt = -1000
+        blockedSites = [:]; passedPages = [:]; claimsAccepted = 0; acceptedClaimWords = []; explainedClaims = [:]; pendingClaim = ""; frictionQuietUntil = 0; frictionStrikes = [:]; lastFrictionEnforce = -1000; explainStrikes = 0; overrideLocks = 0; lastPulseAt = -1000
         workSeconds = 0; lastWorkTick = nil; workBlocks = 0; lastSpokeAt = nil; warnedPressure = .steady
     }
 

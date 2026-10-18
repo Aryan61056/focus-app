@@ -347,6 +347,12 @@ struct SettingsView: View {
                         row("Offer new builds from this Mac", "When a newer build appears in the project's build folder, Focus offers to restart into it between sessions. Nothing is downloaded and the network is not used; it never restarts by itself.") {
                             Toggle("", isOn: Binding(get: { c.prefs.offerUpdates }, set: { c.prefs.offerUpdates = $0; if $0 { c.onCheckUpdates?() } })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                         }
+                        row("Update Focus", c.updateBuild == .building ? "Building the latest version. This can take a few minutes; Focus restarts when it is done."
+                            : c.updateBuild == .failed ? "The build did not finish. This copy is unchanged."
+                            : c.isActive ? "Not during a session." : "Builds the latest version on this Mac and restarts into it.") {
+                            Button(c.updateBuild == .building ? "Updating\u{2026}" : c.updateOffer != nil ? "Restart to update" : "Update now") { c.updateNow() }
+                                .buttonStyle(FocusButtonStyle(.primary, small: true)).disabled(c.isActive || c.updateBuild == .building)
+                        }
                         if c.prefs.offerUpdates {
                             row("Check now", c.updateOffer == nil ? "This copy is the newest build found." : "A newer build is ready. It is offered on Today when no session is running.") {
                                 Button("Check for a new build") { c.onCheckUpdates?() }.buttonStyle(FocusButtonStyle(.secondary, small: true))

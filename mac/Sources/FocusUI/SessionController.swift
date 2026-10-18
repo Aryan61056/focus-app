@@ -165,6 +165,10 @@ public final class SessionController {
     public internal(set) var claimsAccepted = 0
     @ObservationIgnored var acceptedClaimWords: [Set<String>] = []
     @ObservationIgnored var pendingClaimWords: Set<String> = []
+    @ObservationIgnored var pendingClaim = ""
+    /// What you said when an explanation passed, by window key, for this session only. A later page on the same site that the model
+    /// calls off topic is checked against it again (page by page), so an explanation is not lost to a new title or to the pass running out.
+    @ObservationIgnored var explainedClaims: [String: String] = [:]
     @ObservationIgnored var frictionQuietUntil = 0.0
     /// How many times each site has been covered this session. A site you keep coming back to waits longer and is acted on sooner.
     @ObservationIgnored var frictionStrikes: [String: Int] = [:]
@@ -279,6 +283,16 @@ public final class SessionController {
     public private(set) var updateOffer: UpdateOffer?
     @ObservationIgnored private var updateDismissed: String?
     @ObservationIgnored public var onCheckUpdates: (() -> Void)?
+    /// "Update now": builds the latest source on this Mac, then restarts into it. The app wires `onBuildUpdate`; never during a session.
+    public enum UpdateBuild: Equatable, Sendable { case idle, building, failed }
+    public private(set) var updateBuild = UpdateBuild.idle
+    @ObservationIgnored public var onBuildUpdate: (() -> Void)?
+    public func setUpdateBuild(_ b: UpdateBuild) { if updateBuild != b { updateBuild = b } }
+    /// One button: restart into a newer build if one is waiting, else build the newest first.
+    public func updateNow() {
+        guard !isActive, updateBuild != .building else { return }
+        if updateOffer != nil, let o = updateOffer { onInstallUpdate?(o) } else { onBuildUpdate?() }
+    }
     /// Friends, when the app set them up (docs/SOCIAL.md). nil in tests and snapshots.
     public var friends: FriendsStore?
     /// The beta program (docs/BETA.md): build info, the local event journal and feedback. Nil in tests unless a test sets one.
@@ -897,7 +911,26 @@ public final class SessionController {
         })
     }
 
-    func deliver(_ j: Judgement, id: Int, observedAt: Double, windowKey: String, contentKey: String, sawScreen: Bool = false) {
+    func deliver(_ j: Judgement, id: Int, observedAt: Double, windowKey: String, contentKey: String, sawScreen: Bool = false, reverified: Bool = false) {
+        // Off topic on a site you already explained: ask again with your own words before calling it a slip.
+        if !reverified, j.label == FocusJudge.Label.offTask, j.error == nil, prefs.useModel, !shadow, let claim = explainedClaims[windowKey],
+           let w = currentWindow, Keys.window(w) == windowKey, !pageHasPass(w) {
+            let m = moment(w), judge = self.judge, page = pageKey(w)
+            judging += 1
+            tasks.append(Task { [weak self] in
+                let r = await Verification.verify(m, claim: claim, with: judge)
+                guard let self else { return }
+                self.judging = max(0, self.judging - 1)
+                guard !Task.isCancelled else { return }
+                if r.passed, let now = self.currentWindow, self.pageKey(now) == page {
+                    self.passedPages[page] = self.now() + Shield.passSeconds(afterClaims: 0)
+                    self.windowChanged(now)   // the brain reads it again as fine by rule: no counted explanation, nothing learned
+                } else {
+                    self.deliver(j, id: id, observedAt: observedAt, windowKey: windowKey, contentKey: contentKey, sawScreen: sawScreen, reverified: true)
+                }
+            })
+            return
+        }
         if let w = currentWindow, Keys.window(w) == windowKey {
             var r = Reading(at: observedAt, date: date(), key: windowKey, app: w.app, title: w.title, call: Self.call(j.label), source: .model,
                             reason: Self.tidy(j.reason, failed: j.error != nil))

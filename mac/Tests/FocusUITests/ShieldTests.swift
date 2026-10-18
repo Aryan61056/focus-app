@@ -89,9 +89,9 @@ final class VerificationTests: XCTestCase {
 final class ShieldTests: XCTestCase {
     var t = 0.0
     /// A video is off topic. A claim that mentions the integration lecture is believed (a stand-in for a window that really is one);
-    /// any other claim is not.
+    /// any other claim is not, and the claim never vouches for a different clip ("other clip"): the window itself has to fit.
     let judge = CountingJudge { p in
-        if p.contains("The person at the keyboard") { return Verdict(label: p.contains("integration lecture") ? .onTask : .offTask, confidence: 95) }
+        if p.contains("The person at the keyboard") { return Verdict(label: p.contains("integration lecture") && !p.contains("other clip") ? .onTask : .offTask, confidence: 95) }
         return Verdict(label: p.contains("youtube") ? .offTask : .onTask, confidence: 95)
     }
     let editor = WindowSnapshot(app: "Notes", title: "Calc homework")
@@ -205,7 +205,7 @@ final class ShieldTests: XCTestCase {
         XCTAssertNotEqual(c.presence.state, "interrupted", "the explained page is still accepted")
     }
 
-    func testThePassRunsOutAndThePageIsReadAgainOnItsOwn() async {
+    func testThePassRunsOutAndThePageIsReadAgainAgainstWhatYouSaid() async {
         let c = make()
         await toThePauseScreen(c); await openTheForm(c)
         c.submitExplanation(good); await c.waitForJudgments()
@@ -213,9 +213,9 @@ final class ShieldTests: XCTestCase {
         await advance(c, to: accepted + Shield.passSeconds(afterClaims: 0) - 30)
         XCTAssertNotEqual(c.presence.state, "interrupted")
         await advance(c, to: accepted + Shield.passSeconds(afterClaims: 0) + 5)
-        XCTAssertFalse(c.pageHasPass(video))
         await advance(c, to: t + 120)
-        XCTAssertEqual(c.presence.state, "interrupted", "after the few minutes it is flagged again")
+        XCTAssertNotEqual(c.presence.state, "interrupted", "read again with your words, the model still agrees, so no new warning")
+        XCTAssertEqual(c.claimsAccepted, 1, "and it did not cost another explanation")
     }
 
     func testEachExplanationBuysLessAndMustClearAHigherBar() {

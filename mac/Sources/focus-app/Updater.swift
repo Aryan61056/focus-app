@@ -23,6 +23,7 @@ import FocusUI
         controller.updateSource = source.path
         controller.onCheckUpdates = { [weak self] in self?.check() }
         controller.onInstallUpdate = { [weak self] in self?.install($0) }
+        controller.onBuildUpdate = { [weak self] in self?.buildThenInstall() }
         check()
         timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in MainActor.assumeIsolated { self?.check() } }
         NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
@@ -33,6 +34,33 @@ import FocusUI
     func check() {
         guard let source, controller.prefs.offerUpdates else { controller.setUpdateOffer(nil); return }
         controller.setUpdateOffer(UpdateCheck.offer(ownID: ownID, ownApp: own, sourceApp: source))
+    }
+
+    /// "Update now" with nothing waiting: runs the project's own build script (the same one that made this copy), then restarts into the result.
+    /// Local only: it compiles the source on this Mac. A failed build leaves this copy exactly as it is.
+    func buildThenInstall() {
+        guard let source, controller.updateBuild != .building, !controller.isActive else { return }
+        let repo = source.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let script = repo.appendingPathComponent("tools/build_app.sh")
+        guard FileManager.default.isExecutableFile(atPath: script.path) else { controller.setUpdateBuild(.failed); return }
+        controller.setUpdateBuild(.building)
+        let p = Process()
+        p.executableURL = script; p.currentDirectoryURL = repo
+        p.environment = ProcessInfo.processInfo.environment.merging(["PATH": "/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin"]) { _, new in new }
+        p.standardOutput = FileHandle.nullDevice; p.standardError = FileHandle.nullDevice; p.standardInput = FileHandle.nullDevice
+        p.terminationHandler = { [weak self] proc in
+            let ok = proc.terminationStatus == 0
+            Task { @MainActor in
+                guard let self else { return }
+                self.controller.setUpdateBuild(ok ? .idle : .failed)
+                guard ok else { return }
+                // A finished bundle is offered once it has been still for a moment; wait that out, then go.
+                try? await Task.sleep(for: .seconds(UpdateCheck.settleSeconds + 1))
+                self.check()
+                if let o = self.controller.updateOffer, !self.controller.isActive { self.install(o) }
+            }
+        }
+        do { try p.run() } catch { controller.setUpdateBuild(.failed) }
     }
 
     /// A helper shell waits for this process to exit, swaps the bundle (only if the new one's signature verifies), and opens it again.

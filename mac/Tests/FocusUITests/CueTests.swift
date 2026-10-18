@@ -203,6 +203,28 @@ final class CueControllerTests: XCTestCase {
         XCTAssertTrue(c.isHeld); XCTAssertNil(c.heldCheckInAt)
     }
 
+    // an explained site is asked again with your own words, not forgotten
+    func testASiteYouExplainedIsCheckedAgainstYourWordsInsteadOfFlaggedAgain() async {
+        let judge = CountingJudge { p in Verdict(label: p.contains("deca flashcards") || !p.contains("youtube") ? .onTask : .offTask) }
+        let c = SessionController(judge: judge, store: DataStore(), prefs: noWords(), now: { [unowned self] in self.t }, date: { [unowned self] in self.when })
+        c.windowChanged(editor)
+        c.begin(task: "Calc homework", preset: .standard, shadow: false)
+        await advance(c, to: 20)
+        c.explainedClaims[Keys.window(video)] = "These are my deca flashcards for the exam"
+        c.windowChanged(video)
+        await advance(c, to: 200)
+        XCTAssertNotEqual(c.presence.state, "interrupted", "the model agrees with your explanation, so no warning")
+        XCTAssertNil(c.surface)
+    }
+
+    func testWithoutAnExplanationTheSameSiteIsStillWarned() async {
+        let judge = CountingJudge { p in Verdict(label: p.contains("deca flashcards") || !p.contains("youtube") ? .onTask : .offTask) }
+        let c = SessionController(judge: judge, store: DataStore(), prefs: noWords(), now: { [unowned self] in self.t }, date: { [unowned self] in self.when })
+        c.windowChanged(editor)
+        c.begin(task: "Calc homework", preset: .standard, shadow: false)
+        _ = await driftUntilWarned(c)
+    }
+
     // banner and heads-up
     func testTheReminderStaysOverTheDistractionFromTheWarningUntilYouAreBack() async {
         let c = make()

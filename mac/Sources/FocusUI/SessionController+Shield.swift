@@ -187,7 +187,7 @@ extension SessionController {
         shield = s
         let m = moment(w), claim = OverrideClaim.tidy(raw), judge = self.judge, key = Keys.window(w)
         let bar = Shield.minConfidence(afterClaims: claimsAccepted)
-        pendingClaimWords = OverrideClaim.content(claim)
+        pendingClaimWords = OverrideClaim.content(claim); pendingClaim = claim
         tasks.append(Task { [weak self] in
             let r = await Verification.verify(m, claim: claim, with: judge, minConfidence: bar)
             self?.finishExplanation(r, windowKey: key)
@@ -198,7 +198,7 @@ extension SessionController {
         guard var s = shield, s.checking else { return }
         // You moved to another window while Focus was reading: that answer is about a window you are no longer in.
         if let w = currentWindow, Keys.window(w) != windowKey { s.checking = false; shield = s; return }
-        if r.passed { rememberClaim(); acceptClaim(); return }
+        if r.passed { rememberClaim(); if !pendingClaim.isEmpty { explainedClaims[windowKey] = pendingClaim }; acceptClaim(); return }
         s.checking = false
         s.attemptsLeft -= 1
         if s.attemptsLeft <= 0 {
