@@ -5,13 +5,11 @@ import FocusJudge
 struct StartForm: View {
     @Bindable var c: SessionController
     var didStart: () -> Void
-    /// Where the page shows the model's suggestion itself (Today's "What Focus will look for"), the form does not offer it a second time.
-    var showsCoach = true
     @FocusState private var focused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Start was pressed on a name close to an older project: ask whether to continue that one before anything is created.
     @State private var asking: Bool
-    init(c: SessionController, asking: Bool = false, showsCoach: Bool = true, didStart: @escaping () -> Void) { self.c = c; self.didStart = didStart; self.showsCoach = showsCoach; _asking = State(initialValue: asking) }
+    init(c: SessionController, asking: Bool = false, didStart: @escaping () -> Void) { self.c = c; self.didStart = didStart; _asking = State(initialValue: asking) }
     var projects: [Project] { c.store?.projects ?? [] }
     /// Older projects the typed name looks like (never when it matches one exactly).
     var similar: [Project] { ProjectMatch.similar(to: parsed.task, in: projects, limit: 1) }
@@ -73,7 +71,7 @@ struct StartForm: View {
                     TextField("What would done look like?", text: $draft.done, prompt: Text("What would done look like?").foregroundStyle(Tokens.ink2))
                         .textFieldStyle(.roundedBorder).accessibilityLabel("What would done look like?").help("Saved on this Mac with your session")
                     if draft.done.count > 240 { Text("Keep this under 240 characters.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
-                    if showsCoach { coach }
+                    coach
                     if c.prefs.practiceActive {
                         HStack { Text("Practice mode: no nudges.").font(Tokens.text(.caption)); Spacer(); Button("Nudge me now") { c.prefs.turnNudgesOnNow() } }
                     }
