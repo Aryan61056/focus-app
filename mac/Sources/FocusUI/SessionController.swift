@@ -232,7 +232,11 @@ public final class SessionController {
     public var phoneState = PhoneState.none
     @ObservationIgnored public var onOpenPhone: (() -> Void)?
     public private(set) var judgeStatus = JudgeStatus.unknown
-    public func setJudgeStatus(_ s: JudgeStatus) { if judgeStatus != s { judgeStatus = s } }
+    public func setJudgeStatus(_ s: JudgeStatus) {
+        guard judgeStatus != s else { return }
+        if case .unavailable = s { beta?.journal.note(.judgeUnavailable) }
+        judgeStatus = s
+    }
     @ObservationIgnored public var onOpenModelSettings: (() -> Void)?
     public private(set) var probe = ProbeState.idle
     /// One read of the window in front (set by the app). Nil when Focus itself is in front.
@@ -272,6 +276,8 @@ public final class SessionController {
     @ObservationIgnored public var onCheckUpdates: (() -> Void)?
     /// Friends, when the app set them up (docs/SOCIAL.md). nil in tests and snapshots.
     public var friends: FriendsStore?
+    /// The beta program (docs/BETA.md): build info, the local event journal and feedback. Nil in tests unless a test sets one.
+    public var beta: BetaCenter?
     @ObservationIgnored public var onInstallUpdate: ((UpdateOffer) -> Void)?
     /// The offer to show: only between sessions, only if the user left updates on, and not for a build they said "Later" to.
     public var visibleUpdate: UpdateOffer? {
@@ -367,6 +373,7 @@ public final class SessionController {
         var c = SessionConfig(); c.taskId = task; c.mode = deadline == nil ? mode : .open; c.durationSeconds = deadline == nil ? duration : nil; c.preset = preset ?? prefs.preset; c.shadow = shadow; c.sound = prefs.nudgeSound; c.checkScale = prefs.checkRate.scale * pressure.factor
         c.reentryPrompt = false   // the brain still knows the prompt; the app no longer asks for one
         isActive = true
+        beta?.journal.note(.sessionStart)
         send(.sessionStart(c))
         if let w = currentWindow { windowChanged(w) }
         if autoTick { startTicking() }
@@ -819,6 +826,7 @@ public final class SessionController {
                     highlight = h
                 }
                 store?.record(record)
+                beta?.journal.note(.sessionEnd, a / 60)
                 friends?.sessionSaved()
                 moment = nil
                 prefs.sessionFinished(wasPractice: shadow)
@@ -891,7 +899,7 @@ public final class SessionController {
         }
         var input = JudgmentInput(requestId: id, observedAt: observedAt, windowKey: windowKey, contentKey: contentKey, label: Self.brainLabel(j.label))
         input.strong = j.label == FocusJudge.Label.offTask          // the two-judge rule already confirmed it (docs/BRAIN-SPEC.md 2.2)
-        if j.error != nil { input.flag = .refusal }
+        if j.error != nil { input.flag = .refusal; beta?.journal.note(.judgeRefusal) }
         send(.judgment(input))
     }
 }

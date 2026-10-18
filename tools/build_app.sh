@@ -77,6 +77,20 @@ if [ "${FOCUS_DISTRIBUTION:-}" = 1 ]; then
 else
   /usr/libexec/PlistBuddy -c "Add :FocusBuildID string $BUILD_ID" -c "Add :FocusBuildSource string $(pwd)/$APP" "$APP/Contents/Info.plist"
 fi
+# Beta builds (tools/beta/release.sh): the channel, the build number, an end date, release notes and the address testers mail reports
+# to. The app only shows these; nothing is fetched. With none set this is a dev build.
+if [ -n "${FOCUS_CHANNEL:-}" ]; then
+  case "$FOCUS_CHANNEL" in dev|beta|release) ;; *) echo "FOCUS_CHANNEL must be dev, beta or release" >&2; exit 1;; esac
+  /usr/libexec/PlistBuddy -c "Add :FocusChannel string $FOCUS_CHANNEL" "$APP/Contents/Info.plist"
+fi
+if [ -n "${FOCUS_BUILD_NUMBER:-}" ]; then /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $FOCUS_BUILD_NUMBER" "$APP/Contents/Info.plist"; fi
+if [ -n "${FOCUS_VERSION:-}" ]; then /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $FOCUS_VERSION" "$APP/Contents/Info.plist"; fi
+if [ -n "${FOCUS_BETA_EXPIRES:-}" ]; then /usr/libexec/PlistBuddy -c "Add :FocusBetaExpires string $FOCUS_BETA_EXPIRES" "$APP/Contents/Info.plist"; fi
+if [ -n "${FOCUS_FEEDBACK_EMAIL:-}" ]; then /usr/libexec/PlistBuddy -c "Add :FocusFeedbackAddress string $FOCUS_FEEDBACK_EMAIL" "$APP/Contents/Info.plist"; fi
+if [ -n "${FOCUS_RELEASE_NOTES_FILE:-}" ]; then
+  [ -f "$FOCUS_RELEASE_NOTES_FILE" ] || { echo "no release notes at $FOCUS_RELEASE_NOTES_FILE" >&2; exit 1; }
+  plutil -insert FocusReleaseNotes -string "$(cat "$FOCUS_RELEASE_NOTES_FILE")" "$APP/Contents/Info.plist"
+fi
 # Assets.car holds the layered icon; the system finds it by name.
 if [ -n "$ICON_NAME" ]; then /usr/libexec/PlistBuddy -c "Add :CFBundleIconName string $ICON_NAME" "$APP/Contents/Info.plist"; fi
 plutil -lint "$APP/Contents/Info.plist" >/dev/null

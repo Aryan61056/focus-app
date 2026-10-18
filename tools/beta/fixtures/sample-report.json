@@ -1,0 +1,73 @@
+{
+  "app" : {
+    "build" : "3",
+    "buildID" : "20261018090000-c005089",
+    "channel" : "beta",
+    "version" : "0.1.0"
+  },
+  "contact" : "sam (made-up tester)",
+  "crash" : {
+    "appVersion" : "0.1.0",
+    "exception" : "EXC_BREAKPOINT",
+    "frames" : [
+      "libswiftCore.dylib _assertionFailure(_:_:file:line:flags:)",
+      "focus-app SessionController.tick()",
+      "focus-app closure #1 in SessionController.startTicking()"
+    ],
+    "osVersion" : "macOS 27.0 (27A123)",
+    "signal" : "SIGTRAP",
+    "termination" : "Trace/BPT trap: 5",
+    "when" : "2026-10-17T14:02:11Z"
+  },
+  "created" : "2026-10-18T09:12:44Z",
+  "events" : [
+    { "at" : "2026-10-17T13:30:00Z", "kind" : "launch" },
+    { "at" : "2026-10-17T13:31:00Z", "kind" : "sessionStart" },
+    { "at" : "2026-10-17T13:45:00Z", "kind" : "warning" },
+    { "at" : "2026-10-17T13:45:20Z", "kind" : "backToTask", "value" : 1 },
+    { "at" : "2026-10-17T13:59:00Z", "kind" : "hang", "value" : 2.6 },
+    { "at" : "2026-10-17T14:02:11Z", "kind" : "uncleanExit" },
+    { "at" : "2026-10-18T09:00:00Z", "kind" : "launch" },
+    { "at" : "2026-10-18T09:01:00Z", "kind" : "pulseAnswered", "value" : 4 }
+  ],
+  "id" : "6f1c1d2e-8a4b-4c3d-9e2f-0a1b2c3d4e5f",
+  "kind" : "bug",
+  "message" : "Focus quit while I was working in a document, about 30 minutes into a session.",
+  "pulses" : [
+    { "at" : "2026-10-18T09:01:00Z", "score" : 4 }
+  ],
+  "schema" : "focus-feedback/1",
+  "settings" : {
+    "checkRate" : "often",
+    "escalate" : "on",
+    "preset" : "standard",
+    "readScreen" : "off",
+    "sensitivity" : "proactive",
+    "useModel" : "on"
+  },
+  "system" : {
+    "appleSilicon" : true,
+    "judge" : "ready",
+    "lowPower" : false,
+    "macOS" : "27.0.0",
+    "memoryGB" : 16,
+    "model" : "MacBookPro18,3",
+    "screenRecording" : "unknown",
+    "windowAccess" : "allowed"
+  },
+  "usage" : {
+    "activeMinutesLast14Days" : 412,
+    "daysUsed" : 6,
+    "drifts" : 9,
+    "nudges" : 5,
+    "onTaskMinutesLast14Days" : 361,
+    "projects" : 3,
+    "projectsDescribed" : 1,
+    "reads" : { "model" : 120, "offTask" : 14, "onTask" : 98, "rule" : 31, "skipped" : 12, "unsure" : 39 },
+    "refusals" : 1,
+    "reviewAgreed" : 3,
+    "reviewAnswered" : 4,
+    "sessions" : 11,
+    "sessionsLast14Days" : 9
+  }
+}

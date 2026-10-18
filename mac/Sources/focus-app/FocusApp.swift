@@ -185,12 +185,16 @@ struct FocusApp: App {
                     controller.frontAppName = { NSWorkspace.shared.frontmostApplication?.localizedName }
                     // Quitting during a session ends it, so the session is saved instead of vanishing.
                     NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { _ in
-                        MainActor.assumeIsolated { if controller.isActive { controller.end() }; controller.restoreSound() }
+                        MainActor.assumeIsolated { if controller.isActive { controller.end() }; controller.restoreSound(); controller.beta?.journal.quitCleanly() }
                     }
                     controller.onOpenModelSettings = {
                         if let url = URL(string: "x-apple.systempreferences:com.apple.Siri-Settings.extension") { NSWorkspace.shared.open(url) }
                     }
                     if controller.friends == nil { setUpFriends() }
+                    if controller.beta == nil {
+                        let env = ProcessInfo.processInfo.environment
+                        controller.beta = BetaSetup.make(demo: env["FOCUS_DEMO"] == "1", testFolder: env["FOCUS_TEST_STORE"])
+                    }
                     if updater == nil, ProcessInfo.processInfo.environment["FOCUS_DEMO"] != "1" { let u = Updater(controller: controller); updater = u; u.start() }
                     controller.setJudgeStatus(DefaultJudge.status())
                     Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in MainActor.assumeIsolated { controller.setJudgeStatus(DefaultJudge.status()) } }
@@ -256,6 +260,13 @@ struct FocusApp: App {
             CommandGroup(replacing: .help) {
                 Button("See how it works") { controller.showExample() }
                     .keyboardShortcut("d", modifiers: [.command, .shift]).disabled(controller.isActive)
+                Divider()
+                Button("Send Feedback\u{2026}") { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); controller.beta?.requestFeedback(.bug) }
+                    .keyboardShortcut("f", modifiers: [.command, .option]).disabled(controller.beta == nil)
+                Button("Report a Wrong Call\u{2026}") { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); controller.beta?.requestFeedback(.wrongCall) }
+                    .disabled(controller.beta == nil)
+                Button("What\u{2019}s New in This Build") { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); controller.beta?.notesShown = true }
+                    .disabled(controller.beta?.build.notes.isEmpty ?? true)
             }
             CommandMenu("Example") {
                 Button("Previous scene") { if let e = controller.example { e.select(e.step - 1) } }

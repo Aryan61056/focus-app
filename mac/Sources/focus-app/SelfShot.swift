@@ -8,7 +8,7 @@ import FocusJudge
 @MainActor
 enum SelfShot {
     /// FOCUS_DEMO_ACTIONS="section:settings,start" runs these on the controller after 3 s (demo only), in place of clicks and keys I cannot send:
-    /// section:<today|projects|history|insights|review|settings>, page:<settings page>, text:<1 to 1.5>, pause, nonotch, sidebar (shows or hides it, as the toolbar button does), hide, start (opens the start sheet), readscreen (turns screen reading on), veil (the whole-screen gray fade, 10 s), nogray (no whole-screen gray).
+    /// section:<today|projects|history|insights|review|settings>, page:<settings page>, text:<1 to 1.5>, pause, nonotch, sidebar (shows or hides it, as the toolbar button does), hide, start (opens the start sheet), readscreen (turns screen reading on), feedback, notes and account (the beta's sheets and the profile popover), veil (the whole-screen gray fade, 10 s), nogray (no whole-screen gray).
     static func runActions(_ controller: SessionController) {
         let env = ProcessInfo.processInfo.environment
         guard env["FOCUS_DEMO"] == "1", let list = env["FOCUS_DEMO_ACTIONS"] else { return }
@@ -37,6 +37,9 @@ enum SelfShot {
                     controller.begin(task: "Lab report", goal: "Write the methods section"); controller.end()
                 }
                 else if a == "start" { controller.requestStart() }
+                else if a == "feedback" { controller.beta?.requestFeedback(.wrongCall) }
+                else if a == "notes" { controller.beta?.notesShown = true }
+                else if a == "account" { controller.beta?.accountRequests += 1 }
                 else if a == "readscreen" { controller.prefs.readScreen = true }
                 else if a == "pause" { controller.act(.pause) }   // the held state: nothing is read until resume
                 else if a.hasPrefix("text:"), let f = Double(a.dropFirst(5)) { controller.prefs.textScale = f }   // text:1.5, the Text size setting

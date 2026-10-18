@@ -38,3 +38,8 @@ core/brain-rs/target/
 
 # Local working files (render comparisons, findings); never committed.
 scratchpad/
+
+# Beta (docs/BETA.md): tester reports, rosters and built images stay on this Mac.
+beta/inbox/
+beta/releases/
+beta/testers.csv

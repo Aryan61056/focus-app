@@ -39,6 +39,12 @@ extension SessionController {
     /// One place that decides which channels a moment uses. Practice mode stays silent in every channel.
     func fire(_ e: CueEvent, title: String? = nil) {
         guard isActive, !shadow else { return }
+        switch e {
+        case .warning: beta?.journal.note(.warning)
+        case .pauseScreen: beta?.journal.note(.pauseScreen)
+        case .checkIn: beta?.journal.note(.checkIn)
+        default: break
+        }
         if prefs.hapticTap { onHaptic?(e.strong ? .strong : e.firm ? .firm : .light); lastPulseAt = now() }
         if prefs.dockBounce, e.bouncesDock { onDockBounce?() }
         let t = now()

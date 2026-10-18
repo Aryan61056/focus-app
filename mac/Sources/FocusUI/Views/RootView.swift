@@ -132,6 +132,12 @@ public struct RootView: View {
         .onChange(of: c.settingsPageRequest?.serial) { _, _ in if let r = c.settingsPageRequest { go(.settings(r.page)) } }
         .onChange(of: c.startRequests) { _, _ in if !c.isActive { go(.section(.today)); showStart = true } }
         .sheet(isPresented: $showStart) { StartSheet(controller: c, isPresented: $showStart) }
+        .sheet(item: Binding(get: { c.beta?.feedbackKind }, set: { c.beta?.feedbackKind = $0 })) { kind in
+            if let beta = c.beta { FeedbackSheet(c: c, beta: beta, kind: kind) }
+        }
+        .sheet(isPresented: Binding(get: { c.beta?.notesShown ?? false }, set: { c.beta?.notesShown = $0 })) {
+            if let beta = c.beta { WhatsNewSheet(beta: beta) }
+        }
     }
 
     /// Pages that draw the Focus panel beside themselves and so take the whole detail area.
@@ -283,7 +289,7 @@ struct SourceList: View {
         let places = [AppSection.today, .projects].filter { shows($0.rawValue) }
         let records = [AppSection.history, .insights, .review].filter { ($0 != .review || c.showsReview) && shows($0.rawValue) }
         let social = [AppSection.friends].filter { c.friends != nil && shows($0.rawValue) }
-        let pages = SettingsPage.allCases.filter { shows($0.rawValue) }
+        let pages = SettingsPage.allCases.filter { ($0 != .beta || c.beta != nil) && shows($0.rawValue) }
         List(selection: $item) {
             // A group with nothing matching the search is left out, heading and all.
             if !places.isEmpty { Section { ForEach(places) { s in row(s) } } }
@@ -306,6 +312,10 @@ struct SourceList: View {
         .environment(\.colorScheme, .dark)
         .onChange(of: item) { _, _ in wave += 1 }
         .searchable(text: $search, placement: .sidebar, prompt: "Search")
+        // You, at the foot of the sidebar: a local profile and the beta, never a sign-in.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if let beta = c.beta { AccountChip(c: c, beta: beta).padding(.horizontal, Space.s).padding(.bottom, Space.s).environment(\.colorScheme, .dark) }
+        }
     }
 
     func row(_ s: AppSection) -> some View {
@@ -341,6 +351,7 @@ struct Sidebar: View {
             }
             .motion(Motion.notchSettle, value: c.isActive)
             row(.settings)
+            if let beta = c.beta { AccountChip(c: c, beta: beta).padding(.top, Space.xs) }
         }
         .padding(.horizontal, Space.s).padding(.bottom, Space.s)
         .frame(width: 228)

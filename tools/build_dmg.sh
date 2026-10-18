@@ -29,6 +29,9 @@ fi
 codesign --verify --deep --strict "$APP" 2>&1 || { echo "the app's signature does not verify" >&2; exit 1; }
 
 VERSION="$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Contents/Info.plist")"
+# A beta build is named for its number, so two betas of one version never overwrite each other.
+CHANNEL="$(/usr/libexec/PlistBuddy -c "Print :FocusChannel" "$APP/Contents/Info.plist" 2>/dev/null || echo dev)"
+if [ "$CHANNEL" = beta ]; then VERSION="$VERSION-beta.$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$APP/Contents/Info.plist")"; fi
 DMG="$BUILD/Focus-$VERSION.dmg"
 WORK="$(mktemp -d)"
 MOUNT="$WORK/mount"
@@ -55,6 +58,18 @@ Focus
    turn on screen reading.
 
 Focus reads your screen with Apple's on-device model, so it needs a Mac with Apple silicon and Apple Intelligence turned on.
+TEXT
+fi
+
+if [ "$CHANNEL" = beta ]; then
+  cat > "$STAGE/For testers.txt" <<'TEXT'
+Thank you for testing Focus.
+
+Send feedback from your profile at the bottom left of the Focus window, or from Help, Send Feedback. You see the whole report
+before you save it, and Focus itself sends nothing. Reports never hold task or project names, window titles, addresses, screen
+words or pictures.
+
+This beta has an end date. After it, Focus keeps working and says a newer build is waiting.
 TEXT
 fi
 

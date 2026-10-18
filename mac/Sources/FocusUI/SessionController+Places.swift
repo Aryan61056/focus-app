@@ -131,7 +131,10 @@ extension SessionController {
         if s.tries >= 4 { lastSpotRestored = false; pendingSpot = nil } else { pendingSpot = s }
     }
 
-    private func report(_ p: TaskPlace, _ o: ReturnOutcome) { lastReturn = ReturnReport(place: p, outcome: o, at: now()) }
+    private func report(_ p: TaskPlace, _ o: ReturnOutcome) {
+        lastReturn = ReturnReport(place: p, outcome: o, at: now())
+        beta?.journal.note(.backToTask, o == .notFound ? 0 : 1)
+    }
 
     private func bring(_ p: TaskPlace, reopen allowReopen: Bool = true) -> ReturnOutcome {
         let allowTabs = prefs.switchTabs && !shadow
