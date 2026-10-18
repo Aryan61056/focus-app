@@ -58,7 +58,9 @@ public struct PhoneLinkView: View {
     private var idle: some View {
         let installer = link.installer
         // While Focus is offering to install the app, that is the step in front of you and pairing waits its turn.
-        let installing: Bool = { if case .ready = installer.state { return true }; if case .installing = installer.state { return true }; return false }()
+        let installing: Bool = {
+            switch installer.state { case .ready, .installing, .building, .needsXcodegen, .installingXcodegen, .needsTeam: return true; default: return false }
+        }()
         return VStack(alignment: .leading, spacing: 16) {
             phones
             installBlock(installer)
@@ -96,7 +98,8 @@ public struct PhoneLinkView: View {
                                     if !target.model.isEmpty { Text(target.model).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
                                 }
                                 Spacer()
-                                Button("Install Focus") { Task { await installer.install(on: target) } }.buttonStyle(FocusButtonStyle(.primary, small: true))
+                                Button(installer.buildsItself ? "Build and install" : "Install Focus") { Task { await installer.install(on: target) } }.buttonStyle(FocusButtonStyle(.primary, small: true))
+                                    .help(installer.buildsItself ? "Focus makes the iPhone app on this Mac, signs it with your Apple ID's team and puts it on the phone." : "Puts the iPhone app on this phone over the cable.")
                             }
                             if target.needsDeveloperMode {
                                 Text("Turn on Developer Mode on this iPhone first: Settings, Privacy & Security.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
@@ -106,6 +109,22 @@ public struct PhoneLinkView: View {
                     }
                 case .installing(let name):
                     HStack(spacing: 8) { ProgressView().controlSize(.small); Text("Installing on \(name). Keep it unlocked.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
+                case .building(let phone, let step):
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 8) { ProgressView().controlSize(.small); Text(step).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true) }
+                        Text("Keep \(phone) plugged in and unlocked.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
+                    }
+                case .needsXcodegen:
+                    Text("Focus needs a small free tool, xcodegen, to build the iPhone app. It installs with Homebrew.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack {
+                        Button("Install xcodegen") { Task { await installer.installXcodegen() } }.buttonStyle(FocusButtonStyle(.primary, small: true))
+                        Button("Not now") { Task { await installer.again() } }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                    }
+                case .installingXcodegen:
+                    HStack(spacing: 8) { ProgressView().controlSize(.small); Text("Installing xcodegen\u{2026}").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
+                case .needsTeam:
+                    TeamEntry(installer: installer)
                 case .installed(let name):
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Image(systemName: "checkmark.circle.fill").foregroundStyle(Tokens.accent)
@@ -178,4 +197,23 @@ public struct PhoneLinkView: View {
             }
         }
     }
+}
+
+
+/// Shown only when Xcode has no signed-in Apple ID to take a team from: sign in there (Focus then finds it), or type the ten characters.
+private struct TeamEntry: View {
+    var installer: PhoneInstaller
+    @State private var team = ""
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Focus signs the iPhone app with your Apple ID. Sign in under Xcode, Settings, Accounts and try again, or paste your 10-character team id.")
+                .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 8) {
+                TextField("Team id", text: $team).textFieldStyle(.roundedBorder).frame(maxWidth: 160).onSubmit(use)
+                Button("Use it", action: use).buttonStyle(FocusButtonStyle(.primary, small: true)).disabled(!PhoneBuild.isTeamID(team.trimmingCharacters(in: .whitespaces)))
+                Button("Try again") { Task { await installer.again() } }.buttonStyle(FocusButtonStyle(.plain, small: true))
+            }
+        }
+    }
+    private func use() { Task { await installer.useTeam(team) } }
 }
