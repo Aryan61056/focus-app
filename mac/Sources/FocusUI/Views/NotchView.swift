@@ -10,7 +10,7 @@ public enum NotchMode: Equatable, Sendable { case rest, peek, open, nudge }
 /// enough for a two-word state, and a nudge or the open card stays under about 420 pt, so it reads as part of the bezel, not a panel.
 public enum NotchLayout {
     /// Each ear beside the hardware notch at rest: room for the ring, or for the clock up to "1:05:30".
-    public static let ear: CGFloat = 48
+    public static let ear: CGFloat = 52
     /// How much wider each ear gets on hover, or while the notch announces a change of state: the ring plus "Getting back".
     public static let peekExtra: CGFloat = 44
     /// Room around the biggest shape, so nothing is ever cut off by the window edge.
@@ -177,6 +177,7 @@ public struct NotchView: View {
     /// overlapped it under the menu bar. So the notch opens to a nudge only when the banner is off in Settings; otherwise its ring turns amber.
     /// The gate (strict pause screen) is never shown here.
     public static func opensToNudge(_ c: SessionController) -> Bool {
+        if c.heldCheckInAt != nil { return true }   // the pause note: no banner is up while paused, and it has no buttons
         guard !c.prefs.showBanner else { return false }
         return c.checkIn != nil || c.rhythmPrompt != nil || (c.surface.map { $0.kind != "gate" } ?? false)
     }
@@ -194,11 +195,13 @@ public struct NotchView: View {
     var hasNotch: Bool { notchWidth > 0 }
     var big: Bool { mode == .open || mode == .nudge }
     /// The ears are wide: under the pointer, or while a change of state is announced.
-    var wide: Bool { mode == .peek || (mode == .rest && flash != nil) }
+    var wide: Bool { mode == .peek || (mode == .rest && (flash != nil || pausedByYou)) }
+    /// You paused it yourself: the ears stay wide and count how long it has been, so the clock never reads as frozen and stuck.
+    var pausedByYou: Bool { c.isHeld && SessionController.asksAboutHold(c.presence.reason) }
 
     public var body: some View {
         let shown = forced != nil || model.presented
-        let sizeMode: NotchMode = mode == .rest && flash != nil ? .peek : mode
+        let sizeMode: NotchMode = mode == .rest && (flash != nil || pausedByYou) ? .peek : mode
         let size = shown ? NotchLayout.size(sizeMode, notchWidth: notchWidth, notchHeight: notchHeight) : NotchLayout.tucked(notchWidth: notchWidth, notchHeight: notchHeight)
         let r = NotchLayout.radii(sizeMode, shown: shown, pill: !hasNotch)
         let shape = NotchShape(bottom: r.bottom, top: r.top, pill: !hasNotch)
@@ -217,6 +220,7 @@ public struct NotchView: View {
         .foregroundStyle(Self.ink)
         .animation(morph(shown: shown), value: mode)
         .animation(morph(shown: shown), value: shown)
+        .animation(morph(shown: shown), value: pausedByYou)
         .animation(reduceMotion ? Motion.reduced : Motion.notchPeek, value: flash)
         .animation(reduceMotion ? nil : Motion.notchPress, value: pressing)
         // A file landing gives the whole shape a small bump, so the drop is felt as well as seen.
@@ -381,7 +385,7 @@ public struct NotchView: View {
     }
     var time: some View {
         TimelineView(.everySecond) { _ in
-            let t = c.clockText()
+            let t = pausedByYou ? c.heldClockText() : c.clockText()
             Text(t).font(Tokens.fixed(.caption, .semibold, rounded: true)).monospacedDigit().fixedSize()
         }
     }
@@ -439,6 +443,7 @@ public struct NotchView: View {
     }
 
     var nudgeText: String {
+        if c.heldCheckInAt != nil { return CueCopy.heldTitle(seconds: c.heldSince.map { c.nowSeconds() - $0 } ?? 0) }
         if c.checkIn != nil { return NudgeCopy.checkInTitle(task: c.taskName) }
         if c.surface == nil, let p = c.rhythmPrompt { return CueCopy.rhythmTitle(p.kind, task: c.taskName) }
         return c.nudgeTitle
@@ -448,13 +453,16 @@ public struct NotchView: View {
     var offersWayBack: Bool { c.surface != nil || c.checkIn != nil }
 
     @ViewBuilder var nudgeMark: some View {
-        if offersWayBack { RingView(.drift, color: Tokens.Notch.slip) }
+        if c.heldCheckInAt != nil { RingView(c.ringState, color: Self.ink) }
+        else if offersWayBack { RingView(.drift, color: Tokens.Notch.slip) }
         else { RingView(c.rhythmPrompt?.kind.ring ?? .on, color: Self.accent) }
     }
 
     @ViewBuilder var nudgeMeta: some View {
         HStack(spacing: 5) {
-            if c.checkIn != nil {
+            if c.heldCheckInAt != nil {
+                Image(systemName: "pause.fill").font(.system(size: 8, weight: .semibold)); Text(CueCopy.heldMeta)
+            } else if c.checkIn != nil {
                 notchSparkle; Text(CueCopy.checkInMeta)
             } else if c.surface != nil {
                 notchSparkle; Text(CueCopy.reminderMeta)

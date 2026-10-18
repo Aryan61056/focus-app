@@ -276,6 +276,12 @@ public enum CueCopy {
         return "Not verified. Explaining is locked for \(m) \(m == 1 ? "minute" : "minutes")."
     }
 
+    /// The notch's "still paused?" note: how long it has been, and where to resume. Text only; the notch has no controls.
+    public static func heldTitle(seconds: Double) -> String {
+        let m = max(1, Int((seconds / 60).rounded()))
+        return m >= 60 ? "Paused for \(m / 60) h \(m % 60) min" : "Paused for \(m) min"
+    }
+    public static let heldMeta = "Resume from the menu bar or Focus"
     public static func rhythmTitle(_ k: RhythmPrompt.Kind, task: String) -> String {
         switch k {
         case .checkIn: return "Still working on \(task)?"

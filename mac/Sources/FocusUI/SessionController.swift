@@ -173,6 +173,11 @@ public final class SessionController {
     @ObservationIgnored var explainStrikes = 0
     @ObservationIgnored var overrideLocks = 0
     @ObservationIgnored var lastPulseAt = -1000.0
+    /// When the current hold began, nil when not held. The notch counts up from it ("paused for").
+    public internal(set) var heldSince: Double?
+    /// When Focus last asked "still paused?" in the notch; nil unless that note is on show.
+    public internal(set) var heldCheckInAt: Double?
+    @ObservationIgnored var heldNextCheckIn = 0.0
     @ObservationIgnored var workSeconds = 0.0
     @ObservationIgnored var lastWorkTick: Double?
     @ObservationIgnored var workBlocks = 0
@@ -839,13 +844,15 @@ public final class SessionController {
             if case .beacon(let s, _) = e, s != "paused" { askResume = nil }
         }
         if isHeld, !wasHeld { enterHold(t) }
-        else if wasHeld, !isHeld, isActive, let w = currentWindow { windowChanged(w) }   // the hold ended: look at the window again now
+        else if wasHeld, !isHeld { heldSince = nil; heldCheckInAt = nil }
+        if wasHeld, !isHeld, isActive, let w = currentWindow { windowChanged(w) }   // the hold ended: look at the window again now
         syncShield()
     }
 
     /// Pausing means Focus stops looking and stops acting: the picture and words go, and any cover, check-in or prompt that was up comes down.
     private func enterHold(_ t: Double) {
         shield = nil; checkIn = nil; escalationGate = false; headsUpAt = nil
+        heldSince = t; heldCheckInAt = nil; heldNextCheckIn = t + Self.heldFirstCheckIn
         previewFrame = nil; previewHeld = nil; dropScreenText()
         refreshBanner(t)
     }
@@ -923,6 +930,8 @@ extension SessionController {
     }
 
     public func clockText() -> String { Self.format(clockSeconds()) }
+    /// How long the hold has lasted, as the clock shows it.
+    public func heldClockText() -> String { Self.format(heldSince.map { max(0, nowSeconds() - $0) } ?? 0) }
 
     public func offTopicSecondsNow() -> Double { offTopic.seconds + (offTopic.running ? nowSeconds() - offTopic.at : 0) }
 

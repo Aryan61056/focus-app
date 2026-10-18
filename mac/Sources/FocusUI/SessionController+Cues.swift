@@ -9,7 +9,20 @@ extension SessionController {
     /// A check-in prompt you ignore counts as "yes, keep going" after this long.
     static let checkInPromptSeconds = 90.0
 
+    /// While you have paused it yourself, the notch says how long it has been: once after 5 minutes, then every 10, for a few seconds each.
+    /// Breaks, snoozes, calls and time away end on their own, so they are not asked about.
+    static let heldFirstCheckIn = 300.0, heldCheckInEvery = 600.0, heldCheckInShown = 9.0
+    static func asksAboutHold(_ reason: String?) -> Bool { !["break", "snooze", "meeting", "idle", "sleep", "sensitive"].contains(reason ?? "") }
+
+    func tickHeld(_ t: Double) {
+        guard isActive, isHeld, !shadow, Self.asksAboutHold(presence.reason) else { if heldCheckInAt != nil { heldCheckInAt = nil }; return }
+        if let a = heldCheckInAt, t - a >= Self.heldCheckInShown { heldCheckInAt = nil }
+        guard heldCheckInAt == nil, heldSince != nil, t >= heldNextCheckIn else { return }
+        heldCheckInAt = t; heldNextCheckIn = t + Self.heldCheckInEvery
+    }
+
     func resetCues() {
+        heldSince = nil; heldCheckInAt = nil
         restoreSound()
         lastOnTask = nil; lastEnforce = nil; places.reset(); placesVersion &+= 1; lastReturn = nil; lastPlaceTick = nil; pendingSpot = nil; lastPositionAt = nil; lastSpotRestored = nil
         banner = nil; shield = nil; backHoldStart = nil; overrideLockedUntil = nil; rhythmPrompt = nil
@@ -144,6 +157,7 @@ extension SessionController {
         tickPlaces(t)
         refreshBanner(t)
         tickRhythm(t)
+        tickHeld(t)
         syncShield()
         // On hold nothing is covered and nothing is acted on.
         if shield == nil, !isHeld, t - lastFrictionCheck >= 5, let w = currentWindow { lastFrictionCheck = t; updateFriction(w) }

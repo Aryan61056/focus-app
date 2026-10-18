@@ -175,6 +175,34 @@ final class CueControllerTests: XCTestCase {
         return t
     }
 
+    // the notch's "still paused?" note
+    func testPausedByYouCountsUpAndAsksAtFiveMinutesThenEveryTen() async {
+        let c = make()
+        await advance(c, to: 20)
+        c.act(.pause)
+        XCTAssertTrue(c.isHeld)
+        let start = try! XCTUnwrap(c.heldSince)
+        await advance(c, to: start + 299)
+        XCTAssertNil(c.heldCheckInAt, "not before five minutes")
+        await advance(c, to: start + 301)
+        XCTAssertNotNil(c.heldCheckInAt)
+        XCTAssertEqual(c.heldClockText(), "5:01")
+        await advance(c, to: start + 301 + SessionController.heldCheckInShown + 1)
+        XCTAssertNil(c.heldCheckInAt, "the note goes away by itself")
+        await advance(c, to: start + 300 + SessionController.heldCheckInEvery + 2)
+        XCTAssertNotNil(c.heldCheckInAt, "and comes back ten minutes later")
+        c.act(.resume)
+        XCTAssertNil(c.heldSince); XCTAssertNil(c.heldCheckInAt)
+    }
+
+    func testABreakIsNotAskedAbout() async {
+        let c = make()
+        await advance(c, to: 20)
+        c.act(.breakTime, minutes: 20)
+        await advance(c, to: t + 400)
+        XCTAssertTrue(c.isHeld); XCTAssertNil(c.heldCheckInAt)
+    }
+
     // banner and heads-up
     func testTheReminderStaysOverTheDistractionFromTheWarningUntilYouAreBack() async {
         let c = make()
