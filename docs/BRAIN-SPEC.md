@@ -393,13 +393,13 @@ After a request, `nextCheckAt = ∞` until the answer arrives. `allowVision = !p
 
 | Situation after applying | Interval (s) **ST** |
 |---|---|
-| Focus Confirmed or Persisting, no return pending | 30 (only return needs noticing, and window changes are immediate) |
-| Return pending | 10 |
+| Focus Confirmed or Persisting, no return pending | 8 (owner, 2026-10-18: notice a slip fast; window changes are immediate) |
+| Return pending | 4 |
 | ON from a session rule or `ruleLabel` | none (deterministic, re-checked only on window change) |
-| ON from cache | 90 (sets `onStreak = 3`) |
-| ON from a judgment | `onStreak += 1`; 30, 60, then 90 for streak 1, 2, 3+ (adaptive backoff, PLAN 7.3) |
-| STRONG, or block flagged | 10 (tightening under suspicion) |
-| NEUTRAL, block not flagged | `neutralStreak += 1`; 10, 20, 40, then 60 for streak 1, 2, 3, 4+ |
+| ON from cache | 20 (sets `onStreak = 3`) |
+| ON from a judgment | `onStreak += 1`; 8, 12, then 20 for streak 1, 2, 3+ (adaptive backoff, PLAN 7.3) |
+| STRONG, or block flagged | 4 (tightening under suspicion) |
+| NEUTRAL, block not flagged | `neutralStreak += 1`; 5, 8, 12, then 20 for streak 1, 2, 3, 4+ |
 
 `PowerChange{constrained}` doubles every interval; `critical` stops cadence requests entirely (rules and cache still work).
 Pause on lock, sleep or display-off is the `sleep` hold (PLAN 9.1).
@@ -504,26 +504,34 @@ Short names in these traces: STRONG judgment = `"label":"off_task","strong":true
 
 ### T01 Quiet on-task (Standard): backoff, cache, nothing visible
 
-Checks at 30, 60, 90 s after on-task verdicts; a cache hit on return to the editor skips the judge and sets the stable 90 s interval.
+Checks at 8, 12, 20 s after on-task verdicts (owner, 2026-10-18: faster than the old 30/60/90); a cache hit on return to the editor skips the judge and sets the stable 20 s interval.
 
 ```json
-{"trace":"T01-quiet-on-task","ticks":{"from":0,"until":300},"ignore":[],"steps":[
+{"trace":"T01-quiet-on-task","ticks":{"from":0,"until":180},"ignore":[],"steps":[
 {"t":0,"ev":{"SessionStart":{"preset":"Standard"}},"fx":[{"Beacon":{"state":"resting"}},{"Clock":{"seconds":0,"running":true}}]},
 {"t":0,"ev":{"WindowChange":{"windowKey":"w:editor"}},"fx":[{"RequestJudgment":{"id":1,"reason":"window_change","urgency":"now","windowKey":"w:editor"}}]},
 {"t":3.5,"ev":{"Judgment":{"requestId":1,"observedAt":0,"windowKey":"w:editor","contentKey":"c:e1","label":"on_task"}},"fx":[]},
-{"t":34,"ev":"Tick","fx":[{"RequestJudgment":{"id":2,"reason":"cadence","urgency":"normal","windowKey":"w:editor"}}]},
-{"t":37.5,"ev":{"Judgment":{"requestId":2,"observedAt":34,"windowKey":"w:editor","contentKey":"c:e1","label":"on_task","source":"unchanged"}},"fx":[]},
-{"t":98,"ev":"Tick","fx":[{"RequestJudgment":{"id":3,"reason":"cadence","urgency":"normal","windowKey":"w:editor"}}]},
-{"t":101.5,"ev":{"Judgment":{"requestId":3,"observedAt":98,"windowKey":"w:editor","contentKey":"c:e2","label":"on_task"}},"fx":[]},
-{"t":120,"ev":{"WindowChange":{"windowKey":"w:docs"}},"fx":[{"RequestJudgment":{"id":4,"reason":"window_change","urgency":"now","windowKey":"w:docs"}}]},
-{"t":123.5,"ev":{"Judgment":{"requestId":4,"observedAt":120,"windowKey":"w:docs","contentKey":"c:d1","label":"on_task"}},"fx":[]},
-{"t":150,"ev":{"WindowChange":{"windowKey":"w:editor"}},"fx":[]},
-{"t":240,"ev":"Tick","fx":[{"RequestJudgment":{"id":5,"reason":"cadence","urgency":"normal","windowKey":"w:editor"}}]},
-{"t":243.5,"ev":{"Judgment":{"requestId":5,"observedAt":240,"windowKey":"w:editor","contentKey":"c:e2","label":"on_task","source":"unchanged"}},"fx":[]},
-{"t":300,"ev":{"SessionEnd":{"reason":"user"}},"fx":[{"Beacon":{"state":"off"}},{"Summary":{"activeSeconds":300,"offTopicSeconds":0,"unsureSeconds":0,"drifts":0,"interrupts":0,"refusals":0}}]}
+{"t":12,"ev":"Tick","fx":[{"RequestJudgment":{"id":2,"reason":"cadence","urgency":"normal","windowKey":"w:editor"}}]},
+{"t":15.5,"ev":{"Judgment":{"requestId":2,"observedAt":12,"windowKey":"w:editor","contentKey":"c:e1","label":"on_task","source":"unchanged"}},"fx":[]},
+{"t":28,"ev":"Tick","fx":[{"RequestJudgment":{"id":3,"reason":"cadence","urgency":"normal","windowKey":"w:editor"}}]},
+{"t":31.5,"ev":{"Judgment":{"requestId":3,"observedAt":28,"windowKey":"w:editor","contentKey":"c:e2","label":"on_task"}},"fx":[]},
+{"t":52,"ev":"Tick","fx":[{"RequestJudgment":{"id":4,"reason":"cadence","urgency":"normal","windowKey":"w:editor"}}]},
+{"t":55.5,"ev":{"Judgment":{"requestId":4,"observedAt":52,"windowKey":"w:editor","contentKey":"c:e2","label":"on_task","source":"unchanged"}},"fx":[]},
+{"t":76,"ev":"Tick","fx":[{"RequestJudgment":{"id":5,"reason":"cadence","urgency":"normal","windowKey":"w:editor"}}]},
+{"t":79.5,"ev":{"Judgment":{"requestId":5,"observedAt":76,"windowKey":"w:editor","contentKey":"c:e2","label":"on_task","source":"unchanged"}},"fx":[]},
+{"t":100,"ev":"Tick","fx":[{"RequestJudgment":{"id":6,"reason":"cadence","urgency":"normal","windowKey":"w:editor"}}]},
+{"t":103.5,"ev":{"Judgment":{"requestId":6,"observedAt":100,"windowKey":"w:editor","contentKey":"c:e2","label":"on_task","source":"unchanged"}},"fx":[]},
+{"t":120,"ev":{"WindowChange":{"windowKey":"w:docs"}},"fx":[{"RequestJudgment":{"id":7,"reason":"window_change","urgency":"now","windowKey":"w:docs"}}]},
+{"t":123.5,"ev":{"Judgment":{"requestId":7,"observedAt":120,"windowKey":"w:docs","contentKey":"c:d1","label":"on_task"}},"fx":[]},
+{"t":132,"ev":"Tick","fx":[{"RequestJudgment":{"id":8,"reason":"cadence","urgency":"normal","windowKey":"w:docs"}}]},
+{"t":135.5,"ev":{"Judgment":{"requestId":8,"observedAt":132,"windowKey":"w:docs","contentKey":"c:d1","label":"on_task","source":"unchanged"}},"fx":[]},
+{"t":145,"ev":{"WindowChange":{"windowKey":"w:editor"}},"fx":[]},
+{"t":165,"ev":"Tick","fx":[{"RequestJudgment":{"id":9,"reason":"cadence","urgency":"normal","windowKey":"w:editor"}}]},
+{"t":168.5,"ev":{"Judgment":{"requestId":9,"observedAt":165,"windowKey":"w:editor","contentKey":"c:e2","label":"on_task","source":"unchanged"}},"fx":[]},
+{"t":180,"ev":{"SessionEnd":{"reason":"user"}},"fx":[{"Beacon":{"state":"off"}},{"Summary":{"activeSeconds":180,"offTopicSeconds":0,"unsureSeconds":0,"drifts":0,"interrupts":0,"refusals":0}}]}
 ]}
 ```
-Check: 3.5+30=33.5→tick 34; 37.5+60=97.5→98; 101.5+90=191.5 (superseded at 120); 123.5+30=153.5 (superseded at 150 by cache hit: 150+90=240); 243.5+90=333.5 > 300.
+Check: 3.5+8=11.5→tick 12; 15.5+12=27.5→28; 31.5+20=51.5→52; then every 20 s (76, 100); 123.5+8=131.5→tick 132 after the docs verdict; the cache hit at 145 sets the 20 s interval, so 165.
 
 ### T02 Short drift that recovers before confirmation (Standard)
 
@@ -627,21 +635,28 @@ Check: arrival times follow the NEUTRAL backoff 10, 20, 40, 60 (103.5→114, 117
 {"t":0,"ev":{"SessionStart":{"preset":"Standard"}},"fx":[{"Beacon":{"state":"resting"}},{"Clock":{"seconds":0,"running":true}}]},
 {"t":0,"ev":{"WindowChange":{"windowKey":"w:editor"}},"fx":[{"RequestJudgment":{"id":1,"reason":"window_change","urgency":"now","windowKey":"w:editor"}}]},
 {"t":3.5,"ev":{"Judgment":{"requestId":1,"observedAt":0,"windowKey":"w:editor","contentKey":"c:e1","label":"on_task"}},"fx":[]},
-{"t":34,"ev":"Tick","fx":[{"RequestJudgment":{"id":2,"reason":"cadence","urgency":"normal","windowKey":"w:editor"}}]},
-{"t":37.5,"ev":{"Judgment":{"requestId":2,"observedAt":34,"windowKey":"w:editor","contentKey":"c:e1","label":"on_task","source":"unchanged"}},"fx":[]},
-{"t":98,"ev":"Tick","fx":[{"RequestJudgment":{"id":3,"reason":"cadence","urgency":"normal","windowKey":"w:editor"}}]},
-{"t":100,"ev":{"WindowChange":{"windowKey":"w:msg"}},"fx":[{"RequestJudgment":{"id":4,"reason":"window_change","urgency":"now","windowKey":"w:msg"}}]},
-{"t":103.5,"ev":{"Judgment":{"requestId":4,"observedAt":100,"windowKey":"w:msg","contentKey":"c:msg1","label":"off_task","strong":true,"flag":"refusal"}},"fx":[]},
-{"t":125,"ev":"Tick","fx":[{"Beacon":{"state":"watching"}}]},
+{"t":12,"ev":"Tick","fx":[{"RequestJudgment":{"id":2,"reason":"cadence","urgency":"normal","windowKey":"w:editor"}}]},
+{"t":15.5,"ev":{"Judgment":{"requestId":2,"observedAt":12,"windowKey":"w:editor","contentKey":"c:e1","label":"on_task","source":"unchanged"}},"fx":[]},
+{"t":28,"ev":"Tick","fx":[{"RequestJudgment":{"id":3,"reason":"cadence","urgency":"normal","windowKey":"w:editor"}}]},
+{"t":31.5,"ev":{"Judgment":{"requestId":3,"observedAt":28,"windowKey":"w:editor","contentKey":"c:e1","label":"on_task","source":"unchanged"}},"fx":[]},
+{"t":52,"ev":"Tick","fx":[{"RequestJudgment":{"id":4,"reason":"cadence","urgency":"normal","windowKey":"w:editor"}}]},
+{"t":55.5,"ev":{"Judgment":{"requestId":4,"observedAt":52,"windowKey":"w:editor","contentKey":"c:e1","label":"on_task","source":"unchanged"}},"fx":[]},
+{"t":76,"ev":"Tick","fx":[{"RequestJudgment":{"id":5,"reason":"cadence","urgency":"normal","windowKey":"w:editor"}}]},
+{"t":79.5,"ev":{"Judgment":{"requestId":5,"observedAt":76,"windowKey":"w:editor","contentKey":"c:e1","label":"on_task","source":"unchanged"}},"fx":[]},
+{"t":90,"ev":{"WindowChange":{"windowKey":"w:msg"}},"fx":[{"RequestJudgment":{"id":6,"reason":"window_change","urgency":"now","windowKey":"w:msg"}}]},
+{"t":93.5,"ev":{"Judgment":{"requestId":6,"observedAt":90,"windowKey":"w:msg","contentKey":"c:msg1","label":"off_task","strong":true,"flag":"refusal"}},"fx":[]},
+{"t":115,"ev":"Tick","fx":[{"Beacon":{"state":"watching"}}]},
 {"t":160,"ev":{"WindowChange":{"windowKey":"w:editor"}},"fx":[]},
-{"t":170,"ev":"Tick","fx":[{"RequestJudgment":{"id":5,"reason":"cadence","urgency":"normal","windowKey":"w:editor"}}]},
-{"t":173.5,"ev":{"Judgment":{"requestId":5,"observedAt":170,"windowKey":"w:editor","contentKey":"c:e1","label":"on_task","source":"unchanged"}},"fx":[]},
+{"t":164,"ev":"Tick","fx":[{"RequestJudgment":{"id":7,"reason":"cadence","urgency":"normal","windowKey":"w:editor"}}]},
+{"t":167.5,"ev":{"Judgment":{"requestId":7,"observedAt":164,"windowKey":"w:editor","contentKey":"c:e1","label":"on_task","source":"unchanged"}},"fx":[]},
+{"t":172,"ev":"Tick","fx":[{"RequestJudgment":{"id":8,"reason":"cadence","urgency":"normal","windowKey":"w:editor"}}]},
 {"t":175,"ev":"Tick","fx":[{"Beacon":{"state":"recovering"}}]},
+{"t":175.5,"ev":{"Judgment":{"requestId":8,"observedAt":172,"windowKey":"w:editor","contentKey":"c:e1","label":"on_task","source":"unchanged"}},"fx":[]},
 {"t":180,"ev":"Tick","fx":[{"Beacon":{"state":"resting"}}]},
-{"t":184,"ev":"Tick","fx":[{"RequestJudgment":{"id":6,"reason":"cadence","urgency":"normal","windowKey":"w:editor"}}]},
-{"t":187.5,"ev":{"Judgment":{"requestId":6,"observedAt":184,"windowKey":"w:editor","contentKey":"c:e1","label":"on_task","source":"unchanged"}},"fx":[]},
+{"t":196,"ev":"Tick","fx":[{"RequestJudgment":{"id":9,"reason":"cadence","urgency":"normal","windowKey":"w:editor"}}]},
+{"t":199,"ev":{"Judgment":{"requestId":9,"observedAt":196,"windowKey":"w:editor","contentKey":"c:e1","label":"on_task","source":"unchanged"}},"fx":[]},
 {"t":200,"ev":{"WindowChange":{"windowKey":"w:msg"}},"fx":[{"Beacon":{"state":"watching"}}]},
-{"t":260,"ev":{"SessionEnd":{"reason":"user"}},"fx":[{"Beacon":{"state":"off"}},{"Summary":{"activeSeconds":260,"offTopicSeconds":0,"unsureSeconds":120,"drifts":0,"interrupts":0,"refusals":1}}]}
+{"t":260,"ev":{"SessionEnd":{"reason":"user"}},"fx":[{"Beacon":{"state":"off"}},{"Summary":{"activeSeconds":260,"offTopicSeconds":0,"unsureSeconds":130,"drifts":0,"interrupts":0,"refusals":1}}]}
 ]}
 ```
 Check: the refusal's `off_task, strong` is ignored (flag wins) → NEUTRAL, REFUSED cached, no cadence on `w:msg`. Request 3 is superseded and never answered. At 160 the editor is a cache hit (refreshed at 37.5): return pending, cadence 10 → 170; at 173.5 still pending → 183.5 → tick 184; at 187.5 focus OnTask, `onStreak` 3 (cache hit) + 1 = 4 → 90 → 277.5 > 260. At 200 `w:msg` hits the REFUSED cache: NEUTRAL at 200, no request. 200-160 = 40 ≤ 120, so block resumes at value 160-100 = 60 ≥ 25: straight to Drifting, not flagged. End: 60 + (260-200) = 120 unsure seconds; one refusal counted.
@@ -748,21 +763,23 @@ Check: the 187.5 judgment (STRONG) arrives after the rule exists and is ignored.
 {"t":0,"ev":{"SessionStart":{"preset":"Standard"}},"fx":[{"Beacon":{"state":"resting"}},{"Clock":{"seconds":0,"running":true}}]},
 {"t":0,"ev":{"WindowChange":{"windowKey":"w:editor"}},"fx":[{"RequestJudgment":{"id":1,"reason":"window_change","urgency":"now","windowKey":"w:editor"}}]},
 {"t":3.5,"ev":{"Judgment":{"requestId":1,"observedAt":0,"windowKey":"w:editor","contentKey":"c:e1","label":"on_task"}},"fx":[]},
+{"t":12,"ev":"Tick","fx":[{"RequestJudgment":{"id":2,"reason":"cadence","urgency":"normal","windowKey":"w:editor"}}]},
+{"t":15.5,"ev":{"Judgment":{"requestId":2,"observedAt":12,"windowKey":"w:editor","contentKey":"c:e1","label":"on_task","source":"unchanged"}},"fx":[]},
 {"t":20,"ev":{"SensitiveEntered":{}},"fx":[{"Beacon":{"state":"paused","reason":"sensitive"}}]},
 {"t":50,"ev":{"SensitiveLeft":{}},"fx":[{"Beacon":{"state":"resting"}}]},
 {"t":50,"ev":{"WindowChange":{"windowKey":"w:editor"}},"fx":[]},
-{"t":60,"ev":{"WindowChange":{"windowKey":"w:yt"}},"fx":[{"RequestJudgment":{"id":2,"reason":"window_change","urgency":"now","windowKey":"w:yt"}}]},
-{"t":63.5,"ev":{"Judgment":{"requestId":2,"observedAt":60,"windowKey":"w:yt","contentKey":"c:yt1","label":"off_task","strong":true}},"fx":[]},
-{"t":74,"ev":"Tick","fx":[{"RequestJudgment":{"id":3,"reason":"cadence","urgency":"high","windowKey":"w:yt"}}]},
-{"t":77.5,"ev":{"Judgment":{"requestId":3,"observedAt":74,"windowKey":"w:yt","contentKey":"c:yt1","label":"off_task","strong":true}},"fx":[]},
+{"t":60,"ev":{"WindowChange":{"windowKey":"w:yt"}},"fx":[{"RequestJudgment":{"id":3,"reason":"window_change","urgency":"now","windowKey":"w:yt"}}]},
+{"t":63.5,"ev":{"Judgment":{"requestId":3,"observedAt":60,"windowKey":"w:yt","contentKey":"c:yt1","label":"off_task","strong":true}},"fx":[]},
+{"t":68,"ev":"Tick","fx":[{"RequestJudgment":{"id":4,"reason":"cadence","urgency":"high","windowKey":"w:yt"}}]},
+{"t":71.5,"ev":{"Judgment":{"requestId":4,"observedAt":68,"windowKey":"w:yt","contentKey":"c:yt1","label":"off_task","strong":true}},"fx":[]},
 {"t":85,"ev":"Tick","fx":[{"Beacon":{"state":"drifting"}},{"Veil":{"from":0,"to":30,"seconds":30}},{"OffTopicTimer":{"seconds":25,"running":true,"visible":true}}]},
-{"t":88,"ev":"Tick","fx":[{"RequestJudgment":{"id":4,"reason":"cadence","urgency":"high","windowKey":"w:yt"}}]},
+{"t":76,"ev":"Tick","fx":[{"RequestJudgment":{"id":5,"reason":"cadence","urgency":"high","windowKey":"w:yt"}}]},
 {"t":90,"ev":{"SensitiveEntered":{}},"fx":[{"Beacon":{"state":"paused","reason":"sensitive"}},{"Veil":{"from":5,"to":0,"seconds":5}},{"OffTopicTimer":{"seconds":30,"running":false,"visible":false}}]},
-{"t":91.5,"ev":{"Judgment":{"requestId":4,"observedAt":88,"windowKey":"w:yt","contentKey":"c:yt1","label":"off_task","strong":true}},"fx":[]},
+{"t":91.5,"ev":{"Judgment":{"requestId":5,"observedAt":76,"windowKey":"w:yt","contentKey":"c:yt1","label":"off_task","strong":true}},"fx":[]},
 {"t":120,"ev":{"SensitiveLeft":{}},"fx":[{"Beacon":{"state":"resting"}}]},
-{"t":120,"ev":{"WindowChange":{"windowKey":"w:yt"}},"fx":[{"RequestJudgment":{"id":5,"reason":"window_change","urgency":"now","windowKey":"w:yt"}}]},
-{"t":123.5,"ev":{"Judgment":{"requestId":5,"observedAt":120,"windowKey":"w:yt","contentKey":"c:yt1","label":"off_task","strong":true}},"fx":[{"Beacon":{"state":"drifting"}},{"Veil":{"from":0,"to":30,"seconds":30}},{"OffTopicTimer":{"seconds":33.5,"running":true,"visible":true}}]},
-{"t":134,"ev":"Tick","fx":[{"RequestJudgment":{"id":6,"reason":"cadence","urgency":"high","windowKey":"w:yt"}}]},
+{"t":120,"ev":{"WindowChange":{"windowKey":"w:yt"}},"fx":[{"RequestJudgment":{"id":6,"reason":"window_change","urgency":"now","windowKey":"w:yt"}}]},
+{"t":123.5,"ev":{"Judgment":{"requestId":6,"observedAt":120,"windowKey":"w:yt","contentKey":"c:yt1","label":"off_task","strong":true}},"fx":[{"Beacon":{"state":"drifting"}},{"Veil":{"from":0,"to":30,"seconds":30}},{"OffTopicTimer":{"seconds":33.5,"running":true,"visible":true}}]},
+{"t":128,"ev":"Tick","fx":[{"RequestJudgment":{"id":7,"reason":"cadence","urgency":"high","windowKey":"w:yt"}}]},
 {"t":150,"ev":{"SessionEnd":{"reason":"user"}},"fx":[{"Beacon":{"state":"off"}},{"Veil":{"from":26,"to":0,"seconds":5}},{"OffTopicTimer":{"seconds":60,"running":false,"visible":false}},{"Summary":{"activeSeconds":150,"offTopicSeconds":60,"unsureSeconds":0,"drifts":1,"interrupts":0,"refusals":0}}]}
 ]}
 ```

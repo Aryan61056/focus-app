@@ -647,13 +647,13 @@ impl Brain {
         }
         let interval: Option<f64>;
         let flagged = self.block.as_ref().map_or(false, |b| b.flagged);
-        if (self.focus == Focus::Confirmed || self.focus == Focus::Persisting) && self.return_pending_since.is_none() { interval = Some(30.0); }
-        else if self.return_pending_since.is_some() { interval = Some(10.0); }
+        if (self.focus == Focus::Confirmed || self.focus == Focus::Persisting) && self.return_pending_since.is_none() { interval = Some(8.0); }
+        else if self.return_pending_since.is_some() { interval = Some(4.0); }
         else if c == EvClass::On && source != EvSource::Judgment && source != EvSource::Cache { interval = None; } // rule: deterministic
-        else if c == EvClass::On && source == EvSource::Cache { interval = Some(90.0); }
-        else if c == EvClass::On { interval = Some([30.0, 60.0, 90.0][self.on_streak.min(3) - 1]); }
-        else if c == EvClass::Strong || flagged { interval = Some(10.0); }
-        else { self.neutral_streak += 1; interval = Some([10.0, 20.0, 40.0, 60.0][self.neutral_streak.min(4) - 1]); }
+        else if c == EvClass::On && source == EvSource::Cache { interval = Some(20.0); }
+        else if c == EvClass::On { interval = Some([8.0, 12.0, 20.0][self.on_streak.min(3) - 1]); }
+        else if c == EvClass::Strong || flagged { interval = Some(4.0); }
+        else { self.neutral_streak += 1; interval = Some([5.0, 8.0, 12.0, 20.0][self.neutral_streak.min(4) - 1]); }
         let scale = self.session.as_ref().map_or(1.0, |s| s.check_scale);
         self.next_check_at = match interval { Some(i) => t + (i * scale).max(4.0) * if self.power_constrained { 2.0 } else { 1.0 }, None => f64::INFINITY };
     }

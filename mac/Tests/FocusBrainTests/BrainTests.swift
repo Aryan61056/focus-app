@@ -53,7 +53,7 @@ final class BrainScenarioTests: XCTestCase {
         XCTAssertEqual(hits.count, 1)
         XCTAssertEqual(hits.first?.allowVision, false)
         let at = d.log.first { !Driver.requests($0.fx).isEmpty && $0.t > 4 }?.t
-        XCTAssertEqual(at, 64)  // 3.5 + 2 x 30 = 63.5, first tick after
+        XCTAssertEqual(at, 20)  // 3.5 + 2 x 8 = 19.5, first tick after
     }
 
     func testCriticalPowerStopsCadenceButNotWindowChanges() {

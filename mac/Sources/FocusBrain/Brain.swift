@@ -558,13 +558,13 @@ public struct Brain {
             if source == .cache { onStreak = 3 } else if source == .judgment { onStreak += 1 }
         }
         var interval: Double?
-        if (focus == .confirmed || focus == .persisting) && returnPendingSince == nil { interval = 30 }
-        else if returnPendingSince != nil { interval = 10 }
+        if (focus == .confirmed || focus == .persisting) && returnPendingSince == nil { interval = 8 }
+        else if returnPendingSince != nil { interval = 4 }
         else if c == .on && source != .judgment && source != .cache { interval = nil }          // rule: deterministic
-        else if c == .on && source == .cache { interval = 90 }
-        else if c == .on { interval = [30.0, 60.0, 90.0][min(onStreak, 3) - 1] }
-        else if c == .strong || block?.flagged == true { interval = 10 }
-        else { neutralStreak += 1; interval = [10.0, 20.0, 40.0, 60.0][min(neutralStreak, 4) - 1] }
+        else if c == .on && source == .cache { interval = 20 }
+        else if c == .on { interval = [8.0, 12.0, 20.0][min(onStreak, 3) - 1] }
+        else if c == .strong || block?.flagged == true { interval = 4 }
+        else { neutralStreak += 1; interval = [5.0, 8.0, 12.0, 20.0][min(neutralStreak, 4) - 1] }
         let scale = session?.checkScale ?? 1
         if let i = interval { nextCheckAt = t + max(4, i * scale) * (powerConstrained ? 2 : 1) } else { nextCheckAt = .infinity }
     }
