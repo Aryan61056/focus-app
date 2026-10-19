@@ -28,8 +28,6 @@ A newer beta installs over the old one, and your sessions and settings stay. Whe
 
 ## Send feedback
 
-<img src="site/assets/app/beta-page.jpg" width="440" align="right" alt="The Beta page: days left in this build as a ring, three checks that this Mac is ready, and seven things to try.">
-
 In Focus, click **your name at the bottom left**, then **Send feedback** (or Help › Send Feedback, ⌥⌘F).
 
 1. Pick what it is: something broke, a wrong call, an idea, or anything else.
@@ -38,9 +36,9 @@ In Focus, click **your name at the bottom left**, then **Send feedback** (or Hel
 
 Or open a form directly: [Something broke](https://github.com/Aryan61056/focus-app/issues/new?template=beta-bug.yml) · [Wrong call](https://github.com/Aryan61056/focus-app/issues/new?template=beta-wrong-call.yml) · [Idea](https://github.com/Aryan61056/focus-app/issues/new?template=beta-idea.yml)
 
-**A report holds** your words, the build, your Mac's model and macOS version, whether permissions are on, your settings switches, counts, a log of when things happened (kinds and times), Focus's last calls (on, unsure or off, and how it decided), and where a crash happened. **It never holds** task or project names, window titles, web addresses, words from your screen or pictures. You see the whole file before it is saved, and Focus never sends a report by itself. Issues on GitHub are public.
+<p align="center"><img src="site/assets/app/beta-page.jpg" width="520" alt="The Beta page: days left in this build as a ring, three checks that this Mac is ready, and seven things to try."></p>
 
-<br clear="right">
+**A report holds** your words, the build, your Mac's model and macOS version, whether permissions are on, your settings switches, counts, a log of when things happened (kinds and times), Focus's last calls (on, unsure or off, and how it decided), and where a crash happened. **It never holds** task or project names, window titles, web addresses, words from your screen or pictures. You see the whole file before it is saved, and Focus never sends a report by itself. Issues on GitHub are public.
 
 ## What Focus does
 
