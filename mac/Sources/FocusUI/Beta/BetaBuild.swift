@@ -27,13 +27,20 @@ public struct BetaBuild: Equatable, Sendable {
 
     public static func from(info: [String: Any]) -> BetaBuild {
         let channel = (info["FocusChannel"] as? String).flatMap(Channel.init(rawValue:)) ?? .dev
-        let expires = (info["FocusBetaExpires"] as? String).flatMap { ISO8601DateFormatter.day.date(from: $0) }
+        let expires = (info["FocusBetaExpires"] as? String).flatMap(endDay(_:))
         let address = (info["FocusFeedbackAddress"] as? String).map { $0.trimmingCharacters(in: .whitespaces) }
         return BetaBuild(version: info["CFBundleShortVersionString"] as? String ?? "0.1.0", build: info["CFBundleVersion"] as? String ?? "1",
                          buildID: info["FocusBuildID"] as? String, channel: channel, expires: expires,
                          feedbackAddress: (address?.contains("@") ?? false) ? address : nil,
                          feedbackRepo: (info["FocusFeedbackRepo"] as? String).flatMap(repo(_:)),
                          notes: Array(lines(info["FocusReleaseNotes"]).prefix(12)), knownIssues: Array(lines(info["FocusKnownIssues"]).prefix(8)))
+    }
+
+    /// The end date as the start of that day where the tester is: "2026-11-18" ends the build at midnight going into November 18 on
+    /// their Mac, the date the invite and the release name. (Read as UTC it ended the evening before in the Americas.)
+    static func endDay(_ text: String) -> Date? {
+        let f = DateFormatter(); f.locale = Locale(identifier: "en_US_POSIX"); f.timeZone = .current; f.dateFormat = "yyyy-MM-dd"
+        return f.date(from: text.trimmingCharacters(in: .whitespaces))
     }
 
     /// One item per line in the plist, so the build script can pass a Markdown list as it is. Headings and blank lines are left out.

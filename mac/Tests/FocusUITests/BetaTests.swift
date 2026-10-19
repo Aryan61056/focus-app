@@ -73,11 +73,26 @@ final class BetaTests: XCTestCase {
         XCTAssertFalse(local.postsToGitHub); XCTAssertFalse(local.openNewestBuild())
     }
 
-    func testDaysLeftComeFromTheBuildDate() {
-        let b = BetaBuild(buildID: "20261019000000-abc1234", channel: .beta, expires: ISO8601DateFormatter.day.date(from: "2026-11-18"))
+    /// "2026-11-18" is the date the invite and the release promise, so the build stays current through November 17 wherever the
+    /// tester is and goes out of date as November 18 begins on their Mac.
+    func testEndDateIsTheStartOfThatDayOnTheTestersMac() throws {
+        let b = BetaBuild.from(info: ["FocusChannel": "beta", "FocusBetaExpires": "2026-11-18"])
+        let end = try XCTUnwrap(b.expires)
+        let parts = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: end)
+        XCTAssertEqual([parts.year, parts.month, parts.day, parts.hour, parts.minute], [2026, 11, 18, 0, 0])
+        XCTAssertFalse(b.expired(at: end.addingTimeInterval(-60)))
+        XCTAssertTrue(b.expired(at: end))
+        let eveningBefore = Calendar.current.date(bySettingHour: 20, minute: 0, second: 0, of: end.addingTimeInterval(-3600))!
+        XCTAssertEqual(b.daysLeft(at: eveningBefore), 1)
+        XCTAssertEqual(BetaWords.timeLine(b, now: eveningBefore), "1 day left \u{00B7} until Nov 18")
+    }
+
+    func testDaysLeftComeFromTheBuildDate() throws {
+        let b = BetaBuild(buildID: "20261019000000-abc1234", channel: .beta, expires: BetaBuild.endDay("2026-11-18"))
         XCTAssertEqual(b.built, ISO8601DateFormatter().date(from: "2026-10-19T00:00:00Z"))
-        XCTAssertEqual(b.remaining(at: b.built!)!, 1, accuracy: 0.001)
-        XCTAssertEqual(b.remaining(at: ISO8601DateFormatter().date(from: "2026-11-03T00:00:00Z")!)!, 0.5, accuracy: 0.001)
+        let built = try XCTUnwrap(b.built), end = try XCTUnwrap(b.expires)
+        XCTAssertEqual(b.remaining(at: built)!, 1, accuracy: 0.001)
+        XCTAssertEqual(b.remaining(at: built.addingTimeInterval(end.timeIntervalSince(built) / 2))!, 0.5, accuracy: 0.001)
         XCTAssertEqual(b.remaining(at: ISO8601DateFormatter().date(from: "2026-12-01T00:00:00Z")!), 0)
         XCTAssertNil(BetaBuild(channel: .beta).remaining(at: Date()))
         XCTAssertNil(BetaBuild(buildID: "nogit").built)
