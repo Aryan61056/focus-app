@@ -1,0 +1,33 @@
+name: "Beta: something broke"
+description: A crash, a freeze, or Focus doing something it should not. Attach the report Focus saved.
+title: "Beta: Something broke"
+labels: ["beta", "bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing Focus. In the app, click **your name at the bottom left**, then **Send feedback** and **Post on GitHub**: Focus saves a report and opens this form. Drag the file into the last box.
+
+        **Issues are public.** A report never holds task or project names, window titles, addresses, screen words or pictures. Open the file to check it before you post.
+  - type: input
+    id: build
+    attributes:
+      label: Build
+      description: Focus fills this in. It is also under your name at the bottom left of the Focus window.
+      placeholder: 0.1.0 beta 2
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, and what happened instead. If Focus quit, roughly when.
+      placeholder: I ended a session from the menu bar and the window stopped responding for a few seconds.
+    validations:
+      required: true
+  - type: textarea
+    id: report
+    attributes:
+      label: Report file
+      description: Drag the focus-feedback file here. Leave it out if you would rather not share it.
+      placeholder: Drop focus-feedback-....json here

@@ -266,7 +266,12 @@ struct FocusApp: App {
                 Button("Report a Wrong Call\u{2026}") { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); controller.beta?.requestFeedback(.wrongCall) }
                     .disabled(controller.beta == nil)
                 Button("What\u{2019}s New in This Build") { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); controller.beta?.notesShown = true }
-                    .disabled(controller.beta?.build.notes.isEmpty ?? true)
+                    .disabled((controller.beta?.build.notes.isEmpty ?? true) && (controller.beta?.build.knownIssues.isEmpty ?? true))
+                Button("Beta Page") { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); controller.requestSettingsPage(.beta) }
+                    .disabled(controller.beta == nil)
+                if controller.beta?.canOpenReleases == true {
+                    Button("Get the Newest Beta\u{2026}") { controller.beta?.openNewestBuild() }
+                }
             }
             CommandMenu("Example") {
                 Button("Previous scene") { if let e = controller.example { e.select(e.step - 1) } }

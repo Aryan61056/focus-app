@@ -8,7 +8,7 @@ audience and the size; the numbers below are starting targets to tune, not decis
 | Round | Who | Length | Goal |
 |---|---|---|---|
 | 0. Owner | The owner, on this Mac | 3 days | Install from the DMG like a tester. `docs/REAL-USE-TEST.md` passes. Every Today notice and the feedback sheet seen once. |
-| 1. Friends | 3 to 5 people the owner knows, mixed Macs | 1 week | Install works without help. No crash loops. Wrong-call reports describe windows well enough to act on. |
+| 1. Friends | 3 to 5 people the owner knows, mixed Macs | 1 week | Install from the GitHub release works without help. No crash loops. Wrong-call reports describe windows well enough to act on. |
 | 2. Closed | 10 to 20 people in the target audience (owner's choice) | 2 weeks | False nudges rare enough that people keep nudges on. Weekly answers hold or rise. |
 | 3. Wider | Owner's choice | 2 to 4 weeks | Release candidate. Signed and notarized if the owner has chosen to. |
 
@@ -28,6 +28,7 @@ From `tools/beta/feedback.py report`, per build:
 | Back to task found the place | beta log | 90% or more |
 | Review: Focus was right | usage counts | rising; small samples, so read the counts, not the percentage |
 | Wrong-call reports | report kinds | each one triaged within a week |
+| Wrong calls: how Focus decided | recent calls in wrong-call reports | watch only: a pile-up on `model` points at the prompt, on `words` at the matching-words rule, on `rule` at a list |
 | Weekly answer | weekly question | mean 3.5 or more, and not falling between rounds |
 | Crashes | crash summaries | no signature from more than one tester left open |
 
@@ -35,7 +36,7 @@ These are per-moment and per-tester counts from a handful of people. They are hi
 
 ## Triage
 
-Weekly: `ingest` new files, `report`, then for each new report `triage <id> triaged|fixing|wontfix|duplicate`. Fix order follows `docs/REAL-USE-TEST.md`: privacy and false nudges first, then wrong or stale sensing, missed nudges, Back to task, visuals. A fix closes with `triage <id> fixed --issue <ref>`, and the next build's `beta/notes/next.md` says what changed in plain words.
+Weekly: `pull` (reports posted on GitHub) and `ingest` (files that came another way), `report`, then for each new report `triage <id> triaged|fixing|wontfix|duplicate`. Fix order follows `docs/REAL-USE-TEST.md`: privacy and false nudges first, then wrong or stale sensing, missed nudges, Back to task, visuals. A fix closes with `triage <id> fixed --issue <ref>` (pulled reports already carry their issue), and the next build's `beta/notes/next.md` says what changed in plain words. Anything a tester should not report again goes in `beta/notes/known.md` until it is fixed.
 
 A report the tool refuses is never "fixed by editing": the app cannot write it, so ask the tester how it was made.
 

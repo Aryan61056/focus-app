@@ -265,7 +265,8 @@ struct FakeWindow<Over: View>: View {
     late.prefs.paceMatters = true; late.prefs.dailyGoalMinutes = 180
     for dark in [false, true] { render(late, "today-behind", dark: dark, selection: .today) }
 }
-if CommandLine.arguments.contains("--start") { startShots() }
+if CommandLine.arguments.contains("--beta") { await betaShots() }
+else if CommandLine.arguments.contains("--start") { startShots() }
 else if CommandLine.arguments.contains("--popups") { await popupShots() } else { await run(); screens() }
 
 /// focus-snapshot <dir> --start: the start sheet for a first-time user and for someone with history, drawn by the window server.
@@ -365,4 +366,62 @@ else if CommandLine.arguments.contains("--popups") { await popupShots() } else {
         both(name.replacingOccurrences(of: "pop-", with: "pop-banner-"), CGSize(width: 760, height: 380)) { FakeWindow(dark: false) { CuePreview.banner(r, .rhythm) } }
         both(name.replacingOccurrences(of: "pop-", with: "pop-notch-"), CGSize(width: 760, height: 200)) { ZStack(alignment: .top) { wall; NotchView(controller: r, notchWidth: 185, notchHeight: 32, forced: .nudge) } }
     }
+}
+
+/// focus-snapshot <dir> --beta: every beta surface a tester sees, drawn by the window server in light and dark. A made-up beta build
+/// with a GitHub project, notes and a known issue; the report file is written to a temporary folder and removed after.
+@MainActor func betaShots() async {
+    t = 0
+    let c = SessionController(judge: judge, store: seededStore(), now: { t })
+    c.setJudgeStatus(.ready); c.setWindowAccess(.allowed)
+    // A short session, so Focus has recent calls for the report.
+    c.windowChanged(WindowSnapshot(app: "Notes", title: "Calc homework"))
+    c.begin(task: "Calc homework", preset: .standard, shadow: false)
+    await advance(c, to: 12)
+    c.windowChanged(WindowSnapshot(app: "Messages", title: "Messages, a conversation"))
+    await advance(c, to: 30)
+    c.end()
+    let built = Date().addingTimeInterval(-6 * 86400)
+    let f = DateFormatter(); f.locale = Locale(identifier: "en_US_POSIX"); f.timeZone = TimeZone(identifier: "UTC"); f.dateFormat = "yyyyMMddHHmmss"
+    func center(expires: Date, repo: Bool = true) -> BetaCenter {
+        let b = BetaBuild(version: "0.1.0", build: "3", buildID: "\(f.string(from: built))-e360137", channel: .beta, expires: expires,
+                          feedbackRepo: repo ? URL(string: "https://github.com/example/focus-app") : nil,
+                          notes: ["Post feedback on GitHub straight from Focus", "A ready-to-test check on the Beta page", "Wrong-call reports carry Focus's last calls, never the window"],
+                          knownIssues: ["The notch can lag a second after waking from sleep"])
+        let j = BetaJournal(); j.note(.launch); j.note(.sessionStart); j.note(.backToTask, 1); j.note(.sessionEnd, 24)
+        let bc = BetaCenter(build: b, journal: j)
+        bc.onOpenWeb = { _ in false }
+        // No crash summary from this Mac's own logs in a render.
+        bc.crashFolder = FileManager.default.temporaryDirectory.appendingPathComponent("focus-no-crashes-\(UUID().uuidString)")
+        return bc
+    }
+    let live = center(expires: Date().addingTimeInterval(24 * 86400))
+    c.beta = live
+    func both<V: View>(_ name: String, _ size: CGSize, @ViewBuilder _ v: @escaping () -> V) {
+        for dark in [false, true] { WindowShot.shot(v().environment(\.controlActiveState, .key), size: size, name: name, dark: dark, dir: outDir) }
+    }
+    both("beta-page", CGSize(width: 760, height: 900)) { BetaPreview.page(c).background(Tokens.window) }
+    both("beta-account", CGSize(width: 288, height: 420)) { BetaPreview.account(c, live).background(Tokens.window2) }
+    both("beta-feedback", CGSize(width: 540, height: 600)) { BetaPreview.feedback(c, live, kind: .wrongCall).background(Tokens.window2) }
+    both("beta-feedback-typed", CGSize(width: 540, height: 600)) {
+        BetaPreview.feedback(c, live, kind: .wrongCall, message: "My lecture notes PDF was called off task twice in a row.").background(Tokens.window2)
+    }
+    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("focus-beta-shot-\(UUID().uuidString)", isDirectory: true)
+    try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    var d = FeedbackDraft(kind: .wrongCall); d.message = "x"
+    let r = live.report(d, c: c)
+    let file = dir.appendingPathComponent(r.fileName)
+    _ = live.save(r, to: file)
+    both("beta-saved-github", CGSize(width: 540, height: 360)) { BetaPreview.feedbackSaved(c, live, file: file, route: "github").background(Tokens.window2) }
+    both("beta-saved-file", CGSize(width: 540, height: 240)) { BetaPreview.feedbackSaved(c, live, file: file, route: "file").background(Tokens.window2) }
+    both("beta-whatsnew", CGSize(width: 460, height: 330)) { BetaPreview.whatsNew(live).background(Tokens.window2) }
+    both("beta-welcome", CGSize(width: 820, height: 90)) { BetaPreview.welcomeNotice(c).padding(Space.m).background(Tokens.window) }
+    // Out of date, and a Mac that is not ready: the model off and window titles not allowed.
+    let old = center(expires: Date().addingTimeInterval(-2 * 86400))
+    c.beta = old
+    c.setJudgeStatus(.unavailable("Apple Intelligence is off.")); c.setWindowAccess(.appNamesOnly); old.journal.recording = false
+    both("beta-expired", CGSize(width: 820, height: 90)) { BetaPreview.expiredNotice(c).padding(Space.m).background(Tokens.window) }
+    both("beta-page-expired", CGSize(width: 760, height: 420)) { BetaPreview.page(c).background(Tokens.window) }
+    both("beta-account-expired", CGSize(width: 288, height: 420)) { BetaPreview.account(c, old).background(Tokens.window2) }
+    try? FileManager.default.removeItem(at: dir)
 }

@@ -49,6 +49,8 @@ public final class BetaJournal {
     public private(set) var unacknowledgedExit: Date?
     /// The build whose "What's new" was last shown.
     public private(set) var notesSeenFor: String?
+    /// The first beta launch's welcome on Today was seen (opened or put off). It never comes back, even for a newer build.
+    public private(set) var welcomed = false
 
     @ObservationIgnored private let url: URL?
     @ObservationIgnored private let marker: URL?
@@ -62,13 +64,14 @@ public final class BetaJournal {
         var lastPulseAsked: Date?
         var unacknowledgedExit: Date?
         var notesSeenFor: String?
+        var welcomed: Bool?
     }
 
     public init(url: URL? = nil, marker: URL? = nil) {
         self.url = url; self.marker = marker
         guard let url, let data = try? Data(contentsOf: url), let f = try? JSONDecoder.store.decode(File.self, from: data) else { return }
         events = f.events; pulses = f.pulses; recording = f.recording ?? true; pulseOn = f.pulseOn ?? true
-        lastPulseAsked = f.lastPulseAsked; unacknowledgedExit = f.unacknowledgedExit; notesSeenFor = f.notesSeenFor
+        lastPulseAsked = f.lastPulseAsked; unacknowledgedExit = f.unacknowledgedExit; notesSeenFor = f.notesSeenFor; welcomed = f.welcomed ?? false
     }
 
     public static var defaultFolder: URL { DataStore.defaultURL.deletingLastPathComponent() }
@@ -142,12 +145,14 @@ public final class BetaJournal {
     // MARK: what's new
     public func notesUnseen(for build: BetaBuild) -> Bool { !build.notes.isEmpty && notesSeenFor != build.label }
     public func markNotesSeen(for build: BetaBuild) { notesSeenFor = build.label; save() }
+    /// The welcome covers this build's notes too, so they are not offered again right after it.
+    public func markWelcomed(for build: BetaBuild) { welcomed = true; notesSeenFor = build.label; save() }
 
     // MARK: file
     private func save() {
         guard let url else { return }
         let f = File(events: events, pulses: pulses, recording: recording, pulseOn: pulseOn, lastPulseAsked: lastPulseAsked,
-                     unacknowledgedExit: unacknowledgedExit, notesSeenFor: notesSeenFor)
+                     unacknowledgedExit: unacknowledgedExit, notesSeenFor: notesSeenFor, welcomed: welcomed)
         guard let data = try? JSONEncoder.store.encode(f) else { return }
         try? data.write(to: url, options: [.atomic])
         try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)

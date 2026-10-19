@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Beta feedback inbox: check, file, triage and summarize the reports testers send (schema focus-feedback/1, see docs/BETA.md).
 
-Reports arrive as files the tester saved in Focus and sent however they chose. This tool never fetches anything; it reads the files
-you give it, keeps them under beta/inbox/ (gitignored: reports hold what testers typed) and writes a summary you open locally.
+Reports arrive as files the tester saved in Focus and either attached to a GitHub issue or sent however they chose. The tool reads the
+files you give it, keeps them under beta/inbox/ (gitignored: reports hold what testers typed) and writes a summary you open locally.
+Only `pull` reaches the network: it lists the repository's issues labelled `beta` with the GitHub CLI and downloads the .json files
+attached to them, nothing else, then files them like `ingest` (each one validated, the issue number recorded).
 
   tools/beta/feedback.py check FILE...           validate only; exit 1 if any is refused
   tools/beta/feedback.py ingest PATH...          files or folders; valid reports are filed, refused ones are listed with reasons
+  tools/beta/feedback.py pull [--repo OWNER/REPO] reports attached to `beta` issues on GitHub (default: the origin remote's project)
   tools/beta/feedback.py list [--status S] [--kind K] [--build B]
   tools/beta/feedback.py show ID                 an ID prefix is enough
   tools/beta/feedback.py triage ID STATUS [--note TEXT] [--issue REF]
@@ -39,13 +42,15 @@ EVENT_KINDS = {
     "judgeRefusal", "judgeUnavailable", "saveFailed", "hang", "feedbackSaved", "pulseAnswered",
 }
 STATUSES = ["new", "triaged", "fixing", "fixed", "wontfix", "duplicate"]
-TOP_KEYS = {"schema", "id", "created", "kind", "message", "contact", "app", "system", "settings", "usage", "events", "pulses", "crash"}
+TOP_KEYS = {"schema", "id", "created", "kind", "message", "contact", "app", "system", "settings", "usage", "events", "pulses", "crash", "calls"}
 APP_KEYS = {"version", "build", "buildID", "channel"}
 SYSTEM_KEYS = {"macOS", "model", "memoryGB", "appleSilicon", "lowPower", "judge", "windowAccess", "screenRecording"}
 USAGE_KEYS = {"sessions", "sessionsLast14Days", "activeMinutesLast14Days", "onTaskMinutesLast14Days", "drifts", "nudges", "refusals",
               "reads", "reviewAnswered", "reviewAgreed", "projects", "projectsDescribed", "daysUsed"}
 READ_KEYS = {"model", "rule", "onTask", "unsure", "offTask", "skipped"}
 CRASH_KEYS = {"when", "appVersion", "osVersion", "exception", "signal", "termination", "frames"}
+CALLS = {"on", "unsure", "off"}
+CALL_BY = {"model", "rule", "words", "refused", "private", "skipped"}
 MESSAGE_LIMIT = 4000
 SHORT = 64           # any string the app writes itself is shorter than this, except crash frames
 FRAME_LIMIT = 160
@@ -167,6 +172,14 @@ def validate(r) -> list:
         for i, f in enumerate(c["frames"]):
             _short(f, f"crash.frames[{i}]", FRAME_LIMIT)
 
+    if "calls" in r:
+        _want(isinstance(r["calls"], list) and len(r["calls"]) <= 12, "calls is not a short list")
+        for i, c in enumerate(r["calls"]):
+            _keys(c, {"at", "call", "by"}, f"calls[{i}]")
+            _date(c.get("at"), f"calls[{i}].at")
+            _want(c.get("call") in CALLS, f"calls[{i}].call {c.get('call')!r} is unknown")
+            _want(c.get("by") in CALL_BY, f"calls[{i}].by {c.get('by')!r} is unknown")
+
     warnings = []
     texts = [msg] + [p.get("note", "") for p in r.get("pulses", [])] + [r.get("contact", "")]
     for t in texts:
@@ -221,7 +234,9 @@ def candidates(paths: list) -> list:
     return out
 
 
-def ingest(paths: list, inbox: pathlib.Path = INBOX, today: str | None = None) -> tuple:
+def ingest(paths: list, inbox: pathlib.Path = INBOX, today: str | None = None, issues: dict | None = None) -> tuple:
+    """Files valid reports. `issues` maps a file path to where it came from on GitHub ({"issue": "#12", "source": url})."""
+    issues = issues or {}
     triage = read_triage(inbox)
     filed, dupes, refused = [], [], []
     (inbox / "reports").mkdir(parents=True, exist_ok=True)
@@ -238,10 +253,82 @@ def ingest(paths: list, inbox: pathlib.Path = INBOX, today: str | None = None) -
             continue
         (inbox / "reports" / f"{rid}.json").write_text(json.dumps(r, indent=2, sort_keys=True))
         triage[rid] = {"status": "new", "received": today or dt.date.today().isoformat(),
-                       "sha256": hashlib.sha256(p.read_bytes()).hexdigest(), "warnings": warnings, "notes": [], "issue": None}
+                       "sha256": hashlib.sha256(p.read_bytes()).hexdigest(), "warnings": warnings, "notes": [],
+                       "issue": issues.get(str(p), {}).get("issue")}
+        if issues.get(str(p), {}).get("source"):
+            triage[rid]["source"] = issues[str(p)]["source"]
         filed.append((rid, warnings))
     write_triage(inbox, triage)
     return filed, dupes, refused
+
+
+# ---------------------------------------------------------------- GitHub
+
+# Files people attach to issues and comments. Both forms GitHub has used; only .json, only on github.com.
+ATTACHMENT_RE = re.compile(r"https://github\.com/(?:user-attachments/files|[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/files)/\d+/[A-Za-z0-9_.%-]+\.json")
+
+
+def attachments(issue: dict) -> list:
+    """The .json attachments in an issue's body and comments, in order, each once."""
+    texts = [issue.get("body") or ""] + [(c or {}).get("body") or "" for c in issue.get("comments") or []]
+    seen, out = set(), []
+    for t in texts:
+        for u in ATTACHMENT_RE.findall(t):
+            if u not in seen:
+                seen.add(u)
+                out.append(u)
+    return out
+
+
+def gh_issues(repo: str) -> list:
+    import subprocess
+    r = subprocess.run(["gh", "issue", "list", "--repo", repo, "--label", "beta", "--state", "all", "--limit", "500",
+                        "--json", "number,title,body,comments,url"], capture_output=True, text=True)
+    if r.returncode != 0:
+        raise SystemExit(f"gh could not list issues: {r.stderr.strip()}")
+    return json.loads(r.stdout or "[]")
+
+
+def download(url: str, limit: int = 512 * 1024) -> bytes:
+    """One attachment, at most `limit` bytes. Only github.com addresses are passed in; GitHub redirects them to its file host."""
+    import urllib.request
+    with urllib.request.urlopen(urllib.request.Request(url, headers={"Accept": "application/json"}), timeout=20) as resp:
+        data = resp.read(limit + 1)
+    if len(data) > limit:
+        raise Refused("attachment is larger than any report")
+    return data
+
+
+def pull(repo: str, inbox: pathlib.Path = INBOX, fetch_issues=gh_issues, fetch=download, today: str | None = None) -> tuple:
+    """Downloads report files attached to `beta` issues into a fresh folder and files them. Returns ingest's result plus failures."""
+    import tempfile
+    t = read_triage(inbox)
+    known = {v.get("source") for v in t.values()}
+    work = pathlib.Path(tempfile.mkdtemp(prefix="focus-pull-"))
+    paths, issues, failed = [], {}, []
+    for issue in fetch_issues(repo):
+        for i, url in enumerate(attachments(issue)):
+            if url in known:
+                continue
+            dest = work / f"issue-{issue['number']}-{i}.json"
+            try:
+                dest.write_bytes(fetch(url))
+            except (Refused, OSError, ValueError) as e:
+                failed.append((url, str(e)))
+                continue
+            paths.append(str(dest))
+            issues[str(dest)] = {"issue": f"#{issue['number']}", "source": url}
+    filed, dupes, refused = ingest(paths, inbox, today=today, issues=issues)
+    return filed, dupes, refused, failed
+
+
+def origin_repo() -> str:
+    import subprocess
+    url = subprocess.run(["git", "-C", str(ROOT), "remote", "get-url", "origin"], capture_output=True, text=True).stdout.strip()
+    m = re.match(r"^(?:https://github\.com/|git@github\.com:)([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git)?$", url)
+    if not m:
+        raise SystemExit("the origin remote is not a GitHub project; pass --repo OWNER/REPO")
+    return f"{m.group(1)}/{m.group(2)}"
 
 
 def find(prefix: str, triage: dict) -> str:
@@ -287,6 +374,8 @@ def summarize(rs: list, triage: dict) -> dict:
     macs = Counter(f"macOS {r['system']['macOS']} · {r['system']['model']} · {r['system']['memoryGB']} GB" for r in rs if "system" in r)
     judge = Counter(r["system"]["judge"] for r in rs if "system" in r)
     crashes = Counter(crash_signature(r["crash"]) for r in rs if "crash" in r)
+    # For a wrong call, how Focus reached its newest call before the report: the model, a rule, or words shared with the task.
+    wrong_by = Counter(r["calls"][0]["by"] for r in rs if r["kind"] == "wrongCall" and r.get("calls"))
     # Journals overlap between reports from one tester; count each event once by (time, kind).
     seen, events = set(), []
     for r in rs:
@@ -319,6 +408,7 @@ def summarize(rs: list, triage: dict) -> dict:
         "pulse_weeks": {w: (round(statistics.mean(v), 2), len(v)) for w, v in sorted(pulses.items())},
         "review": (agreed, answered),
         "wrong_call_share": round(100 * by_kind["wrongCall"] / len(rs)) if rs else None,
+        "wrong_by": wrong_by,
     }
 
 
@@ -346,6 +436,8 @@ def markdown(s: dict, rs: list, triage: dict, made: str) -> str:
              ], ["Measure", "Value"]), "",
              "## Weekly question (1 to 5)", ""]
     lines.append(_table([[w, m, n] for w, (m, n) in s["pulse_weeks"].items()], ["Week", "Mean", "Answers"]) if s["pulse_weeks"] else "No answers yet.")
+    lines += ["", "## Wrong calls: how Focus decided", ""]
+    lines.append(_table(s["wrong_by"].most_common(), ["Newest call by", "Reports"]) if s["wrong_by"] else "No wrong-call reports with calls yet.")
     lines += ["", "## Crashes", ""]
     lines.append(_table(s["crashes"].most_common(), ["Signature", "Reports"]) if s["crashes"] else "None reported.")
     lines += ["", "## Reports by kind, build and status", "",
@@ -361,7 +453,8 @@ def markdown(s: dict, rs: list, triage: dict, made: str) -> str:
         t = triage.get(r["id"], {})
         first = r["message"].strip().splitlines()[0][:140]
         warn = f" ⚠ {', '.join(t.get('warnings', []))}" if t.get("warnings") else ""
-        lines.append(f"- `{r['id'][:8]}` {r['kind']} · b{r['app']['build']} · {t.get('status', 'new')}{warn}: {first}")
+        issue = f" · {t['issue']}" if t.get("issue") else ""
+        lines.append(f"- `{r['id'][:8]}` {r['kind']} · b{r['app']['build']} · {t.get('status', 'new')}{issue}{warn}: {first}")
     return "\n".join(lines) + "\n"
 
 
@@ -412,7 +505,8 @@ code{{font-family:ui-monospace,monospace}}.wrap{{overflow-x:auto}}
 {tile('nudges per session', na(s['nudges_per_session']))}{tile('back to task found it', na(s['back_found'], '%'))}{tile('Review agreed', f"{s['review'][0]}/{s['review'][1]}")}</div>
 <section><h2>Weekly question</h2><div class="cols">{pulse}</div></section>
 <div class="grid" style="margin-top:16px"><section><h2>Kinds</h2>{bars(s['by_kind'])}</section><section><h2>Builds</h2>{bars(s['by_build'])}</section>
-<section><h2>Crashes</h2>{bars(s['crashes'])}</section><section><h2>Macs</h2>{bars(s['macs'])}</section></div>
+<section><h2>Crashes</h2>{bars(s['crashes'])}</section><section><h2>Macs</h2>{bars(s['macs'])}</section>
+<section><h2>Wrong calls: how Focus decided</h2>{bars(s['wrong_by'])}</section></div>
 <section><h2>Open</h2><div class="wrap"><table><tr><th>ID</th><th>Kind</th><th>Build</th><th>Status</th><th>Message</th></tr>{open_rows or '<tr><td colspan="5" class="muted">Nothing open.</td></tr>'}</table></div></section>
 </main></body></html>
 """
@@ -438,6 +532,7 @@ def main(argv=None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("check").add_argument("files", nargs="+")
     sub.add_parser("ingest").add_argument("paths", nargs="+")
+    sub.add_parser("pull").add_argument("--repo")
     ls = sub.add_parser("list")
     ls.add_argument("--status"); ls.add_argument("--kind"); ls.add_argument("--build")
     sub.add_parser("show").add_argument("id")
@@ -467,6 +562,17 @@ def main(argv=None) -> int:
             print(f"refused {p}: {why}")
         print(f"{len(filed)} filed, {len(dupes)} already in, {len(refused)} refused")
         return 1 if refused else 0
+    if a.cmd == "pull":
+        repo = a.repo or origin_repo()
+        filed, dupes, refused, failed = pull(repo, inbox)
+        for rid, w in filed:
+            print(f"filed   {rid[:8]}" + (f"  (warning: {', '.join(w)})" if w else ""))
+        for p, why in refused:
+            print(f"refused {pathlib.Path(p).name}: {why}")
+        for u, why in failed:
+            print(f"failed  {u}: {why}")
+        print(f"{repo}: {len(filed)} filed, {len(dupes)} already in, {len(refused)} refused, {len(failed)} could not be downloaded")
+        return 1 if refused or failed else 0
     if a.cmd == "list":
         t = read_triage(inbox)
         for r in sorted(reports(inbox), key=lambda r: r["created"]):

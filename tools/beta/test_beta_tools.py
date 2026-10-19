@@ -14,6 +14,7 @@ from contextlib import redirect_stdout
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import feedback  # noqa: E402
+import release_text  # noqa: E402
 import testers  # noqa: E402
 
 SAMPLE = json.loads((HERE / "fixtures" / "sample-report.json").read_text())
@@ -76,6 +77,13 @@ class Validation(unittest.TestCase):
 
     def test_refuses_non_uuid(self):
         self.refused(variant(id="../../etc/passwd"), "UUID")
+
+    def test_calls_hold_only_a_call_and_how(self):
+        self.refused(variant(calls__0__call="youtube"), "unknown")
+        self.refused(variant(calls__0__by="Safari"), "unknown")
+        r = variant(); r["calls"][0]["title"] = "Inbox"
+        self.refused(r, "never writes")
+        self.refused(variant(calls=[SAMPLE["calls"][0]] * 13), "short list")
 
     def test_warns_about_secrets_in_message(self):
         w = feedback.validate(variant(message="it asked for password: hunter2 and card 4111 1111 1111 1111"))
@@ -156,6 +164,91 @@ class Inbox(unittest.TestCase):
         with redirect_stdout(io.StringIO()):
             self.assertEqual(feedback.main(["check", str(good)]), 0)
             self.assertEqual(feedback.main(["check", str(good), str(bad)]), 1)
+
+
+class GitHubPull(unittest.TestCase):
+    ISSUES = [
+        {"number": 7, "body": "### What happened\n\nIt quit.\n\n[focus-feedback.json](https://github.com/user-attachments/files/123/focus-feedback-2026-10-18-6f1c1d2e.json)",
+         "comments": [{"body": "and again https://github.com/Aryan61056/focus-app/files/456/second.json and a picture https://github.com/user-attachments/assets/9/x.png"}]},
+        {"number": 8, "body": "no file, and a look-alike https://example.com/user-attachments/files/1/x.json", "comments": []},
+    ]
+
+    def test_attachments_are_json_files_on_github_only(self):
+        self.assertEqual(feedback.attachments(self.ISSUES[0]), [
+            "https://github.com/user-attachments/files/123/focus-feedback-2026-10-18-6f1c1d2e.json",
+            "https://github.com/Aryan61056/focus-app/files/456/second.json"])
+        self.assertEqual(feedback.attachments(self.ISSUES[1]), [])
+
+    def test_pull_files_reports_with_their_issue_and_skips_known_ones(self):
+        second = variant(id="11111111-2222-4333-8444-555555555555", kind="wrongCall", message="Notes flagged")
+        files = {"123": json.dumps(SAMPLE).encode(), "456": json.dumps(second).encode()}
+        fetched = []
+
+        def fetch(url):
+            fetched.append(url)
+            return files[url.split("/files/")[1].split("/")[0]]
+        with tempfile.TemporaryDirectory() as d:
+            inbox = pathlib.Path(d) / "inbox"
+            filed, dupes, refused, failed = feedback.pull("o/r", inbox, fetch_issues=lambda repo: self.ISSUES, fetch=fetch)
+            self.assertEqual((len(filed), refused, failed), (2, [], []))
+            t = feedback.read_triage(inbox)
+            self.assertEqual(t[SAMPLE["id"]]["issue"], "#7")
+            self.assertTrue(t[SAMPLE["id"]]["source"].endswith("6f1c1d2e.json"))
+            # A second pull downloads nothing it already has.
+            fetched.clear()
+            filed, dupes, refused, failed = feedback.pull("o/r", inbox, fetch_issues=lambda repo: self.ISSUES, fetch=fetch)
+            self.assertEqual((filed, fetched), ([], []))
+
+    def test_pull_refuses_an_edited_file_and_reports_a_failed_download(self):
+        issues = [{"number": 9, "body": "https://github.com/user-attachments/files/1/a.json https://github.com/user-attachments/files/2/b.json", "comments": []}]
+
+        def fetch(url):
+            if "/1/" in url:
+                return json.dumps(variant(settings__preset="/Users/sam/x")).encode()
+            raise OSError("404")
+        with tempfile.TemporaryDirectory() as d:
+            filed, dupes, refused, failed = feedback.pull("o/r", pathlib.Path(d), fetch_issues=lambda repo: issues, fetch=fetch)
+            self.assertEqual(len(filed), 0)
+            self.assertIn("file path", refused[0][1])
+            self.assertEqual(failed[0][0], "https://github.com/user-attachments/files/2/b.json")
+
+    def test_summary_says_how_wrong_calls_were_decided(self):
+        rs = [variant(kind="wrongCall"), variant(id="11111111-2222-4333-8444-555555555555", kind="wrongCall", calls__0__by="words"),
+              variant(id="22222222-2222-4333-8444-555555555555")]
+        s = feedback.summarize(rs, {})
+        self.assertEqual(dict(s["wrong_by"]), {"model": 1, "words": 1})
+
+
+class ReleaseText(unittest.TestCase):
+    M = {"name": "0.1.0-beta.2", "version": "0.1.0", "build": 2, "buildID": "20261019-abc", "expires": "2026-11-18", "sha256": "ab" * 32,
+         "signing": "ad-hoc", "repo": "https://github.com/o/r", "tag": "v0.1.0-beta.2", "dmg": "Focus-0.1.0-beta.2.dmg",
+         "notes": ["Post feedback on GitHub"], "known": ["The notch can lag after sleep"]}
+
+    def test_origin_repo_forms(self):
+        for remote in ["https://github.com/o/r.git", "https://github.com/o/r", "git@github.com:o/r.git", "ssh://git@github.com/o/r.git\n"]:
+            self.assertEqual(release_text.origin_repo(remote), "https://github.com/o/r", remote)
+        for remote in ["", "https://gitlab.com/o/r.git", "https://github.com/o", "https://github.com.evil.com/o/r"]:
+            self.assertEqual(release_text.origin_repo(remote), "", remote)
+
+    def test_github_text_has_the_steps_forms_and_checksum(self):
+        body = release_text.github_body(self.M)
+        for want in ["Focus-0.1.0-beta.2.dmg", "Open Anyway", "November 18, 2026", "Post feedback on GitHub", "The notch can lag after sleep",
+                     "https://github.com/o/r/issues/new?template=beta-wrong-call.yml", "ab" * 32, "Issues are public"]:
+            self.assertIn(want, body)
+        # The claims CLAUDE.md bans until the privacy tests pass, and no em dashes in testers' copy.
+        for banned in ["OS-enforced", "cannot reach the network", "0 bytes sent", "\u2014"]:
+            self.assertNotIn(banned, body)
+        signed = dict(self.M, signing="developer-id", known=[])
+        self.assertNotIn("Open Anyway", release_text.github_body(signed))
+        self.assertNotIn("Known issues", release_text.github_body(signed))
+
+    def test_invite_points_at_the_release(self):
+        text = release_text.invite(self.M)
+        self.assertIn("https://github.com/o/r/releases/tag/v0.1.0-beta.2", text)
+        self.assertIn("https://github.com/o/r/issues", text)
+        local = release_text.invite(dict(self.M, repo=None))
+        self.assertNotIn("github.com", local)
+        self.assertIn("Open Focus-0.1.0-beta.2.dmg", local)
 
 
 class Roster(unittest.TestCase):

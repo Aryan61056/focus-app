@@ -4,7 +4,8 @@ import FocusJudge
 /// One piece of beta feedback, as the file a tester saves and sends themself. Schema `focus-feedback/1`, read by tools/beta/feedback.py.
 /// What it may hold: the words the tester typed, the build, the Mac's kind and macOS version, permission states, settings that are
 /// switches or choices, counts, the event journal (kinds and numbers) and a crash summary. What it never holds: task or project names,
-/// window titles, addresses, screen words, pictures or the model's reasons (docs/BETA.md, "What a report holds").
+/// window titles, addresses, screen words, pictures or the model's reasons (docs/BETA.md, "What a report holds"). Focus's recent calls go
+/// as the call and how it was reached only (on, unsure or off; model, rule, matching words), never which window it was about.
 public struct FeedbackReport: Codable, Equatable, Sendable {
     public static let schema = "focus-feedback/1"
     public static let messageLimit = 4000
@@ -25,6 +26,10 @@ public struct FeedbackReport: Codable, Equatable, Sendable {
             case .idea: return "What would make Focus better for you?"
             case .other: return "Tell us anything."
             }
+        }
+        /// The GitHub issue form (.github/ISSUE_TEMPLATE) for this kind. Ideas and everything else share one.
+        public var issueTemplate: String {
+            switch self { case .bug: return "beta-bug.yml"; case .wrongCall: return "beta-wrong-call.yml"; case .idea, .other: return "beta-idea.yml" }
         }
     }
 
@@ -54,6 +59,12 @@ public struct FeedbackReport: Codable, Equatable, Sendable {
         public var projectsDescribed: Int
         public var daysUsed: Int
     }
+    /// One of Focus's recent calls, without the window: when, what it decided, and how.
+    public struct Call: Codable, Equatable, Sendable {
+        public var at: Date
+        public var call: String   // on, unsure, off
+        public var by: String     // model, rule, words, refused, private, skipped
+    }
 
     public var schema = FeedbackReport.schema
     public var id: String
@@ -68,6 +79,7 @@ public struct FeedbackReport: Codable, Equatable, Sendable {
     public var events: [BetaEvent]?
     public var pulses: [BetaPulse]?
     public var crash: CrashSummary?
+    public var calls: [Call]?
 
     public func encoded() -> Data? {
         let e = JSONEncoder(); e.dateEncodingStrategy = .iso8601; e.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
@@ -88,6 +100,8 @@ public struct FeedbackDraft: Equatable, Sendable {
     public var includeUsage = true
     public var includeEvents = true
     public var includeCrash = true
+    /// Focus's last calls (the call and how, never the window). Most useful with a wrong call.
+    public var includeCalls = true
     public init(kind: FeedbackReport.Kind = .bug) { self.kind = kind }
     public var ready: Bool { !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 }
@@ -97,7 +111,8 @@ public enum FeedbackBuilder {
     public static let window = 14
 
     @MainActor public static func make(_ d: FeedbackDraft, build: BetaBuild, system: FeedbackReport.System?, prefs: Preferences?,
-                                       store: DataStore?, journal: BetaJournal?, crash: CrashSummary?, now: Date = Date(), id: UUID = UUID()) -> FeedbackReport {
+                                       store: DataStore?, journal: BetaJournal?, crash: CrashSummary?, readings: [Reading] = [],
+                                       now: Date = Date(), id: UUID = UUID()) -> FeedbackReport {
         let since = now.addingTimeInterval(-Double(window) * 86400)
         let contact = d.contact.trimmingCharacters(in: .whitespacesAndNewlines)
         return FeedbackReport(
@@ -110,7 +125,24 @@ public enum FeedbackBuilder {
             usage: d.includeUsage ? store.map { usage($0, since: since, now: now) } : nil,
             events: d.includeEvents ? journal?.events.filter { $0.at >= since }.suffix(400).map { $0 } : nil,
             pulses: d.includeUsage ? journal?.pulses.filter { $0.at >= since } : nil,
-            crash: d.includeCrash ? crash : nil)
+            crash: d.includeCrash ? crash : nil,
+            calls: d.includeCalls && !readings.isEmpty ? calls(readings) : nil)
+    }
+
+    /// The call and how it was reached, newest first. The window's app, title, key and the model's reason stay behind.
+    public static func calls(_ readings: [Reading]) -> [FeedbackReport.Call] {
+        readings.prefix(12).map { r in
+            let call: String
+            switch r.call { case .on: call = "on"; case .unsure: call = "unsure"; case .off: call = "off" }
+            let by: String
+            switch r.source {
+            case .model: by = r.failed ? "refused" : (r.byWords ? "words" : "model")
+            case .rule: by = r.byWords ? "words" : "rule"
+            case .sensitive: by = "private"
+            case .skipped: by = "skipped"
+            }
+            return FeedbackReport.Call(at: r.date, call: call, by: by)
+        }
     }
 
     /// Switches and choices only. The never-judged list is app names the person typed, so only its length goes.

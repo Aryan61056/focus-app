@@ -52,6 +52,7 @@ struct TodayView: View {
         if let u = c.visibleUpdate { return .update(u.buildID) }
         if let b = c.beta, !c.isActive {
             if b.expired { return .betaExpired }
+            if b.welcomeDue { return .betaWelcome }
             if b.notesDue { return .whatsNew }
             if b.pulseDue(c) { return .pulse }
         }
@@ -62,7 +63,7 @@ struct TodayView: View {
 
 enum Notice {
     case saveFailed, resume(String), wrapUp, modelOff(String), access, update(String), contextTip
-    case crashed, betaExpired, whatsNew, pulse
+    case crashed, betaExpired, betaWelcome, whatsNew, pulse
 }
 
 struct NoticeRow: View {
@@ -87,7 +88,7 @@ struct NoticeRow: View {
         case .resume: return "play.circle"; case .wrapUp: return "hourglass"; case .modelOff: return "exclamationmark.circle"
         case .access: return "lock.open"; case .update: return "arrow.triangle.2.circlepath"; case .contextTip: return "lightbulb"
         case .crashed: return "exclamationmark.triangle"; case .betaExpired: return "calendar.badge.exclamationmark"
-        case .whatsNew: return "sparkle"; case .pulse: return "testtube.2"
+        case .whatsNew: return "sparkle"; case .pulse, .betaWelcome: return "testtube.2"
         }
     }
     var text: String {
@@ -100,7 +101,8 @@ struct NoticeRow: View {
         case .update: return "A newer build is ready. Restarting takes a few seconds."
         case .contextTip: return "Focus is often unsure about this project. A line about what counts helps."
         case .crashed: return "Focus closed unexpectedly last time. A short report helps fix it."
-        case .betaExpired: return "This beta build is out of date. Ask for the newest one."
+        case .betaExpired: return c.beta?.canOpenReleases == true ? "This beta build is out of date. A newer one is on GitHub." : "This beta build is out of date. Ask for the newest one."
+        case .betaWelcome: return "Thanks for testing \(c.beta?.build.tag.lowercased() ?? "this beta"). The Beta page has seven things to try."
         case .whatsNew: return "This build has changes worth a look."
         case .pulse: return "How is Focus working for you this week?"
         }
@@ -112,6 +114,7 @@ struct NoticeRow: View {
         case .modelOff: return "Without the on-device model Focus cannot judge windows, so it does nothing."
         case .crashed: return "The report says what went wrong in Focus's code. You see the whole file before you save it, and Focus sends nothing."
         case .betaExpired: return "It keeps working. Newer builds fix what testers found."
+        case .betaWelcome: return "Send feedback from your name at the bottom left. You see every report before you save it, and Focus never sends one by itself."
         case .pulse: return "One click, once a week. Your answer stays on this Mac unless you put it in a report. Turn it off in Settings, Beta."
         default: return text
         }
@@ -135,7 +138,13 @@ struct NoticeRow: View {
             Button("Write a report") { c.beta?.requestFeedback(.bug) }.buttonStyle(FocusButtonStyle(.primary, small: true))
             Button("Dismiss") { c.beta?.journal.acknowledgeExit() }.buttonStyle(FocusButtonStyle(.plain, small: true))
         case .betaExpired:
+            if c.beta?.canOpenReleases == true {
+                Button("Get the newest") { c.beta?.openNewestBuild() }.buttonStyle(FocusButtonStyle(.primary, small: true))
+            }
             Button("Send feedback") { c.beta?.requestFeedback(.other) }.buttonStyle(FocusButtonStyle(.plain, small: true))
+        case .betaWelcome:
+            Button("Open Beta") { if let b = c.beta { b.journal.markWelcomed(for: b.build) }; c.requestSettingsPage(.beta) }.buttonStyle(FocusButtonStyle(.secondary, small: true))
+            Button("Later") { if let b = c.beta { b.journal.markWelcomed(for: b.build) } }.buttonStyle(FocusButtonStyle(.plain, small: true))
         case .whatsNew:
             Button("See what\u{2019}s new") { c.beta?.notesShown = true }.buttonStyle(FocusButtonStyle(.secondary, small: true))
             Button("Later") { if let b = c.beta { b.journal.markNotesSeen(for: b.build) } }.buttonStyle(FocusButtonStyle(.plain, small: true))

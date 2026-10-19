@@ -20,5 +20,9 @@ The repo ignores image files (privacy rule in `.gitignore`) except under `site/a
 Credits for the art are in the page footer.
 
 ## Open items (owner)
-- The download buttons point at `#download`. Distribution is not decided yet.
+- The download card's button points at the GitHub releases page, where beta builds are published as pre-releases (2026-10-19); the
+  other Download buttons scroll to that card.
+- `assets/app/workspace-today.jpg` and `assets/app/beta-page.jpg` (the README's pictures, current Workspace look) are quiet demo renders
+  (`FOCUS_DEMO=1`, `FOCUS_DEMO_BETA=1`, `FOCUS_SELFSHOT`), converted with `sips`. Demo data only. `today.jpg` and `projects.jpg` still show
+  the older look.
 - The iPhone companion is described as "in testing".

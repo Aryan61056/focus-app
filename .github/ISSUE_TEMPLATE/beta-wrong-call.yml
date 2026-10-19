@@ -1,0 +1,48 @@
+name: "Beta: wrong call"
+description: Focus called work off task, or missed a distraction. Describe the kind of window, not what was in it.
+title: "Beta: Wrong call"
+labels: ["beta", "wrong call"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Wrong calls are the most useful reports. Focus can be wrong, and when it is not sure it should do nothing; this tells us where it guessed.
+
+        **Issues are public.** Describe the *kind* of window ("a PDF of my lecture notes", "a coding tutorial video"), never its contents. The report file carries Focus's last calls as on, unsure or off and how it decided, never which window.
+  - type: input
+    id: build
+    attributes:
+      label: Build
+      description: Focus fills this in. It is also under your name at the bottom left of the Focus window.
+      placeholder: 0.1.0 beta 2
+    validations:
+      required: true
+  - type: dropdown
+    id: call
+    attributes:
+      label: What Focus did
+      options:
+        - Called my work off task
+        - Missed something that was off task
+        - Nudged too soon or too often
+        - Something else
+    validations:
+      required: true
+  - type: input
+    id: window
+    attributes:
+      label: The kind of window
+      placeholder: A PDF of my lecture notes in Preview
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: Anything else
+      description: Your task in general terms, how long it went on, whether Back to task helped.
+  - type: textarea
+    id: report
+    attributes:
+      label: Report file
+      description: Drag the focus-feedback file here. Leave it out if you would rather not share it.
+      placeholder: Drop focus-feedback-....json here

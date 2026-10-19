@@ -87,9 +87,17 @@ if [ -n "${FOCUS_BUILD_NUMBER:-}" ]; then /usr/libexec/PlistBuddy -c "Set :CFBun
 if [ -n "${FOCUS_VERSION:-}" ]; then /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $FOCUS_VERSION" "$APP/Contents/Info.plist"; fi
 if [ -n "${FOCUS_BETA_EXPIRES:-}" ]; then /usr/libexec/PlistBuddy -c "Add :FocusBetaExpires string $FOCUS_BETA_EXPIRES" "$APP/Contents/Info.plist"; fi
 if [ -n "${FOCUS_FEEDBACK_EMAIL:-}" ]; then /usr/libexec/PlistBuddy -c "Add :FocusFeedbackAddress string $FOCUS_FEEDBACK_EMAIL" "$APP/Contents/Info.plist"; fi
+# The GitHub project testers post reports to (issue forms) and get newer builds from (releases). The app opens it in the browser on a click.
+if [ -n "${FOCUS_FEEDBACK_REPO:-}" ]; then
+  printf '%s' "$FOCUS_FEEDBACK_REPO" | grep -Eq '^https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' || { echo "FOCUS_FEEDBACK_REPO must be https://github.com/<owner>/<repo>" >&2; exit 1; }
+  /usr/libexec/PlistBuddy -c "Add :FocusFeedbackRepo string $FOCUS_FEEDBACK_REPO" "$APP/Contents/Info.plist"
+fi
 if [ -n "${FOCUS_RELEASE_NOTES_FILE:-}" ]; then
   [ -f "$FOCUS_RELEASE_NOTES_FILE" ] || { echo "no release notes at $FOCUS_RELEASE_NOTES_FILE" >&2; exit 1; }
   plutil -insert FocusReleaseNotes -string "$(cat "$FOCUS_RELEASE_NOTES_FILE")" "$APP/Contents/Info.plist"
+fi
+if [ -n "${FOCUS_KNOWN_ISSUES_FILE:-}" ] && [ -f "$FOCUS_KNOWN_ISSUES_FILE" ] && grep -qv '^\s*\(#.*\)\?$' "$FOCUS_KNOWN_ISSUES_FILE"; then
+  plutil -insert FocusKnownIssues -string "$(cat "$FOCUS_KNOWN_ISSUES_FILE")" "$APP/Contents/Info.plist"
 fi
 # Assets.car holds the layered icon; the system finds it by name.
 if [ -n "$ICON_NAME" ]; then /usr/libexec/PlistBuddy -c "Add :CFBundleIconName string $ICON_NAME" "$APP/Contents/Info.plist"; fi

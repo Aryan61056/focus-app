@@ -30,6 +30,59 @@ final class BetaTests: XCTestCase {
         XCTAssertTrue(b.expired(at: cal.date(from: DateComponents(year: 2026, month: 11, day: 2))!))
     }
 
+    func testBuildReadsItsGitHubProjectAndKnownIssues() {
+        let b = BetaBuild.from(info: ["FocusChannel": "beta", "CFBundleVersion": "3", "FocusFeedbackRepo": "https://github.com/owner/focus-app.git",
+                                      "FocusKnownIssues": "# Known\n- The notch can lag after sleep\n\n"])
+        XCTAssertEqual(b.feedbackRepo?.absoluteString, "https://github.com/owner/focus-app")
+        XCTAssertEqual(b.knownIssues, ["The notch can lag after sleep"])
+        // Only a project on github.com itself, owner and name: never another site, a deeper page or a look-alike host.
+        for bad in ["http://github.com/o/r", "https://gitlab.com/o/r", "https://github.com/o", "https://github.com/o/r/issues",
+                    "https://github.com.evil.com/o/r", "https://github.com/o/r?x=1", "https://user@github.com/o/r", "https://github.com/../r", "not a url"] {
+            XCTAssertNil(BetaBuild.from(info: ["FocusFeedbackRepo": bad]).feedbackRepo, bad)
+        }
+    }
+
+    func testIssueFormAddressCarriesOnlyTheBuild() throws {
+        let b = BetaBuild(version: "0.1.0", build: "3", channel: .beta, feedbackRepo: URL(string: "https://github.com/o/r"))
+        let url = try XCTUnwrap(b.issueURL(.wrongCall))
+        let c = try XCTUnwrap(URLComponents(url: url, resolvingAgainstBaseURL: false))
+        XCTAssertEqual(c.scheme, "https"); XCTAssertEqual(c.host, "github.com"); XCTAssertEqual(c.path, "/o/r/issues/new")
+        XCTAssertEqual(Dictionary(uniqueKeysWithValues: (c.queryItems ?? []).map { ($0.name, $0.value ?? "") }),
+                       ["template": "beta-wrong-call.yml", "title": "Beta 3: Wrong call", "build": "0.1.0 beta 3"])
+        XCTAssertEqual(b.issueURL(.other)?.query?.contains("template=beta-idea.yml"), true)
+        XCTAssertEqual(b.releasesURL?.absoluteString, "https://github.com/o/r/releases")
+        XCTAssertNil(BetaBuild(channel: .beta).issueURL(.bug)); XCTAssertNil(BetaBuild(channel: .beta).releasesURL)
+        // Every kind has a form in the repository's .github/ISSUE_TEMPLATE.
+        let forms = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().appendingPathComponent(".github/ISSUE_TEMPLATE")
+        for k in FeedbackReport.Kind.allCases {
+            XCTAssertTrue(FileManager.default.fileExists(atPath: forms.appendingPathComponent(k.issueTemplate).path), k.issueTemplate)
+        }
+    }
+
+    func testCenterOpensOnlyTheProjectsPagesAndOnlyWhenItCan() {
+        var opened: [URL] = []
+        let center = BetaCenter(build: BetaBuild(build: "3", channel: .beta, feedbackRepo: URL(string: "https://github.com/o/r")), journal: BetaJournal())
+        XCTAssertFalse(center.postsToGitHub); XCTAssertFalse(center.openIssueForm(.bug))
+        center.onOpenWeb = { opened.append($0); return true }
+        XCTAssertTrue(center.postsToGitHub); XCTAssertTrue(center.canOpenReleases)
+        XCTAssertTrue(center.openIssueForm(.bug)); XCTAssertTrue(center.openNewestBuild())
+        XCTAssertEqual(opened.map(\.host), ["github.com", "github.com"])
+        XCTAssertEqual(opened.map(\.path), ["/o/r/issues/new", "/o/r/releases"])
+        let local = BetaCenter(build: BetaBuild(channel: .beta), journal: BetaJournal()); local.onOpenWeb = { _ in true }
+        XCTAssertFalse(local.postsToGitHub); XCTAssertFalse(local.openNewestBuild())
+    }
+
+    func testDaysLeftComeFromTheBuildDate() {
+        let b = BetaBuild(buildID: "20261019000000-abc1234", channel: .beta, expires: ISO8601DateFormatter.day.date(from: "2026-11-18"))
+        XCTAssertEqual(b.built, ISO8601DateFormatter().date(from: "2026-10-19T00:00:00Z"))
+        XCTAssertEqual(b.remaining(at: b.built!)!, 1, accuracy: 0.001)
+        XCTAssertEqual(b.remaining(at: ISO8601DateFormatter().date(from: "2026-11-03T00:00:00Z")!)!, 0.5, accuracy: 0.001)
+        XCTAssertEqual(b.remaining(at: ISO8601DateFormatter().date(from: "2026-12-01T00:00:00Z")!), 0)
+        XCTAssertNil(BetaBuild(channel: .beta).remaining(at: Date()))
+        XCTAssertNil(BetaBuild(buildID: "nogit").built)
+    }
+
     func testBuildWithoutKeysIsDevAndOddValuesAreIgnored() {
         let dev = BetaBuild.from(info: [:])
         XCTAssertEqual(dev.channel, .dev); XCTAssertTrue(dev.isTesting); XCTAssertNil(dev.expires); XCTAssertEqual(dev.label, "0.1.0 (dev)")
@@ -103,6 +156,32 @@ final class BetaTests: XCTestCase {
         XCTAssertFalse(j.pulseDue(sessionsFinished: 10, sessionActive: false))
         j.pulseOn = false; now += 30 * 86400
         XCTAssertFalse(j.pulseDue(sessionsFinished: 10, sessionActive: false))
+    }
+
+    func testWelcomeShowsOnceForBetaBuildsAndCoversTheNotes() {
+        let f = folder()
+        let beta = BetaBuild(build: "3", channel: .beta, notes: ["One"])
+        let j = BetaJournal.standard(in: f)
+        let center = BetaCenter(build: beta, journal: j)
+        XCTAssertTrue(center.welcomeDue); XCTAssertTrue(center.notesDue)
+        XCTAssertFalse(BetaCenter(build: BetaBuild(channel: .dev), journal: BetaJournal()).welcomeDue)
+        j.markWelcomed(for: beta)
+        XCTAssertFalse(center.welcomeDue); XCTAssertFalse(center.notesDue)
+        // A later build has new notes, but the welcome stays seen.
+        let next = BetaCenter(build: BetaBuild(build: "4", channel: .beta, notes: ["Two"]), journal: BetaJournal.standard(in: f))
+        XCTAssertFalse(next.welcomeDue); XCTAssertTrue(next.notesDue)
+    }
+
+    func testReadinessNamesWhatNeedsTheTester() {
+        let c = SessionController(judge: ScriptedJudge(markers: []), store: DataStore(), now: { 0 })
+        let center = BetaCenter(build: BetaBuild(channel: .beta), journal: BetaJournal())
+        XCTAssertEqual(center.readiness(c).map(\.status), ["Checking", "Checking", "Ready"])
+        c.setJudgeStatus(.unavailable("off")); c.setWindowAccess(.appNamesOnly); center.journal.recording = false
+        let r = center.readiness(c)
+        XCTAssertEqual(r.map(\.status), ["Off", "App names only", "Off"])
+        XCTAssertEqual(r.map(\.fix), [.model, .access, .log])
+        c.setJudgeStatus(.ready); c.setWindowAccess(.allowed); center.journal.recording = true
+        XCTAssertEqual(center.readiness(c).compactMap(\.fix).count, 0)
     }
 
     func testNotesShowOncePerBuild() {
@@ -193,6 +272,28 @@ final class BetaTests: XCTestCase {
         XCTAssertEqual(r.events?.map(\.kind), [.sessionStart, .warning, .pulseAnswered])
     }
 
+    func testRecentCallsSayHowNeverWhichWindow() throws {
+        func reading(_ call: Reading.Call, _ source: Reading.Source, words: Bool = false, failed: Bool = false) -> Reading {
+            var r = Reading(at: 10, date: Date(timeIntervalSince1970: 1_790_000_000), key: "safari|secretsite.com/inbox", app: "SecretApp",
+                            title: "secret window", call: call, source: source, reason: "secret reason", byWords: words)
+            r.failed = failed
+            return r
+        }
+        let readings = [reading(.off, .model), reading(.unsure, .model, failed: true), reading(.on, .rule, words: true), reading(.on, .rule),
+                        reading(.unsure, .sensitive), reading(.unsure, .skipped)]
+        var d = FeedbackDraft(kind: .wrongCall); d.message = "x"
+        let r = FeedbackBuilder.make(d, build: BetaBuild(), system: nil, prefs: nil, store: nil, journal: nil, crash: nil, readings: readings)
+        XCTAssertEqual(r.calls?.map(\.call), ["off", "unsure", "on", "on", "unsure", "unsure"])
+        XCTAssertEqual(r.calls?.map(\.by), ["model", "refused", "words", "rule", "private", "skipped"])
+        let text = String(data: try XCTUnwrap(r.encoded()), encoding: .utf8)!
+        for leak in ["secretsite", "SecretApp", "secret window", "secret reason", "safari"] { XCTAssertFalse(text.contains(leak), leak) }
+        d.includeCalls = false
+        XCTAssertNil(FeedbackBuilder.make(d, build: BetaBuild(), system: nil, prefs: nil, store: nil, journal: nil, crash: nil, readings: readings).calls)
+        d.includeCalls = true
+        XCTAssertNil(FeedbackBuilder.make(d, build: BetaBuild(), system: nil, prefs: nil, store: nil, journal: nil, crash: nil).calls)
+        XCTAssertEqual(FeedbackBuilder.calls(Array(repeating: readings[0], count: 20)).count, 12)
+    }
+
     func testUncheckedSectionsAreLeftOut() throws {
         var d = FeedbackDraft(); d.message = "x"
         d.includeSystem = false; d.includeUsage = false; d.includeEvents = false; d.includeCrash = false
@@ -224,11 +325,13 @@ final class BetaTests: XCTestCase {
         var d = FeedbackDraft(); d.message = "x"; d.contact = "me"
         let r = FeedbackBuilder.make(d, build: BetaBuild(buildID: "id", channel: .beta), system: FeedbackBuilder.system(judge: .ready, windowAccess: .allowed, screen: .allowed),
                                      prefs: Preferences(defaults: UserDefaults(suiteName: "focus.tests.\(UUID().uuidString)")!), store: secretStore(),
-                                     journal: j, crash: CrashReports.summary(ips: Self.ips))
+                                     journal: j, crash: CrashReports.summary(ips: Self.ips),
+                                     readings: [Reading(at: 1, date: Date(), key: "k", app: "A", title: "", call: .off, source: .model, reason: "r")])
         let mine = try XCTUnwrap(JSONSerialization.jsonObject(with: try XCTUnwrap(r.encoded())) as? [String: Any])
         func keys(_ o: Any?) -> Set<String> { Set((o as? [String: Any])?.keys.map { $0 } ?? []) }
         XCTAssertEqual(keys(mine), keys(fixture))
         for k in ["app", "system", "usage", "crash"] { XCTAssertEqual(keys(mine[k]), keys(fixture[k]), k) }
+        XCTAssertEqual(keys((mine["calls"] as? [Any])?.first), keys((fixture["calls"] as? [Any])?.first))
         XCTAssertEqual(keys((mine["usage"] as? [String: Any])?["reads"]), keys((fixture["usage"] as? [String: Any])?["reads"]))
         XCTAssertTrue(keys((mine["events"] as? [Any])?.first).isSubset(of: ["at", "kind", "value"]))
         XCTAssertEqual(mine["schema"] as? String, fixture["schema"] as? String)
