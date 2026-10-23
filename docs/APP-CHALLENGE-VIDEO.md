@@ -1,6 +1,6 @@
 # Congressional App Challenge: demo video script
 
-Target length **2:45**, so the video stays under the 3-minute limit with some room to spare. The narration below is about 390 words, roughly 2:45 at a calm speaking pace. Check the official 2026 rules for the exact length and deadline (reported as October 26, 2026, 12:00 p.m. ET).
+Target length **2:45**, so the video stays under the 3-minute limit with some room to spare. The narration below is about 350 words, roughly 2:30 of talking plus pauses for 2:45 at a calm speaking pace. Check the official 2026 rules for the exact length and deadline (reported as October 26, 2026, 12:00 p.m. ET).
 
 Written in first person for whoever presents. Change any line so it sounds like you.
 
