@@ -359,12 +359,12 @@ struct FeedbackSheet: View {
                 GridRow {
                     include("What happened when", "The beta log: when sessions, nudges, crashes and slow moments happened. Kinds and times only.", $draft.includeEvents)
                     if !c.readings.isEmpty {
-                        include("Focus\u{2019}s last calls", "On, unsure or off, and whether the model, a rule or shared words decided. Never which window.", $draft.includeCalls)
+                        include("Hushd\u{2019}s last calls", "On, unsure or off, and whether the model, a rule or shared words decided. Never which window.", $draft.includeCalls)
                     }
                 }
                 if crash != nil {
                     GridRow {
-                        include("The last crash", "What went wrong and where in Focus's code, from the report macOS wrote. Paths and IDs removed.", $draft.includeCrash)
+                        include("The last crash", "What went wrong and where in Hushd's code, from the report macOS wrote. Paths and IDs removed.", $draft.includeCrash)
                     }
                 }
             }
@@ -620,7 +620,7 @@ struct BetaSettings: View {
                 HStack(spacing: Space.m) {
                     BetaClock(beta: beta, size: 56)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Focus \(beta.build.label)").font(Tokens.rounded(.headline, .semibold)).monospacedDigit()
+                        Text("Hushd \(beta.build.label)").font(Tokens.rounded(.headline, .semibold)).monospacedDigit()
                         Text(subtitle).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).monospacedDigit()
                         if !beta.build.knownIssues.isEmpty {
                             Button { beta.notesShown = true } label: {
@@ -680,7 +680,7 @@ struct BetaSettings: View {
                 row("Keep a beta log", "When sessions, nudges, crashes and slow moments happen, as kinds and times. No names, titles or screen words. It stays on this Mac and only goes in a report you save. Off: nothing new is written.") {
                     Toggle("", isOn: Binding(get: { beta.journal.recording }, set: { beta.journal.recording = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                 }
-                row("Ask once a week", "One question on Today, between sessions, at most once a week: how Focus is working for you. Five dots, one click.") {
+                row("Ask once a week", "One question on Today, between sessions, at most once a week: how Hushd is working for you. Five dots, one click.") {
                     Toggle("", isOn: Binding(get: { beta.journal.pulseOn }, set: { beta.journal.pulseOn = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                 }
                 row("Log on this Mac", "\(beta.journal.events.count) entries and \(beta.journal.pulses.count) answers. Clearing removes them; your sessions are not touched.") {
@@ -702,7 +702,7 @@ struct BetaSettings: View {
         return parts.joined(separator: " \u{00B7} ")
     }
     var destination: (text: String, symbol: String, help: String) {
-        if beta.postsToGitHub { return ("To GitHub, by you", "arrow.up.forward.square", "You save the file, Focus opens the GitHub form, you drag it in and submit. Issues are public.") }
+        if beta.postsToGitHub { return ("To GitHub, by you", "arrow.up.forward.square", "You save the file, Hushd opens the GitHub form, you drag it in and submit. Issues are public.") }
         if beta.build.feedbackAddress != nil && beta.onEmail != nil { return ("By mail, from you", "envelope", "Your mail app opens a draft with the file attached. You press Send.") }
         return ("A file you send", "doc", "Save the report and send the file to whoever gave you this build.")
     }

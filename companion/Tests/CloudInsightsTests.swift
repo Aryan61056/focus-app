@@ -54,10 +54,10 @@ struct CloudInsightsTests {
     }
 
     @Test func noAccountOrABuildWithoutICloudIsPlainAndHarmless() async {
-        let stub = StubCloud(); stub.answer = .unavailable("This build of Focus is not set up for iCloud yet.")
+        let stub = StubCloud(); stub.answer = .unavailable("This build of Hushd is not set up for iCloud yet.")
         let c = CloudInsights(cloud: stub, cacheURL: url())
         await c.refresh()
-        #expect(c.status == .unavailable("This build of Focus is not set up for iCloud yet."))
+        #expect(c.status == .unavailable("This build of Hushd is not set up for iCloud yet."))
         #expect(c.snapshot == nil)
     }
 

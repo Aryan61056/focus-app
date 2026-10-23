@@ -80,12 +80,12 @@ public struct MenuBarContent: View {
             }
             if c.updateSource != nil, !c.isActive {
                 Divider().padding(.vertical, 4)
-                item(c.updateBuild == .building ? "Updating\u{2026}" : c.visibleUpdate != nil ? "Restart to update" : "Update Focus") { c.updateNow() }
+                item(c.updateBuild == .building ? "Updating\u{2026}" : c.visibleUpdate != nil ? "Restart to update" : "Update Hushd") { c.updateNow() }
             }
             Divider().padding(.vertical, 4)
             item("Park a thought") { c.onParkThought?() }
             item(c.phoneState == .none ? "Connect your iPhone\u{2026}" : "Your iPhone\u{2026}") { c.onOpenPhone?() }
-            item("Open Focus", openApp)
+            item("Open Hushd", openApp)
         }
         .padding(8).frame(width: 296)
     }

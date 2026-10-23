@@ -37,7 +37,7 @@ import FocusLinkNet
         guard let delay = Self.plan(clock: clock, live: live, now: now, lastShown: lastShown) else { return }
         let content = UNMutableNotificationContent()
         content.title = String(localized: "Still on \(clock.state.task)?")
-        content.body = String(localized: "Your session was running when you left Focus.")
+        content.body = String(localized: "Your session was running when you left Hushd.")
         content.interruptionLevel = .passive
         center.add(UNNotificationRequest(identifier: Self.identifier, content: content, trigger: UNTimeIntervalNotificationTrigger(timeInterval: delay, repeats: false)))
         armedAt = now

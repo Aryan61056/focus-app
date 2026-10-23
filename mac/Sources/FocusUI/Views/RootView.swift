@@ -339,7 +339,7 @@ struct Sidebar: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: Space.s) { RingView(.on, color: Tokens.accent).frame(width: 20, height: 20); Text("Focus").font(Tokens.rounded(.callout, .semibold)) }
+            HStack(spacing: Space.s) { RingView(.on, color: Tokens.accent).frame(width: 20, height: 20); Text("Hushd").font(Tokens.rounded(.callout, .semibold)) }
                 .padding(.horizontal, Space.xs).padding(.top, Space.l).padding(.bottom, Space.m)
             ForEach(AppSection.allCases.filter { $0 != .settings && ($0 != .review || c.showsReview) && ($0 != .friends || c.friends != nil) }) { s in row(s) }
             Spacer()

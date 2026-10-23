@@ -44,7 +44,7 @@ final class PauseTests: XCTestCase {
         c.act(.breakTime, minutes: 5); XCTAssertTrue(c.isHeld)
         c.act(.resume)
         c.windowChanged(WindowSnapshot(app: "Browser", title: "Private browsing", url: "https://bank.example/login"))
-        XCTAssertEqual(c.presence.reason, "sensitive"); XCTAssertFalse(c.isHeld, "a private window keeps the watcher on so Focus knows when it ends")
+        XCTAssertEqual(c.presence.reason, "sensitive"); XCTAssertFalse(c.isHeld, "a private window keeps the watcher on so Hushd knows when it ends")
     }
 
     func testNoPictureIsTakenWhilePausedAndItComesBackOnResume() async {

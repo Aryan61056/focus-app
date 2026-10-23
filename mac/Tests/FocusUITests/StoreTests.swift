@@ -69,6 +69,6 @@ final class StartLineTests: XCTestCase {
         XCTAssertTrue(line.contains("..."))
         XCTAssertLessThan(line.count, 120)
         p.context = ""
-        XCTAssertTrue(StartSheet.confirmLine(task: "Calc", project: p)!.hasPrefix("Focus knows this project."))
+        XCTAssertTrue(StartSheet.confirmLine(task: "Calc", project: p)!.hasPrefix("Hushd knows this project."))
     }
 }

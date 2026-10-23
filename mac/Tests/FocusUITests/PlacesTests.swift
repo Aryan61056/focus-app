@@ -789,7 +789,7 @@ final class GrayOnlyTheDriftedWindowTests: XCTestCase {
     func testNothingIsGrayedWhenTheDriftedWindowCannotBeTold() async {
         let c = make()
         await advance(c, to: 60); c.windowChanged(slack); await advance(c, to: 300)
-        XCTAssertEqual(c.veilRegion(windowFrame: nil), .none, "Focus itself in front, or an unknown frame")
+        XCTAssertEqual(c.veilRegion(windowFrame: nil), .none, "Hushd itself in front, or an unknown frame")
         XCTAssertEqual(c.veilRegion(windowFrame: CGRect(x: 0, y: 0, width: 50, height: 30)), .none, "a sliver")
     }
 

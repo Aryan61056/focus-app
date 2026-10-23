@@ -51,7 +51,7 @@ struct WelcomeView: View {
         VStack(spacing: Space.xl) {
             Stage { WelcomeDemo() }
             Headline(title: "Stay on the task you name",
-                     line: "A gentle nudge when you drift. When Focus isn't sure, it does nothing.")
+                     line: "A gentle nudge when you drift. When Hushd isn't sure, it does nothing.")
             HStack(spacing: Space.xl) {
                 Fact(symbol: "lock", text: "Stays on this Mac")
                 Fact(symbol: "person.slash", text: "No account")
@@ -67,8 +67,8 @@ struct WelcomeView: View {
     var access: some View {
         VStack(spacing: Space.xl) {
             Stage { AccessPicture(allowed: allowed) }
-            Headline(title: "Let Focus see the window in front",
-                     line: "Focus reads the app, title and page address, only during a session.")
+            Headline(title: "Let Hushd see the window in front",
+                     line: "Hushd reads the app, title and page address, only during a session.")
             accessStatus.frame(minHeight: 28)
         }
     }
@@ -81,12 +81,12 @@ struct WelcomeView: View {
         } else if asked {
             HStack(spacing: Space.xs) {
                 ThinkingDot()
-                Text("Switch on Focus, then come back").font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2)
+                Text("Switch on Hushd, then come back").font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2)
             }
-            .help("If Focus is already switched on in the list, remove it with the minus button and add it again.")
+            .help("If Hushd is already switched on in the list, remove it with the minus button and add it again.")
             .transition(.opacity)
         } else {
-            Text("Without it, Focus sees only the app name").font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2)
+            Text("Without it, Hushd sees only the app name").font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2)
         }
     }
 
@@ -326,7 +326,7 @@ struct DemoBar: View {
     var body: some View {
         HStack(spacing: Space.xs) {
             Image(systemName: "sparkles").font(Tokens.symbol(13, .semibold)).foregroundStyle(Tokens.accent)
-            Text("Focus").font(Tokens.text(.body, .semibold))
+            Text("Hushd").font(Tokens.text(.body, .semibold))
             Text("reading \(window)").font(Tokens.text(.body)).foregroundStyle(Tokens.ink2).lineLimit(1)
             Spacer(minLength: Space.s)
             HStack(spacing: 3) {
@@ -383,7 +383,7 @@ struct MenuBarPicture: View {
             .animation(Motion.out(0.2), value: task.isEmpty)
         }
         .accessibilityElement()
-        .accessibilityLabel("Focus's ring in the menu bar opens a panel with your task and its clock.")
+        .accessibilityLabel("Hushd's ring in the menu bar opens a panel with your task and its clock.")
     }
 }
 
@@ -416,7 +416,7 @@ struct AccessPicture: View {
             // Focus's own reading bar, as Today shows it.
             HStack(spacing: Space.xs) {
                 Image(systemName: "sparkles").font(Tokens.symbol(13, .semibold)).foregroundStyle(Tokens.accent)
-                Text("Focus").font(Tokens.text(.body, .semibold))
+                Text("Hushd").font(Tokens.text(.body, .semibold))
                 Text(allowed ? "reads Preview: title and page" : "sees only the app").font(Tokens.text(.body)).foregroundStyle(Tokens.ink2).lineLimit(1)
                 Spacer(minLength: Space.s)
                 HStack(spacing: 3) {
@@ -433,7 +433,7 @@ struct AccessPicture: View {
             .animation(Motion.out(0.24), value: allowed)
         }
         .accessibilityElement()
-        .accessibilityLabel(allowed ? "Focus can read the app, the window title and the page." : "Focus can see only which app is in front.")
+        .accessibilityLabel(allowed ? "Hushd can read the app, the window title and the page." : "Hushd can see only which app is in front.")
     }
 }
 

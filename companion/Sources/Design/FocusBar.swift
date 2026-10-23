@@ -16,7 +16,7 @@ struct FocusBar: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "sparkles").font(.footnote.weight(.semibold)).foregroundStyle(Palette.accent)
-            Text("Focus").font(.footnote.weight(.semibold)).foregroundStyle(Palette.ink)
+            Text("Hushd").font(.footnote.weight(.semibold)).foregroundStyle(Palette.ink)
             Text(text).font(.footnote).foregroundStyle(Palette.ink2).contentTransition(.interpolate)
             Spacer(minLength: 0)
         }

@@ -31,7 +31,7 @@ final class EscalationPlanTests: XCTestCase {
     }
 
     func testFocusAndSystemAppsAreNeverHidden() {
-        XCTAssertFalse(Enforcement.canHide("Focus")); XCTAssertFalse(Enforcement.canHide("Finder")); XCTAssertFalse(Enforcement.canHide(nil)); XCTAssertFalse(Enforcement.canHide(" "))
+        XCTAssertFalse(Enforcement.canHide("Focus")); XCTAssertFalse(Enforcement.canHide("Hushd")); XCTAssertFalse(Enforcement.canHide("Finder")); XCTAssertFalse(Enforcement.canHide(nil)); XCTAssertFalse(Enforcement.canHide(" "))
         XCTAssertTrue(Enforcement.canHide("Safari"))
     }
 
@@ -74,13 +74,13 @@ final class EscalationTests: XCTestCase {
         XCTAssertNil(c.checkIn); XCTAssertEqual(c.escalationStep, .warned)
 
         await advance(c, to: warned + 41)
-        XCTAssertNotNil(c.checkIn, "after about 40 s Focus asks whether you are on task")
+        XCTAssertNotNil(c.checkIn, "after about 40 s Hushd asks whether you are on task")
         XCTAssertEqual(c.escalationStep, .checkIn)
 
         await advance(c, to: warned + 101)
         XCTAssertTrue(c.escalationGate, "then the pause screen"); XCTAssertEqual(c.shield?.kind, .pause)
         XCTAssertNil(c.checkIn)
-        XCTAssertEqual(foreground, 0, "the pause screen is its own panel now, not the Focus window coming forward")
+        XCTAssertEqual(foreground, 0, "the pause screen is its own panel now, not the Hushd window coming forward")
         XCTAssertTrue(hidden.isEmpty)
 
         await advance(c, to: warned + 201)
@@ -122,7 +122,7 @@ final class EscalationTests: XCTestCase {
         XCTAssertNotNil(c.checkIn)
         c.answerCheckIn(onTask: true)
         XCTAssertNil(c.checkIn)
-        XCTAssertEqual(c.shield?.kind, .claim, "a flagged window needs an explanation Focus can check")
+        XCTAssertEqual(c.shield?.kind, .claim, "a flagged window needs an explanation Hushd can check")
         XCTAssertTrue(c.learnedRules.isEmpty, "nothing was learned from a click")
         XCTAssertEqual(c.presence.state, "interrupted")
     }
@@ -267,7 +267,7 @@ final class TabEnforcementTests: XCTestCase {
     func testOnlyNamedBrowserTabsMayBeClosed() {
         XCTAssertTrue(Enforcement.mayClose(video, neverJudged: [], skipPersonal: true))
         XCTAssertFalse(Enforcement.mayClose(WindowSnapshot(app: "Notes", title: "x", url: "https://youtube.com/a"), neverJudged: [], skipPersonal: true), "other apps are hidden, never closed")
-        XCTAssertFalse(Enforcement.mayClose(WindowSnapshot(app: "Safari", title: "new tab"), neverJudged: [], skipPersonal: true), "no address: Focus cannot name the tab")
+        XCTAssertFalse(Enforcement.mayClose(WindowSnapshot(app: "Safari", title: "new tab"), neverJudged: [], skipPersonal: true), "no address: Hushd cannot name the tab")
         XCTAssertFalse(Enforcement.mayClose(WindowSnapshot(app: "Finder", title: "x", url: "https://a.b/c"), neverJudged: [], skipPersonal: true))
         XCTAssertFalse(Enforcement.mayClose(nil, neverJudged: [], skipPersonal: true))
     }

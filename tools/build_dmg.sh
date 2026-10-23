@@ -74,7 +74,7 @@ TEXT
 fi
 
 rm -f "$DMG" "$DMG.sha256"
-hdiutil create -volname "Focus" -srcfolder "$STAGE" -fs HFS+ -format UDZO -imagekey zlib-level=9 -ov "$DMG" >/dev/null
+hdiutil create -volname "Hushd" -srcfolder "$STAGE" -fs HFS+ -format UDZO -imagekey zlib-level=9 -ov "$DMG" >/dev/null
 
 if [ "$DEVELOPER_ID" = 1 ] && [ -n "${FOCUS_SIGN_IDENTITY:-}" ]; then
   codesign --force --sign "$FOCUS_SIGN_IDENTITY" "$DMG"

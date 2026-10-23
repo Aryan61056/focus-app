@@ -30,7 +30,7 @@ extension SessionState.Phase {
 
     func detail(task: String) -> LocalizedStringKey? {
         switch self {
-        case .unsure: "Focus can't tell about this one. Nothing happens unless it keeps up."
+        case .unsure: "Hushd can't tell about this one. Nothing happens unless it keeps up."
         case .drifting: "This doesn't look like \(task). Head back when you're ready."
         case .recovering: "Nice. Getting back to \(task)."
         case .onBreak: "Take your time. Your session is waiting."

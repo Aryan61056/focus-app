@@ -230,7 +230,7 @@ public struct NotchView: View {
         .onChange(of: c.presenceLabel) { _, label in announce(label) }
         .onDisappear { flashTask?.cancel() }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Focus, \(c.presenceLabel), \(c.taskName)")
+        .accessibilityLabel("Hushd, \(c.presenceLabel), \(c.taskName)")
         .accessibilityAction(named: big ? "Close" : "Show details") { if forced == nil, mode != .nudge { model.expanded.toggle() } }
     }
 

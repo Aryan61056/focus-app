@@ -680,7 +680,7 @@ public final class SessionController {
         previewHeld = nil
         if Rules.isSensitive(m) {
             previewHeld = "Private window. Not captured."; previewFrame = nil
-            if !sensitiveUp { sensitiveUp = true; send(.sensitiveEntered); record(Reading(at: now(), date: date(), key: "sensitive", app: "", title: "", call: .unsure, source: .sensitive, reason: "A private window. Focus did not read it.")) }
+            if !sensitiveUp { sensitiveUp = true; send(.sensitiveEntered); record(Reading(at: now(), date: date(), key: "sensitive", app: "", title: "", call: .unsure, source: .sensitive, reason: "A private window. Hushd did not read it.")) }
             return
         }
         if sensitiveUp { sensitiveUp = false; send(.sensitiveLeft) }
@@ -695,7 +695,7 @@ public final class SessionController {
         if let until = passedPages[pageKey(w)], until > now() {
             // You explained this exact page and Focus accepted it for a short while. A rule for this page only, never saved.
             record(Reading(at: now(), date: date(), key: Keys.window(w), app: w.app, title: w.title, call: .on, source: .rule,
-                           reason: "You explained this page and Focus accepted it for a few minutes. Then it reads it again on its own."))
+                           reason: "You explained this page and Hushd accepted it for a few minutes. Then it reads it again on its own."))
             send(.windowChange(WindowChangeInput(windowKey: Keys.window(w), siteKey: Keys.site(w), ruleLabel: .onTask)))
             return
         }
@@ -721,10 +721,10 @@ public final class SessionController {
 
     static func ruleReason(_ rule: String) -> String {
         switch rule {
-        case "always_allow_app": return "You told Focus this app counts for the project."
-        case "always_allow_domain": return "You told Focus this site counts for the project."
-        case "always_off_app": return "You told Focus this app never counts for the project."
-        case "always_off_domain": return "You told Focus this site never counts for the project."
+        case "always_allow_app": return "You told Hushd this app counts for the project."
+        case "always_allow_domain": return "You told Hushd this site counts for the project."
+        case "always_off_app": return "You told Hushd this app never counts for the project."
+        case "always_off_domain": return "You told Hushd this site never counts for the project."
         default: return "It is linked to this project."
         }
     }
@@ -895,7 +895,7 @@ public final class SessionController {
         if !prefs.useModel {
             // The user switched the model off: say so, count it as not sure, and never ask the model.
             record(Reading(at: observedAt, date: date(), key: windowKey, app: w.app, title: w.title, call: .unsure, source: .skipped,
-                           reason: "The on-device model is switched off in Settings. Focus only follows your rules and matching words."))
+                           reason: "The on-device model is switched off in Settings. Hushd only follows your rules and matching words."))
             var input = JudgmentInput(requestId: id, observedAt: observedAt, windowKey: windowKey, contentKey: content, label: .unsure)
             input.strong = false
             send(.judgment(input))
@@ -947,7 +947,7 @@ public final class SessionController {
 extension SessionController {
     /// The judge's own words, trimmed to one short line. A refusal never shows its raw text.
     static func tidy(_ reason: String, failed: Bool) -> String {
-        if failed { return "Focus could not read this one, so it did nothing." }
+        if failed { return "Hushd could not read this one, so it did nothing." }
         let t = reason.trimmingCharacters(in: .whitespacesAndNewlines)
         if t.isEmpty { return "No reason given." }
         return t.count > 160 ? String(t.prefix(157)) + "..." : t
@@ -976,11 +976,11 @@ extension SessionController {
     /// What the Today card says while nothing is being read.
     public var heldLine: String {
         switch presence.reason {
-        case "break": return "On a break. Focus is not reading your windows or screen until it ends."
-        case "snooze": return "Snoozed. Focus is not reading your windows or screen."
-        case "meeting": return "In a call. Focus is not reading your windows or screen while it lasts."
-        case "idle", "sleep": return "You are away. Focus is not reading your windows or screen."
-        default: return "Paused. Focus is not reading your windows or screen."
+        case "break": return "On a break. Hushd is not reading your windows or screen until it ends."
+        case "snooze": return "Snoozed. Hushd is not reading your windows or screen."
+        case "meeting": return "In a call. Hushd is not reading your windows or screen while it lasts."
+        case "idle", "sleep": return "You are away. Hushd is not reading your windows or screen."
+        default: return "Paused. Hushd is not reading your windows or screen."
         }
     }
     /// A session is running and not on hold: the only time the screen and windows may be looked at.

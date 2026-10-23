@@ -55,7 +55,7 @@ public enum DeviceListing {
         let lower = text.lowercased()
         if lower.contains("developer mode") { return "Turn on Developer Mode on the iPhone (Settings, Privacy & Security), then try again." }
         if lower.contains("locked") { return "Unlock the iPhone and try again." }
-        if text.isEmpty { return "Focus could not install on this iPhone." }
+        if text.isEmpty { return "Hushd could not install on this iPhone." }
         return "Could not install: " + (text.count > 160 ? String(text.prefix(157)) + "..." : text)
     }
 

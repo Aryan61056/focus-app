@@ -9,7 +9,7 @@ nonisolated final class FocusShieldConfiguration: ShieldConfigurationDataSource 
             backgroundBlurStyle: .systemUltraThinMaterial,
             backgroundColor: nil,
             icon: UIImage(systemName: "leaf.fill"),
-            title: .init(text: "Focus is on", color: .label),
+            title: .init(text: "Hushd is on", color: .label),
             subtitle: .init(text: "You chose to keep this closed while you work. It opens on a break, when you pause, or when the session ends.", color: .secondaryLabel)
         )
     }

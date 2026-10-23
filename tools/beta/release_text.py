@@ -55,44 +55,44 @@ def invite(m: dict) -> str:
     open_step = (" macOS will say it cannot check the app: choose Done, then System Settings, Privacy & Security, Open Anyway. Once only."
                  if m.get("signing") == "ad-hoc" else "")
     lines = [
-        f"Focus {label(m)} is ready to try.",
+        f"Hushd {label(m)} is ready to try.",
         "",
-        f"1. Open {m['dmg']} and drag Focus onto Applications." if not repo else
-        f"1. Download {m['dmg']} from {repo}/releases/tag/{m['tag']}, open it and drag Focus onto Applications.",
+        f"1. Open {m['dmg']} and drag Hushd onto Applications." if not repo else
+        f"1. Download {m['dmg']} from {repo}/releases/tag/{m['tag']}, open it and drag Hushd onto Applications.",
         f"2. Open it from Applications.{open_step}",
-        "3. Work as you normally would for a week. Focus needs Apple silicon and Apple Intelligence turned on.",
+        "3. Work as you normally would for a week. Hushd needs Apple silicon and Apple Intelligence turned on.",
         "",
-        "When something breaks, feels wrong or gives you an idea: click your name at the bottom left of the Focus window, then Send feedback.",
-        "You see the whole report before you save it. Focus never sends a report by itself, and reports never hold your task names, window",
+        "When something breaks, feels wrong or gives you an idea: click your name at the bottom left of the Hushd window, then Send feedback.",
+        "You see the whole report before you save it. Hushd never sends a report by itself, and reports never hold your task names, window",
         "titles, addresses or anything from your screen.",
     ]
     if repo:
-        lines.append(f"Post it at {repo}/issues (Focus opens the form for you), or send the file back to me.")
+        lines.append(f"Post it at {repo}/issues (Hushd opens the form for you), or send the file back to me.")
     lines += ["", f"This build stops being current on {m['expires']}. It keeps working after that.", f"Checksum (SHA-256): {m['sha256']}"]
     return "\n".join(lines) + "\n"
 
 
 def github_body(m: dict) -> str:
     repo = m.get("repo") or ""
-    out = [f"A test build of Focus for Mac. Current until **{day(m['expires'])}**; it keeps working after that.", ""]
-    out += ["### Install", "", f"1. Download **{m['dmg']}** below.", "2. Open it and drag **Focus** onto **Applications**."]
+    out = [f"A test build of Hushd for Mac. Current until **{day(m['expires'])}**; it keeps working after that.", ""]
+    out += ["### Install", "", f"1. Download **{m['dmg']}** below.", "2. Open it and drag **Hushd** onto **Applications**."]
     if m.get("signing") == "ad-hoc":
-        out += ["3. Open Focus. macOS says it cannot check the app, because this build has no Apple developer signature yet. "
+        out += ["3. Open Hushd. macOS says it cannot check the app, because this build has no Apple developer signature yet. "
                 "Choose **Done**, then **System Settings › Privacy & Security › Open Anyway**. Once per build."]
     else:
-        out += ["3. Open Focus from Applications."]
+        out += ["3. Open Hushd from Applications."]
     out += ["", "Needs a Mac with Apple silicon and Apple Intelligence turned on. A newer beta installs over this one; your sessions and settings stay.", ""]
     if m.get("notes"):
         out += ["### New in this build", ""] + [f"- {n}" for n in m["notes"]] + [""]
     if m.get("known"):
         out += ["### Known issues", "", "Already on the list, no report needed:", ""] + [f"- {k}" for k in m["known"]] + [""]
     out += ["### Send feedback", "",
-            "In Focus: your name at the bottom left, then **Send feedback**. You see the whole report before it is saved; "
+            "In Hushd: your name at the bottom left, then **Send feedback**. You see the whole report before it is saved; "
             "**Post on GitHub** opens the form, and you drag the file in."]
     if repo:
         out += ["", "Or open a form here: " + " · ".join(f"[{t}]({repo}/issues/new?template={f})" for t, f in ISSUE_FORMS) + "."]
     out += ["", "Issues are public. Reports never hold task or project names, window titles, addresses, screen words or pictures. "
-            "Focus never sends a report by itself.", "",
+            "Hushd never sends a report by itself.", "",
             f"<sub>Build {m['build']} · {m['buildID']} · SHA-256 `{m['sha256']}` · {m['signing']} signed</sub>"]
     return "\n".join(out) + "\n"
 

@@ -105,7 +105,7 @@ struct SessionDrawer: View {
                 MiniTimeline(segments: session.segments, height: 16, animated: true).padding(.top, Space.xs)
                 FlowRow(spacing: Space.s) { legend("On task", .on); legend("Unsure", .unsure); legend("Off topic", .off) }.font(Tokens.text(.caption2)).foregroundStyle(Tokens.ink2)
             }
-            PanelSection(title: "What Focus did", ai: true) {
+            PanelSection(title: "What Hushd did", ai: true) {
                 VStack(alignment: .leading, spacing: Space.xs) {
                     if let r = session.reads, r.total > 0 {
                         fact("checkmark.circle", Tokens.accent, r.onTask, "counted on task")

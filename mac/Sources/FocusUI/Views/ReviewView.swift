@@ -13,7 +13,7 @@ struct ReviewView: View {
             VStack(alignment: .leading, spacing: Space.l) {
                 if c.prefs.practiceActive { practice }
                 if open.isEmpty {
-                    EmptyState(symbol: "checkmark", title: "All caught up", text: "Moments Focus would have nudged about land here.")
+                    EmptyState(symbol: "checkmark", title: "All caught up", text: "Moments Hushd would have nudged about land here.")
                 } else {
                     VStack(spacing: Space.s) {
                         ForEach(open) { m in
@@ -66,7 +66,7 @@ struct ReviewView: View {
                         store.apply(LearnedRule(scope: "project", kind: "allow", keyType: "site", key: m.siteKey), to: m.projectId)
                         store.answerReview(m.id, "fine")
                     } label: { Label("I was on task", systemImage: "xmark") }.buttonStyle(FocusButtonStyle(.plain, small: true))
-                        .help("Focus will count this site as on task for this project")
+                        .help("Hushd will count this site as on task for this project")
                 }
                 .padding(.top, Space.xs)
             }

@@ -5,7 +5,7 @@ import AppKit
 
 /// Settings split into pages, each its own row in the sidebar, the way System Settings and Droppy lay them out.
 public enum SettingsPage: String, CaseIterable, Identifiable, Hashable, Sendable {
-    case general = "General", nudges = "Nudges", cues = "Cues", notch = "Notch", rhythm = "Rhythm and goals", reading = "What Focus reads", privacy = "Privacy", beta = "Beta"
+    case general = "General", nudges = "Nudges", cues = "Cues", notch = "Notch", rhythm = "Rhythm and goals", reading = "What Hushd reads", privacy = "Privacy", beta = "Beta"
     public var id: String { rawValue }
     var symbol: String {
         switch self {
@@ -24,9 +24,9 @@ struct SettingsView: View {
     var probeBusy: Bool { if case .waiting = c.probe { return true }; return false }
     var probeText: String {
         switch c.probe {
-        case .idle: return "Switch to another window after pressing the button. Focus tells you what it can see there. Nothing is kept."
+        case .idle: return "Switch to another window after pressing the button. Hushd tells you what it can see there. Nothing is kept."
         case .waiting(let n): return "Switch to the window you want to test. Reading in \(n)."
-        case .nothing: return "Focus itself was in front, so nothing was read. Try again and switch to another app before the countdown ends."
+        case .nothing: return "Hushd itself was in front, so nothing was read. Try again and switch to another app before the countdown ends."
         case .saw(let app, let title, let trusted):
             if !trusted { return "Saw the app \u{201C}\(app)\u{201D} only. Allow Accessibility to see window titles." }
             return title.isEmpty ? "Saw the app \u{201C}\(app)\u{201D}, but that window gave no title." : "Saw \u{201C}\(app)\u{201D}, window \u{201C}\(title)\u{201D}."
@@ -99,10 +99,10 @@ struct SettingsView: View {
                         Toggle("", isOn: Binding(get: { c.prefs.nudgeSound }, set: { c.prefs.nudgeSound = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
                 }
-                group("How Focus decides", .nudges) {
+                group("How Hushd decides", .nudges) {
                     VStack(alignment: .leading, spacing: Space.xs) {
                         HStack(alignment: .firstTextBaseline) {
-                            HStack(spacing: Space.xs) { Text("How often Focus checks"); InfoButton(text: "\(c.prefs.checkRate.detail) Each check asks the on-device model, so checking more often uses more battery. Applies from the next session.") }
+                            HStack(spacing: Space.xs) { Text("How often Hushd checks"); InfoButton(text: "\(c.prefs.checkRate.detail) Each check asks the on-device model, so checking more often uses more battery. Applies from the next session.") }
                             Spacer()
                             segmented(CheckRate.allCases, selection: Binding(get: { c.prefs.checkRate }, set: { c.prefs.checkRate = $0 }), title: \.title)
                         }
@@ -110,18 +110,18 @@ struct SettingsView: View {
 
                     VStack(alignment: .leading, spacing: Space.xs) {
                         HStack(alignment: .firstTextBaseline) {
-                            HStack(spacing: Space.xs) { Text("How sure Focus must be"); InfoButton(text: sensitivityHelp) }
+                            HStack(spacing: Space.xs) { Text("How sure Hushd must be"); InfoButton(text: sensitivityHelp) }
                             Spacer()
                             segmented(Sensitivity.allCases, selection: Binding(get: { c.prefs.sensitivity }, set: { c.prefs.sensitivity = $0 }), title: \.title)
                         }
                     }
 
-                    row("Ease in, then push harder when behind", "Focus is easy on you before noon and once you reach your daily goal, and it warns sooner and climbs faster when you are behind the goal's pace for the time of day (a 9 to 6 working day). Today always says which it is. Needs the daily goal below to be on.") {
+                    row("Ease in, then push harder when behind", "Hushd is easy on you before noon and once you reach your daily goal, and it warns sooner and climbs faster when you are behind the goal's pace for the time of day (a 9 to 6 working day). Today always says which it is. Needs the daily goal below to be on.") {
                         toggle(\.paceMatters)
                     }
                 }
                 group("If you stay away", .nudges) {
-                    row("If you stay away after a warning", "Gentle stops at the warning. Standard and Strict keep going: after about 40 seconds (20 on Strict) Focus asks whether you are on task and reads the window again, then covers every screen with a pause screen, then hides the app you drifted into. Dismissing a card does not stop it; getting back to the task does.") {
+                    row("If you stay away after a warning", "Gentle stops at the warning. Standard and Strict keep going: after about 40 seconds (20 on Strict) Hushd asks whether you are on task and reads the window again, then covers every screen with a pause screen, then hides the app you drifted into. Dismissing a card does not stop it; getting back to the task does.") {
                         Toggle("", isOn: Binding(get: { c.prefs.escalate }, set: { c.prefs.escalate = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
                     row("Fade the whole screen to gray", "While you are off task, every display loses its color a little at a time, deeper the longer you stay away, and it fades back when you return. Preview shows a 10 second fade. Nothing is captured.") {
@@ -136,10 +136,10 @@ struct SettingsView: View {
                             Toggle("", isOn: Binding(get: { c.prefs.screenFog }, set: { c.prefs.screenFog = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                         }
                     }
-                    row("Gray only the window you drifted into", "The gray covers just the window you are off task in, so the task window beside it stays in color and looks like the way back. If Focus cannot tell which window that is, nothing is grayed. Preview always grays the whole screen.") {
+                    row("Gray only the window you drifted into", "The gray covers just the window you are off task in, so the task window beside it stays in color and looks like the way back. If Hushd cannot tell which window that is, nothing is grayed. Preview always grays the whole screen.") {
                         Toggle("", isOn: Binding(get: { c.prefs.grayWindowOnly }, set: { c.prefs.grayWindowOnly = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
-                    row("Ease the sound down", "While Focus is nudging you on a video site, the Mac's volume eases down to about a third of where you had it and comes back when you return, the session ends or you pause. If you change the volume yourself it lets go. It never mutes, and it does nothing in a call or in practice.") {
+                    row("Ease the sound down", "While Hushd is nudging you on a video site, the Mac's volume eases down to about a third of where you had it and comes back when you return, the session ends or you pause. If you change the volume yourself it lets go. It never mutes, and it does nothing in a call or in practice.") {
                         toggle(\.easeSound)
                     }
                     row("A ring around the pointer", "While you are off task, a ring appears around the pointer and grows the longer you stay away, then goes when you return. It covers nothing and you can click through it. Preview shows a 10 second growth.") {
@@ -158,36 +158,36 @@ struct SettingsView: View {
                 group("More options", .nudges) {
                     DisclosureGroup("Advanced", isExpanded: $showMoreNudges) {
                     if c.prefs.escalate {
-                        row("Hide the app you drifted into", "The last step. It hides the app like Command-H: nothing is closed and no work is lost. Click the app in the Dock to bring it back. Focus, Finder and system apps are never hidden.") {
+                        row("Hide the app you drifted into", "The last step. It hides the app like Command-H: nothing is closed and no work is lost. Click the app in the Dock to bring it back. Hushd, Finder and system apps are never hidden.") {
                             Toggle("", isOn: Binding(get: { c.prefs.hideDistractingApp }, set: { c.prefs.hideDistractingApp = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                         }
                     }
-                    row("Open it again if it was closed", "If the document, folder or page you were working in has been closed, or its app quit, \u{201C}Back to task\u{201D} opens it again instead of only bringing the app forward. Only things you had open and Focus read as on task, and only when you press Back to task.") {
+                    row("Open it again if it was closed", "If the document, folder or page you were working in has been closed, or its app quit, \u{201C}Back to task\u{201D} opens it again instead of only bringing the app forward. Only things you had open and Hushd read as on task, and only when you press Back to task.") {
                         toggle(\.reopenClosed)
                     }
                     row("Bring your other windows too", "\u{201C}Back to task\u{201D} also brings forward up to two other windows you really worked in (the notes beside the page), then the main one on top, so the distraction ends up behind all of them.") {
                         toggle(\.bringWorkingSet)
                     }
-                    row("Put it away when I go back", "When you press Back to task from an app you drifted into, that app is hidden, like Command-H. Nothing is closed and no work is lost; click it in the Dock to bring it back. Focus, Finder, system apps and apps on your never-judged list are never hidden.") {
+                    row("Put it away when I go back", "When you press Back to task from an app you drifted into, that app is hidden, like Command-H. Nothing is closed and no work is lost; click it in the Dock to bring it back. Hushd, Finder, system apps and apps on your never-judged list are never hidden.") {
                         toggle(\.putAwayOnReturn)
                     }
                     row("Let a link or the Dock do it", "The link focusapp://back and the Dock icon's menu do \u{201C}Back to task\u{201D} during a session, so Shortcuts, Raycast or a button on a Stream Deck can. Nothing else can be started that way, and a burst of links counts once.") {
                         toggle(\.allowBackLink)
                     }
-                    row("Back to your spot", "While you work, Focus notes how far the window was scrolled and where the text cursor was (numbers, never the words, in memory only). \u{201C}Back to task\u{201D} puts both back. Not every app lets Focus do this.") {
+                    row("Back to your spot", "While you work, Hushd notes how far the window was scrolled and where the text cursor was (numbers, never the words, in memory only). \u{201C}Back to task\u{201D} puts both back. Not every app lets Hushd do this.") {
                         toggle(\.restoreSpot)
                     }
-                    row("Mark the way back", "While Focus is nudging you, a faint ring outlines the window \u{201C}Back to task\u{201D} would take you to, even if something is on top of it, and goes the moment you are back. It asks for nothing. A steady ring with Reduce Motion on.") {
+                    row("Mark the way back", "While Hushd is nudging you, a faint ring outlines the window \u{201C}Back to task\u{201D} would take you to, even if something is on top of it, and goes the moment you are back. It asks for nothing. A steady ring with Reduce Motion on.") {
                         toggle(\.beaconRing)
                     }
                     row("Ring the window you land in", "After \u{201C}Back to task\u{201D}, a soft ring marks the window that came forward for a second or two, so you can see where the task is. A fainter ring means only the app came forward, not the exact window. No motion with Reduce Motion on.") {
                         toggle(\.landingRing)
                     }
                     if c.prefs.escalate {
-                        row("Switch back to your tab", "\u{201C}Back to task\u{201D} takes you to the exact tab you were last working in, in whichever browser it was, and the first time the last step runs Focus does the same instead of only hiding the app. Works with Safari, Chrome, Brave, Edge and Comet. macOS asks once for permission to control the browser; if you say no, Focus brings the browser or hides the app instead.") {
+                        row("Switch back to your tab", "\u{201C}Back to task\u{201D} takes you to the exact tab you were last working in, in whichever browser it was, and the first time the last step runs Hushd does the same instead of only hiding the app. Works with Safari, Chrome, Brave, Edge and Comet. macOS asks once for permission to control the browser; if you say no, Hushd brings the browser or hides the app instead.") {
                             toggle(\.switchTabs)
                         }
-                        row("Close the tab on Strict", "On the Strict preset, later rounds of the last step close the tab you were warned about, not the whole browser. Only tabs Focus can name, never private windows or apps on your never-judged list. Closing can lose unsaved work in that tab, so the banner says so first.") {
+                        row("Close the tab on Strict", "On the Strict preset, later rounds of the last step close the tab you were warned about, not the whole browser. Only tabs Hushd can name, never private windows or apps on your never-judged list. Closing can lose unsaved work in that tab, so the banner says so first.") {
                             toggle(\.closeOnStrict)
                         }
                     }
@@ -196,7 +196,7 @@ struct SettingsView: View {
                             Toggle("", isOn: Binding(get: { c.prefs.practiceActive }, set: { $0 ? c.prefs.restartPractice() : c.prefs.turnNudgesOnNow() })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                         }
                     }
-                    row("Remove practice mode", c.prefs.practiceRemoved ? "Practice mode is gone from Focus. Every session nudges from the start, and Review shows only moments already waiting for an answer." : "Takes practice mode out of Focus for good. Every session nudges from the start, and its screens, counts and messages disappear. You can bring it back here.") {
+                    row("Remove practice mode", c.prefs.practiceRemoved ? "Practice mode is gone from Hushd. Every session nudges from the start, and Review shows only moments already waiting for an answer." : "Takes practice mode out of Hushd for good. Every session nudges from the start, and its screens, counts and messages disappear. You can bring it back here.") {
                         Toggle("", isOn: Binding(get: { c.prefs.practiceRemoved }, set: { c.prefs.practiceRemoved = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
                     }
@@ -206,11 +206,11 @@ struct SettingsView: View {
                         toggle(\.showBanner)
                     }
                     if c.prefs.showBanner {
-                        row("Heads-up before a warning", "When your last few windows look like a rabbit hole, a gentler banner appears before any warning. It can be wrong, so \u{201C}This is part of it\u{201D} teaches Focus the window, and it waits five minutes between heads-ups. Not in Gentle.") {
+                        row("Heads-up before a warning", "When your last few windows look like a rabbit hole, a gentler banner appears before any warning. It can be wrong, so \u{201C}This is part of it\u{201D} teaches Hushd the window, and it waits five minutes between heads-ups. Not in Gentle.") {
                             toggle(\.headsUp)
                         }
                     }
-                    row("Cover a flagged site when it opens again", "After a pause screen, the same site is covered whenever you open it again: 20 seconds the first time, then 40 and 60. If you sit behind the cover without going back or explaining, Focus acts on the site as the last step does (it switches tabs, hides the app, or on Strict closes the tab). Going back to the task is always one click.") {
+                    row("Cover a flagged site when it opens again", "After a pause screen, the same site is covered whenever you open it again: 20 seconds the first time, then 40 and 60. If you sit behind the cover without going back or explaining, Hushd acts on the site as the last step does (it switches tabs, hides the app, or on Strict closes the tab). Going back to the task is always one click.") {
                         toggle(\.frictionReturn)
                     }
                 }
@@ -218,10 +218,10 @@ struct SettingsView: View {
                     row("Tint the menu bar ring", "A warm tint for a heads-up or a prompt, and a slow pulse while you are away. The ring's shape shows the state either way.") {
                         toggle(\.menuBarCue)
                     }
-                    row("Bounce the Dock icon", "Once for a warning, a step up the ladder or a prompt, only while Focus is in the background.") {
+                    row("Bounce the Dock icon", "Once for a warning, a step up the ladder or a prompt, only while Hushd is in the background.") {
                         toggle(\.dockBounce)
                     }
-                    row("Tap the trackpad", "A silent buzz of several taps with each warning, and it repeats while you stay off task: every 20 seconds after a warning (12 on Strict), longer and stronger once the pause screen is up, and a light one every 15 seconds while Focus suspects you are drifting. The Mac gives apps one tap strength, so stronger means more taps close together. It only works on a Force Touch trackpad and only while a finger rests on it, so it is a bonus cue, not a promise.") {
+                    row("Tap the trackpad", "A silent buzz of several taps with each warning, and it repeats while you stay off task: every 20 seconds after a warning (12 on Strict), longer and stronger once the pause screen is up, and a light one every 15 seconds while Hushd suspects you are drifting. The Mac gives apps one tap strength, so stronger means more taps close together. It only works on a Force Touch trackpad and only while a finger rests on it, so it is a bonus cue, not a promise.") {
                         HStack(spacing: Space.s) {
                             Button("Try") { c.previewCue(haptic: true) }.buttonStyle(FocusButtonStyle(.secondary, small: true))
                             toggle(\.hapticTap)
@@ -235,7 +235,7 @@ struct SettingsView: View {
                     }
                 }
                 group("Going back", .cues) {
-                    row("Explaining a flagged window", "Saying \u{201C}That was fine\u{201D} about a window Focus read as off topic asks you to explain it, with no wait and no hold: one button, then type. Focus checks your words against the window itself with both of its judges, and your words alone never pass it. An accepted explanation covers that one page, not the site, for 8 minutes, then 5, 3 and 2 for later ones, and it never becomes a saved rule. Each later one must clear a higher bar, a pasted repeat is refused, and a session allows 8. A wrong answer is acted on at once (the app is hidden, or on Strict the tab is closed), and two lock explaining for 5 minutes, then 10, 20 and 30. A project rule that says never is final.") {
+                    row("Explaining a flagged window", "Saying \u{201C}That was fine\u{201D} about a window Hushd read as off topic asks you to explain it, with no wait and no hold: one button, then type. Hushd checks your words against the window itself with both of its judges, and your words alone never pass it. An accepted explanation covers that one page, not the site, for 8 minutes, then 5, 3 and 2 for later ones, and it never becomes a saved rule. Each later one must clear a higher bar, a pasted repeat is refused, and a session allows 8. A wrong answer is acted on at once (the app is hidden, or on Strict the tab is closed), and two lock explaining for 5 minutes, then 10, 20 and 30. A project rule that says never is final.") {
                         Label("Always on", systemImage: "lock").foregroundStyle(Tokens.ink2)
                     }
                     row("Hold to go back to your task", "Off by default. When on, \u{201C}Back to task\u{201D} on the pause, cover and claim screens asks you to press and hold for 3 seconds, as a small commitment to going back. Escape no longer skips it. It is never behind a wait or a lock, and explaining a window stays one press.") {
@@ -270,9 +270,9 @@ struct SettingsView: View {
                         }
                     }
                 }
-                group("What Focus looks at", .reading) {
+                group("What Hushd looks at", .reading) {
                     row("Window titles", "The app name, the window title and the page or file address, from the window in front.") { Text("On").foregroundStyle(Tokens.ink2) }
-                    row("Window access", c.windowAccess == .allowed ? "Focus can read window titles. Page addresses need Accessibility; titles alone also work with Screen Recording." : "Without Accessibility, Focus can only see which app is in front. Allow it in System Settings, then come back.") {
+                    row("Window access", c.windowAccess == .allowed ? "Hushd can read window titles. Page addresses need Accessibility; titles alone also work with Screen Recording." : "Without Accessibility, Hushd can only see which app is in front. Allow it in System Settings, then come back.") {
                         if c.windowAccess == .allowed { Label("Allowed", systemImage: "checkmark").foregroundStyle(Tokens.ink2) }
                         else { Button("Open Accessibility settings") { c.onOpenAccessSettings?() }.buttonStyle(FocusButtonStyle(.secondary, small: true)) }
                     }
@@ -281,18 +281,18 @@ struct SettingsView: View {
                     }
                 }
                 group("How it decides", .reading) {
-                    row("Judge with the on-device model", "Apple's on-device model reads the window and decides whether it fits your task. It can be wrong. Off: Focus only follows your project rules and matching words, shows everything else as not judged, and never nudges from its own reading.") {
+                    row("Judge with the on-device model", "Apple's on-device model reads the window and decides whether it fits your task. It can be wrong. Off: Hushd only follows your project rules and matching words, shows everything else as not judged, and never nudges from its own reading.") {
                         Toggle("", isOn: Binding(get: { c.prefs.useModel }, set: { c.prefs.useModel = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
                     row("AI coaching, recaps and questions", "The on-device model can suggest a clearer task, write a short recap after a session and answer questions about it. It writes suggestions only and can be wrong. Off: none of these appear. Judging windows is a separate switch above.") {
                         Toggle("", isOn: Binding(get: { c.prefs.aiHelp }, set: { c.prefs.aiHelp = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
-                    row("Count matching words as on task", "A window whose app name, title or address shares words with your task counts as on task without asking the model. It never applies on feeds, video or news sites, and it can only make Focus quieter.") {
+                    row("Count matching words as on task", "A window whose app name, title or address shares words with your task counts as on task without asking the model. It never applies on feeds, video or news sites, and it can only make Hushd quieter.") {
                         Toggle("", isOn: Binding(get: { c.prefs.matchTaskWords }, set: { c.prefs.matchTaskWords = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
                 }
                 group("Left alone", .reading) {
-                    row("Skip personal messages, music and blank pages", "Focus leaves these alone: it does not read them and does not count them as off topic.") {
+                    row("Skip personal messages, music and blank pages", "Hushd leaves these alone: it does not read them and does not count them as off topic.") {
                         Toggle("", isOn: Binding(get: { c.prefs.skipPersonal }, set: { c.prefs.skipPersonal = $0 })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
                     if c.prefs.skipPersonal {
@@ -313,7 +313,7 @@ struct SettingsView: View {
                     }
                 }
                 group("Getting started", .general) {
-                    row("Welcome", "The three steps from the first time: what Focus does, window access and your first task.") {
+                    row("Welcome", "The three steps from the first time: what Hushd does, window access and your first task.") {
                         Button("Show again") { c.welcomeRequested = true }.buttonStyle(FocusButtonStyle(.secondary, small: true))
                             .disabled(c.isActive).help(c.isActive ? "After this session" : "")
                     }
@@ -332,11 +332,11 @@ struct SettingsView: View {
                     }
                 }
                 group("Screen reading", .reading) {
-                    row("Read the words on screen", "While a session runs, Focus takes a picture of the window every few seconds, reads the words on it on this Mac, and shows you the picture on Today. The model gets the words, not the picture. Needs Screen Recording. Nothing is saved. Private and never-judged windows are skipped.") {
+                    row("Read the words on screen", "While a session runs, Hushd takes a picture of the window every few seconds, reads the words on it on this Mac, and shows you the picture on Today. The model gets the words, not the picture. Needs Screen Recording. Nothing is saved. Private and never-judged windows are skipped.") {
                         Toggle("", isOn: Binding(get: { c.prefs.readScreen }, set: { c.prefs.readScreen = $0; if $0 { c.onRequestPreviewAccess?() } })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                     }
                     if c.prefs.readScreen {
-                        row("Screen Recording", c.previewAccess == .allowed ? "Allowed. If the picture does not appear, quit and reopen Focus once." : "Not allowed yet. Allow Focus in System Settings, then quit and reopen it. If Focus is already switched on, remove it with the minus button and add it again.") {
+                        row("Screen Recording", c.previewAccess == .allowed ? "Allowed. If the picture does not appear, quit and reopen Hushd once." : "Not allowed yet. Allow Hushd in System Settings, then quit and reopen it. If Hushd is already switched on, remove it with the minus button and add it again.") {
                             if c.previewAccess == .allowed { Label("Allowed", systemImage: "checkmark").foregroundStyle(Tokens.ink2) }
                             else { Button("Open Screen Recording settings") { c.onRequestPreviewAccess?() }.buttonStyle(FocusButtonStyle(.secondary, small: true)) }
                         }
@@ -344,10 +344,10 @@ struct SettingsView: View {
                 }
                 if c.updateSource != nil {
                     group("Updates", .general) {
-                        row("Offer new builds from this Mac", "When a newer build appears in the project's build folder, Focus offers to restart into it between sessions. Nothing is downloaded and the network is not used; it never restarts by itself.") {
+                        row("Offer new builds from this Mac", "When a newer build appears in the project's build folder, Hushd offers to restart into it between sessions. Nothing is downloaded and the network is not used; it never restarts by itself.") {
                             Toggle("", isOn: Binding(get: { c.prefs.offerUpdates }, set: { c.prefs.offerUpdates = $0; if $0 { c.onCheckUpdates?() } })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
                         }
-                        row("Update Focus", c.updateBuild == .building ? "Building the latest version. This can take a few minutes; Focus restarts when it is done."
+                        row("Update Hushd", c.updateBuild == .building ? "Building the latest version. This can take a few minutes; Hushd restarts when it is done."
                             : c.updateBuild == .failed ? "The build did not finish. This copy is unchanged."
                             : c.isActive ? "Not during a session." : "Builds the latest version on this Mac and restarts into it.") {
                             Button(c.updateBuild == .building ? "Updating\u{2026}" : c.updateOffer != nil ? "Restart to update" : "Update now") { c.updateNow() }
@@ -385,7 +385,7 @@ struct SettingsView: View {
         switch c.prefs.sensitivity {
         case .careful: return "Flags a window only when the model is nearly certain (95 percent or more). Fewest mistaken warnings; it misses some distractions."
         case .balanced: return "Flags a window when the model is at least 80 percent sure. A middle road."
-        case .proactive: return "Flags a window when the model is at least 60 percent sure, so Focus speaks up about distractions it is not completely sure of. It will sometimes call work a distraction; \u{201C}That was fine\u{201D} teaches it. A warning still needs the drift to last and two checks to agree."
+        case .proactive: return "Flags a window when the model is at least 60 percent sure, so Hushd speaks up about distractions it is not completely sure of. It will sometimes call work a distraction; \u{201C}That was fine\u{201D} teaches it. A warning still needs the drift to last and two checks to agree."
         }
     }
 

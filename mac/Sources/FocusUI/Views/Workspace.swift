@@ -11,7 +11,7 @@ struct FocusBar: View {
     var body: some View {
         HStack(spacing: Space.xs) {
             Image(systemName: "sparkles").font(Tokens.symbol(13, .semibold)).foregroundStyle(Tokens.accent).accessibilityHidden(true)
-            Text("Focus").font(Tokens.text(.body, .semibold))
+            Text("Hushd").font(Tokens.text(.body, .semibold))
             Text(status).font(Tokens.text(.body)).foregroundStyle(Tokens.ink2).lineLimit(1)
             if c.isJudging && !c.isHeld { ThinkingDot() }
             Spacer(minLength: Space.s)
@@ -327,7 +327,7 @@ struct Totals: View {
 /// The line CLAUDE.md asks to keep in view wherever Focus's call is shown.
 struct CanBeWrong: View {
     var body: some View {
-        Text("Focus can be wrong. When it isn't sure, it does nothing.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
+        Text("Hushd can be wrong. When it isn't sure, it does nothing.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
     }
 }
 

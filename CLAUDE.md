@@ -1,11 +1,13 @@
-# focus-app (working name)
+# Hushd (repo: focus-app)
 
 Native Mac and Windows focus app. The user states a task, a local AI compares the screen to it, nudges gently
 when they drift, and escalates gently if they keep going. Projects carry context between sessions.
 Everything runs on the device. Full detail: `docs/PLAN.md` (v0.5). Read the relevant section, don't copy it here.
 Design context (register, personality, anti-references, principles) is in `PRODUCT.md`. Register: product. No DESIGN.md yet; it waits for spike S10.
 
-"focus-app" is a neutral working name. The owner has not chosen a product name.
+**Product name (owner, 2026-10-23): Hushd** ("you hush the distractions"), written with a capital H. It replaces "Focus" in all on-screen text, both apps' display names, the README, the site and the beta materials. Code names (`FocusBrain`, `FocusUI`, `focus-app`), the `Focus.app` bundle and DMG file names, the bundle id, the `Application Support/Focus` data folder (renaming it would lose data) and iOS's own "Focus" modes stay as they are. Older docs (PLAN, STATUS, specs) still say Focus; read it as Hushd.
+
+The product is being entered in the Congressional App Challenge (owner, 2026-10-23); the video script is `docs/APP-CHALLENGE-VIDEO.md`.
 
 ## Who is who
 - The owner (product owner) decides product questions. In PLAN.md, "you" means the owner and "I" means an earlier Claude.
@@ -41,7 +43,7 @@ Design context (register, personality, anti-references, principles) is in `PRODU
   Windows needs its own runtime choice. Revisit if energy measurements (powermetrics) say otherwise.
 
 ## Decisions still the owner's (do not decide)
-Product name, audience, pricing, open-sourcing the engine, minimum OS, Mac distribution, languages.
+Audience, pricing, open-sourcing the engine, minimum OS, Mac distribution, languages.
 PLAN.md section 12 only holds recommendations. They are not decisions.
 
 ## Claims we must not make yet

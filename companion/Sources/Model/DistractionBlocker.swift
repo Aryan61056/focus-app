@@ -83,7 +83,7 @@ final class DistractionBlocker {
             default: break   // including .unauthorized (iOS 26.4): this build has no Family Controls capability
             }
         }
-        return String(localized: "Screen Time isn't available in this build of Focus. Blocking needs a build signed with the Family Controls capability.")
+        return String(localized: "Screen Time isn't available in this build of Hushd. Blocking needs a build signed with the Family Controls capability.")
     }
 
     // MARK: blocking

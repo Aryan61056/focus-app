@@ -43,7 +43,7 @@ struct FocusApp: App {
     /// With two displays the pause screen would otherwise appear on whichever one the window was last on, not where you are looking.
     static func bringToPointerScreen() {
         guard let here = NSScreen.screens.first(where: { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) }),
-              let w = NSApp.windows.first(where: { $0.title == "Focus" && $0.canBecomeMain && $0.isVisible }),
+              let w = NSApp.windows.first(where: { $0.title == "Hushd" && $0.canBecomeMain && $0.isVisible }),
               let now = w.screen, now != here else { return }
         var f = w.frame
         f.origin = NSPoint(x: here.visibleFrame.midX - f.width / 2, y: here.visibleFrame.midY - f.height / 2)
@@ -63,7 +63,7 @@ struct FocusApp: App {
     init() {
         // Focus lives in the menu bar and the notch and watches a session with its window closed, so macOS must never quit it
         // for having no window on screen (automatic termination quit it about 25 s after the window was hidden).
-        ProcessInfo.processInfo.disableAutomaticTermination("Focus watches your session from the menu bar and the notch.")
+        ProcessInfo.processInfo.disableAutomaticTermination("Hushd watches your session from the menu bar and the notch.")
     }
     @State private var veil: VeilController?
     @State private var banner: BannerController?
@@ -118,7 +118,7 @@ struct FocusApp: App {
     }
 
     var body: some Scene {
-        Window("Focus", id: "main") {
+        Window("Hushd", id: "main") {
             RootView(controller: controller)
                 .task {
                     // Real window sensing, except in the scripted demo. It only runs while a session is active.
@@ -313,7 +313,7 @@ struct FocusApp: App {
         Window("iPhone", id: "iphone") { PhoneLinkView(link: phoneLink) }
             .windowResizability(.contentSize)
 
-        Window("See how Focus works", id: "example") {
+        Window("See how Hushd works", id: "example") {
             if let example = controller.example {
                 GuidedExampleView(example: example) { controller.closeExample() }
             }

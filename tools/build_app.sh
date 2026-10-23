@@ -45,8 +45,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-  <key>CFBundleName</key><string>Focus</string>
-  <key>CFBundleDisplayName</key><string>Focus</string>
+  <key>CFBundleName</key><string>Hushd</string>
+  <key>CFBundleDisplayName</key><string>Hushd</string>
   <key>CFBundleIdentifier</key><string>__BUNDLE_ID__</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundleExecutable</key><string>focus-app</string>
@@ -58,11 +58,11 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
   <key>NSPrincipalClass</key><string>NSApplication</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>CKSharingSupported</key><true/>
-  <key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>Focus</string><key>CFBundleURLSchemes</key><array><string>focusapp</string></array></dict></array>
-  <key>NSAppleEventsUsageDescription</key><string>Focus can switch your browser to the tab you were working in, or close the tab you were warned about, when you turn that on. It sends nothing anywhere.</string>
-  <key>NSLocalNetworkUsageDescription</key><string>Focus talks to your iPhone on your Wi-Fi so the phone can show and control your session. It only listens after you turn on Session, iPhone.</string>
+  <key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>Hushd</string><key>CFBundleURLSchemes</key><array><string>focusapp</string></array></dict></array>
+  <key>NSAppleEventsUsageDescription</key><string>Hushd can switch your browser to the tab you were working in, or close the tab you were warned about, when you turn that on. It sends nothing anywhere.</string>
+  <key>NSLocalNetworkUsageDescription</key><string>Hushd talks to your iPhone on your Wi-Fi so the phone can show and control your session. It only listens after you turn on Session, iPhone.</string>
   <key>NSBonjourServices</key><array><string>_focuslink._tcp</string></array>
-  <key>NSScreenCaptureUsageDescription</key><string>Focus shows you a small picture of the window it is reading. The picture stays in memory and is never saved.</string>
+  <key>NSScreenCaptureUsageDescription</key><string>Hushd shows you a small picture of the window it is reading. The picture stays in memory and is never saved.</string>
 </dict></plist>
 PLIST
 sed -i '' "s|__BUNDLE_ID__|$BUNDLE_ID|" "$APP/Contents/Info.plist"

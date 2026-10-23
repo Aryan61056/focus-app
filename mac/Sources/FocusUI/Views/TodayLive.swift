@@ -133,13 +133,13 @@ struct TodayPanel: View {
     var body: some View {
         FocusPanelColumn {
             if c.isActive {
-                PanelSection(title: "What Focus did", ai: true) { ActivityLog(readings: c.readings) }
-                if c.aiAvailable && !c.stuckShown && c.presence.reason != "break" { PanelSection(title: "Ask Focus", ai: true) { AskPanel(c: c, compact: true) } }
+                PanelSection(title: "What Hushd did", ai: true) { ActivityLog(readings: c.readings) }
+                if c.aiAvailable && !c.stuckShown && c.presence.reason != "break" { PanelSection(title: "Ask Hushd", ai: true) { AskPanel(c: c, compact: true) } }
                 if !c.prefs.readScreen {
                     PanelSection(title: "Screen reading") {
                         Button { c.prefs.readScreen = true; c.onRequestPreviewAccess?() } label: { Label("Show the window here", systemImage: "eye") }
                             .buttonStyle(FocusButtonStyle(.secondary, small: true))
-                            .help("Focus shows the window it reads and uses the words on it. Nothing is saved.")
+                            .help("Hushd shows the window it reads and uses the words on it. Nothing is saved.")
                     }
                 }
             }

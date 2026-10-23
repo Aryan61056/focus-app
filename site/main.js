@@ -194,11 +194,11 @@ const views = Object.fromEntries($$(".win-view", winBody).map((v) => [v.dataset.
 
 const STEPS = [
   { view: "notes", title: "Calc homework", ring: "on", notch: "rest", read: "Notes, “Calc homework”. Shares words with your task.", call: "On task", tone: "on",
-    caption: "The ring is closed. You are on task, so Focus says nothing.", hold: 3800 },
+    caption: "The ring is closed. You are on task, so Hushd says nothing.", hold: 3800 },
   { view: "mail", title: "Inbox", ring: "unsure", notch: "rest", read: "Mail, “Inbox”. Could go either way.", call: "Not sure", tone: "unsure",
     caption: "A dashed ring means not sure. Not sure does nothing.", hold: 3800 },
   { view: "video", title: "Watch", ring: "drift", notch: "peek", read: "Two checks agree this is away from your task.", call: "Drifting", tone: "drift",
-    caption: "The ring opens a gap and the color drains slowly. Focus waits to see if the drift lasts.", hold: 4200 },
+    caption: "The ring opens a gap and the color drains slowly. Hushd waits to see if the drift lasts.", hold: 4200 },
   { view: "video", title: "Watch", ring: "drift", notch: "open", read: "The drift lasted. Time for a nudge.", call: "Drifting", tone: "drift",
     caption: "Still away, so the notch opens. It asks about your task, never about where you went.", hold: 4800 },
   { view: "notes", title: "Calc homework", ring: "on", notch: "rest", read: "Notes, “Calc homework”. Back on your task.", call: "On task", tone: "on",

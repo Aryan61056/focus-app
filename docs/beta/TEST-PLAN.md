@@ -14,7 +14,7 @@ audience and the size; the numbers below are starting targets to tune, not decis
 
 ## Each tester, each round
 
-The seven missions in Settings > Beta: finish a session, stay 25 minutes, describe a project, use Back to task, answer a Review moment, use Focus on three days, send one report. Plus the weekly question.
+The seven missions in Settings > Beta: finish a session, stay 25 minutes, describe a project, use Back to task, answer a Review moment, use Hushd on three days, send one report. Plus the weekly question.
 
 ## What we read
 
@@ -26,9 +26,9 @@ From `tools/beta/feedback.py report`, per build:
 | Slow moments (2 s or more) per session | beta log | under 0.2 |
 | Nudges per session | beta log | watch only: compare with the episode simulator (`docs/EPISODE-SIM.md`) |
 | Back to task found the place | beta log | 90% or more |
-| Review: Focus was right | usage counts | rising; small samples, so read the counts, not the percentage |
+| Review: Hushd was right | usage counts | rising; small samples, so read the counts, not the percentage |
 | Wrong-call reports | report kinds | each one triaged within a week |
-| Wrong calls: how Focus decided | recent calls in wrong-call reports | watch only: a pile-up on `model` points at the prompt, on `words` at the matching-words rule, on `rule` at a list |
+| Wrong calls: how Hushd decided | recent calls in wrong-call reports | watch only: a pile-up on `model` points at the prompt, on `words` at the matching-words rule, on `rule` at a list |
 | Weekly answer | weekly question | mean 3.5 or more, and not falling between rounds |
 | Crashes | crash summaries | no signature from more than one tester left open |
 

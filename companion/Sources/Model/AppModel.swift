@@ -117,7 +117,7 @@ final class AppModel {
 
     /// The Mac's QR code, opened by the Camera app: find that Mac, pair with the code in the link, and say what happened.
     func open(_ url: URL) {
-        guard let link = PairingLink(url: url) else { return show("That isn't a Focus pairing code.") }
+        guard let link = PairingLink(url: url) else { return show("That isn't a Hushd pairing code.") }
         if mac?.macID == link.macID, connection == .connected { return }   // already paired with this Mac
         pendingCode = link.code.display
         linking = .working("Looking for your Mac…")
@@ -130,7 +130,7 @@ final class AppModel {
                 if found != nil { break }
                 try? await Task.sleep(for: .milliseconds(100))
             }
-            guard let found else { return failLink("Couldn't find your Mac. Check that you're on the same Wi-Fi and Focus is open.") }
+            guard let found else { return failLink("Couldn't find your Mac. Check that you're on the same Wi-Fi and Hushd is open.") }
             linking = .working("Pairing with \(found.name)…")
             pair(with: found, code: link.code.display, deviceName: UIDevice.current.name) { [weak self] problem in
                 guard let self else { return }

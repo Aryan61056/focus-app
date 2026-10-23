@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Beta feedback inbox: check, file, triage and summarize the reports testers send (schema focus-feedback/1, see docs/BETA.md).
 
-Reports arrive as files the tester saved in Focus and either attached to a GitHub issue or sent however they chose. The tool reads the
+Reports arrive as files the tester saved in Hushd and either attached to a GitHub issue or sent however they chose. The tool reads the
 files you give it, keeps them under beta/inbox/ (gitignored: reports hold what testers typed) and writes a summary you open locally.
 Only `pull` reaches the network: it lists the repository's issues labelled `beta` with the GitHub CLI and downloads the .json files
 attached to them, nothing else, then files them like `ingest` (each one validated, the issue number recorded).
@@ -355,7 +355,7 @@ def set_status(inbox: pathlib.Path, prefix: str, status: str, note: str | None =
 # ---------------------------------------------------------------- summary
 
 def crash_signature(c: dict) -> str:
-    """What went wrong and the first frame inside Focus itself, so the same crash from two testers groups together."""
+    """What went wrong and the first frame inside Hushd itself, so the same crash from two testers groups together."""
     ours = next((f for f in c.get("frames", []) if f.startswith(("focus-app ", "FocusUI", "FocusSense", "FocusBrain", "FocusJudge"))), None)
     head = " ".join(x for x in (c.get("exception"), c.get("signal")) if x) or c.get("termination") or "unknown"
     return f"{head} at {ours or (c.get('frames') or ['?'])[0]}"
@@ -374,7 +374,7 @@ def summarize(rs: list, triage: dict) -> dict:
     macs = Counter(f"macOS {r['system']['macOS']} · {r['system']['model']} · {r['system']['memoryGB']} GB" for r in rs if "system" in r)
     judge = Counter(r["system"]["judge"] for r in rs if "system" in r)
     crashes = Counter(crash_signature(r["crash"]) for r in rs if "crash" in r)
-    # For a wrong call, how Focus reached its newest call before the report: the model, a rule, or words shared with the task.
+    # For a wrong call, how Hushd reached its newest call before the report: the model, a rule, or words shared with the task.
     wrong_by = Counter(r["calls"][0]["by"] for r in rs if r["kind"] == "wrongCall" and r.get("calls"))
     # Journals overlap between reports from one tester; count each event once by (time, kind).
     seen, events = set(), []
@@ -431,12 +431,12 @@ def markdown(s: dict, rs: list, triage: dict, made: str) -> str:
                  ["Nudges per session", opt(s["nudges_per_session"])],
                  ["Back to task found the place", opt(s["back_found"], "%")],
                  ["Model refusals", s["refusals"]],
-                 ["Review: Focus was right", f"{s['review'][0]} of {s['review'][1]}"],
+                 ["Review: Hushd was right", f"{s['review'][0]} of {s['review'][1]}"],
                  ["Reports that are wrong calls", opt(s["wrong_call_share"], "%")],
              ], ["Measure", "Value"]), "",
              "## Weekly question (1 to 5)", ""]
     lines.append(_table([[w, m, n] for w, (m, n) in s["pulse_weeks"].items()], ["Week", "Mean", "Answers"]) if s["pulse_weeks"] else "No answers yet.")
-    lines += ["", "## Wrong calls: how Focus decided", ""]
+    lines += ["", "## Wrong calls: how Hushd decided", ""]
     lines.append(_table(s["wrong_by"].most_common(), ["Newest call by", "Reports"]) if s["wrong_by"] else "No wrong-call reports with calls yet.")
     lines += ["", "## Crashes", ""]
     lines.append(_table(s["crashes"].most_common(), ["Signature", "Reports"]) if s["crashes"] else "None reported.")
@@ -506,7 +506,7 @@ code{{font-family:ui-monospace,monospace}}.wrap{{overflow-x:auto}}
 <section><h2>Weekly question</h2><div class="cols">{pulse}</div></section>
 <div class="grid" style="margin-top:16px"><section><h2>Kinds</h2>{bars(s['by_kind'])}</section><section><h2>Builds</h2>{bars(s['by_build'])}</section>
 <section><h2>Crashes</h2>{bars(s['crashes'])}</section><section><h2>Macs</h2>{bars(s['macs'])}</section>
-<section><h2>Wrong calls: how Focus decided</h2>{bars(s['wrong_by'])}</section></div>
+<section><h2>Wrong calls: how Hushd decided</h2>{bars(s['wrong_by'])}</section></div>
 <section><h2>Open</h2><div class="wrap"><table><tr><th>ID</th><th>Kind</th><th>Build</th><th>Status</th><th>Message</th></tr>{open_rows or '<tr><td colspan="5" class="muted">Nothing open.</td></tr>'}</table></div></section>
 </main></body></html>
 """

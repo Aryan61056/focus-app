@@ -76,7 +76,7 @@ final class PhoneSyncTests: XCTestCase {
         await sync.setEnabled(true)
         XCTAssertFalse(sync.enabled)
         XCTAssertEqual(sync.status, .unavailable("Sign in to iCloud in System Settings to sync with your phone."))
-        cloud.answer = .unavailable("This build of Focus is not set up for iCloud yet.")
+        cloud.answer = .unavailable("This build of Hushd is not set up for iCloud yet.")
         await sync.setEnabled(true)
         XCTAssertFalse(sync.enabled)
         XCTAssertEqual(cloud.published.count, 0)

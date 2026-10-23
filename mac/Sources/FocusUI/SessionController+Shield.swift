@@ -180,7 +180,7 @@ extension SessionController {
         let words = OverrideClaim.content(OverrideClaim.tidy(raw))
         if acceptedClaimWords.contains(where: { OverrideClaim.similarity($0, words) >= 0.6 }) { s.message = OverrideClaim.reusedMessage; shield = s; return }
         guard prefs.useModel, let w else {
-            s.message = prefs.useModel ? "Focus cannot see a window to check." : "Checking is switched off in Settings."
+            s.message = prefs.useModel ? "Hushd cannot see a window to check." : "Checking is switched off in Settings."
             shield = s; return
         }
         s.checking = true; s.message = nil
@@ -212,8 +212,8 @@ extension SessionController {
             switch r.why {
             case .ruleSaysNever: s.message = "Your rule says this never counts. Change it in Projects."
             case .injected: s.message = OverrideClaim.Issue.injected.message
-            case .sensitive: s.message = "This is a private window, so Focus cannot read it."
-            case .couldNotTell: s.message = "Focus could not tell, so the block stays. \(n) \(n == 1 ? "try" : "tries") left."
+            case .sensitive: s.message = "This is a private window, so Hushd cannot read it."
+            case .couldNotTell: s.message = "Hushd could not tell, so the block stays. \(n) \(n == 1 ? "try" : "tries") left."
             default: s.message = "This does not look like \(taskName). \(n) \(n == 1 ? "try" : "tries") left."
             }
         }

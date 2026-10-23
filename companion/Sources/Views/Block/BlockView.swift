@@ -21,7 +21,7 @@ struct BlockView: View {
                     Section {} footer: { Text("Covered while you're working. Open again when you pause, take a break, or the session ends.") }
                 }
                 Section {} footer: {
-                    Text("This is a promise to yourself, not a lock. You can lift it here or in Settings › Screen Time. Focus can't see which apps you picked; only iOS knows.")
+                    Text("This is a promise to yourself, not a lock. You can lift it here or in Settings › Screen Time. Hushd can't see which apps you picked; only iOS knows.")
                 }
             }
             .scrollContentBackground(.hidden)
@@ -77,14 +77,14 @@ struct BlockView: View {
         Section {
             switch b.access {
             case .denied:
-                Text("Screen Time access is off for Focus. Turn it on in Settings › Screen Time to choose what to cover.")
+                Text("Screen Time access is off for Hushd. Turn it on in Settings › Screen Time to choose what to cover.")
                     .font(.subheadline).foregroundStyle(Palette.ink2)
                 Button("Open Settings") { if let u = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(u) } }
             case .unavailable(let why):
                 Text(why).font(.subheadline).foregroundStyle(Palette.ink2)
                 Button("Try again") { Task { await b.requestAccess() } }
             default:
-                Text("Focus uses Apple's Screen Time to cover the apps you pick. What you pick stays on this phone.")
+                Text("Hushd uses Apple's Screen Time to cover the apps you pick. What you pick stays on this phone.")
                     .font(.subheadline).foregroundStyle(Palette.ink2)
                 Button { Task { await b.requestAccess() } } label: {
                     Label("Allow Screen Time access", systemImage: "hand.raised")

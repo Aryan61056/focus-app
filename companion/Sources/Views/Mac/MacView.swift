@@ -19,7 +19,7 @@ struct MacView: View {
         case .searching: String(localized: "Looking for \(model.mac?.macName ?? "your Mac") on this Wi-Fi")
         case .offline(let why): why ?? String(localized: "Can't reach your Mac")
         case .demo: String(localized: "A pretend Mac, so you can look around")
-        case .unpaired: String(localized: "Pair this phone with the Focus app on your Mac")
+        case .unpaired: String(localized: "Pair this phone with the Hushd app on your Mac")
         }
     }
 

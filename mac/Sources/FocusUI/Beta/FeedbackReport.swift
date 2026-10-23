@@ -23,7 +23,7 @@ public struct FeedbackReport: Codable, Equatable, Sendable {
             switch self {
             case .bug: return "What did you do, and what happened instead?"
             case .wrongCall: return "Was a window called off task when it was work, or the other way round? Describe the kind of window, not its contents."
-            case .idea: return "What would make Focus better for you?"
+            case .idea: return "What would make Hushd better for you?"
             case .other: return "Tell us anything."
             }
         }

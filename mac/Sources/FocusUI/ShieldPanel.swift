@@ -63,7 +63,7 @@ struct ShieldCard: View {
                     .accessibilityElement(children: .combine)
                 } else {
                     Button { c.openExplanation() } label: { Label("Explain why this is on task", systemImage: "sparkle") }.buttonStyle(ShieldButtonStyle(.quiet))
-                        .help("Focus checks your words against the window")
+                        .help("Hushd checks your words against the window")
                 }
             }
             if let m = shield.message, c.overrideLockRemaining <= 0 { ShieldNotice(text: m).padding(.top, Space.xs) }

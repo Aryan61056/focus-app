@@ -101,7 +101,7 @@ final class PhoneInstallerTests: XCTestCase {
         XCTAssertEqual(DeviceListing.reason(json: message("Developer Mode is disabled on this device."), errorText: ""),
                        "Turn on Developer Mode on the iPhone (Settings, Privacy & Security), then try again.")
         XCTAssertEqual(DeviceListing.reason(json: message("The device is locked."), errorText: ""), "Unlock the iPhone and try again.")
-        XCTAssertEqual(DeviceListing.reason(json: nil, errorText: ""), "Focus could not install on this iPhone.")
+        XCTAssertEqual(DeviceListing.reason(json: nil, errorText: ""), "Hushd could not install on this iPhone.")
         XCTAssertEqual(DeviceListing.reason(json: nil, errorText: "line one\nline two"), "Could not install: line one", "falls back to the first line the tool printed")
         let long = String(repeating: "word ", count: 80)
         XCTAssertLessThanOrEqual(DeviceListing.reason(json: message(long), errorText: "").count, 180, "a long message is cut")

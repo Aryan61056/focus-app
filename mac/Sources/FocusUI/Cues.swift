@@ -133,7 +133,7 @@ public enum Rhythm: String, CaseIterable, Identifiable, Sendable {
     public var title: String { switch self { case .off: return "Off"; case .checkIns: return "Check-ins"; case .pomodoro: return "Work and break" } }
     public var detail: String {
         switch self {
-        case .off: return "Focus only speaks up when you drift."
+        case .off: return "Hushd only speaks up when you drift."
         case .checkIns: return "A short \u{201C}still on task?\u{201D} prompt at a steady interval, even when you are on task."
         case .pomodoro: return "Work for 25 minutes, then a 5 minute break; every fourth break is 15 minutes. The clock stops while you are on a break or paused."
         }
@@ -198,9 +198,9 @@ public enum PaceCopy {
     public static func line(_ p: DayPressure, goalReached: Bool, behindMinutes: Int) -> String? {
         switch p {
         case .steady: return nil
-        case .relaxed: return goalReached ? "You reached today's goal, so Focus is easy on you now." : "It is early in the day, so Focus is easy on you."
-        case .behind: return "You are a little behind today's goal, so Focus speaks up sooner."
-        case .wellBehind: return behindMinutes > 0 ? "You are about \(behindMinutes) minutes behind today's goal, so Focus is firmer." : "You are well behind today's goal, so Focus is firmer."
+        case .relaxed: return goalReached ? "You reached today's goal, so Hushd is easy on you now." : "It is early in the day, so Hushd is easy on you."
+        case .behind: return "You are a little behind today's goal, so Hushd speaks up sooner."
+        case .wellBehind: return behindMinutes > 0 ? "You are about \(behindMinutes) minutes behind today's goal, so Hushd is firmer." : "You are well behind today's goal, so Hushd is firmer."
         }
     }
 }
@@ -221,7 +221,7 @@ extension EscalationPlan {
 /// Words for the new surfaces. Same rules as NudgeCopy: second person, sentence case, no exclamation marks, never the name of what you were looking at.
 public enum CueCopy {
     /// Shown on the reminder banner before a Strict round closes the tab, so closing is never a surprise.
-    public static let closeWarning = "Focus will close this tab next."
+    public static let closeWarning = "Hushd will close this tab next."
     public static func bannerTitle(_ kind: Banner.Kind, tone: NudgeTone, task: String, rhythm: RhythmPrompt.Kind? = nil) -> String {
         switch (kind, tone) {
         case (.early, .neutral): return "Still on \(task)?"
@@ -246,7 +246,7 @@ public enum CueCopy {
         }
     }
     /// The steps of the ladder, for the dots on the banner and what VoiceOver says about them.
-    public static let ladderSteps = ["warning", "check-in", "pause screen", "Focus acts on the window"]
+    public static let ladderSteps = ["warning", "check-in", "pause screen", "Hushd acts on the window"]
     public static func ladderLabel(_ step: EscalationStep) -> String {
         let i = step.rawValue
         let next = i + 1 < ladderSteps.count ? " Next, \(ladderSteps[i + 1])." : ""
@@ -267,7 +267,7 @@ public enum CueCopy {
     public static let shieldPlaceholder = "I am using this to"
     /// What Focus says it did after a wrong explanation.
     public static func punishment(_ a: EnforceAction) -> String {
-        switch a { case .close: return "Focus closed the tab."; case .hide: return "Focus hid the app."; case .switchAway: return "Focus switched you back." }
+        switch a { case .close: return "Hushd closed the tab."; case .hide: return "Hushd hid the app."; case .switchAway: return "Hushd switched you back." }
     }
     public static func claimsUsedUp(_ n: Int) -> String { "All \(n) explanations used this session." }
     public static func backHoldLine() -> String { "\(Int(Shield.backHoldSeconds)) seconds. Letting go starts over." }
@@ -281,7 +281,7 @@ public enum CueCopy {
         let m = max(1, Int((seconds / 60).rounded()))
         return m >= 60 ? "Paused for \(m / 60) h \(m % 60) min" : "Paused for \(m) min"
     }
-    public static let heldMeta = "Resume from the menu bar or Focus"
+    public static let heldMeta = "Resume from the menu bar or Hushd"
     public static func rhythmTitle(_ k: RhythmPrompt.Kind, task: String) -> String {
         switch k {
         case .checkIn: return "Still working on \(task)?"

@@ -159,7 +159,7 @@ final class BannerSizeTests: XCTestCase {
             heights.append(b.sizeForTesting.height)
         }
         b.stop()
-        for h in heights { XCTAssertGreaterThan(h, 110, "title, a line of what Focus saw and the buttons, plus the shadow margin") }
+        for h in heights { XCTAssertGreaterThan(h, 110, "title, a line of what Hushd saw and the buttons, plus the shadow margin") }
         XCTAssertEqual(heights.first!, heights.last!, accuracy: 0.5, "the same kind measures the same after other kinds")
         let long = SessionController(judge: CountingJudge { _ in Verdict(label: .onTask) }, store: DataStore(), prefs: noWords(), now: { t })
         long.windowChanged(WindowSnapshot(app: "Notes", title: "x"))

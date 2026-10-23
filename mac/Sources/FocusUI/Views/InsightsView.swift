@@ -67,7 +67,7 @@ struct InsightsView: View {
         VStack(alignment: .leading, spacing: Space.m) {
             HStack(spacing: 5) {
                 Image(systemName: "sparkles").foregroundStyle(Tokens.accent).accessibilityHidden(true)
-                Text("How Focus reads you").font(Tokens.text(.callout, .semibold))
+                Text("How Hushd reads you").font(Tokens.text(.callout, .semibold))
             }.accessibilityAddTraits(.isHeader)
             ReadingSplit(stats: t)
             HStack(spacing: Space.l) { legend("On task", t.onTask); legend("Not sure", t.unsure); legend("Off topic", t.offTask) }
@@ -255,7 +255,7 @@ struct CueResponseRows: View {
         VStack(alignment: .leading, spacing: Space.xs) {
             HStack(spacing: Space.xs) {
                 Text("What brings you back").font(Tokens.text(.body, .semibold))
-                InfoTip(text: "The typical time from each cue appearing to you being back on task, over the last 30 days. It shows what was on screen when you came back, not proof that it was the reason. Focus does not change anything because of it.")
+                InfoTip(text: "The typical time from each cue appearing to you being back on task, over the last 30 days. It shows what was on screen when you came back, not proof that it was the reason. Hushd does not change anything because of it.")
             }
             ForEach(Array(cues.enumerated()), id: \.offset) { _, r in
                 HStack(spacing: Space.s) {
