@@ -1,53 +1,76 @@
 import SwiftUI
+import AppKit
 import FocusBrain
 
-/// rest: the ring and the time on either side of the hardware notch. peek: the pointer is on it, so the ears widen and say how Hushd
-/// reads you. open: a click opened the full card. nudge: Hushd opened it to ask you back.
+/// rest: the ring and the time on either side of the hardware notch. peek: the pointer is on it, so the ears widen a little, as
+/// Droppy's do. open: a click opened the full card. nudge: Hushd opened it to ask you back.
 public enum NotchMode: Equatable, Sendable { case rest, peek, open, nudge }
 
 /// Size of the notch surface for each mode. Pure, so it is tested; the AppKit panel just applies it.
-/// Slim on purpose (owner, 2026-10-16: "not fat and big"): at rest each ear holds only the ring or the time, hover widens it just
-/// enough for a two-word state, and a nudge or the open card stays under about 420 pt, so it reads as part of the bezel, not a panel.
+/// Droppy's own measurements (Droppy 16.0.1 on a 14-inch MacBook Pro, 2026-10-24, owner: "exact same visuals to the droppy dynamic
+/// island"), taken from its window at 2x: at rest the body is 259 x 32 pt, on hover 285 x 35, and open 485 x 196, each with the concave
+/// shoulders added to its top width. The open card is a fixed size, whatever the hardware notch; the tabs hang under it as a separate
+/// glass pill (see `tabPill`). The nudge is Hushd's own and keeps its slim two-ear shape.
 public enum NotchLayout {
-    /// Each ear beside the hardware notch at rest: room for the ring, or for the clock up to "1:05:30".
-    public static let ear: CGFloat = 52
-    /// How much wider each ear gets on hover, or while the notch announces a change of state: the ring plus "Getting back".
+    /// Each ear beside the hardware notch at rest, shoulders included: the ring, or the clock up to "1:05:30" a little smaller.
+    public static let ear: CGFloat = 46
+    /// How much wider each ear gets on hover: Droppy's hover is a plain widen of 13 pt a side.
+    public static let hoverExtra: CGFloat = 13
+    /// How much wider each ear gets while the notch announces a change of state: the ring plus "Getting back".
     public static let peekExtra: CGFloat = 44
     /// Room around the biggest shape, so nothing is ever cut off by the window edge.
     public static let shadowPad: CGFloat = 8
-    /// The open card and the nudge: width of each side beside the hardware notch, and the depth they hang below it.
-    static let openEar: CGFloat = 118, openDepth: CGFloat = 92
+    /// The open card, as one fixed size: top width (body 485 plus a 27.5 pt shoulder each side) and height under the screen's top edge.
+    static let openWidth: CGFloat = 541, openHeight: CGFloat = 196
+    /// The open card's concave shoulder: the 485 pt body sits between the two.
+    static let shoulderOpen: CGFloat = 27.5
+    /// The tab pill under the open card: the gap between them, and the pill's height.
+    static let pillGap: CGFloat = 12.5, pillHeight: CGFloat = 29
+    /// The nudge: width of each side beside the hardware notch, and the depth it hangs below it.
     static let nudgeEar: CGFloat = 110, nudgeDepth: CGFloat = 50
     public static func size(_ mode: NotchMode, notchWidth: CGFloat, notchHeight: CGFloat) -> CGSize {
         if notchWidth == 0 {   // Macs without a notch: a floating pill under the menu bar
             switch mode {
             case .rest: return CGSize(width: 210, height: 32)
-            case .peek: return CGSize(width: 250, height: 32)
-            case .open: return CGSize(width: 400, height: 32 + openDepth)
+            case .peek: return CGSize(width: 236, height: 35)
+            case .open: return CGSize(width: openWidth - 56, height: openHeight)
             case .nudge: return CGSize(width: 400, height: 56)
             }
         }
         let base = notchWidth + 2 * ear
         switch mode {
         case .rest: return CGSize(width: base, height: notchHeight)
-        case .peek: return CGSize(width: base + 2 * peekExtra, height: notchHeight + 2)
-        case .open: return CGSize(width: max(notchWidth + 2 * openEar, 400), height: notchHeight + openDepth)
+        case .peek: return CGSize(width: base + 2 * hoverExtra, height: notchHeight + 3)
+        case .open: return CGSize(width: openWidth, height: openHeight)
         case .nudge: return CGSize(width: max(notchWidth + 2 * nudgeEar, 400), height: notchHeight + nudgeDepth)
         }
+    }
+
+    /// The rest shape while a change of state is announced: the ears open wide enough for the ring and a two-word state.
+    public static func announcing(notchWidth: CGFloat, notchHeight: CGFloat) -> CGSize {
+        notchWidth == 0 ? CGSize(width: 250, height: 32) : CGSize(width: notchWidth + 2 * (ear + peekExtra), height: notchHeight + 2)
     }
 }
 
 extension NotchLayout {
     /// The window never resizes with the mode: it stays as big as the biggest mode and the black shape grows inside it, so the
-    /// animation is SwiftUI's and AppKit's layout is never touched while it runs.
+    /// animation is SwiftUI's and AppKit's layout is never touched while it runs. The open card's tab pill hangs inside it.
     public static func panelSize(notchWidth: CGFloat, notchHeight: CGFloat) -> CGSize {
         let all = [NotchMode.rest, .peek, .open, .nudge].map { size($0, notchWidth: notchWidth, notchHeight: notchHeight) }
-        return CGSize(width: (all.map(\.width).max() ?? 0) + 2 * shadowPad, height: (all.map(\.height).max() ?? 0) + shadowPad)
+        return CGSize(width: (all.map(\.width).max() ?? 0) + 2 * shadowPad, height: (all.map(\.height).max() ?? 0) + pillGap + pillHeight + shadowPad)
     }
 
-    /// What the pointer can be on without the notch closing: the shape itself (the page tabs sit inside the open card's top band).
+    /// What the pointer can be on without the notch closing: the shape itself, and while it is open the gap under it and the tab pill,
+    /// so moving down to the tabs does not close the card.
     public static func hitSize(_ mode: NotchMode, notchWidth: CGFloat, notchHeight: CGFloat) -> CGSize {
-        size(mode, notchWidth: notchWidth, notchHeight: notchHeight)
+        let s = size(mode, notchWidth: notchWidth, notchHeight: notchHeight)
+        return mode == .open ? CGSize(width: s.width, height: s.height + pillGap + pillHeight) : s
+    }
+
+    /// Where the black ends and the glass begins, as a share of the open card's height: Droppy keeps its top 61 percent solid (240 of 392
+    /// px in its capture) and fades to glass over the rest. A card too short to show that (the nudge) keeps a band under the hardware notch.
+    static func blackStop(height: CGFloat, notchHeight: CGFloat) -> CGFloat {
+        height >= openHeight - 1 ? 0.61 : min(0.75, (notchHeight + 14) / max(1, height))
     }
 
     /// Where the shape starts and ends: the size of the hardware notch, so it grows out of it and tucks back into it. Pixels inside the
@@ -56,22 +79,23 @@ extension NotchLayout {
         notchWidth == 0 ? CGSize(width: 150, height: 30) : CGSize(width: notchWidth, height: notchHeight)
     }
 
-    /// Corner radii per mode: (bottom corners, the concave shoulders where it meets the bezel). Both grow a little as it opens; kept
-    /// modest, since big round corners made the open card look swollen.
+    /// Corner radii per mode: (bottom corners, the concave shoulders where it meets the bezel). Droppy's, measured: its shoulders and
+    /// bottom corners grow together as it opens.
     static func radii(_ mode: NotchMode, shown: Bool, pill: Bool) -> (bottom: CGFloat, top: CGFloat) {
         if !shown { return (8, 0) }
-        if pill { return mode == .rest || mode == .peek ? (16, 0) : (22, 0) }
+        if pill { return mode == .rest || mode == .peek ? (16, 0) : (28, 0) }
         switch mode {
-        case .rest: return (9, 5)
-        case .peek: return (11, 6)
-        case .open: return (22, 12)
-        case .nudge: return (20, 10)
+        case .rest: return (8.5, 6)
+        case .peek: return (9, 7)
+        case .open: return (35, 27.5)
+        case .nudge: return (24, 14)
         }
     }
 }
 
 /// The black shape. Under a hardware notch: flush with the top edge, with concave shoulders so it flows out of the bezel the way
-/// the notch itself does, and rounded bottom corners. Elsewhere: a continuous rounded pill. Both radii animate with the size.
+/// the notch itself does, and rounded bottom corners, all true circular arcs as Droppy's are. Elsewhere: a continuous rounded pill.
+/// Both radii animate with the size.
 struct NotchShape: Shape {
     var bottom: CGFloat, top: CGFloat
     var pill = false
@@ -82,15 +106,16 @@ struct NotchShape: Shape {
     func path(in r: CGRect) -> Path {
         if pill { return RoundedRectangle(cornerRadius: bottom, style: .continuous).path(in: r) }
         let t = min(top, r.width / 4), b = min(bottom, (r.width - 2 * t) / 2, r.height - t)
+        let k: CGFloat = 0.5523   // a cubic Bezier's control distance for a quarter circle
         var p = Path()
         p.move(to: CGPoint(x: r.minX, y: r.minY))
-        p.addQuadCurve(to: CGPoint(x: r.minX + t, y: r.minY + t), control: CGPoint(x: r.minX + t, y: r.minY))
+        p.addCurve(to: CGPoint(x: r.minX + t, y: r.minY + t), control1: CGPoint(x: r.minX + k * t, y: r.minY), control2: CGPoint(x: r.minX + t, y: r.minY + t - k * t))
         p.addLine(to: CGPoint(x: r.minX + t, y: r.maxY - b))
-        p.addQuadCurve(to: CGPoint(x: r.minX + t + b, y: r.maxY), control: CGPoint(x: r.minX + t, y: r.maxY))
+        p.addCurve(to: CGPoint(x: r.minX + t + b, y: r.maxY), control1: CGPoint(x: r.minX + t, y: r.maxY - b + k * b), control2: CGPoint(x: r.minX + t + b - k * b, y: r.maxY))
         p.addLine(to: CGPoint(x: r.maxX - t - b, y: r.maxY))
-        p.addQuadCurve(to: CGPoint(x: r.maxX - t, y: r.maxY - b), control: CGPoint(x: r.maxX - t, y: r.maxY))
+        p.addCurve(to: CGPoint(x: r.maxX - t, y: r.maxY - b), control1: CGPoint(x: r.maxX - t - b + k * b, y: r.maxY), control2: CGPoint(x: r.maxX - t, y: r.maxY - b + k * b))
         p.addLine(to: CGPoint(x: r.maxX - t, y: r.minY + t))
-        p.addQuadCurve(to: CGPoint(x: r.maxX, y: r.minY), control: CGPoint(x: r.maxX - t, y: r.minY))
+        p.addCurve(to: CGPoint(x: r.maxX, y: r.minY), control1: CGPoint(x: r.maxX - t, y: r.minY + t - k * t), control2: CGPoint(x: r.maxX - k * t, y: r.minY))
         p.closeSubpath()
         return p
     }
@@ -105,12 +130,10 @@ public final class NotchModel {
     public var expanded = false
     /// A file is being dragged over the notch: it opens with the tray ready to take it.
     public var dropTargeted = false
-    /// Where the pointer is over the panel, in the panel's points from its top-left; nil when it is elsewhere. Drives the dot field.
-    public var pointer: CGPoint?
     /// False while the shape is tucked into the hardware notch: just before it grows out at the start of a session, and while it
     /// tucks back in at the end. The controller sets it; the panel only orders out once the shape is back inside.
     public var presented = false
-    /// The open notch's page. It stays as you left it, as Droppy's does. Which widgets home shows is a preference (`notchWidgets`).
+    /// The open notch's page. It stays as you left it, as Droppy's does.
     public var tab = NotchTab.home
     public init() {}
 }
@@ -125,16 +148,25 @@ private struct NotchMaterial: View {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     var body: some View {
         // One stack in every state, so opening and closing only fade the black between solid and graded: there is never a moment
-        // where the glass shows on its own.
+        // where the glass shows on its own. Under the black sits a real blur of whatever is behind the notch (a window-wide
+        // NSVisualEffectView, forced active because a panel that never becomes key would draw it grey), then Liquid Glass on top where
+        // the Mac has it, so the lower part of the card is see-through and bends the desktop behind it, as iOS 27's glass does.
         ZStack {
-            if !reduceTransparency, #available(macOS 26, *) {
-                Color.clear.glassEffect(.regular.tint(.black.opacity(0.45)), in: Rectangle())
+            if glassy {
+                NotchBlur()
+                if #available(macOS 26, *) { Color.clear.glassEffect(.clear.tint(.black.opacity(0.06)), in: Rectangle()) }
             }
             Color.black.opacity(expanded && glassy ? 0 : 1)
             GeometryReader { g in
-                let stop = min(0.75, (notchHeight + 14) / max(1, g.size.height))
-                LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: stop), .init(color: .black.opacity(0), location: 1)],
-                               startPoint: .top, endPoint: .bottom)
+                let stop = NotchLayout.blackStop(height: g.size.height, notchHeight: notchHeight)
+                ZStack {
+                    // Black where the card meets the hardware notch, melting to a light tint over the glass at the foot.
+                    LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: stop), .init(color: .black.opacity(0.12), location: 1)],
+                                   startPoint: .top, endPoint: .bottom)
+                    // The sheen glass catches along its lower edge.
+                    LinearGradient(stops: [.init(color: .white.opacity(0), location: 0.55), .init(color: .white.opacity(0.16), location: 1)],
+                                   startPoint: .top, endPoint: .bottom).blendMode(.plusLighter)
+                }
             }
             .opacity(expanded && glassy ? 1 : 0)
         }
@@ -144,8 +176,18 @@ private struct NotchMaterial: View {
     var glassy: Bool { if #available(macOS 26, *) { return !reduceTransparency } else { return false } }
 }
 
+/// A blur of what is behind the window, always drawn as active (a notch panel is never the key window).
+struct NotchBlur: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let v = NSVisualEffectView()
+        v.material = .hudWindow; v.blendingMode = .behindWindow; v.state = .active; v.isEmphasized = false
+        return v
+    }
+    func updateNSView(_ v: NSVisualEffectView, context: Context) {}
+}
+
 /// The notch presence. Aesthetic, not functional (owner, 2026-10-01), and since 2026-10-13 not a way out either: it only shows.
-/// At rest a ring and the time; under the pointer the ears widen and say how Hushd reads you; a click opens the task, the clock and
+/// At rest a ring and the time; under the pointer the ears widen a little; a click opens the task, the clock and
 /// today's progress; a nudge says what it says and offers one button, "Back to task". There is no way to step away from a nudge here,
 /// because anything like that lives in the app window, where it can be checked (the shield) or at least be seen.
 /// It always draws dark so it melts into the hardware notch.
@@ -194,19 +236,21 @@ public struct NotchView: View {
     var tint: Color { c.ringColor == Tokens.accent ? Self.accent : c.presence.state == "interrupted" ? Tokens.Notch.slip : Self.ink }
     var hasNotch: Bool { notchWidth > 0 }
     var big: Bool { mode == .open || mode == .nudge }
-    /// The ears are wide: under the pointer, or while a change of state is announced.
-    var wide: Bool { mode == .peek || (mode == .rest && flash != nil) }
+    /// The ears are wide enough for a word: while a change of state is announced. Hovering only widens them a little.
+    var wide: Bool { mode == .rest && flash != nil }
     /// You paused it yourself: the ears keep their size, show the pause mark, and count how long it has been instead of a frozen clock.
     var pausedByYou: Bool { c.isHeld && SessionController.asksAboutHold(c.presence.reason) }
 
     public var body: some View {
         let shown = forced != nil || model.presented
-        let sizeMode: NotchMode = mode == .rest && flash != nil ? .peek : mode
-        let size = shown ? NotchLayout.size(sizeMode, notchWidth: notchWidth, notchHeight: notchHeight) : NotchLayout.tucked(notchWidth: notchWidth, notchHeight: notchHeight)
-        let r = NotchLayout.radii(sizeMode, shown: shown, pill: !hasNotch)
+        let size = !shown ? NotchLayout.tucked(notchWidth: notchWidth, notchHeight: notchHeight)
+            : wide ? NotchLayout.announcing(notchWidth: notchWidth, notchHeight: notchHeight)
+            : NotchLayout.size(mode, notchWidth: notchWidth, notchHeight: notchHeight)
+        let r = NotchLayout.radii(wide ? .peek : mode, shown: shown, pill: !hasNotch)
         let shape = NotchShape(bottom: r.bottom, top: r.top, pill: !hasNotch)
         let box = NotchLayout.panelSize(notchWidth: notchWidth, notchHeight: notchHeight)
         surface(shape: shape, size: size, box: box, shown: shown)
+        .overlay(alignment: .top) { tabPill(shown: shown, height: size.height) }
         // Mouse down squeezes it in from the sides before it springs open, the press Droppy gives.
         .scaleEffect(x: pressing && !big && !reduceMotion ? 0.87 : 1, y: 1, anchor: .top)
         .onChange(of: model.dropTargeted) { _, on in if on { model.tab = .tray; haptic(.entered) } }
@@ -237,11 +281,9 @@ public struct NotchView: View {
     /// The shape and what is in it, at its current size, before the press, bump and placement in the panel.
     func surface(shape: NotchShape, size: CGSize, box: CGSize, shown: Bool) -> some View {
         let open = shown && big
-        let dotOrigin = CGPoint(x: (box.width - size.width) / 2, y: 0)
         return ZStack(alignment: .top) {
             // A nudge stays solid black, like the hardware notch it hangs from; only the open card melts into glass.
             NotchMaterial(shape: shape, expanded: open && mode == .open, notchHeight: hasNotch ? notchHeight : 0)
-            if open && mode == .open { DotField(model: model, origin: dotOrigin).transition(.opacity.animation(Motion.out(0.3))) }
             content.frame(width: size.width, height: size.height, alignment: .top)
                 .opacity(shown ? 1 : 0)
                 .blur(radius: shown || reduceMotion ? 0 : 6)
@@ -253,7 +295,10 @@ public struct NotchView: View {
         // the notch closes when the pointer leaves, as Droppy's does.
         .gesture(press, including: big ? .subviews : .all)
         // Light catching the rim of the glass, only once it has opened out of the bezel.
-        .overlay { shape.stroke(Color.white.opacity(open ? 0.08 : 0), lineWidth: 1) }
+        .overlay {
+            shape.stroke(LinearGradient(colors: [.white.opacity(0.04), .white.opacity(0.1), .white.opacity(0.42)], startPoint: .top, endPoint: .bottom), lineWidth: 1)
+                .opacity(open && mode == .open ? 1 : 0)
+        }
         .opacity(hasNotch || shown ? 1 : 0)
     }
 
@@ -307,7 +352,7 @@ public struct NotchView: View {
     /// The band stays put while the body underneath fades in and out, so the ring and time never jump.
     @ViewBuilder var content: some View {
         VStack(spacing: 0) {
-            if hasNotch { band } else if !big { rest } else if mode == .open { openHeader.frame(height: 32) }
+            if hasNotch { band } else if !big { rest } else if mode == .open { Color.clear.frame(height: 32) }
             switch mode {
             case .rest, .peek: EmptyView()
             case .open: openBody.transition(bodyTransition)
@@ -316,47 +361,30 @@ public struct NotchView: View {
         }
     }
 
-    /// The top band: ring on the left ear, the hardware notch in the middle, the time on the right ear. Wider under the pointer,
-    /// with how Hushd reads you beside the ring. Open, the band carries the state and the page tabs instead, so nothing hangs below.
+    /// The top band: ring on the left ear, the hardware notch in the middle, the time on the right ear. A little wider under the pointer,
+    /// and wide enough for the state word while a change is announced. Open, the band is empty, as Droppy's is: the card starts under it.
     var band: some View {
         // Over a nudge the ring and the time move out to the row's edges, so they line up with the words and the button below.
         let edges = mode == .nudge
         let earW = wide ? NotchLayout.ear + NotchLayout.peekExtra
+            : mode == .peek ? NotchLayout.ear + NotchLayout.hoverExtra
             : edges ? (NotchLayout.size(.nudge, notchWidth: notchWidth, notchHeight: notchHeight).width - notchWidth) / 2 : NotchLayout.ear
-        return ZStack {
-            HStack(spacing: 0) {
-                HStack(spacing: 6) {
-                    ring
-                    if wide {
-                        Text(flash ?? c.presenceLabel).font(Tokens.fixed(.caption2, .semibold)).foregroundStyle(tint).lineLimit(1).fixedSize()
-                            .transition(earTransition(.leading))
-                    }
+        return HStack(spacing: 0) {
+            HStack(spacing: 6) {
+                ring
+                if wide {
+                    Text(flash ?? c.presenceLabel).font(Tokens.fixed(.caption2, .semibold)).foregroundStyle(tint).lineLimit(1).fixedSize()
+                        .transition(earTransition(.leading))
                 }
-                .padding(.leading, edges ? 22 : 0)
-                .frame(width: earW, alignment: edges ? .leading : .center)
-                Spacer(minLength: notchWidth)
-                time.padding(.trailing, edges ? 16 : 0).frame(width: earW, alignment: edges ? .trailing : .center)
             }
-            .frame(width: notchWidth + 2 * earW, height: notchHeight)
-            .opacity(mode == .open ? 0 : 1)
-            .blur(radius: mode == .open && !reduceMotion ? 4 : 0)
-            if mode == .open {
-                openHeader.frame(width: NotchLayout.size(.open, notchWidth: notchWidth, notchHeight: notchHeight).width, height: notchHeight)
-                    .transition(bodyTransition)
-            }
+            .padding(.leading, edges ? 22 : 0)
+            .frame(width: earW, alignment: edges ? .leading : .center)
+            Spacer(minLength: notchWidth)
+            time.padding(.trailing, edges ? 16 : 0).frame(width: earW, alignment: edges ? .trailing : .center)
         }
-    }
-
-    /// The open card's top line: the ring and the state word on the left, the page tabs on the right, the hardware notch between.
-    var openHeader: some View {
-        HStack(spacing: 6) {
-            ring
-            Text(c.presenceLabel).font(Tokens.fixed(.caption, .semibold)).foregroundStyle(tint).lineLimit(1).fixedSize()
-                .contentTransition(.interpolate)
-            Spacer(minLength: hasNotch ? notchWidth : 8)
-            ShelfTabBar(model: model)
-        }
-        .padding(.leading, hasNotch ? 20 : 14).padding(.trailing, hasNotch ? 16 : 10)
+        .frame(width: notchWidth + 2 * earW, height: notchHeight)
+        .opacity(mode == .open ? 0 : 1)
+        .blur(radius: mode == .open && !reduceMotion ? 4 : 0)
     }
 
     /// Words in a widened ear wait for the ear to open, then come out of a blur.
@@ -381,11 +409,13 @@ public struct NotchView: View {
     var ring: some View {
         // Ticks each second so a timed arc sweeps with the clock; a change of shape (drift, a pause) blurs in.
         TimelineView(.everySecond) { _ in LiveRing(c.ringState, color: tint).frame(width: 14, height: 14) }
+            .scaleEffect(mode == .peek && !reduceMotion ? 1.14 : 1)
     }
     var time: some View {
         TimelineView(.everySecond) { _ in
             let t = pausedByYou ? c.heldClockText() : c.clockText()
-            Text(t).font(Tokens.fixed(.caption, .semibold, rounded: true)).monospacedDigit().fixedSize()
+            Text(t).font(t.count > 5 && !wide && mode != .nudge ? .system(size: 10, weight: .semibold, design: .rounded) : Tokens.fixed(.caption, .semibold, rounded: true))
+                .monospacedDigit().fixedSize()
         }
     }
 
@@ -402,19 +432,30 @@ public struct NotchView: View {
         return m >= 60 ? (m % 60 == 0 ? "\(m / 60) h" : "\(m / 60) h \(m % 60) min") : "\(m) min"
     }
 
-    /// The open card is the page the tab bar has picked: home (the session and a widget), the file tray, or the widgets.
+    /// The open card is the page the tab pill has picked: home (the session and today), or the file tray.
     var openBody: some View {
         ZStack {
             switch model.tab {
-            case .home: ShelfHome(c: c, model: model, tray: tray, tint: tint).transition(pageTransition)
-            case .tray: TrayColumn(tray: tray, targeted: model.dropTargeted).transition(pageTransition)
-            case .widgets: ShelfWidgets(c: c).transition(pageTransition)
+            case .home: ShelfHome(c: c, tint: tint).transition(pageTransition)
+            case .tray: TrayPage(tray: tray, targeted: model.dropTargeted).transition(pageTransition)
             }
         }
         .frame(maxHeight: .infinity, alignment: .top)
         .motion(Motion.notchSettle, value: model.tab)
-        // Clear of the concave shoulders (12 pt) and the rounded foot, so nothing sits on the curve.
-        .padding(.horizontal, 22).padding(.top, 6).padding(.bottom, 14)
+        // Clear of the concave shoulders (27.5 pt), so the 485 pt body sits between them as Droppy's does.
+        .padding(.horizontal, NotchLayout.shoulderOpen).padding(.top, 0).padding(.bottom, 0)
+    }
+
+    /// Droppy's tab bar: a small glass pill under the card with an icon per page, the current one on a lighter capsule.
+    @ViewBuilder func tabPill(shown: Bool, height: CGFloat) -> some View {
+        let visible = shown && mode == .open
+        ShelfTabPill(model: model)
+            .offset(y: height + NotchLayout.pillGap)
+            .opacity(visible ? 1 : 0)
+            .scaleEffect(visible || reduceMotion ? 1 : 0.8, anchor: .top)
+            .blur(radius: visible || reduceMotion ? 0 : 4)
+            .allowsHitTesting(visible)
+            .animation(visible ? Motion.notchOpen.delay(0.06) : Motion.out(0.1), value: visible)
     }
 
     /// Pages swap in place: the old one blurs away as the new one sharpens in.

@@ -269,7 +269,7 @@ final class BetaTests: XCTestCase {
     func testReportCarriesNoTaskProjectTitleOrScreenText() throws {
         let store = secretStore()
         let prefs = Preferences(defaults: UserDefaults(suiteName: "focus.tests.\(UUID().uuidString)")!)
-        prefs.neverJudgedApps = ["SecretMessenger"]; prefs.notchNote = "secret notch line"; prefs.friendName = "Secret Name"
+        prefs.neverJudgedApps = ["SecretMessenger"]; prefs.friendName = "Secret Name"
         let j = BetaJournal(); j.note(.sessionStart); j.note(.warning); j.answerPulse(score: 3)
         var d = FeedbackDraft(kind: .wrongCall); d.message = "It called my notes off task."
         let r = FeedbackBuilder.make(d, build: BetaBuild(build: "3", channel: .beta), system: FeedbackBuilder.system(judge: .ready, windowAccess: .allowed, screen: .unknown),
