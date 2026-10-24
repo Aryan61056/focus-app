@@ -53,7 +53,7 @@ public struct EscalationPlan: Equatable, Sendable {
 
 /// Apps that are never hidden as a consequence: Hushd itself and the system's own surfaces.
 public enum Enforcement {
-    static let protected: Set<String> = ["focus", "finder", "system settings", "loginwindow", "dock", "control center"]
+    static let protected: Set<String> = ["hushd", "focus", "finder", "system settings", "loginwindow", "dock", "control center"]
     public static func canHide(_ app: String?) -> Bool {
         guard let a = app?.trimmingCharacters(in: .whitespaces).lowercased(), !a.isEmpty else { return false }
         return !protected.contains(a)

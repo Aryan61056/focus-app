@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// iOS lets an app offer an action to Shortcuts but not create the automation for you, so this is the one setup the person does,
-/// once. "Hushd" is also the name of iOS's Do Not Disturb modes, which Siri readily mixes up with this app, so the action is called
+/// once. "Focus" is also the name of iOS's Do Not Disturb modes, which Siri readily mixes up with this app, so the action is called
 /// "Guard my session", the request says what it is not, and the page shows whether the automation has ever actually run.
 struct GuardSetup: View {
     @Environment(AppModel.self) private var model
