@@ -2,8 +2,8 @@ import AppKit
 import SwiftUI
 import Observation
 
-/// Content view that reports the pointer entering and leaving the visible black shape, even while Focus is not the active app.
-/// SwiftUI's own hover does not fire for a panel of a background app, and a notch that only reacts when Focus is in front would
+/// Content view that reports the pointer entering and leaving the visible black shape, even while Hushd is not the active app.
+/// SwiftUI's own hover does not fire for a panel of a background app, and a notch that only reacts when Hushd is in front would
 /// never open. The window is bigger than the shape (see NotchLayout.panelSize), so the tracking rect follows `visibleSize`, not the
 /// window. Opening waits a moment so the pointer passing over the menu bar does not pop the notch open; closing waits less.
 final class HoverBox: NSView {
@@ -322,7 +322,7 @@ public final class NotchPanelController {
         p.level = .statusBar
         p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         p.isMovable = false; p.hidesOnDeactivate = false
-        // Hiding Focus (Command-H, or Hide Others from another app) hid the notch and every nudge in it for the rest of the session.
+        // Hiding Hushd (Command-H, or Hide Others from another app) hid the notch and every nudge in it for the rest of the session.
         p.canHide = false
         return p
     }

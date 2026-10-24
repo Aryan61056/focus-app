@@ -103,7 +103,7 @@ public enum Scoreboard {
         case focused = "Most focused", steady = "Fewest slips"
         public var id: String { rawValue }
     }
-    /// The Fewest slips board ranks only people with this much focus in the week, so not using Focus never wins it.
+    /// The Fewest slips board ranks only people with this much focus in the week, so not using Hushd never wins it.
     public static let steadyMinimum = 3600.0
 
     public struct Entry: Identifiable, Equatable, Sendable {

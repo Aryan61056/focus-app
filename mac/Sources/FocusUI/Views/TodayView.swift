@@ -3,8 +3,8 @@ import FocusBrain
 
 /// Today. Two jobs, and the screen does one of them at a time.
 /// Between sessions: say what you are working on and press Return, with your day and week under it.
-/// During a session, for a three second glance: Focus's bar, its call, the session as one band (TodayLiveMain).
-/// The Focus panel beside it (TodayPanel) holds what Focus did, Ask Focus and the goal. At most one notice shows at a time.
+/// During a session, for a three second glance: Hushd's bar, its call, the session as one band (TodayLiveMain).
+/// The Hushd panel beside it (TodayPanel) holds what Hushd did, Ask Hushd and the goal. At most one notice shows at a time.
 struct TodayView: View {
     @Bindable var c: SessionController
     @Binding var showStart: Bool
@@ -93,28 +93,28 @@ struct NoticeRow: View {
     }
     var text: String {
         switch notice {
-        case .saveFailed: return "Focus could not save your data on this Mac, so new sessions may be lost. Check that the disk has room."
+        case .saveFailed: return "Hushd could not save your data on this Mac, so new sessions may be lost. Check that the disk has room."
         case .resume(let r): return r == "meeting" ? "Your meeting looks over. Pick up where you left off?" : "Welcome back. Pick up where you left off?"
         case .wrapUp: return c.sessionDeadline == nil ? "Two minutes left. Extend, or wrap up when you are ready." : "Two minutes left. Wrap up when you are ready."
-        case .modelOff(let why): return "\(why) Until then Focus will not nudge you."
-        case .access: return "Allow Accessibility so Focus can read window titles."
+        case .modelOff(let why): return "\(why) Until then Hushd will not nudge you."
+        case .access: return "Allow Accessibility so Hushd can read window titles."
         case .update: return "A newer build is ready. Restarting takes a few seconds."
-        case .contextTip: return "Focus is often unsure about this project. A line about what counts helps."
-        case .crashed: return "Focus closed unexpectedly last time. A short report helps fix it."
+        case .contextTip: return "Hushd is often unsure about this project. A line about what counts helps."
+        case .crashed: return "Hushd closed unexpectedly last time. A short report helps fix it."
         case .betaExpired: return c.beta?.canOpenReleases == true ? "This beta build is out of date. A newer one is on GitHub." : "This beta build is out of date. Ask for the newest one."
         case .betaWelcome: return "Thanks for testing \(c.beta?.build.tag.lowercased() ?? "this beta"). The Beta page has seven things to try."
         case .whatsNew: return "This build has changes worth a look."
-        case .pulse: return "How is Focus working for you this week?"
+        case .pulse: return "How is Hushd working for you this week?"
         }
     }
     var help: String {
         switch notice {
-        case .access: return "Focus needs Accessibility to tell work from drift. If Focus is already switched on in that list, remove it with the minus button and add it again."
-        case .contextTip: return "Under Projects. Focus still prefers to do nothing when a window is unclear."
-        case .modelOff: return "Without the on-device model Focus cannot judge windows, so it does nothing."
-        case .crashed: return "The report says what went wrong in Focus's code. You see the whole file before you save it, and Focus sends nothing."
+        case .access: return "Hushd needs Accessibility to tell work from drift. If Hushd is already switched on in that list, remove it with the minus button and add it again."
+        case .contextTip: return "Under Projects. Hushd still prefers to do nothing when a window is unclear."
+        case .modelOff: return "Without the on-device model Hushd cannot judge windows, so it does nothing."
+        case .crashed: return "The report says what went wrong in Hushd's code. You see the whole file before you save it, and Hushd sends nothing."
         case .betaExpired: return "It keeps working. Newer builds fix what testers found."
-        case .betaWelcome: return "Send feedback from your name at the bottom left. You see every report before you save it, and Focus never sends one by itself."
+        case .betaWelcome: return "Send feedback from your name at the bottom left. You see every report before you save it, and Hushd never sends one by itself."
         case .pulse: return "One click, once a week. Your answer stays on this Mac unless you put it in a report. Turn it off in Settings, Beta."
         default: return text
         }

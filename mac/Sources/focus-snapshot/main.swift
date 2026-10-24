@@ -13,7 +13,7 @@ var t = 0.0
 let judge = ScriptedJudge(readings: [
     ("youtube", .off, "A video about something unrelated to integration by parts."),
     ("Chapter", .on, "A page of calculus exercises, which is the work Calc homework is about."),
-    ("Messages", .unsure, "A chat. It could be about the homework or something else, so Focus is leaving it alone."),
+    ("Messages", .unsure, "A chat. It could be about the homework or something else, so Hushd is leaving it alone."),
     ("Notes", .on, "Your own notes for the calculus homework, which is the work itself."),
 ])
 
@@ -145,7 +145,7 @@ struct FakeWindow<Over: View>: View {
         ("shield-asking", .claim, 0, true, false, nil, 2),
         ("shield-refused", .claim, 0, true, false, "This does not look like Calc homework. 1 try left.", 1),
         ("shield-checking", .claim, 0, true, true, nil, 2),
-        ("shield-locked", .pause, 0, false, false, "Focus could not verify this. Explaining is locked for 5 minutes. Going back to the task works now.", 2),
+        ("shield-locked", .pause, 0, false, false, "Hushd could not verify this. Explaining is locked for 5 minutes. Going back to the task works now.", 2),
     ]
     for (name, kind, wait, asking, checking, message, tries) in shields {
         t = 0
@@ -229,7 +229,7 @@ struct FakeWindow<Over: View>: View {
     store.addReview(ReviewMoment(sessionId: nil, projectId: calc.id, at: Date(timeIntervalSince1970: 1_789_950_000), windowKey: "safari|youtube.com/watch", siteKey: "safari|youtube.com",
                                  reason: "A video about something unrelated to integration by parts, and it ran for over a minute."))
     store.addReview(ReviewMoment(sessionId: nil, projectId: essay.id, at: Date(timeIntervalSince1970: 1_789_900_000), windowKey: "safari|nytimes.com/a", siteKey: "safari|nytimes.com",
-                                 reason: "A news article. Nothing in it connects to sleep and memory, so Focus marked it."))
+                                 reason: "A news article. Nothing in it connects to sleep and memory, so Hushd marked it."))
     for (i, ans) in ["right", "right", "right", "fine"].enumerated() {
         var m = ReviewMoment(sessionId: nil, projectId: calc.id, at: Date(timeIntervalSince1970: 1_789_800_000 + Double(i)), windowKey: "k\(i)", siteKey: "k\(i)")
         m.answer = ans; store.addReview(m)
@@ -260,7 +260,7 @@ struct FakeWindow<Over: View>: View {
         for dark in [false, true] { render(c, name, dark: dark, selection: sec) }
     }
     for dark in [false, true] { render(c, "settings", dark: dark, selection: .settings, height: 3300) }
-    // Late afternoon, well short of a bigger goal: Today says why Focus is firmer.
+    // Late afternoon, well short of a bigger goal: Today says why Hushd is firmer.
     let late = SessionController(judge: judge, store: store, now: { 0 }, date: { Calendar.current.date(bySettingHour: 16, minute: 0, second: 0, of: Date())! })
     late.prefs.paceMatters = true; late.prefs.dailyGoalMinutes = 180
     for dark in [false, true] { render(late, "today-behind", dark: dark, selection: .today) }
@@ -374,7 +374,7 @@ else if CommandLine.arguments.contains("--popups") { await popupShots() } else {
     t = 0
     let c = SessionController(judge: judge, store: seededStore(), now: { t })
     c.setJudgeStatus(.ready); c.setWindowAccess(.allowed)
-    // A short session, so Focus has recent calls for the report.
+    // A short session, so Hushd has recent calls for the report.
     c.windowChanged(WindowSnapshot(app: "Notes", title: "Calc homework"))
     c.begin(task: "Calc homework", preset: .standard, shadow: false)
     await advance(c, to: 12)
@@ -386,7 +386,7 @@ else if CommandLine.arguments.contains("--popups") { await popupShots() } else {
     func center(expires: Date, repo: Bool = true) -> BetaCenter {
         let b = BetaBuild(version: "0.1.0", build: "3", buildID: "\(f.string(from: built))-e360137", channel: .beta, expires: expires,
                           feedbackRepo: repo ? URL(string: "https://github.com/example/focus-app") : nil,
-                          notes: ["Post feedback on GitHub straight from Focus", "A ready-to-test check on the Beta page", "Wrong-call reports carry Focus's last calls, never the window"],
+                          notes: ["Post feedback on GitHub straight from Hushd", "A ready-to-test check on the Beta page", "Wrong-call reports carry Hushd's last calls, never the window"],
                           knownIssues: ["The notch can lag a second after waking from sleep"])
         let j = BetaJournal(); j.note(.launch); j.note(.sessionStart); j.note(.backToTask, 1); j.note(.sessionEnd, 24)
         let bc = BetaCenter(build: b, journal: j)

@@ -2,7 +2,7 @@ import Foundation
 
 // When the place "Back to task" is heading for is gone (the document was closed, the tab shut, the app quit), it is opened again instead of
 // only bringing the app forward. These are the rules for what may be opened. Pure, so they are tested; the opening itself is the app's
-// (focus-app/Place.swift). Only things you had open yourself and Focus read as on task, and only after you pressed Back to task.
+// (focus-app/Place.swift). Only things you had open yourself and Hushd read as on task, and only after you pressed Back to task.
 
 public enum ReopenPolicy {
     /// File types that run or install things. A document you were writing is never one of these.

@@ -4,7 +4,7 @@ import FocusJudge
 /// Ask the model about this session. One question, one answer, nothing kept. It may name windows because the user is asking.
 struct AskPanel: View {
     @Bindable var c: SessionController
-    /// In the Focus panel: no heading (the panel has one) and the suggestions wrap.
+    /// In the Hushd panel: no heading (the panel has one) and the suggestions wrap.
     var compact = false
     @State private var question = ""
     @FocusState private var focused: Bool
@@ -14,7 +14,7 @@ struct AskPanel: View {
             VStack(alignment: .leading, spacing: Space.s) {
                 if !compact {
                     HStack(spacing: Space.s) {
-                        Text("Ask Focus").font(Tokens.text(.callout, .semibold)).accessibilityAddTraits(.isHeader)
+                        Text("Ask Hushd").font(Tokens.text(.callout, .semibold)).accessibilityAddTraits(.isHeader)
                         AITag()
                         Spacer()
                     }
@@ -36,7 +36,7 @@ struct AskPanel: View {
                 case .working:
                     HStack(spacing: Space.xs) { ThinkingDot(); Text("Reading this session's notes on this Mac").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
                 case .failed:
-                    Text("Focus could not answer that. Try rephrasing it, or open All readings above.").font(Tokens.text(.body)).foregroundStyle(Tokens.ink2)
+                    Text("Hushd could not answer that. Try rephrasing it, or open All readings above.").font(Tokens.text(.body)).foregroundStyle(Tokens.ink2)
                 case .ready(let a):
                     VStack(alignment: .leading, spacing: Space.xs) {
                         Text(a).font(Tokens.text(.callout)).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)

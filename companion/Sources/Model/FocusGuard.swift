@@ -2,7 +2,7 @@ import Foundation
 import FocusLinkNet
 
 /// The guard: a Shortcuts automation runs "Guard my session" whenever a social app is opened, and this decides whether that
-/// open should bounce you back to Focus. Pure, so it can be tested without a phone, a Mac or Shortcuts.
+/// open should bounce you back to Hushd. Pure, so it can be tested without a phone, a Mac or Shortcuts.
 enum GuardRules {
     /// With the Mac out of reach, a note from earlier than this is not trusted: a sleeping Mac must not pin the phone for hours.
     static let staleAfter: TimeInterval = 20 * 60
@@ -44,7 +44,7 @@ struct GuardCache {
     func clear() { defaults.removeObject(forKey: key) }
 }
 
-/// Apps people most often want out of the way. Only used to show what to pick in Shortcuts: iOS gives Focus no list of
+/// Apps people most often want out of the way. Only used to show what to pick in Shortcuts: iOS gives Hushd no list of
 /// installed apps, and Shortcuts is where the person actually chooses.
 enum SocialApps {
     static let suggestions = ["Instagram", "TikTok", "YouTube", "Snapchat", "X", "Reddit", "Facebook", "Threads", "Discord", "Pinterest"]

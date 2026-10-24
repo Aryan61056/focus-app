@@ -35,7 +35,7 @@ public struct RootView: View {
     /// A narrow window hides the sidebar so the page keeps its room, and brings it back when the window widens again, unless you chose.
     @State private var roomForSidebar = true
     @State private var sidebarAutoHidden = false
-    /// Window width under which the sidebar and a page with its Focus panel no longer sit together comfortably.
+    /// Window width under which the sidebar and a page with its Hushd panel no longer sit together comfortably.
     static let sidebarFits: CGFloat = 940
     /// The project picked inside the Projects screen's own list.
     @State private var listProject: UUID?
@@ -140,7 +140,7 @@ public struct RootView: View {
         }
     }
 
-    /// Pages that draw the Focus panel beside themselves and so take the whole detail area.
+    /// Pages that draw the Hushd panel beside themselves and so take the whole detail area.
     var ownsLayout: Bool {
         switch current { case .section(.today), .section(.history), .section(.review), .section(.friends): return true; default: return false }
     }
@@ -178,7 +178,7 @@ public struct RootView: View {
                     KeyframeTrack(\.rise) { MoveKeyframe(10); SpringKeyframe(0, duration: 0.42, spring: .init(duration: 0.42, bounce: 0.1)) }
                     KeyframeTrack(\.blur) { MoveKeyframe(4); CubicKeyframe(0, duration: 0.22) }
                 }
-                // Today, History and Review lay out their own page and Focus panel across the whole window. Settings is one centred
+                // Today, History and Review lay out their own page and Hushd panel across the whole window. Settings is one centred
                 // form; Projects and Insights use the width up to a readable maximum.
                 .frame(maxWidth: ownsLayout ? .infinity : (selection == .settings ? 700 : Tokens.contentWidth))
                 .padding(.horizontal, ownsLayout || selection == .settings ? 0 : Space.xl).padding(.top, ownsLayout || selection == .settings ? 0 : Space.s)
@@ -339,7 +339,7 @@ struct Sidebar: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: Space.s) { RingView(.on, color: Tokens.accent).frame(width: 20, height: 20); Text("Focus").font(Tokens.rounded(.callout, .semibold)) }
+            HStack(spacing: Space.s) { RingView(.on, color: Tokens.accent).frame(width: 20, height: 20); Text("Hushd").font(Tokens.rounded(.callout, .semibold)) }
                 .padding(.horizontal, Space.xs).padding(.top, Space.l).padding(.bottom, Space.m)
             ForEach(AppSection.allCases.filter { $0 != .settings && ($0 != .review || c.showsReview) && ($0 != .friends || c.friends != nil) }) { s in row(s) }
             Spacer()

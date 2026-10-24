@@ -328,7 +328,7 @@ final class ReopenPolicyTests: XCTestCase {
 
     func testDocumentsAndFoldersMayBeOpened() {
         XCTAssertEqual(file("/Users/a/Essay.pages")?.path, "/Users/a/Essay.pages")
-        XCTAssertEqual(file("/Users/a/Projects/Focus App")?.path, "/Users/a/Projects/Focus App", "a Finder window or an editor's project folder")
+        XCTAssertEqual(file("/Users/a/Projects/Hushd App")?.path, "/Users/a/Projects/Hushd App", "a Finder window or an editor's project folder")
         XCTAssertEqual(file("/Users/a/notes.TXT")?.lastPathComponent, "notes.TXT")
     }
 
@@ -789,7 +789,7 @@ final class GrayOnlyTheDriftedWindowTests: XCTestCase {
     func testNothingIsGrayedWhenTheDriftedWindowCannotBeTold() async {
         let c = make()
         await advance(c, to: 60); c.windowChanged(slack); await advance(c, to: 300)
-        XCTAssertEqual(c.veilRegion(windowFrame: nil), .none, "Focus itself in front, or an unknown frame")
+        XCTAssertEqual(c.veilRegion(windowFrame: nil), .none, "Hushd itself in front, or an unknown frame")
         XCTAssertEqual(c.veilRegion(windowFrame: CGRect(x: 0, y: 0, width: 50, height: 30)), .none, "a sliver")
     }
 

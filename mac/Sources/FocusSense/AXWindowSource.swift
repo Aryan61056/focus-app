@@ -8,7 +8,7 @@ import FocusUI
 public struct AXWindowSource: WindowSource {
     public init() {}
 
-    /// True when Focus can read window titles: through Accessibility, or, failing that, through Screen Recording (macOS only
+    /// True when Hushd can read window titles: through Accessibility, or, failing that, through Screen Recording (macOS only
     /// shows other apps' window names to apps that may record the screen). Page addresses need Accessibility.
     public var isTrusted: Bool { AXIsProcessTrusted() || CGPreflightScreenCaptureAccess() }
 
@@ -25,7 +25,7 @@ public struct AXWindowSource: WindowSource {
     /// Shows the system's own prompt that points the user at Privacy & Security > Accessibility. Never grants anything by itself.
     nonisolated(unsafe) private static var prompted = false
     public static func promptForAccess() {
-        // The system dialog adds Focus to the Accessibility list; once per launch is enough, more only nags.
+        // The system dialog adds Hushd to the Accessibility list; once per launch is enough, more only nags.
         guard !prompted else { return }
         prompted = true
         let opts = ["AXTrustedCheckOptionPrompt" as CFString: true] as CFDictionary
@@ -44,7 +44,7 @@ public struct AXWindowSource: WindowSource {
     }
 
     /// Where the window in front is on screen (Core Graphics coordinates: top left origin, points), so the banner can sit over it.
-    /// Nil when Focus itself is in front or there is nothing to find. It reads no titles and no contents.
+    /// Nil when Hushd itself is in front or there is nothing to find. It reads no titles and no contents.
     public static func frontWindowFrame() -> CGRect? {
         guard let app = NSWorkspace.shared.frontmostApplication, app.processIdentifier != ProcessInfo.processInfo.processIdentifier,
               let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else { return nil }
@@ -60,7 +60,7 @@ public struct AXWindowSource: WindowSource {
             return WindowSnapshot(app: name, title: Self.title(inWindowList: list, pid: app.processIdentifier))
         }
         let el = AXUIElementCreateApplication(app.processIdentifier)
-        AXUIElementSetMessagingTimeout(el, 0.25)   // a hung app must not freeze Focus
+        AXUIElementSetMessagingTimeout(el, 0.25)   // a hung app must not freeze Hushd
         var win: CFTypeRef?
         guard AXUIElementCopyAttributeValue(el, kAXFocusedWindowAttribute as CFString, &win) == .success, let window = win, CFGetTypeID(window) == AXUIElementGetTypeID() else {
             return WindowSnapshot(app: name, title: "")

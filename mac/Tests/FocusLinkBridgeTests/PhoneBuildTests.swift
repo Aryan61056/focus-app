@@ -58,15 +58,15 @@ final class PhoneBuildTests: XCTestCase {
         XCTAssertTrue(calls[1].contains("DEVELOPMENT_TEAM=ABCDE12345"))
         XCTAssertTrue(calls[1].contains("-allowProvisioningUpdates"))
         XCTAssertTrue(calls[1].contains("generic/platform=iOS"))
-        XCTAssertTrue(calls[2].last?.hasSuffix("companion/.build/Focus for iPhone.app") == true)
+        XCTAssertTrue(calls[2].last?.hasSuffix("companion/.build/Hushd for iPhone.app") == true)
         let install = device.calls.first { $0.starts(with: ["device", "install", "app"]) }
-        XCTAssertEqual(install?.last, repo.appendingPathComponent("companion/.build/Focus for iPhone.app").path)
+        XCTAssertEqual(install?.last, repo.appendingPathComponent("companion/.build/Hushd for iPhone.app").path)
         XCTAssertEqual(install?[4], "AAAA-1111")
     }
 
     func testAnIncludedBuildIsInstalledWithoutBuilding() async {
         let runner = FakeRunner(), device = tool()
-        let embedded = URL(fileURLWithPath: "/tmp/Focus for iPhone.app")
+        let embedded = URL(fileURLWithPath: "/tmp/Hushd for iPhone.app")
         let installer = installer(runner: runner, mac: Mac(), tool: device, embedded: embedded)
         XCTAssertFalse(installer.buildsItself)
         await installer.look()

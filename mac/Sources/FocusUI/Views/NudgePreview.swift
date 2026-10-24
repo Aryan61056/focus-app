@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// A nudge as the notch shows it on a screen without a notch, for the Nudges page: the ring, the words in the tone you picked, one line
-/// of what Focus saw, and the one way forward. It only shows; nothing here is a button.
+/// of what Hushd saw, and the one way forward. It only shows; nothing here is a button.
 struct NudgePreviewPill: View {
     var text: String
     /// The pill's own geometry, so the preview never drifts from the real thing.

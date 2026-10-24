@@ -9,7 +9,7 @@ public protocol ScreenGrabber {
     var isAllowed: Bool { get }
     /// Shows the system prompt the first time; afterwards it does nothing.
     func requestAccess()
-    /// The front window of the app in front, or nil (Focus itself in front, nothing visible, or no permission).
+    /// The front window of the app in front, or nil (Hushd itself in front, nothing visible, or no permission).
     func grab() async -> (image: CGImage, app: String)?
 }
 

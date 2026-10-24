@@ -1,28 +1,28 @@
 name: "Beta: idea or anything else"
-description: Something that would make Focus better for you, or anything that does not fit the other forms.
+description: Something that would make Hushd better for you, or anything that does not fit the other forms.
 title: "Beta: Idea"
 labels: ["beta", "idea"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for testing Focus. Short is fine. **Issues are public**, so leave out anything private.
+        Thanks for testing Hushd. Short is fine. **Issues are public**, so leave out anything private.
   - type: input
     id: build
     attributes:
       label: Build
-      description: Focus fills this in. It is also under your name at the bottom left of the Focus window.
+      description: Hushd fills this in. It is also under your name at the bottom left of the Hushd window.
       placeholder: 0.1.0 beta 2
   - type: textarea
     id: what
     attributes:
       label: Your idea
-      placeholder: I would like Focus to ...
+      placeholder: I would like Hushd to ...
     validations:
       required: true
   - type: textarea
     id: report
     attributes:
       label: Report file (optional)
-      description: If Focus saved a report for this, drag it here.
+      description: If Hushd saved a report for this, drag it here.
       placeholder: Drop focus-feedback-....json here

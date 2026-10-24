@@ -22,7 +22,7 @@ enum Palette {
     static let ink2 = Color(light: 0x56595A, dark: 0xA9ADAE)
     static let canvas = Color(light: 0xF7F7F6, dark: 0x1B1B1B)
     static let surface = Color(light: 0xFFFFFF, dark: 0x242424)
-    /// Wells (fields, the Focus bar) sunk into the canvas.
+    /// Wells (fields, the Hushd bar) sunk into the canvas.
     static let well = Color(light: 0xF0F0EF, dark: 0x202020)
     static let line = Color(light: 0x1A1B1B, dark: 0xFFFFFF).opacity(0.1)
     static let track = Color(light: 0x1A1B1B, dark: 0xFFFFFF).opacity(0.16)

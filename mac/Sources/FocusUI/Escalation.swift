@@ -8,7 +8,7 @@ import FocusJudge
 public enum EscalationStep: Int, Comparable, Sendable {
     /// The warning only.
     case warned = 0
-    /// Focus asks "Are you working on <task>?" and reads the window again.
+    /// Hushd asks "Are you working on <task>?" and reads the window again.
     case checkIn
     /// The pause screen, with the easy way out held back for a few seconds.
     case pauseScreen
@@ -51,7 +51,7 @@ public struct EscalationPlan: Equatable, Sendable {
     }
 }
 
-/// Apps that are never hidden as a consequence: Focus itself and the system's own surfaces.
+/// Apps that are never hidden as a consequence: Hushd itself and the system's own surfaces.
 public enum Enforcement {
     static let protected: Set<String> = ["focus", "finder", "system settings", "loginwindow", "dock", "control center"]
     public static func canHide(_ app: String?) -> Bool {
@@ -66,7 +66,7 @@ public enum Enforcement {
 public enum EnforceAction: Equatable, Sendable { case switchAway, hide, close }
 
 extension Enforcement {
-    /// Browsers Focus can steer through AppleScript. Arc and Dia are in since their dictionaries (`sdef`) were read: both have spaces (Arc `space`,
+    /// Browsers Hushd can steer through AppleScript. Arc and Dia are in since their dictionaries (`sdef`) were read: both have spaces (Arc `space`,
     /// Dia `profile`) with their own tabs and a `focus` command, which the scripts below use. Firefox and others are still out.
     static let browsers: Set<String> = ["safari", "google chrome", "brave browser", "microsoft edge", "comet", "arc", "dia"]
     /// Browsers that keep several spaces of tabs inside one window (Arc's Spaces, Dia's profiles). A place there is a tab in a space, so the
@@ -81,7 +81,7 @@ extension Enforcement {
         return preset == .strict && closing ? .close : .hide
     }
 
-    /// A tab is closed only when Focus can name it exactly (a browser with an address), it is not private and not on the never-judged list.
+    /// A tab is closed only when Hushd can name it exactly (a browser with an address), it is not private and not on the never-judged list.
     /// Other apps are never quit: that could lose unsaved work, so they are hidden instead.
     public static func mayClose(_ w: WindowSnapshot?, neverJudged: [String], skipPersonal: Bool) -> Bool {
         guard let w, canHide(w.app), isBrowser(w.app), !w.url.isEmpty else { return false }
@@ -216,8 +216,8 @@ public enum TabScript {
         """
     }
 
-    /// Brings forward the tab whose title contains `title`, for a page whose address changed since Focus read it (a single-page app, a redirect)
-    /// or that Focus never read an address for (Dia). Too short a title is nil: it would match the wrong tab. Prints "ok" or "none".
+    /// Brings forward the tab whose title contains `title`, for a page whose address changed since Hushd read it (a single-page app, a redirect)
+    /// or that Hushd never read an address for (Dia). Too short a title is nil: it would match the wrong tab. Prints "ok" or "none".
     public static func switchToTitle(app: String, title: String, space: String = "") -> String? {
         guard let name = appName(app) else { return nil }
         let want = TaskPlaces.pageTitle(title, app: app)

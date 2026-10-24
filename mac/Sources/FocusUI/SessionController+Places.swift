@@ -10,7 +10,7 @@ extension SessionController {
     /// How often the scroll and cursor of the place you are working in are noted.
     static let positionEverySeconds = 3.0
 
-    /// Focus read this window as on task: remember it as somewhere you worked.
+    /// Hushd read this window as on task: remember it as somewhere you worked.
     func notePlace(_ w: WindowSnapshot) {
         let before = places.candidates.map(\.id)
         places.noteOnTask(w, at: now())
@@ -58,7 +58,7 @@ extension SessionController {
 
     func markAway() { awayAtPress = (presence.state == "drifting" || presence.state == "interrupted") ? currentWindow : nil }
 
-    /// The place to outline while Focus is nudging you, or nil. Only once it is a real nudge ("interrupted", after sustained agreement, not the
+    /// The place to outline while Hushd is nudging you, or nil. Only once it is a real nudge ("interrupted", after sustained agreement, not the
     /// first doubt), only if you turned it on, never in practice, and not when you are already in that place.
     public var beaconPlace: TaskPlace? {
         guard prefs.beaconRing, isActive, !shadow, presence.state == "interrupted", let d = returnPlace else { return nil }
@@ -72,7 +72,7 @@ extension SessionController {
     public var backToTaskTitle: String { returnPlace.map { "Back to \($0.label)" } ?? "Back to task" }
 
     /// After a trip you asked for: the app you drifted into is hidden, if you turned that on. Hiding is Command-H: nothing is closed.
-    /// Never the app you went back to, never a place you worked in, never Focus, Finder or a system app, never an app on the never-judged list.
+    /// Never the app you went back to, never a place you worked in, never Hushd, Finder or a system app, never an app on the never-judged list.
     private func putAway(after place: TaskPlace) {
         let drifted = awayAtPress; awayAtPress = nil
         guard prefs.putAwayOnReturn, !shadow, !ladderReturning, let d = drifted, d.app != place.window.app, Enforcement.canHide(d.app),

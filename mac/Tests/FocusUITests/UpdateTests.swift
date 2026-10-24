@@ -13,7 +13,7 @@ final class UpdateTests: XCTestCase {
         let app = root.appendingPathComponent(name)
         let macos = app.appendingPathComponent("Contents/MacOS")
         try FileManager.default.createDirectory(at: macos, withIntermediateDirectories: true)
-        var plist: [String: Any] = ["CFBundleName": "Focus"]
+        var plist: [String: Any] = ["CFBundleName": "Hushd"]
         if let id { plist["FocusBuildID"] = id }
         let plistURL = app.appendingPathComponent("Contents/Info.plist")
         try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0).write(to: plistURL)
@@ -58,7 +58,7 @@ final class UpdateTests: XCTestCase {
 
     // MARK: controller rules
     func controller() -> SessionController { SessionController(judge: CountingJudge { _ in Verdict(label: .onTask) }, prefs: noWords(), now: { 0 }) }
-    let offer = UpdateOffer(buildID: "20261013120000-bbbb", sourcePath: "/tmp/Focus.app")
+    let offer = UpdateOffer(buildID: "20261013120000-bbbb", sourcePath: "/tmp/Hushd.app")
 
     func testOfferShowsBetweenSessionsAndInstallRunsTheHook() {
         let c = controller(); var installed: UpdateOffer?

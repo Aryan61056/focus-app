@@ -219,10 +219,10 @@ final class BetaTests: XCTestCase {
 
     static let ips = """
     {"app_name":"focus-app","timestamp":"2026-10-17 14:02:11.00 +0000","app_version":"0.1.0","os_version":"macOS 27.0 (27A123)","bug_type":"309","incident_id":"ABC-123"}
-    {"crashReporterKey":"SECRET-KEY","procPath":"/Users/sam/Applications/Focus.app/Contents/MacOS/focus-app","faultingThread":1,
+    {"crashReporterKey":"SECRET-KEY","procPath":"/Users/sam/Applications/Hushd.app/Contents/MacOS/focus-app","faultingThread":1,
      "exception":{"type":"EXC_BREAKPOINT","signal":"SIGTRAP"},"termination":{"indicator":"Trace/BPT trap: 5"},
      "asi":{"libswiftCore.dylib":["Fatal error: Calc homework secret"]},
-     "usedImages":[{"name":"focus-app","path":"/Users/sam/Applications/Focus.app/Contents/MacOS/focus-app"},{"name":"libswiftCore.dylib","path":"/usr/lib/swift/libswiftCore.dylib"}],
+     "usedImages":[{"name":"focus-app","path":"/Users/sam/Applications/Hushd.app/Contents/MacOS/focus-app"},{"name":"libswiftCore.dylib","path":"/usr/lib/swift/libswiftCore.dylib"}],
      "threads":[{"frames":[{"imageIndex":0,"imageOffset":10}]},
                 {"triggered":true,"frames":[{"imageIndex":1,"symbol":"_assertionFailure(_:_:file:line:flags:)"},{"imageIndex":0,"symbol":"SessionController.tick()"},{"imageIndex":0,"imageOffset":4096},{"imageIndex":0,"symbol":"load /Users/sam/Library/x.swift"}]}]}
     """

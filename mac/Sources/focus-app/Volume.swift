@@ -2,7 +2,7 @@ import CoreAudio
 import FocusUI
 
 /// The Mac's output volume through CoreAudio's virtual main volume of the default output device. Reading and setting need no permission.
-/// If the device cannot be set (some HDMI and display speakers), `write` says so and Focus leaves the volume alone.
+/// If the device cannot be set (some HDMI and display speakers), `write` says so and Hushd leaves the volume alone.
 final class MacVolume: SystemVolume {
     /// 'vmvc', the virtual main volume (kAudioHardwareServiceDeviceProperty_VirtualMainVolume, which the SDK marks deprecated by name only).
     private static let virtualMainVolume: AudioObjectPropertySelector = 0x766D7663

@@ -1,8 +1,8 @@
 import SwiftUI
 import FocusBrain
 
-/// rest: the ring and the time on either side of the hardware notch. peek: the pointer is on it, so the ears widen and say how Focus
-/// reads you. open: a click opened the full card. nudge: Focus opened it to ask you back.
+/// rest: the ring and the time on either side of the hardware notch. peek: the pointer is on it, so the ears widen and say how Hushd
+/// reads you. open: a click opened the full card. nudge: Hushd opened it to ask you back.
 public enum NotchMode: Equatable, Sendable { case rest, peek, open, nudge }
 
 /// Size of the notch surface for each mode. Pure, so it is tested; the AppKit panel just applies it.
@@ -145,7 +145,7 @@ private struct NotchMaterial: View {
 }
 
 /// The notch presence. Aesthetic, not functional (owner, 2026-10-01), and since 2026-10-13 not a way out either: it only shows.
-/// At rest a ring and the time; under the pointer the ears widen and say how Focus reads you; a click opens the task, the clock and
+/// At rest a ring and the time; under the pointer the ears widen and say how Hushd reads you; a click opens the task, the clock and
 /// today's progress; a nudge says what it says and offers one button, "Back to task". There is no way to step away from a nudge here,
 /// because anything like that lives in the app window, where it can be checked (the shield) or at least be seen.
 /// It always draws dark so it melts into the hardware notch.
@@ -230,7 +230,7 @@ public struct NotchView: View {
         .onChange(of: c.presenceLabel) { _, label in announce(label) }
         .onDisappear { flashTask?.cancel() }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Focus, \(c.presenceLabel), \(c.taskName)")
+        .accessibilityLabel("Hushd, \(c.presenceLabel), \(c.taskName)")
         .accessibilityAction(named: big ? "Close" : "Show details") { if forced == nil, mode != .nudge { model.expanded.toggle() } }
     }
 
@@ -317,7 +317,7 @@ public struct NotchView: View {
     }
 
     /// The top band: ring on the left ear, the hardware notch in the middle, the time on the right ear. Wider under the pointer,
-    /// with how Focus reads you beside the ring. Open, the band carries the state and the page tabs instead, so nothing hangs below.
+    /// with how Hushd reads you beside the ring. Open, the band carries the state and the page tabs instead, so nothing hangs below.
     var band: some View {
         // Over a nudge the ring and the time move out to the row's edges, so they line up with the words and the button below.
         let edges = mode == .nudge
@@ -422,7 +422,7 @@ public struct NotchView: View {
 
     // MARK: nudge: one way forward, no way out
 
-    /// The words, one line of what Focus saw under them, and the one button. On a screen without a notch the pill has no band, so the
+    /// The words, one line of what Hushd saw under them, and the one button. On a screen without a notch the pill has no band, so the
     /// state ring leads. The rows sit centred in the space under the band, clear of the rounded foot.
     var nudgeBody: some View {
         HStack(alignment: .center, spacing: 10) {

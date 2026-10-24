@@ -306,7 +306,7 @@ final class CueControllerTests: XCTestCase {
         XCTAssertNotNil(c.banner)
         c.bannerPartOfIt()
         XCTAssertNil(c.banner)
-        XCTAssertEqual(c.shield?.kind, .claim, "Focus read this window as off topic, so a click is not enough")
+        XCTAssertEqual(c.shield?.kind, .claim, "Hushd read this window as off topic, so a click is not enough")
         XCTAssertTrue(c.learnedRules.isEmpty)
     }
 

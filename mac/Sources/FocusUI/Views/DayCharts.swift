@@ -34,7 +34,7 @@ struct DayTrack: View {
                 }
             }.frame(height: 16).accessibilityHidden(true)
         }
-        .accessibilityElement(children: .ignore).accessibilityLabel("Focus timeline for today")
+        .accessibilityElement(children: .ignore).accessibilityLabel("Hushd timeline for today")
     }
 }
 

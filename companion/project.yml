@@ -41,7 +41,7 @@ targets:
     info:
       path: App/Info.plist
       properties:
-        CFBundleDisplayName: Focus
+        CFBundleDisplayName: Hushd
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UIApplicationSceneManifest:
@@ -49,7 +49,7 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: dev.focusapp.companion.pair
             CFBundleURLSchemes: [focuslink]
-        NSLocalNetworkUsageDescription: Focus finds your Mac on your Wi-Fi so this phone can show and control your session. Nothing leaves your network.
+        NSLocalNetworkUsageDescription: Hushd finds your Mac on your Wi-Fi so this phone can show and control your session. Nothing leaves your network.
         NSBonjourServices: [_focuslink._tcp]
         NSSupportsLiveActivities: true
         FocusCloudContainer: $(FOCUS_CLOUD_CONTAINER)
@@ -68,7 +68,7 @@ targets:
     info:
       path: LiveActivity/Info.plist
       properties:
-        CFBundleDisplayName: Focus
+        CFBundleDisplayName: Hushd
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
@@ -83,7 +83,7 @@ targets:
     info:
       path: Monitor/Info.plist
       properties:
-        CFBundleDisplayName: Focus
+        CFBundleDisplayName: Hushd
         NSExtension:
           NSExtensionPointIdentifier: com.apple.deviceactivity.monitor-extension
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).FocusMonitor
@@ -100,7 +100,7 @@ targets:
     info:
       path: Shield/Info.plist
       properties:
-        CFBundleDisplayName: Focus
+        CFBundleDisplayName: Hushd
         NSExtension:
           NSExtensionPointIdentifier: com.apple.ManagedSettingsUI.shield-configuration-service
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).FocusShieldConfiguration

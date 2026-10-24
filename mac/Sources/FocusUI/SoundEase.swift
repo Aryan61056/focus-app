@@ -1,9 +1,9 @@
 import Foundation
 
 // Easing the sound down while you are off task on a video site, and back when you return. A strong cue for video rabbit holes, and the one
-// that touches something outside Focus, so it is built to give the volume back in every way it can end: you return, you pause, the session
-// ends, you quit, or Focus crashes (the lowered volume is remembered and put right at the next launch). If you change the volume yourself
-// while it is lowered, Focus lets go and never fights you for it. It never mutes: it goes to about a third of where you had it.
+// that touches something outside Hushd, so it is built to give the volume back in every way it can end: you return, you pause, the session
+// ends, you quit, or Hushd crashes (the lowered volume is remembered and put right at the next launch). If you change the volume yourself
+// while it is lowered, Hushd lets go and never fights you for it. It never mutes: it goes to about a third of where you had it.
 
 /// The Mac's output volume, 0 to 1. The app provides the real one (CoreAudio); tests provide a fake.
 public protocol SystemVolume: AnyObject {
@@ -19,7 +19,7 @@ public enum SoundEase {
     public static let minimumOriginal: Float = 0.08
     /// How much of the way to the goal each second covers going down, and coming back.
     public static let downRate: Float = 0.3, upRate: Float = 0.5
-    /// How far the volume may be from what Focus set before it counts as you having changed it.
+    /// How far the volume may be from what Hushd set before it counts as you having changed it.
     public static let tolerance: Float = 0.03
 
     static let videoHosts = ["youtube.com", "youtu.be", "netflix.com", "twitch.tv", "tiktok.com", "hulu.com", "disneyplus.com", "primevideo.com", "vimeo.com"]
@@ -53,7 +53,7 @@ public enum SoundEase {
         }
     }
 
-    /// At launch: the volume to put back after a crash, or nil. Only when the volume is still where Focus last left it (`lowered` is updated at
+    /// At launch: the volume to put back after a crash, or nil. Only when the volume is still where Hushd last left it (`lowered` is updated at
     /// every step): if you have changed it since, it is yours and is left alone.
     public static func recover(saved: Saved?, current: Float?) -> Float? {
         guard let s = saved, let c = current else { return nil }

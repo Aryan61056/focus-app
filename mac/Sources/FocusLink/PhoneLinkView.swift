@@ -29,7 +29,7 @@ public struct PhoneLinkView: View {
             }
             Divider()
             iCloudRow
-            Text("Your phone talks to this Mac directly over your Wi-Fi. There is no account and no server of ours in between. Turn the switch off and Focus stops listening.")
+            Text("Your phone talks to this Mac directly over your Wi-Fi. There is no account and no server of ours in between. Turn the switch off and Hushd stops listening.")
                 .font(Tokens.text(.caption2)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
         }
         .padding(22).frame(width: 440, height: 560, alignment: .topLeading).background(Tokens.window)
@@ -57,7 +57,7 @@ public struct PhoneLinkView: View {
 
     private var idle: some View {
         let installer = link.installer
-        // While Focus is offering to install the app, that is the step in front of you and pairing waits its turn.
+        // While Hushd is offering to install the app, that is the step in front of you and pairing waits its turn.
         let installing: Bool = {
             switch installer.state { case .ready, .installing, .building, .needsXcodegen, .installingXcodegen, .needsTeam: return true; default: return false }
         }()
@@ -66,19 +66,19 @@ public struct PhoneLinkView: View {
             installBlock(installer)
             Button { link.beginPairing() } label: { Label(link.phones.isEmpty ? "Pair an iPhone" : "Pair another iPhone", systemImage: "iphone").frame(maxWidth: .infinity) }
                 .buttonStyle(FocusButtonStyle(installing ? .secondary : .primary, expand: true))
-            Text(installer.state == .notIncluded ? "Install Focus on your iPhone first, then press the button. It takes about ten seconds."
-                                                  : "Open Focus on your iPhone, then press the button. It takes about ten seconds.")
+            Text(installer.state == .notIncluded ? "Install Hushd on your iPhone first, then press the button. It takes about ten seconds."
+                                                  : "Open Hushd on your iPhone, then press the button. It takes about ten seconds.")
                 .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
         }
         // Looks for a plugged-in iPhone while this step is on screen, so plugging one in is noticed.
         .task { await installer.watch() }
     }
 
-    /// Step one: get the app onto the phone. Shown only when this copy of Focus carries an iPhone build.
+    /// Step one: get the app onto the phone. Shown only when this copy of Hushd carries an iPhone build.
     @ViewBuilder private func installBlock(_ installer: PhoneInstaller) -> some View {
         if installer.state != .notIncluded {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Put Focus on your iPhone").font(Tokens.text(.callout, .semibold)).foregroundStyle(Tokens.ink)
+                Text("Put Hushd on your iPhone").font(Tokens.text(.callout, .semibold)).foregroundStyle(Tokens.ink)
                 switch installer.state {
                 case .notIncluded: EmptyView()
                 case .idle, .looking:
@@ -98,8 +98,8 @@ public struct PhoneLinkView: View {
                                     if !target.model.isEmpty { Text(target.model).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2) }
                                 }
                                 Spacer()
-                                Button(installer.buildsItself ? "Build and install" : "Install Focus") { Task { await installer.install(on: target) } }.buttonStyle(FocusButtonStyle(.primary, small: true))
-                                    .help(installer.buildsItself ? "Focus makes the iPhone app on this Mac, signs it with your Apple ID's team and puts it on the phone." : "Puts the iPhone app on this phone over the cable.")
+                                Button(installer.buildsItself ? "Build and install" : "Install Hushd") { Task { await installer.install(on: target) } }.buttonStyle(FocusButtonStyle(.primary, small: true))
+                                    .help(installer.buildsItself ? "Hushd makes the iPhone app on this Mac, signs it with your Apple ID's team and puts it on the phone." : "Puts the iPhone app on this phone over the cable.")
                             }
                             if target.needsDeveloperMode {
                                 Text("Turn on Developer Mode on this iPhone first: Settings, Privacy & Security.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
@@ -115,7 +115,7 @@ public struct PhoneLinkView: View {
                         Text("Keep \(phone) plugged in and unlocked.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
                     }
                 case .needsXcodegen:
-                    Text("Focus needs a small free tool, xcodegen, to build the iPhone app. It installs with Homebrew.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
+                    Text("Hushd needs a small free tool, xcodegen, to build the iPhone app. It installs with Homebrew.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
                         .fixedSize(horizontal: false, vertical: true)
                     HStack {
                         Button("Install xcodegen") { Task { await installer.installXcodegen() } }.buttonStyle(FocusButtonStyle(.primary, small: true))
@@ -128,7 +128,7 @@ public struct PhoneLinkView: View {
                 case .installed(let name):
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Image(systemName: "checkmark.circle.fill").foregroundStyle(Tokens.accent)
-                        Text("Focus is on \(name). Open it there, then pair below.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink)
+                        Text("Hushd is on \(name). Open it there, then pair below.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 case .failed(let message):
@@ -154,7 +154,7 @@ public struct PhoneLinkView: View {
                 }
                 Spacer()
             }
-            Text("Or open Focus on your iPhone, choose Add your Mac, and type:").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
+            Text("Or open Hushd on your iPhone, choose Add your Mac, and type:").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
             Text(pairing.code.display).font(.system(size: 22, weight: .semibold, design: .monospaced)).foregroundStyle(Tokens.ink).textSelection(.enabled)
                 .padding(.vertical, 10).frame(maxWidth: .infinity).background(RoundedRectangle(cornerRadius: Tokens.radiusCard).fill(Tokens.accentSoft))
             HStack {
@@ -200,13 +200,13 @@ public struct PhoneLinkView: View {
 }
 
 
-/// Shown only when Xcode has no signed-in Apple ID to take a team from: sign in there (Focus then finds it), or type the ten characters.
+/// Shown only when Xcode has no signed-in Apple ID to take a team from: sign in there (Hushd then finds it), or type the ten characters.
 private struct TeamEntry: View {
     var installer: PhoneInstaller
     @State private var team = ""
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Focus signs the iPhone app with your Apple ID. Sign in under Xcode, Settings, Accounts and try again, or paste your 10-character team id.")
+            Text("Hushd signs the iPhone app with your Apple ID. Sign in under Xcode, Settings, Accounts and try again, or paste your 10-character team id.")
                 .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 8) {
                 TextField("Team id", text: $team).textFieldStyle(.roundedBorder).frame(maxWidth: 160).onSubmit(use)

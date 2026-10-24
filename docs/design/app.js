@@ -114,12 +114,12 @@
   var sessions = [
     { when: "Today, 12:02", proj: "Calc homework", len: "24 min", segs: S([["on", 24]]), slips: 0, nudges: 0, mode: "Open", live: true, sentence: "24 minutes on task so far. No slips yet.", note: "" },
     { when: "Today, 10:05", proj: "Calc homework", len: "44 min", segs: S([["on", 25], ["off", 1], ["on", 18]]), slips: 1, nudges: 0, mode: "Open", sentence: "43 minutes on task. You slipped once and were back in about a minute.", note: "Problems 1 to 3 done. Stuck on 4." },
-    { when: "Today, 8:20", proj: "Essay on sleep and memory", len: "1 h 10", segs: S([["on", 46], ["off", 1], ["on", 15], ["un", 2], ["on", 6]]), slips: 1, nudges: 0, mode: "Open", sentence: "67 minutes on task. One slip, and two minutes Focus was not sure about.", note: "" },
+    { when: "Today, 8:20", proj: "Essay on sleep and memory", len: "1 h 10", segs: S([["on", 46], ["off", 1], ["on", 15], ["un", 2], ["on", 6]]), slips: 1, nudges: 0, mode: "Open", sentence: "67 minutes on task. One slip, and two minutes Hushd was not sure about.", note: "" },
     { when: "Wed, 14:30", proj: "Essay on sleep and memory", len: "1 h 35", segs: S([["on", 30], ["off", 3], ["on", 40], ["off", 2], ["on", 20]]), slips: 2, nudges: 1, mode: "Timed", sentence: "90 minutes on task. You slipped twice and one nudge got you back.", note: "Added three citations." },
     { when: "Wed, 9:15", proj: "Lab report on pendulums", len: "1 h 10", segs: S([["on", 36], ["un", 3], ["on", 30], ["off", 1]]), slips: 1, nudges: 0, mode: "Open", sentence: "66 minutes on task. One slip.", note: "" },
     { when: "Tue, 14:10", proj: "Calc homework", len: "1 h 12", segs: S([["on", 30], ["off", 1], ["on", 41]]), slips: 1, nudges: 0, mode: "Open", sentence: "71 minutes on task. One slip, about a minute.", note: "" },
     { when: "Tue, 9:40", proj: "Calc homework", len: "1 h 48", segs: S([["on", 50], ["off", 4], ["on", 48], ["off", 2], ["on", 4]]), slips: 2, nudges: 1, mode: "Timed", sentence: "102 minutes on task. Two slips, and one nudge.", note: "" },
-    { when: "Mon, 15:00", proj: "Thesis reading", len: "52 min", segs: S([["on", 28], ["un", 4], ["on", 20]]), slips: 0, nudges: 0, mode: "Open", sentence: "48 minutes on task. Focus was unsure for four minutes while you read a PDF.", note: "" }
+    { when: "Mon, 15:00", proj: "Thesis reading", len: "52 min", segs: S([["on", 28], ["un", 4], ["on", 20]]), slips: 0, nudges: 0, mode: "Open", sentence: "48 minutes on task. Hushd was unsure for four minutes while you read a PDF.", note: "" }
   ];
   function mini(segs, cls) {
     var m = document.createElement("div"); m.className = "mini " + (cls || ""); m.setAttribute("aria-hidden", "true");
@@ -154,18 +154,18 @@
   /* ---- review ---- */
   var moments = [
     { when: "Today 10:31", proj: "Calc homework", what: "Browser, a video page, 1 min 40 s", call: "Would have nudged", ring: "r-drift", fine: "Video pages stay off topic for Calc homework.", why: "A video about something unrelated to integration by parts, and it ran for over a minute." },
-    { when: "Today 9:58", proj: "Essay on sleep and memory", what: "Messages, a conversation, 3 min", call: "Close call", ring: "r-unsure", fine: "Messages will not be judged.", why: "A conversation. Focus could not tell if it was about the essay, so it only marked it." },
-    { when: "Wed 15:12", proj: "Essay on sleep and memory", what: "Browser, a news page, 2 min", call: "Would have nudged", ring: "r-drift", fine: "News pages count for this essay.", why: "A news article. Nothing in it connects to sleep and memory, so Focus marked it." },
-    { when: "Wed 11:03", proj: "Lab report on pendulums", what: "Music app, 6 min", call: "Close call", ring: "r-unsure", fine: "Music counts everywhere.", why: "A music app. Focus is unsure whether music is part of how you work." },
-    { when: "Tue 16:20", proj: "Calc homework", what: "Browser, a graphing page, 4 min", call: "Would have nudged", ring: "r-drift", fine: "This site counts for Calc homework.", why: "A graphing page. Focus read it as a different activity, but it looks like a tool for this project." }
+    { when: "Today 9:58", proj: "Essay on sleep and memory", what: "Messages, a conversation, 3 min", call: "Close call", ring: "r-unsure", fine: "Messages will not be judged.", why: "A conversation. Hushd could not tell if it was about the essay, so it only marked it." },
+    { when: "Wed 15:12", proj: "Essay on sleep and memory", what: "Browser, a news page, 2 min", call: "Would have nudged", ring: "r-drift", fine: "News pages count for this essay.", why: "A news article. Nothing in it connects to sleep and memory, so Hushd marked it." },
+    { when: "Wed 11:03", proj: "Lab report on pendulums", what: "Music app, 6 min", call: "Close call", ring: "r-unsure", fine: "Music counts everywhere.", why: "A music app. Hushd is unsure whether music is part of how you work." },
+    { when: "Tue 16:20", proj: "Calc homework", what: "Browser, a graphing page, 4 min", call: "Would have nudged", ring: "r-drift", fine: "This site counts for Calc homework.", why: "A graphing page. Hushd read it as a different activity, but it looks like a tool for this project." }
   ];
   var list = $("#review-list"), left = moments.length, h2 = $("[data-view=review] .a-h2"), badge = $(".a-nav button[data-go=review] .count");
   function setLeft() { h2.textContent = left ? left + " moment" + (left === 1 ? "" : "s") + " to look at" : "All caught up"; badge.textContent = left; if (!left) badge.style.visibility = "hidden"; }
   moments.forEach(function (m) {
     var r = document.createElement("div"); r.className = "a-moment";
-    r.innerHTML = '<span class="when">' + m.when + '</span><div><b>' + m.proj + '</b><small>' + m.what + '</small><br><span class="a-call"><span class="ring"><svg><use href="#' + m.ring + '"/></svg></span>' + m.call + '</span><span class="reason"><em>Why Focus flagged it:</em> ' + m.why + '</span></div>';
+    r.innerHTML = '<span class="when">' + m.when + '</span><div><b>' + m.proj + '</b><small>' + m.what + '</small><br><span class="a-call"><span class="ring"><svg><use href="#' + m.ring + '"/></svg></span>' + m.call + '</span><span class="reason"><em>Why Hushd flagged it:</em> ' + m.why + '</span></div>';
     var ans = document.createElement("div"); ans.className = "a-ans";
-    [["Right call", "Noted. Focus will be a little quicker next time."], ["That was fine", m.fine]].forEach(function (a, i) {
+    [["Right call", "Noted. Hushd will be a little quicker next time."], ["That was fine", m.fine]].forEach(function (a, i) {
       var b = document.createElement("button"); b.className = "btn sm" + (i ? " plain" : ""); b.type = "button"; b.textContent = a[0];
       b.addEventListener("click", function () {
         ans.className = "res"; ans.textContent = a[1]; r.classList.add("done"); left--; setLeft();
@@ -179,8 +179,8 @@
   /* ---- the AI reading (Today) ---- */
   var reads = {
     on: { ring: "r-on", label: "On task", app: "Preview", tile: "Pv", title: "Chapter 5 exercises.pdf, page 12", why: "A page of calculus exercises, which is the work Calc homework is about.", p3: "Confident", p3s: "It matches the task. Nothing to do." },
-    unsure: { ring: "r-unsure", label: "Not sure", app: "Messages", tile: "Ms", title: "A conversation", why: "A chat. It could be about the homework or about something else, so Focus is leaving it alone.", p3: "Not sure", p3s: "Focus waits and does nothing." },
-    off: { ring: "r-drift", label: "Off topic", app: "Safari", tile: "Sf", title: "A video page, 1 min 10 s", why: "A video about something unrelated to integration by parts.", p3: "Two checks agree", p3s: "Focus keeps watching. It speaks up only if this lasts." }
+    unsure: { ring: "r-unsure", label: "Not sure", app: "Messages", tile: "Ms", title: "A conversation", why: "A chat. It could be about the homework or about something else, so Hushd is leaving it alone.", p3: "Not sure", p3s: "Hushd waits and does nothing." },
+    off: { ring: "r-drift", label: "Off topic", app: "Safari", tile: "Sf", title: "A video page, 1 min 10 s", why: "A video about something unrelated to integration by parts.", p3: "Two checks agree", p3s: "Hushd keeps watching. It speaks up only if this lasts." }
   };
   var recents = [
     ["12:26", "Preview", "on", "Textbook exercises", ""],
@@ -206,11 +206,11 @@
     rr.appendChild(d);
   });
 
-  /* ---- ask Focus about a window (Projects) ---- */
+  /* ---- ask Hushd about a window (Projects) ---- */
   function ask() {
     var app = $("#try-app").value.trim(), title = $("#try-title").value.trim(), t = (app + " " + title).toLowerCase(), out = $("#try-out");
     var k = /(video|youtube|netflix|shorts|reddit|instagram|tiktok|shop|game)/.test(t) ? "off" : /(integra|calc|derivative|textbook|desmos|khan|chapter|problem|exercise)/.test(t) ? "on" : "unsure";
-    var why = { on: "This is about integration by parts, which is what the project covers.", off: "This is entertainment, not related to Calculus II.", unsure: "Nothing here clearly ties it to the project, so Focus would not act on it." }[k];
+    var why = { on: "This is about integration by parts, which is what the project covers.", off: "This is entertainment, not related to Calculus II.", unsure: "Nothing here clearly ties it to the project, so Hushd would not act on it." }[k];
     var ring = { on: "r-on", unsure: "r-unsure", off: "r-drift" }[k], name = { on: "On task", unsure: "Not sure", off: "Off topic" }[k];
     out.innerHTML = '<span class="ring" style="color:' + (k === "on" ? "var(--accent)" : "var(--ink)") + '"><svg><use href="#' + ring + '"/></svg></span><div><b>' + name + '</b><span class="t">' + why + ' (Sample answer on this board.)</span></div>';
   }

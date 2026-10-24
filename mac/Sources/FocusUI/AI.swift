@@ -17,7 +17,7 @@ extension SessionController {
 
     // MARK: facts
 
-    /// What the model may know about the session. Counts and times always; window text only for Ask Focus, which the user opens.
+    /// What the model may know about the session. Counts and times always; window text only for Ask Hushd, which the user opens.
     func sessionFacts(includeWindows: Bool) -> String {
         var lines = ["Task: \(taskName)"]
         if let p = projectForNote, !p.context.isEmpty { lines.append("Project notes: \(p.context)") }

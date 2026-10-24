@@ -44,7 +44,7 @@ import FocusUI
     }
 
     public func availability() async -> FriendsAvailability {
-        guard Self.entitled else { return .unavailable("Friends need iCloud, and this build of Focus is not set up for it yet.") }
+        guard Self.entitled else { return .unavailable("Friends need iCloud, and this build of Hushd is not set up for it yet.") }
         do {
             switch try await container.accountStatus() {
             case .available:
@@ -110,7 +110,7 @@ import FocusUI
         let shareID = CKRecord.ID(recordName: CKRecordNameZoneWideShare, zoneID: zoneID)
         if let existing = try? await privateDB.record(for: shareID) as? CKShare { return existing }
         let share = CKShare(recordZoneID: zoneID)
-        share[CKShare.SystemFieldKey.title] = "Focus friends" as CKRecordValue
+        share[CKShare.SystemFieldKey.title] = "Hushd friends" as CKRecordValue
         share.publicPermission = .none   // only people you invite
         let saved = try await privateDB.modifyRecords(saving: [share], deleting: [], savePolicy: .allKeys)
         if case .success(let r)? = saved.saveResults[share.recordID], let s = r as? CKShare { return s }

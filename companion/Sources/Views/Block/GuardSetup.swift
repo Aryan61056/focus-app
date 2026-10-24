@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// iOS lets an app offer an action to Shortcuts but not create the automation for you, so this is the one setup the person does,
-/// once. "Focus" is also the name of iOS's Do Not Disturb modes, which Siri readily mixes up with this app, so the action is called
+/// once. "Hushd" is also the name of iOS's Do Not Disturb modes, which Siri readily mixes up with this app, so the action is called
 /// "Guard my session", the request says what it is not, and the page shows whether the automation has ever actually run.
 struct GuardSetup: View {
     @Environment(AppModel.self) private var model
@@ -12,7 +12,7 @@ struct GuardSetup: View {
 
     private var prompt: String {
         let apps = SocialApps.suggestions.dropLast().joined(separator: ", ") + " or " + (SocialApps.suggestions.last ?? "Pinterest")
-        return "Create a personal automation with the trigger App: when \(apps) is opened, run immediately without asking. The only action is the app action \"\(Self.action)\" from the app named Focus (a green ring icon). It is not an iOS Focus mode, so do not use Set Focus or Do Not Disturb, and do not add Open App."
+        return "Create a personal automation with the trigger App: when \(apps) is opened, run immediately without asking. The only action is the app action \"\(Self.action)\" from the app named Hushd (a green ring icon). It is not an iOS Focus mode, so do not use Set Focus or Do Not Disturb, and do not add Open App."
     }
 
     var body: some View {
@@ -42,7 +42,7 @@ struct GuardSetup: View {
         Section {
             step(1, "Tap Automation, then +, then App.")
             step(2, "Choose your social apps, set Is Opened and Run Immediately, then tap Next.")
-            step(3, "Tap Add Action, search for \"\(Self.action)\" (not Focus), choose it, then tap Done.")
+            step(3, "Tap Add Action, search for \"\(Self.action)\" (not Hushd), choose it, then tap Done.")
         } header: { Text("Or build it yourself") }
 
         Section {

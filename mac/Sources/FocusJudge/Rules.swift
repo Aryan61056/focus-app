@@ -63,7 +63,7 @@ public enum Rules {
     }
 
     /// Words that mean the screen shows a login, payment or secret. Text read from the screen is dropped, not judged, when it has one.
-    /// Deliberately wide: a false hold only means Focus falls back to the window title for that window.
+    /// Deliberately wide: a false hold only means Hushd falls back to the window title for that window.
     static let privateTextMarkers = ["password", "passcode", "passphrase", "card number", "cvv", "cvc", "security code", "social security",
                                      "routing number", "account number", "recovery phrase", "seed phrase", "private key", "one-time code",
                                      "verification code", "2fa", "iban"]
@@ -93,7 +93,7 @@ public enum Rules {
     }
 
     /// Words from the task, project name and project description that also appear in the window title, the page path or the file path.
-    /// A hit counts as on task without asking the model. It can only make Focus quieter: a distraction that happens to share a word
+    /// A hit counts as on task without asking the model. It can only make Hushd quieter: a distraction that happens to share a word
     /// goes unnoticed (measured on the dev, held-out and fresh sets: 1 or 2 of 45 off-task moments). Not applied on feeds, video or news.
     public static func sharedTaskWords(_ m: Moment) -> [String] {
         let (host, path) = hostAndPath(m.url)
@@ -107,7 +107,7 @@ public enum Rules {
         return task.intersection(there).sorted()
     }
 
-    /// Apps Focus does not judge by default: personal messaging and music. Neither is read nor counted as off task.
+    /// Apps Hushd does not judge by default: personal messaging and music. Neither is read nor counted as off task.
     /// Slack, Mail and similar can be work, so they are not here. The owner approved a default list on 2026-10-01; this exact
     /// list is a starting point the user can edit in Settings.
     public static let defaultNeverJudgedApps: [String] = [

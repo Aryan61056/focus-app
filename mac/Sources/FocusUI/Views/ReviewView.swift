@@ -1,8 +1,8 @@
 import SwiftUI
 import FocusJudge
 
-/// Review: each moment Focus would have nudged about, led by its call and its reason, with two answers. The Focus panel says what the
-/// answers do and how often Focus has agreed with you. It can name the site: you opened Review to see it (nudges never do).
+/// Review: each moment Hushd would have nudged about, led by its call and its reason, with two answers. The Hushd panel says what the
+/// answers do and how often Hushd has agreed with you. It can name the site: you opened Review to see it (nudges never do).
 struct ReviewView: View {
     @Bindable var c: SessionController
     @Bindable var store: DataStore
@@ -13,7 +13,7 @@ struct ReviewView: View {
             VStack(alignment: .leading, spacing: Space.l) {
                 if c.prefs.practiceActive { practice }
                 if open.isEmpty {
-                    EmptyState(symbol: "checkmark", title: "All caught up", text: "Moments Focus would have nudged about land here.")
+                    EmptyState(symbol: "checkmark", title: "All caught up", text: "Moments Hushd would have nudged about land here.")
                 } else {
                     VStack(spacing: Space.s) {
                         ForEach(open) { m in
@@ -51,7 +51,7 @@ struct ReviewView: View {
         .background(RoundedRectangle(cornerRadius: Tokens.radiusInset, style: .continuous).fill(Tokens.well))
     }
 
-    /// Focus's call and reason lead, because the call is what you are judging; where and when sit under it.
+    /// Hushd's call and reason lead, because the call is what you are judging; where and when sit under it.
     func moment(_ m: ReviewMoment) -> some View {
         HStack(alignment: .top, spacing: Space.m) {
             RingView(.drift, color: Tokens.slip).frame(width: 22, height: 22).padding(.top, 1).accessibilityHidden(true)
@@ -66,7 +66,7 @@ struct ReviewView: View {
                         store.apply(LearnedRule(scope: "project", kind: "allow", keyType: "site", key: m.siteKey), to: m.projectId)
                         store.answerReview(m.id, "fine")
                     } label: { Label("I was on task", systemImage: "xmark") }.buttonStyle(FocusButtonStyle(.plain, small: true))
-                        .help("Focus will count this site as on task for this project")
+                        .help("Hushd will count this site as on task for this project")
                 }
                 .padding(.top, Space.xs)
             }

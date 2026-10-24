@@ -12,7 +12,7 @@ public enum OverrideClaim {
             case .tooShort: return "Write a sentence or two: what you are doing in this window and how it connects to the task."
             case .repetitive: return "Say it in your own words. Repeated words do not count."
             case .notAboutWindow: return "Describe what is in this window, such as the page, the file or what you are reading."
-            case .injected: return "Focus ignores instructions aimed at it. Describe the window instead."
+            case .injected: return "Hushd ignores instructions aimed at it. Describe the window instead."
             }
         }
     }

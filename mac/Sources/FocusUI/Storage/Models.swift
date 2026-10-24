@@ -20,7 +20,7 @@ public struct TimelineSegment: Codable, Equatable, Sendable {
     public init(_ kind: Kind, _ seconds: Double) { self.kind = kind; self.seconds = seconds }
 }
 
-/// How many checks Focus made in a session and what it concluded. Counts only: no titles, no text.
+/// How many checks Hushd made in a session and what it concluded. Counts only: no titles, no text.
 public struct ReadStats: Codable, Equatable, Sendable {
     public var model = 0, rule = 0, onTask = 0, unsure = 0, offTask = 0
     /// Windows left alone because they are on the never-judged list. Not part of `total`.
@@ -58,7 +58,7 @@ public struct SessionRecord: Codable, Identifiable, Equatable, Sendable {
     public var returns: [Double]?
     /// For each return, the cue that had appeared last and how long after it you were back. Kinds and counts only.
     public var returnCues: [ReturnCue]?
-    /// A practice session: Focus watched and did not classify, so stretches and returns from it say nothing.
+    /// A practice session: Hushd watched and did not classify, so stretches and returns from it say nothing.
     public var practice: Bool?
 
     public var onTaskSeconds: Double { max(0, activeSeconds - offTopicSeconds - unsureSeconds) }

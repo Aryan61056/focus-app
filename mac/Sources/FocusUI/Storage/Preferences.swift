@@ -28,11 +28,11 @@ public final class Preferences {
         else { list.append(w.rawValue); if list.count > NotchWidget.onHomeLimit { list.removeFirst(list.count - NotchWidget.onHomeLimit) } }
         notchWidgets = list
     }
-    /// A live picture of the window Focus is reading, shown in the app only. Off until the user asks for it (it needs Screen Recording).
+    /// A live picture of the window Hushd is reading, shown in the app only. Off until the user asks for it (it needs Screen Recording).
     public var readScreen: Bool { didSet { defaults.set(readScreen, forKey: "readScreen") } }
     /// First-run intro shown once; and the one "too quiet, about right, too loud" question, asked once after the first session that actually nudged.
     public var introSeen: Bool { didSet { defaults.set(introSeen, forKey: "introSeen") } }
-    /// The welcome window (what Focus does, window access, the first task) was finished or skipped.
+    /// The welcome window (what Hushd does, window access, the first task) was finished or skipped.
     public var welcomeSeen: Bool { didSet { defaults.set(welcomeSeen, forKey: "welcomeSeen") } }
     public var loudnessAsked: Bool { didSet { defaults.set(loudnessAsked, forKey: "loudnessAsked") } }
     public var contextTipDismissed: Bool { didSet { defaults.set(contextTipDismissed, forKey: "contextTipDismissed") } }
@@ -41,7 +41,7 @@ public final class Preferences {
     /// Off: the on-device model is never asked. Only project rules, matching words and the never-judged lists decide; everything else
     /// is "not judged" and cannot lead to a nudge.
     public var useModel: Bool { didSet { defaults.set(useModel, forKey: "useModel") } }
-    /// Task coach, session recap and Ask Focus, all written by the on-device model. Off: none of them appear.
+    /// Task coach, session recap and Ask Hushd, all written by the on-device model. Off: none of them appear.
     public var aiHelp: Bool { didSet { defaults.set(aiHelp, forKey: "aiHelp") } }
     /// Practice mode taken out of the app for good: every session nudges from the start, and no practice screen, count or message appears.
     public var practiceRemoved: Bool { didSet { defaults.set(practiceRemoved, forKey: "practiceRemoved"); if practiceRemoved { practiceSessionsLeft = 0 } } }
@@ -60,19 +60,19 @@ public final class Preferences {
     public var nudgeTone: NudgeTone { didSet { defaults.set(nudgeTone.rawValue, forKey: "nudgeTone") } }
     /// One soft system tone when a nudge appears. Off by default (PRODUCT.md: discreet).
     public var nudgeSound: Bool { didSet { defaults.set(nudgeSound, forKey: "nudgeSound") } }
-    /// How often Focus looks at the window and how soon it warns. Often is the default; Normal is the spec's original timing.
+    /// How often Hushd looks at the window and how soon it warns. Often is the default; Normal is the spec's original timing.
     public var checkRate: CheckRate { didSet { defaults.set(checkRate.rawValue, forKey: "checkRate") } }
     /// How sure the on-device model must be before a window counts as off task.
     public var sensitivity: Sensitivity { didSet { defaults.set(sensitivity.rawValue, forKey: "sensitivity") } }
     /// If you stay away after a warning: a check-in, a pause screen, then the app you drifted into is hidden (see Escalation.swift). Off: the warning only.
     public var escalate: Bool { didSet { defaults.set(escalate, forKey: "escalate") } }
-    /// The whole screen, every display, fades toward gray while you are off task (not only Focus's own window).
+    /// The whole screen, every display, fades toward gray while you are off task (not only Hushd's own window).
     public var screenGrayscale: Bool { didSet { defaults.set(screenGrayscale, forKey: "screenGrayscale") } }
     /// While you are off task the edges of every display darken and close in toward the middle, deeper the longer you stay. Off by default.
     /// The gray covers only the window you drifted into, so the task window beside it stays in color and looks like the way back.
     public var grayWindowOnly: Bool { didSet { defaults.set(grayWindowOnly, forKey: "grayWindowOnly") } }
     /// A ring around the pointer that grows the longer you are off task.
-    /// While Focus is nudging you on a video site, the Mac's volume eases down to about a third and comes back when you return.
+    /// While Hushd is nudging you on a video site, the Mac's volume eases down to about a third and comes back when you return.
     public var easeSound: Bool { didSet { defaults.set(easeSound, forKey: "easeSound") } }
     /// While you are off task the screen (or the window you drifted into) blurs a little more the longer you stay, then clears when you return.
     public var screenFog: Bool { didSet { defaults.set(screenFog, forKey: "screenFog") } }
@@ -80,7 +80,7 @@ public final class Preferences {
     public var screenEdges: Bool { didSet { defaults.set(screenEdges, forKey: "screenEdges") } }
     /// After "Back to task", a soft ring marks the window you land in.
     public var landingRing: Bool { didSet { defaults.set(landingRing, forKey: "landingRing") } }
-    /// While Focus is nudging you, a faint ring outlines the window Back to task would take you to (when Focus can find it).
+    /// While Hushd is nudging you, a faint ring outlines the window Back to task would take you to (when Hushd can find it).
     public var beaconRing: Bool { didSet { defaults.set(beaconRing, forKey: "beaconRing") } }
     /// The last step of the ladder. Hiding an app is reversible (click it in the Dock) and never closes it or loses its work.
     public var hideDistractingApp: Bool { didSet { defaults.set(hideDistractingApp, forKey: "hideDistractingApp") } }
@@ -90,7 +90,7 @@ public final class Preferences {
     public var reopenClosed: Bool { didSet { defaults.set(reopenClosed, forKey: "reopenClosed") } }
     /// "Back to task" also brings forward the other windows you really worked in (up to two), then the place itself on top.
     public var bringWorkingSet: Bool { didSet { defaults.set(bringWorkingSet, forKey: "bringWorkingSet") } }
-    /// While you work, Focus notes how far the window was scrolled and where the cursor sat (numbers, in memory), and "Back to task" puts them back.
+    /// While you work, Hushd notes how far the window was scrolled and where the cursor sat (numbers, in memory), and "Back to task" puts them back.
     public var restoreSpot: Bool { didSet { defaults.set(restoreSpot, forKey: "restoreSpot") } }
     /// When you press Back to task from an app you drifted into, that app is hidden (like Command-H). Nothing is closed.
     public var putAwayOnReturn: Bool { didSet { defaults.set(putAwayOnReturn, forKey: "putAwayOnReturn") } }
@@ -109,7 +109,7 @@ public final class Preferences {
     public var headsUp: Bool { didSet { defaults.set(headsUp, forKey: "headsUp") } }
     /// The menu bar ring takes a soft tint for a heads-up and a warm tint with a slow pulse while you are away.
     public var menuBarCue: Bool { didSet { defaults.set(menuBarCue, forKey: "menuBarCue") } }
-    /// The Dock icon bounces once for a warning, a climb step or a prompt while Focus is in the background.
+    /// The Dock icon bounces once for a warning, a climb step or a prompt while Hushd is in the background.
     public var dockBounce: Bool { didSet { defaults.set(dockBounce, forKey: "dockBounce") } }
     /// A tap on the trackpad with a warning. Silent and private; it only works on a Force Touch trackpad with a finger resting on it.
     public var hapticTap: Bool { didSet { defaults.set(hapticTap, forKey: "hapticTap") } }
@@ -215,7 +215,7 @@ public final class Preferences {
     public func restartPractice() { if !practiceRemoved { practiceSessionsLeft = Preferences.practiceSessions } }
 }
 
-/// How often Focus looks. The scale multiplies the brain's check intervals and its grace and confirm delays (SessionConfig.checkScale).
+/// How often Hushd looks. The scale multiplies the brain's check intervals and its grace and confirm delays (SessionConfig.checkScale).
 public enum CheckRate: String, CaseIterable, Identifiable, Sendable {
     case rarely, normal, often, veryOften
     public var id: String { rawValue }

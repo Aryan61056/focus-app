@@ -2,7 +2,7 @@ import Foundation
 import Observation
 import FocusJudge
 
-/// All app data, in one JSON file on this Mac (~/Library/Application Support/Focus/store.json).
+/// All app data, in one JSON file on this Mac (~/Library/Application Support/Hushd/store.json).
 /// Nothing is sent anywhere. Writes are atomic. A store with no URL is in memory only (tests, snapshots).
 @MainActor @Observable
 public final class DataStore {
@@ -112,7 +112,7 @@ public final class DataStore {
     public func addReview(_ m: ReviewMoment) { review.insert(m, at: 0); if review.count > 200 { review.removeLast() }; save() }
     public func answerReview(_ id: UUID, _ answer: String) { if let i = review.firstIndex(where: { $0.id == id }) { review[i].answer = answer; review[i].reason = nil; save() } }
     public var openReviewCount: Int { review.filter { $0.answer == nil }.count }
-    /// Of the moments you answered, how many you said Focus got right. Small samples are common; callers should say so.
+    /// Of the moments you answered, how many you said Hushd got right. Small samples are common; callers should say so.
     public var agreement: (agreed: Int, answered: Int) {
         let a = review.filter { $0.answer != nil }
         return (a.filter { $0.answer == "right" }.count, a.count)

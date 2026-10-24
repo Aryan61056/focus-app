@@ -2,7 +2,7 @@ import Foundation
 import FocusJudge
 
 // Everything around the warning that is not the warning itself: the heads-up before it, the small banner over the window you drifted into,
-// the cues outside the app (menu bar, Dock, trackpad, voice), the friction before going back, the scheduled rhythm, and how hard Focus
+// the cues outside the app (menu bar, Dock, trackpad, voice), the friction before going back, the scheduled rhythm, and how hard Hushd
 // pushes at different times of day. All of it lives in the controller layer, so the brain and its golden traces are unchanged.
 // Pure types and rules here; SessionController+Cues.swift wires them to the session.
 
@@ -10,8 +10,8 @@ import FocusJudge
 
 /// Watches the last few readings for the shape of a rabbit hole, before the brain has confirmed a drift.
 /// Two shapes count: several off-topic readings in a row, or hopping between windows that are all off or not sure.
-/// Owner, 2026-10-13: wants Focus to speak up earlier. The cost is more mistaken heads-ups, so it is only a banner (no sound), it waits
-/// five minutes between heads-ups, and "It's part of it" teaches Focus the window.
+/// Owner, 2026-10-13: wants Hushd to speak up earlier. The cost is more mistaken heads-ups, so it is only a banner (no sound), it waits
+/// five minutes between heads-ups, and "It's part of it" teaches Hushd the window.
 public struct DriftWatch: Equatable, Sendable {
     public struct Point: Equatable, Sendable { public var at: Double; public var call: Reading.Call; public var key: String }
     public var span = 120.0, cooldown = 300.0
@@ -45,8 +45,8 @@ public struct DriftWatch: Equatable, Sendable {
 
 /// The small banner over the window you are in: the one place a prompt reaches you wherever you are working. `early` is the heads-up;
 /// `reminder` stays from the warning until you are back; `checkIn` asks the ladder's question; `rhythm` is a scheduled check-in or break.
-/// The check-in and the schedule used to show only as cards inside Focus's own window, which is behind the app you are in, so they
-/// could not be answered without finding Focus first.
+/// The check-in and the schedule used to show only as cards inside Hushd's own window, which is behind the app you are in, so they
+/// could not be answered without finding Hushd first.
 public struct Banner: Equatable, Sendable {
     public enum Kind: Equatable, Sendable { case early, reminder, checkIn, rhythm }
     public var kind: Kind
@@ -91,8 +91,8 @@ public enum MenuCue: Equatable, Sendable { case none, headsUp, away }
 // MARK: the shield: a screen that has to be answered
 
 /// A screen that covers the display until it is answered. Three kinds: the pause screen after a warning went unanswered, the same site
-/// opening again after a pause screen, and a claim that a window Focus flagged is really part of the task.
-/// The only ways through are going back to the task, or explaining the window in words that Focus checks against the window itself.
+/// opening again after a pause screen, and a claim that a window Hushd flagged is really part of the task.
+/// The only ways through are going back to the task, or explaining the window in words that Hushd checks against the window itself.
 public struct Shield: Equatable, Sendable {
     public enum Kind: Equatable, Sendable { case pause, friction, claim }
     public var kind: Kind
@@ -115,13 +115,13 @@ public struct Shield: Equatable, Sendable {
     public static func lockSeconds(after locks: Int) -> Double { min(1800, lockSeconds * pow(2, Double(max(0, locks)))) }
     /// With "hold to go back" on, press and hold Back to task this long. Letting go starts over.
     public static let backHoldSeconds = 3.0
-    /// How long a cover may sit unanswered before Focus acts on the site.
+    /// How long a cover may sit unanswered before Hushd acts on the site.
     public static let frictionIdle = 30.0
     /// How long an accepted explanation holds for that one page: 8 minutes, then 5, 3 and 2. The more you lean on it, the less it buys.
     public static func passSeconds(afterClaims n: Int) -> Double { [480, 300, 180, 120][min(max(0, n), 3)] }
     /// The model must be at least this sure the page serves the task: 80, then 85, 90, up to 95 for later explanations.
     public static func minConfidence(afterClaims n: Int) -> Int { min(95, Verification.minConfidence + 5 * max(0, n)) }
-    /// Explanations Focus will accept in one session. After that, the only way back is the task.
+    /// Explanations Hushd will accept in one session. After that, the only way back is the task.
     public static let claimCap = 8
 }
 
@@ -133,7 +133,7 @@ public enum Rhythm: String, CaseIterable, Identifiable, Sendable {
     public var title: String { switch self { case .off: return "Off"; case .checkIns: return "Check-ins"; case .pomodoro: return "Work and break" } }
     public var detail: String {
         switch self {
-        case .off: return "Focus only speaks up when you drift."
+        case .off: return "Hushd only speaks up when you drift."
         case .checkIns: return "A short \u{201C}still on task?\u{201D} prompt at a steady interval, even when you are on task."
         case .pomodoro: return "Work for 25 minutes, then a 5 minute break; every fourth break is 15 minutes. The clock stops while you are on a break or paused."
         }
@@ -160,18 +160,18 @@ public struct RhythmPrompt: Equatable, Sendable {
 
 // MARK: pressure through the day
 
-/// How hard Focus pushes. Easy in the morning, steady when you are on pace for your daily goal, firmer when you are behind it.
-/// It changes how quickly Focus warns and climbs, never what counts as off task, and the app always says which level it is at and why.
+/// How hard Hushd pushes. Easy in the morning, steady when you are on pace for your daily goal, firmer when you are behind it.
+/// It changes how quickly Hushd warns and climbs, never what counts as off task, and the app always says which level it is at and why.
 public enum DayPressure: Int, Comparable, Sendable {
     case relaxed, steady, behind, wellBehind
     public static func < (a: DayPressure, b: DayPressure) -> Bool { a.rawValue < b.rawValue }
 
-    /// Multiplies the time Focus waits (smaller is quicker). Applied to the brain's check scale when a session begins, and to the ladder live.
+    /// Multiplies the time Hushd waits (smaller is quicker). Applied to the brain's check scale when a session begins, and to the ladder live.
     public var factor: Double { switch self { case .relaxed: return 1.25; case .steady: return 1.0; case .behind: return 0.8; case .wellBehind: return 0.65 } }
     /// Extra seconds the pause screen holds the easy exits.
     public var extraHold: Double { switch self { case .relaxed, .steady: return 0; case .behind: return 5; case .wellBehind: return 10 } }
 
-    /// The working day the pace is measured over. Before `morningUntil` Focus is easy whatever you have done.
+    /// The working day the pace is measured over. Before `morningUntil` Hushd is easy whatever you have done.
     public static let morningUntil = 12.0, dayStart = 9.0, dayEnd = 18.0
 
     /// `onTaskSeconds` is today's on-task time so far; `goalMinutes` of 0 means no goal, so no pace.
@@ -193,14 +193,14 @@ public enum DayPressure: Int, Comparable, Sendable {
     }
 }
 
-/// A line for Today that says why Focus is pushing the way it is. Honest and plain: it never hides a change in how firm Focus is.
+/// A line for Today that says why Hushd is pushing the way it is. Honest and plain: it never hides a change in how firm Hushd is.
 public enum PaceCopy {
     public static func line(_ p: DayPressure, goalReached: Bool, behindMinutes: Int) -> String? {
         switch p {
         case .steady: return nil
-        case .relaxed: return goalReached ? "You reached today's goal, so Focus is easy on you now." : "It is early in the day, so Focus is easy on you."
-        case .behind: return "You are a little behind today's goal, so Focus speaks up sooner."
-        case .wellBehind: return behindMinutes > 0 ? "You are about \(behindMinutes) minutes behind today's goal, so Focus is firmer." : "You are well behind today's goal, so Focus is firmer."
+        case .relaxed: return goalReached ? "You reached today's goal, so Hushd is easy on you now." : "It is early in the day, so Hushd is easy on you."
+        case .behind: return "You are a little behind today's goal, so Hushd speaks up sooner."
+        case .wellBehind: return behindMinutes > 0 ? "You are about \(behindMinutes) minutes behind today's goal, so Hushd is firmer." : "You are well behind today's goal, so Hushd is firmer."
         }
     }
 }
@@ -221,7 +221,7 @@ extension EscalationPlan {
 /// Words for the new surfaces. Same rules as NudgeCopy: second person, sentence case, no exclamation marks, never the name of what you were looking at.
 public enum CueCopy {
     /// Shown on the reminder banner before a Strict round closes the tab, so closing is never a surprise.
-    public static let closeWarning = "Focus will close this tab next."
+    public static let closeWarning = "Hushd will close this tab next."
     public static func bannerTitle(_ kind: Banner.Kind, tone: NudgeTone, task: String, rhythm: RhythmPrompt.Kind? = nil) -> String {
         switch (kind, tone) {
         case (.early, .neutral): return "Still on \(task)?"
@@ -235,7 +235,7 @@ public enum CueCopy {
         }
     }
 
-    /// The short line under the banner's title: what Focus saw, in a few words and numbers, never the name of the window.
+    /// The short line under the banner's title: what Hushd saw, in a few words and numbers, never the name of the window.
     public static func headsUpMeta(away: Int, of total: Int) -> String { "\(away) of the last \(total) reads off task" }
     public static let reminderMeta = "Off task"
     public static let checkInMeta = "Read again: still off task"
@@ -246,7 +246,7 @@ public enum CueCopy {
         }
     }
     /// The steps of the ladder, for the dots on the banner and what VoiceOver says about them.
-    public static let ladderSteps = ["warning", "check-in", "pause screen", "Focus acts on the window"]
+    public static let ladderSteps = ["warning", "check-in", "pause screen", "Hushd acts on the window"]
     public static func ladderLabel(_ step: EscalationStep) -> String {
         let i = step.rawValue
         let next = i + 1 < ladderSteps.count ? " Next, \(ladderSteps[i + 1])." : ""
@@ -265,9 +265,9 @@ public enum CueCopy {
     }
     public static func shieldAsk(task: String) -> String { "How does this window help with \(task)?" }
     public static let shieldPlaceholder = "I am using this to"
-    /// What Focus says it did after a wrong explanation.
+    /// What Hushd says it did after a wrong explanation.
     public static func punishment(_ a: EnforceAction) -> String {
-        switch a { case .close: return "Focus closed the tab."; case .hide: return "Focus hid the app."; case .switchAway: return "Focus switched you back." }
+        switch a { case .close: return "Hushd closed the tab."; case .hide: return "Hushd hid the app."; case .switchAway: return "Hushd switched you back." }
     }
     public static func claimsUsedUp(_ n: Int) -> String { "All \(n) explanations used this session." }
     public static func backHoldLine() -> String { "\(Int(Shield.backHoldSeconds)) seconds. Letting go starts over." }
@@ -281,7 +281,7 @@ public enum CueCopy {
         let m = max(1, Int((seconds / 60).rounded()))
         return m >= 60 ? "Paused for \(m / 60) h \(m % 60) min" : "Paused for \(m) min"
     }
-    public static let heldMeta = "Resume from the menu bar or Focus"
+    public static let heldMeta = "Resume from the menu bar or Hushd"
     public static func rhythmTitle(_ k: RhythmPrompt.Kind, task: String) -> String {
         switch k {
         case .checkIn: return "Still working on \(task)?"

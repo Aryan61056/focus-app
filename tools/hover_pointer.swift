@@ -4,7 +4,7 @@ import AppKit
 let rest = CommandLine.arguments.count > 1 ? Double(CommandLine.arguments[1]) ?? 1.0 : 1.0
 func panelCenter() -> CGPoint? {
     let list = CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID) as? [[String: Any]] ?? []
-    for w in list where (w[kCGWindowLayer as String] as? Int) == 25 && (w[kCGWindowOwnerName as String] as? String) == "Focus" {
+    for w in list where (w[kCGWindowLayer as String] as? Int) == 25 && (w[kCGWindowOwnerName as String] as? String) == "Hushd" {
         if let b = w[kCGWindowBounds as String] as? [String: CGFloat], let x = b["X"], let y = b["Y"], let wd = b["Width"], let h = b["Height"], h < 200, wd > 100 {
             return CGPoint(x: x + wd / 2, y: y + h / 2)
         }

@@ -60,9 +60,9 @@ FOCUS_CHANNEL=beta FOCUS_BUILD_NUMBER="$N" FOCUS_VERSION="$VERSION" FOCUS_BETA_E
 FOCUS_FEEDBACK_EMAIL="$EMAIL" FOCUS_FEEDBACK_REPO="$REPO" FOCUS_RELEASE_NOTES_FILE="$NOTES" FOCUS_KNOWN_ISSUES_FILE="$KNOWN" \
 "$ROOT/tools/build_dmg.sh"
 
-DMG="$ROOT/mac/.build/Focus-$NAME.dmg"
+DMG="$ROOT/mac/.build/Hushd-$NAME.dmg"
 [ -f "$DMG" ] || { echo "expected $DMG" >&2; exit 1; }
-PLIST="$ROOT/mac/.build/Focus.app/Contents/Info.plist"
+PLIST="$ROOT/mac/.build/Hushd.app/Contents/Info.plist"
 [ "$(/usr/libexec/PlistBuddy -c "Print :FocusChannel" "$PLIST")" = beta ] || { echo "the built app is not marked beta" >&2; exit 1; }
 [ "$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST")" = "$N" ] || { echo "the built app has the wrong build number" >&2; exit 1; }
 if [ -n "$REPO" ]; then
@@ -75,7 +75,7 @@ cp "$NOTES" "$OUT/notes.md"
 if [ -f "$KNOWN" ]; then cp "$KNOWN" "$OUT/known.md"; else : > "$OUT/known.md"; fi
 BUILD_ID="$(/usr/libexec/PlistBuddy -c "Print :FocusBuildID" "$PLIST")"
 SHA="$(cut -d' ' -f1 "$DMG.sha256")"
-SIGNED="ad-hoc"; codesign -dvv "$ROOT/mac/.build/Focus.app" 2>&1 | grep -q "^Authority=Developer ID Application" && SIGNED="developer-id"
+SIGNED="ad-hoc"; codesign -dvv "$ROOT/mac/.build/Hushd.app" 2>&1 | grep -q "^Authority=Developer ID Application" && SIGNED="developer-id"
 python3 "$ROOT/tools/beta/release_text.py" --manifest "$OUT/release.json" --name "$NAME" --version "$VERSION" --build "$N" \
   --build-id "$BUILD_ID" --expires "$EXPIRES" --sha "$SHA" --signing "$SIGNED" ${EMAIL:+--email} \
   --commit "$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo nogit)" --notes "$OUT/notes.md" --known "$OUT/known.md" ${REPO:+--repo "$REPO"}
@@ -83,5 +83,5 @@ python3 "$ROOT/tools/beta/release_text.py" --invite "$OUT/release.json" > "$OUT/
 python3 "$ROOT/tools/beta/release_text.py" --github "$OUT/release.json" > "$OUT/github-release.md"
 echo "$N" > "$COUNTER"
 echo "release folder: $OUT"
-echo "next: tools/beta/publish.sh $NAME puts it on GitHub as a pre-release, or hand $OUT/Focus-$NAME.dmg and invite.txt"
+echo "next: tools/beta/publish.sh $NAME puts it on GitHub as a pre-release, or hand $OUT/Hushd-$NAME.dmg and invite.txt"
 echo "      to testers yourself; log who got it with tools/beta/testers.py sent <name> $NAME"

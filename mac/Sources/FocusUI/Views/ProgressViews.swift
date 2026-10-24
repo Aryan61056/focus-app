@@ -23,7 +23,7 @@ struct GoalBar: View {
 struct WeekStrip: View {
     var week: [(day: Date, mark: Rewards.DayMark)]
     var body: some View {
-        // The usual gap needs 212 points; a narrower Focus panel gets a tighter one instead of a column pushed wider than the panel.
+        // The usual gap needs 212 points; a narrower Hushd panel gets a tighter one instead of a column pushed wider than the panel.
         ViewThatFits(in: .horizontal) { days(spacing: Space.s); days(spacing: Space.xxs) }
     }
 

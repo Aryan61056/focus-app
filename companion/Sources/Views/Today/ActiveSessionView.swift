@@ -23,7 +23,7 @@ struct ActiveSessionView: View {
 
             ringAndClock.reveal(1, key: "active")
             status.reveal(2, key: "active")
-            Text("Focus can be wrong. When it isn't sure, it does nothing.").font(.footnote).foregroundStyle(Palette.ink2).multilineTextAlignment(.center).reveal(2, key: "active")
+            Text("Hushd can be wrong. When it isn't sure, it does nothing.").font(.footnote).foregroundStyle(Palette.ink2).multilineTextAlignment(.center).reveal(2, key: "active")
             controls.reveal(3, key: "active")
             Button("End session", role: .destructive) { confirmEnd = true }
                 .font(.subheadline.weight(.medium)).foregroundStyle(Palette.ink2).frame(minHeight: 44)

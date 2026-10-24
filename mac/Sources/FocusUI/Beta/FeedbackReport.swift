@@ -4,7 +4,7 @@ import FocusJudge
 /// One piece of beta feedback, as the file a tester saves and sends themself. Schema `focus-feedback/1`, read by tools/beta/feedback.py.
 /// What it may hold: the words the tester typed, the build, the Mac's kind and macOS version, permission states, settings that are
 /// switches or choices, counts, the event journal (kinds and numbers) and a crash summary. What it never holds: task or project names,
-/// window titles, addresses, screen words, pictures or the model's reasons (docs/BETA.md, "What a report holds"). Focus's recent calls go
+/// window titles, addresses, screen words, pictures or the model's reasons (docs/BETA.md, "What a report holds"). Hushd's recent calls go
 /// as the call and how it was reached only (on, unsure or off; model, rule, matching words), never which window it was about.
 public struct FeedbackReport: Codable, Equatable, Sendable {
     public static let schema = "focus-feedback/1"
@@ -23,7 +23,7 @@ public struct FeedbackReport: Codable, Equatable, Sendable {
             switch self {
             case .bug: return "What did you do, and what happened instead?"
             case .wrongCall: return "Was a window called off task when it was work, or the other way round? Describe the kind of window, not its contents."
-            case .idea: return "What would make Focus better for you?"
+            case .idea: return "What would make Hushd better for you?"
             case .other: return "Tell us anything."
             }
         }
@@ -59,7 +59,7 @@ public struct FeedbackReport: Codable, Equatable, Sendable {
         public var projectsDescribed: Int
         public var daysUsed: Int
     }
-    /// One of Focus's recent calls, without the window: when, what it decided, and how.
+    /// One of Hushd's recent calls, without the window: when, what it decided, and how.
     public struct Call: Codable, Equatable, Sendable {
         public var at: Date
         public var call: String   // on, unsure, off
@@ -100,7 +100,7 @@ public struct FeedbackDraft: Equatable, Sendable {
     public var includeUsage = true
     public var includeEvents = true
     public var includeCrash = true
-    /// Focus's last calls (the call and how, never the window). Most useful with a wrong call.
+    /// Hushd's last calls (the call and how, never the window). Most useful with a wrong call.
     public var includeCalls = true
     public init(kind: FeedbackReport.Kind = .bug) { self.kind = kind }
     public var ready: Bool { !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }

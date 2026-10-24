@@ -4,7 +4,7 @@ Paste everything below the line into Claude Code, run from the repo root.
 
 ---
 
-Overhaul the whole Focus Mac app UI (`mac/Sources/FocusUI`, `FocusSense` views, `focus-app`): every screen, state and window. Work autonomously and do not stop to ask permission. Ask me only for the things CLAUDE.md lists as mine.
+Overhaul the whole Hushd Mac app UI (`mac/Sources/FocusUI`, `FocusSense` views, `focus-app`): every screen, state and window. Work autonomously and do not stop to ask permission. Ask me only for the things CLAUDE.md lists as mine.
 
 ## 0. Ground rules (read first, do not reopen)
 - Read `CLAUDE.md`, `PRODUCT.md` and `docs/design/b-lichen.*`. Direction is B "Lichen", product register, calm, never overwhelming, sentence-case copy with no exclamation marks, never name the distraction in pushed nudges.
@@ -20,7 +20,7 @@ Overhaul the whole Focus Mac app UI (`mac/Sources/FocusUI`, `FocusSense` views, 
 ## 2. Discover what looks bad (before changing anything)
 Render every screen and write findings to `scratchpad/overhaul/FINDINGS.md`, ranked P0 to P3, each with screen, problem, evidence (render path) and fix.
 - Tooling, no screen capture and no permission needed: `focus-snapshot`, and the demo self-render
-  `open -n --env FOCUS_DEMO=1 --env FOCUS_DEMO_ACTIONS=section:<x>,page:<y> --env FOCUS_SELFSHOT=<dir> mac/.build/Focus.app`.
+  `open -n --env FOCUS_DEMO=1 --env FOCUS_DEMO_ACTIONS=section:<x>,page:<y> --env FOCUS_SELFSHOT=<dir> mac/.build/Hushd.app`.
 - Cover: Today (idle, live, paused, held, saving failed), start sheet and the similar-project question, Projects, History, Insights, Review, every Settings page, sidebar, menu bar popover, notch (closed, hover, open, nudge, escalation), shield, check-in, heads-up banner, empty and error states.
 - Render each in light and dark, at the minimum and a large window size, and at larger text sizes.
 - Look for: inconsistent spacing and radii, more than one type scale, weak hierarchy, clipped or truncated text, tiny hit targets (under 24 pt), low contrast, mismatched icon weights, untokenized colors, dense settings pages, empty states that say nothing, jargon, copy that names a distraction, motion without a reduced-motion path, anything that reads as generic AI-made SaaS.

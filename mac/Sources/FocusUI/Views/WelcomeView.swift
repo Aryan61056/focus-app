@@ -1,9 +1,9 @@
 import SwiftUI
 import FocusBrain
 
-/// The welcome, once, on a new Mac: what Focus does (shown as a session, not explained), window access with a live check, and the
+/// The welcome, once, on a new Mac: what Hushd does (shown as a session, not explained), window access with a live check, and the
 /// first task. Three steps laid out like the Mac's own setup assistant: the step on top, one column in the middle, Back at the bottom
-/// left and the one primary action at the bottom right. Every step has a way out, and nothing here is needed to use Focus.
+/// left and the one primary action at the bottom right. Every step has a way out, and nothing here is needed to use Hushd.
 struct WelcomeView: View {
     @Bindable var c: SessionController
     @State var step: Int
@@ -45,13 +45,13 @@ struct WelcomeView: View {
         .modifier(PlainTitleBar())
     }
 
-    // MARK: step 1, what Focus does
+    // MARK: step 1, what Hushd does
 
     var intro: some View {
         VStack(spacing: Space.xl) {
             Stage { WelcomeDemo() }
             Headline(title: "Stay on the task you name",
-                     line: "A gentle nudge when you drift. When Focus isn't sure, it does nothing.")
+                     line: "A gentle nudge when you drift. When Hushd isn't sure, it does nothing.")
             HStack(spacing: Space.xl) {
                 Fact(symbol: "lock", text: "Stays on this Mac")
                 Fact(symbol: "person.slash", text: "No account")
@@ -67,8 +67,8 @@ struct WelcomeView: View {
     var access: some View {
         VStack(spacing: Space.xl) {
             Stage { AccessPicture(allowed: allowed) }
-            Headline(title: "Let Focus see the window in front",
-                     line: "Focus reads the app, title and page address, only during a session.")
+            Headline(title: "Let Hushd see the window in front",
+                     line: "Hushd reads the app, title and page address, only during a session.")
             accessStatus.frame(minHeight: 28)
         }
     }
@@ -81,12 +81,12 @@ struct WelcomeView: View {
         } else if asked {
             HStack(spacing: Space.xs) {
                 ThinkingDot()
-                Text("Switch on Focus, then come back").font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2)
+                Text("Switch on Hushd, then come back").font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2)
             }
-            .help("If Focus is already switched on in the list, remove it with the minus button and add it again.")
+            .help("If Hushd is already switched on in the list, remove it with the minus button and add it again.")
             .transition(.opacity)
         } else {
-            Text("Without it, Focus sees only the app name").font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2)
+            Text("Without it, Hushd sees only the app name").font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2)
         }
     }
 
@@ -210,7 +210,7 @@ struct Fact: View {
     }
 }
 
-/// A made-up session that plays once: the band fills from the left and the ring above follows it, through the three calls Focus
+/// A made-up session that plays once: the band fills from the left and the ring above follows it, through the three calls Hushd
 /// makes and the return. The windows are examples. Under Reduce Motion, and in snapshots, it shows the whole session at once.
 struct WelcomeDemo: View {
     struct Part {
@@ -319,14 +319,14 @@ struct WelcomeDemo: View {
     func tint(_ call: Reading.Call) -> Color { switch call { case .on: return Tokens.accent; case .unsure: return Tokens.ink2; case .off: return Tokens.slip } }
 }
 
-/// Today's reading bar, for the example: Focus, the window it is reading, and its three checks with the call as the last dot.
+/// Today's reading bar, for the example: Hushd, the window it is reading, and its three checks with the call as the last dot.
 struct DemoBar: View {
     var window: String
     var call: Reading.Call
     var body: some View {
         HStack(spacing: Space.xs) {
             Image(systemName: "sparkles").font(Tokens.symbol(13, .semibold)).foregroundStyle(Tokens.accent)
-            Text("Focus").font(Tokens.text(.body, .semibold))
+            Text("Hushd").font(Tokens.text(.body, .semibold))
             Text("reading \(window)").font(Tokens.text(.body)).foregroundStyle(Tokens.ink2).lineLimit(1)
             Spacer(minLength: Space.s)
             HStack(spacing: 3) {
@@ -347,13 +347,13 @@ struct DemoBar: View {
     }
 }
 
-/// Where Focus lives during a session: its ring in the menu bar, and the panel a click opens, with the task you are typing.
+/// Where Hushd lives during a session: its ring in the menu bar, and the panel a click opens, with the task you are typing.
 struct MenuBarPicture: View {
     var task: String
     var minutes: Int?
     var body: some View {
         VStack(alignment: .ringMiddle, spacing: 6) {
-            // A strip of the menu bar: Focus's ring, then a few of the system's own items.
+            // A strip of the menu bar: Hushd's ring, then a few of the system's own items.
             HStack(spacing: Space.m) {
                 Spacer()
                 RingView(.on, color: Tokens.ink).frame(width: 18, height: 18)
@@ -383,11 +383,11 @@ struct MenuBarPicture: View {
             .animation(Motion.out(0.2), value: task.isEmpty)
         }
         .accessibilityElement()
-        .accessibilityLabel("Focus's ring in the menu bar opens a panel with your task and its clock.")
+        .accessibilityLabel("Hushd's ring in the menu bar opens a panel with your task and its clock.")
     }
 }
 
-/// What Accessibility lets Focus read: a window's title bar, and Focus's reading bar taking the app, the title and the address from it.
+/// What Accessibility lets Hushd read: a window's title bar, and Hushd's reading bar taking the app, the title and the address from it.
 struct AccessPicture: View {
     var allowed: Bool
     var body: some View {
@@ -413,10 +413,10 @@ struct AccessPicture: View {
             .overlay { RoundedRectangle(cornerRadius: Tokens.radiusRow, style: .continuous).strokeBorder(Tokens.line) }
             .frame(width: 330)
             Image(systemName: "arrow.down").font(Tokens.symbol(12, .semibold)).foregroundStyle(Tokens.ink2)
-            // Focus's own reading bar, as Today shows it.
+            // Hushd's own reading bar, as Today shows it.
             HStack(spacing: Space.xs) {
                 Image(systemName: "sparkles").font(Tokens.symbol(13, .semibold)).foregroundStyle(Tokens.accent)
-                Text("Focus").font(Tokens.text(.body, .semibold))
+                Text("Hushd").font(Tokens.text(.body, .semibold))
                 Text(allowed ? "reads Preview: title and page" : "sees only the app").font(Tokens.text(.body)).foregroundStyle(Tokens.ink2).lineLimit(1)
                 Spacer(minLength: Space.s)
                 HStack(spacing: 3) {
@@ -433,7 +433,7 @@ struct AccessPicture: View {
             .animation(Motion.out(0.24), value: allowed)
         }
         .accessibilityElement()
-        .accessibilityLabel(allowed ? "Focus can read the app, the window title and the page." : "Focus can see only which app is in front.")
+        .accessibilityLabel(allowed ? "Hushd can read the app, the window title and the page." : "Hushd can see only which app is in front.")
     }
 }
 
@@ -456,7 +456,7 @@ public enum WelcomePreview {
 }
 
 private extension HorizontalAlignment {
-    /// The middle of Focus's ring in the menu bar picture, so the panel hangs from it.
+    /// The middle of Hushd's ring in the menu bar picture, so the panel hangs from it.
     enum RingMiddle: AlignmentID { static func defaultValue(in d: ViewDimensions) -> CGFloat { d[HorizontalAlignment.center] } }
     static let ringMiddle = HorizontalAlignment(RingMiddle.self)
 }
