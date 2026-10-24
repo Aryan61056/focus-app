@@ -147,11 +147,8 @@ public struct PhoneLinkView: View {
             Text("Point your iPhone's Camera at this, then tap the banner that appears.").font(Tokens.text(.body)).foregroundStyle(Tokens.ink2)
             HStack {
                 Spacer()
-                if let qr = QRCode.image(for: pairing.url.absoluteString, points: 190) {
-                    Image(nsImage: qr).interpolation(.none).resizable().frame(width: 190, height: 190)
-                        .padding(14).background(RoundedRectangle(cornerRadius: Tokens.radiusCard).fill(.white))
-                        .accessibilityLabel("QR code for pairing your iPhone")
-                }
+                // A tree to tap; tapping it turns it into the code (PairingGarden.swift). The code is drawn in memory and never saved.
+                PairingGarden(url: pairing.url.absoluteString)
                 Spacer()
             }
             Text("Or open Hushd on your iPhone, choose Add your Mac, and type:").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
