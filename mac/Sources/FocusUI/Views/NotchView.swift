@@ -146,13 +146,16 @@ private struct NotchMaterial: View {
     let expanded: Bool
     let notchHeight: CGFloat
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    /// The blur and glass are live layers that the window server re-renders every frame; they exist only while the card is open and
+    /// for the moment it takes the black to cover them on the way out, never at rest.
+    @State private var layered = false
     var body: some View {
         // One stack in every state, so opening and closing only fade the black between solid and graded: there is never a moment
         // where the glass shows on its own. Under the black sits a real blur of whatever is behind the notch (a window-wide
         // NSVisualEffectView, forced active because a panel that never becomes key would draw it grey), then Liquid Glass on top where
         // the Mac has it, so the lower part of the card is see-through and bends the desktop behind it, as iOS 27's glass does.
         ZStack {
-            if glassy {
+            if glassy && (expanded || layered) {
                 NotchBlur()
                 if #available(macOS 26, *) { Color.clear.glassEffect(.clear.tint(.black.opacity(0.06)), in: Rectangle()) }
             }
@@ -171,7 +174,14 @@ private struct NotchMaterial: View {
             .opacity(expanded && glassy ? 1 : 0)
         }
         .clipShape(shape)
-        .animation(Motion.out(0.3), value: expanded)
+        // Closing covers the glass fast, so the live layers are gone before the shape has finished shrinking.
+        .animation(expanded ? Motion.out(0.3) : Motion.out(0.14), value: expanded)
+        .task(id: expanded) {
+            if expanded { layered = true } else {
+                try? await Task.sleep(for: .seconds(0.3))
+                if !Task.isCancelled { layered = false }
+            }
+        }
     }
     var glassy: Bool { if #available(macOS 26, *) { return !reduceTransparency } else { return false } }
 }
@@ -346,7 +356,7 @@ public struct NotchView: View {
     var bodyTransition: AnyTransition {
         if reduceMotion { return .opacity.animation(Motion.reduced) }
         return .asymmetric(insertion: AnyTransition(.blurReplace).combined(with: .scale(scale: 0.9, anchor: .top)).animation(Motion.notchOpen),
-                           removal: AnyTransition.opacity.combined(with: AnyTransition(.blurReplace)).animation(Motion.out(0.12)))
+                           removal: AnyTransition.opacity.animation(Motion.out(0.1)))
     }
 
     /// The band stays put while the body underneath fades in and out, so the ring and time never jump.
@@ -384,7 +394,6 @@ public struct NotchView: View {
         }
         .frame(width: notchWidth + 2 * earW, height: notchHeight)
         .opacity(mode == .open ? 0 : 1)
-        .blur(radius: mode == .open && !reduceMotion ? 4 : 0)
     }
 
     /// Words in a widened ear wait for the ear to open, then come out of a blur.
@@ -449,13 +458,16 @@ public struct NotchView: View {
     /// Droppy's tab bar: a small glass pill under the card with an icon per page, the current one on a lighter capsule.
     @ViewBuilder func tabPill(shown: Bool, height: CGFloat) -> some View {
         let visible = shown && mode == .open
-        ShelfTabPill(model: model)
-            .offset(y: height + NotchLayout.pillGap)
-            .opacity(visible ? 1 : 0)
-            .scaleEffect(visible || reduceMotion ? 1 : 0.8, anchor: .top)
-            .blur(radius: visible || reduceMotion ? 0 : 4)
-            .allowsHitTesting(visible)
-            .animation(visible ? Motion.notchOpen.delay(0.06) : Motion.out(0.1), value: visible)
+        ZStack {
+            if visible {
+                ShelfTabPill(model: model)
+                    .offset(y: height + NotchLayout.pillGap)
+                    .transition(.asymmetric(
+                        insertion: (reduceMotion ? AnyTransition.opacity : AnyTransition.opacity.combined(with: .scale(scale: 0.8, anchor: .top))).animation(Motion.notchOpen.delay(0.06)),
+                        removal: AnyTransition.opacity.animation(Motion.out(0.08))))
+            }
+        }
+        .animation(visible ? Motion.notchOpen.delay(0.06) : Motion.out(0.08), value: visible)
     }
 
     /// Pages swap in place: the old one blurs away as the new one sharpens in.
