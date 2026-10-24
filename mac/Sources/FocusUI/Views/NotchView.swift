@@ -146,44 +146,56 @@ private struct NotchMaterial: View {
     let expanded: Bool
     let notchHeight: CGFloat
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    /// The blur and glass are live layers that the window server re-renders every frame; they exist only while the card is open and
-    /// for the moment it takes the black to cover them on the way out, never at rest.
+    /// The blur and glass are live layers the window server re-renders every frame, and masking them with a shape that is changing size
+    /// costs a blurred pass per frame. So they only exist while the card holds still: they frost in once it has finished opening, and are
+    /// covered by black and removed the moment it starts to close. (Both an open and a close used to hitch in their first frames.)
+    @State private var settled = false
     @State private var layered = false
     var body: some View {
-        // One stack in every state, so opening and closing only fade the black between solid and graded: there is never a moment
-        // where the glass shows on its own. Under the black sits a real blur of whatever is behind the notch (a window-wide
-        // NSVisualEffectView, forced active because a panel that never becomes key would draw it grey), then Liquid Glass on top where
-        // the Mac has it, so the lower part of the card is see-through and bends the desktop behind it, as iOS 27's glass does.
+        // One stack in every state: the black is solid while the shape moves, and fades to the graded glass once it is still. Under the
+        // black sits a real blur of whatever is behind the notch (an NSVisualEffectView forced active, since a panel that never becomes key
+        // would draw it grey), then Liquid Glass on top where the Mac has it, so the lower part of the card is see-through, as iOS 27's is.
         ZStack {
-            if glassy && (expanded || layered) {
-                NotchBlur()
-                if #available(macOS 26, *) { Color.clear.glassEffect(.clear.tint(.black.opacity(0.06)), in: Rectangle()) }
+            if glassy && (settled || layered) {
+                if #available(macOS 26, *) { Color.clear.glassEffect(.clear, in: Rectangle()) }
             }
-            Color.black.opacity(expanded && glassy ? 0 : 1)
-            GeometryReader { g in
-                let stop = NotchLayout.blackStop(height: g.size.height, notchHeight: notchHeight)
-                ZStack {
-                    // Black where the card meets the hardware notch, melting to a light tint over the glass at the foot.
-                    LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: stop), .init(color: .black.opacity(0.12), location: 1)],
-                                   startPoint: .top, endPoint: .bottom)
-                    // The sheen glass catches along its lower edge.
-                    LinearGradient(stops: [.init(color: .white.opacity(0), location: 0.55), .init(color: .white.opacity(0.16), location: 1)],
-                                   startPoint: .top, endPoint: .bottom).blendMode(.plusLighter)
-                }
-            }
-            .opacity(expanded && glassy ? 1 : 0)
+            // One layer, so the black only ever gets less opaque or more: a cross-fade of two black layers dips to see-through halfway,
+            // which flashed grey on the way in and out.
+            GlassFoot(foot: settled && glassy ? 0.12 : 1, notchHeight: notchHeight)
         }
         .clipShape(shape)
-        // Closing covers the glass fast, so the live layers are gone before the shape has finished shrinking.
-        .animation(expanded ? Motion.out(0.3) : Motion.out(0.14), value: expanded)
+        .animation(settled ? Motion.out(0.5) : Motion.out(0.1), value: settled)
         .task(id: expanded) {
-            if expanded { layered = true } else {
-                try? await Task.sleep(for: .seconds(0.3))
+            if expanded {
+                try? await Task.sleep(for: .seconds(0.4))
+                if !Task.isCancelled { layered = true; settled = true }
+            } else if settled {
+                settled = false
+                try? await Task.sleep(for: .seconds(0.14))
                 if !Task.isCancelled { layered = false }
             }
         }
     }
     var glassy: Bool { if #available(macOS 26, *) { return !reduceTransparency } else { return false } }
+}
+
+/// The card's black, graded: solid where it meets the hardware notch (the top 61 percent), fading to `foot` opacity at the bottom, with the
+/// sheen glass catches along its lower edge. `foot` animates, so the card turns from solid black to glass and back without a flash.
+struct GlassFoot: View, Animatable {
+    var foot: Double
+    var notchHeight: CGFloat
+    var animatableData: Double { get { foot } set { foot = newValue } }
+    var body: some View {
+        GeometryReader { g in
+            let stop = NotchLayout.blackStop(height: g.size.height, notchHeight: notchHeight)
+            ZStack {
+                LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: stop), .init(color: .black.opacity(foot), location: 1)],
+                               startPoint: .top, endPoint: .bottom)
+                LinearGradient(stops: [.init(color: .white.opacity(0), location: 0.55), .init(color: .white.opacity(0.16 * (1 - foot) / 0.88), location: 1)],
+                               startPoint: .top, endPoint: .bottom).blendMode(.plusLighter)
+            }
+        }
+    }
 }
 
 /// A blur of what is behind the window, always drawn as active (a notch panel is never the key window).

@@ -273,7 +273,11 @@ public final class NotchPanelController {
 
         // A fresh root view each time the geometry changes (a display was added or removed); the same hosting view otherwise.
         let view = NotchView(controller: c, notchWidth: g.width, notchHeight: g.height, model: slot.model, tray: NotchTray.shared)
-        if let host = p.contentView?.subviews.first as? NSHostingView<NotchView> { host.rootView = view } else {
+        // The root view is replaced only when the geometry changed. Replacing it on every hover or click made SwiftUI re-evaluate the whole
+        // tree in the first frame of an open or a close: about 75 ms, so the start of the animation stuttered.
+        if let host = p.contentView?.subviews.first as? NSHostingView<NotchView> {
+            if host.rootView.notchWidth != g.width || host.rootView.notchHeight != g.height { host.rootView = view }
+        } else {
             // The hosting view is NOT the window's content view. As the content view it resizes the window from inside AppKit's
             // constraint pass and throws when its own state changes there (the hover crash, reproduced with synthetic mouse moves).
             let host = NSHostingView(rootView: view)

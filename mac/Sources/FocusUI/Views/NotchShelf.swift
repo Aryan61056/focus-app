@@ -39,14 +39,10 @@ struct ShelfTabPill: View {
         .motion(Motion.notchPeek, value: model.tab)
     }
 
-    /// Frosted like Droppy's: a blur of the desktop behind it, Liquid Glass over that, and a thin light edge.
+    /// Liquid Glass, clear: the desktop shows through and bends at the edge, with a thin light rim.
     @ViewBuilder var pillBackground: some View {
         if !reduceTransparency, #available(macOS 26, *) {
-            ZStack {
-                NotchBlur().clipShape(Capsule())
-                Color.clear.glassEffect(.clear.tint(.white.opacity(0.06)), in: Capsule())
-            }
-            .overlay { Capsule().strokeBorder(Color.white.opacity(0.22), lineWidth: 0.75) }
+            Color.clear.glassEffect(.clear.interactive(), in: Capsule())
         } else {
             Capsule().fill(Color.black.opacity(0.78))
         }
