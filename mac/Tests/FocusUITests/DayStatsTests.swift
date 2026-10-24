@@ -69,39 +69,46 @@ extension DayStatsTests {
 
 @MainActor
 final class NotchTests: XCTestCase {
-    /// Droppy's proportions (owner asked for them, 2026-10-13): hover widens the ears a little, a click opens a wide card.
-    func testRestIsJustTheEarsHoverWidensAndOpenIsAWideCard() {
-        let rest = NotchLayout.size(.rest, notchWidth: 200, notchHeight: 32)
-        XCTAssertEqual(rest.height, 32)
-        XCTAssertEqual(rest.width, 200 + 2 * NotchLayout.ear)
-        let peek = NotchLayout.size(.peek, notchWidth: 200, notchHeight: 32)
-        XCTAssertGreaterThan(peek.width, rest.width)
-        XCTAssertLessThanOrEqual(peek.height - rest.height, 4, "hover widens; it barely grows down")
-        let open = NotchLayout.size(.open, notchWidth: 200, notchHeight: 32)
-        XCTAssertGreaterThan(open.height, peek.height + 80)
-        XCTAssertGreaterThanOrEqual(open.width, peek.width)
-        let box = NotchLayout.panelSize(notchWidth: 200, notchHeight: 32)
-        XCTAssertGreaterThanOrEqual(box.width, open.width); XCTAssertGreaterThanOrEqual(box.height, open.height)
+    /// Droppy's measured shape (Droppy 16.0.1, 2026-10-24; owner: "exact same visuals to the droppy dynamic island"). At a notch 179 pt
+    /// wide: rest 259 x 32 pt of body (271 across the top, with its 6 pt shoulders), hover 285 x 35 (299), open 485 x 196 (541).
+    func testSizesAreDroppys() {
+        let rest = NotchLayout.size(.rest, notchWidth: 179, notchHeight: 32)
+        XCTAssertEqual(rest, CGSize(width: 271, height: 32))
+        let peek = NotchLayout.size(.peek, notchWidth: 179, notchHeight: 32)
+        XCTAssertEqual(peek, CGSize(width: 297, height: 35), "hover widens each ear 13 pt and drops 3 pt")
+        let open = NotchLayout.size(.open, notchWidth: 179, notchHeight: 32)
+        XCTAssertEqual(open, CGSize(width: 541, height: 196))
+        XCTAssertEqual(NotchLayout.size(.open, notchWidth: 185, notchHeight: 32), open, "the open card is one fixed size, whatever the hardware notch")
+        let r = NotchLayout.radii(.open, shown: true, pill: false)
+        XCTAssertEqual(r.top, 27.5); XCTAssertEqual(r.bottom, 35)
+        XCTAssertEqual(NotchLayout.radii(.rest, shown: true, pill: false).top, 6)
+        let box = NotchLayout.panelSize(notchWidth: 179, notchHeight: 32)
+        XCTAssertGreaterThanOrEqual(box.width, open.width)
+        XCTAssertGreaterThanOrEqual(box.height, open.height + NotchLayout.pillGap + NotchLayout.pillHeight, "the tab pill hangs inside the window")
     }
 
-    /// Owner, 2026-10-16: "make sure the dynamic island looks good and not fat and big". At this Mac's real notch (185 x 32 pt) nothing
-    /// grows wider than about 420 pt or hangs more than 92 pt below the notch, and no state hangs a tab bar under the shape.
-    func testTheIslandStaysSlim() throws {
-        for mode in [NotchMode.rest, .peek, .open, .nudge] {
-            let s = NotchLayout.size(mode, notchWidth: 185, notchHeight: 32)
-            XCTAssertLessThanOrEqual(s.width, 425, "\(mode) is too wide")
-            XCTAssertLessThanOrEqual(s.height - 32, 92, "\(mode) hangs too low")
-            XCTAssertEqual(NotchLayout.hitSize(mode, notchWidth: 185, notchHeight: 32), s, "nothing hangs under the shape")
-            let p = NotchLayout.size(mode, notchWidth: 0, notchHeight: 0)
-            XCTAssertLessThanOrEqual(p.width, 400); XCTAssertLessThanOrEqual(p.height, 124)
+    /// The pointer can rest on the gap and the tab pill under the open card without it closing, and on nothing under any other mode.
+    func testTheTabPillIsPartOfTheHoverRegion() {
+        let open = NotchLayout.hitSize(.open, notchWidth: 185, notchHeight: 32)
+        XCTAssertEqual(open.height, 196 + 12.5 + 29)
+        for mode in [NotchMode.rest, .peek, .nudge] {
+            XCTAssertEqual(NotchLayout.hitSize(mode, notchWidth: 185, notchHeight: 32), NotchLayout.size(mode, notchWidth: 185, notchHeight: 32), "\(mode): nothing hangs under it")
         }
         XCTAssertLessThanOrEqual(NotchLayout.size(.nudge, notchWidth: 185, notchHeight: 32).height, 32 + 50, "a nudge is one row")
-        // One accent, no colorful tiles (owner, 2026-10-16): the open card's widgets use the notch's own grays.
+        let p = NotchLayout.size(.open, notchWidth: 0, notchHeight: 0)
+        XCTAssertLessThanOrEqual(p.width, 485); XCTAssertEqual(p.height, 196)
+    }
+
+    /// Owner, 2026-10-24: "drop the mini app feature". The notch has two pages, no widgets, and nothing but the tabs and one nudge button
+    /// can be pressed. One accent, no colorful tiles (owner, 2026-10-16): the open card uses the notch's own grays.
+    func testNoWidgetsAndNoColorfulTiles() throws {
+        XCTAssertEqual(NotchTab.allCases, [.home, .tray])
         let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("Sources/FocusUI/Views/NotchShelf.swift")
         let src = try String(contentsOf: url, encoding: .utf8)
         XCTAssertFalse(src.contains("LinearGradient"), "no gradient tiles in the notch")
         XCTAssertFalse(src.contains("Color(red:"), "no colors outside the notch tokens")
+        XCTAssertEqual(src.components(separatedBy: "Button {").count - 1, 1, "nothing on the pages can be pressed; only the tab pill's icons can")
     }
 
     func testNoNotchGivesAFloatingPill() {

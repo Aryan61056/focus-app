@@ -153,33 +153,16 @@ private struct TrayTile: View {
     }
 }
 
-/// A faint field of dots behind the open notch that light up around the pointer, so the surface answers your hand.
-/// Only the dots near the pointer change; with Reduce Motion the field stays still.
-struct DotField: View {
-    var model: NotchModel
-    /// Where the shape sits inside the panel, so the pointer (in panel points) can be turned into the field's own points.
-    var origin: CGPoint
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+/// The tray as an open-card page: padded to sit between the shoulders and clear of the rounded foot, and risen in like the home page.
+struct TrayPage: View {
+    @Bindable var tray: NotchTray
+    var targeted: Bool
+    @State private var arrived = false
     var body: some View {
-        Canvas { ctx, size in
-            let spacing: CGFloat = 9, row = spacing * 0.866
-            let p = model.pointer.map { CGPoint(x: $0.x - origin.x, y: $0.y - origin.y) }
-            let reach: CGFloat = 90
-            var y: CGFloat = 0, r = 0
-            while y < size.height + row {
-                var x: CGFloat = r % 2 == 0 ? 0 : spacing / 2
-                while x < size.width + spacing {
-                    var glow: CGFloat = 0
-                    if let p, !reduceMotion { let d = hypot(x - p.x, y - p.y); if d < reach { glow = 1 - d / reach } }
-                    let rad = 0.7 + glow * 0.6
-                    ctx.opacity = 0.05 + glow * 0.22
-                    ctx.fill(Path(ellipseIn: CGRect(x: x - rad, y: y - rad, width: rad * 2, height: rad * 2)), with: .color(.white))
-                    x += spacing
-                }
-                y += row; r += 1
-            }
-        }
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
+        TrayColumn(tray: tray, targeted: targeted)
+            .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, 30)
+            .rise(0, arrived)
+            .onAppear { DispatchQueue.main.async { arrived = true } }
+            .onDisappear { arrived = false }
     }
 }

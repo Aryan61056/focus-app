@@ -316,9 +316,9 @@ else if CommandLine.arguments.contains("--popups") { await popupShots() } else {
     both("pop-start-asking", CGSize(width: 560, height: 420)) { CuePreview.startSheet(near, typed: "calc homwork", asking: true) }
     // The notch on task, in every state it can be in without a nudge, at this Mac's real notch (185 x 32 pt).
     let calm = await session()
-    for (name, mode, tab) in [("rest", NotchMode.rest, NotchTab.home), ("peek", .peek, .home), ("open", .open, .home), ("open-tray", .open, .tray), ("open-widgets", .open, .widgets)] {
+    for (name, mode, tab) in [("rest", NotchMode.rest, NotchTab.home), ("peek", .peek, .home), ("open", .open, .home), ("open-tray", .open, .tray)] as [(String, NotchMode, NotchTab)] {
         let m = NotchModel(); m.tab = tab
-        both("pop-notch-\(name)", CGSize(width: 760, height: 240)) { ZStack(alignment: .top) { wall; NotchView(controller: calm, notchWidth: 185, notchHeight: 32, forced: mode, model: m) } }
+        both("pop-notch-\(name)", CGSize(width: 760, height: 300)) { ZStack(alignment: .top) { wall; NotchView(controller: calm, notchWidth: 185, notchHeight: 32, forced: mode, model: m) } }
     }
     // The menu bar panel during a session, with the reading line and the control tiles.
     both("pop-menubar", CGSize(width: 312, height: 470)) { ZStack(alignment: .top) { Tokens.card; MenuBarContent(controller: calm, openApp: {}) } }

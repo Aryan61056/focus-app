@@ -20,10 +20,7 @@ struct FocusApp: App {
         let name = "focus-app.demo"
         UserDefaults.standard.removePersistentDomain(forName: name)
         let d = UserDefaults(suiteName: name) ?? .standard
-        // FOCUS_DEMO_WIDGETS=week,streak and FOCUS_DEMO_NOTE=text pick the notch's widgets for a capture.
         let env = ProcessInfo.processInfo.environment
-        if let w = env["FOCUS_DEMO_WIDGETS"] { d.set(w.split(separator: ",").map(String.init), forKey: "notchWidgets") }
-        if let n = env["FOCUS_DEMO_NOTE"] { d.set(n, forKey: "notchNote") }
         return d
     }
     /// FOCUS_TEST_STORE=<folder> keeps the real judge and real sensing but uses a throwaway store and settings,
@@ -223,7 +220,7 @@ struct FocusApp: App {
                                     NotchTray.shared.add(paths.map { URL(fileURLWithPath: $0) })
                                 case "peek": n.setExpandedForTesting(false); n.setHoverForTesting(true)
                                 case "open": n.setHoverForTesting(true); n.setExpandedForTesting(true)
-                                case "tray", "widgets", "home": n.setTabForTesting(NotchTab(rawValue: what) ?? .home)
+                                case "tray", "home": n.setTabForTesting(NotchTab(rawValue: what) ?? .home)
                                 default: n.setExpandedForTesting(false); n.setHoverForTesting(false)
                                 }
                             }

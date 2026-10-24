@@ -12,8 +12,6 @@ final class HoverBox: NSView {
     var onDropHover: ((Bool) -> Void)?
     /// Files dropped on the notch.
     var onFiles: (([URL]) -> Void)?
-    /// The pointer moved over the panel, in points from its top-left; nil once it leaves.
-    var onPointer: ((CGPoint?) -> Void)?
     /// Droppy waits about 0.2 s before it reacts to the pointer and about 0.25 s before it closes; these match.
     var openDelay: TimeInterval = 0.2, closeDelay: TimeInterval = 0.24
     /// The shape's current size, centred at the top of the window. Set by the controller whenever the mode changes.
@@ -33,10 +31,6 @@ final class HoverBox: NSView {
         let a = NSTrackingArea(rect: visibleRect2, options: [.mouseEnteredAndExited, .mouseMoved, .activeAlways], owner: self, userInfo: nil)
         addTrackingArea(a); area = a
     }
-    override func mouseMoved(with event: NSEvent) {
-        let p = convert(event.locationInWindow, from: nil)
-        onPointer?(CGPoint(x: p.x, y: bounds.height - p.y))
-    }
 
     // MARK: files dropped on the notch
     override func viewDidMoveToSuperview() { super.viewDidMoveToSuperview(); registerForDraggedTypes([.fileURL]) }
@@ -54,7 +48,7 @@ final class HoverBox: NSView {
     override func concludeDragOperation(_ sender: NSDraggingInfo?) { onDropHover?(false) }
     override func viewDidMoveToWindow() { super.viewDidMoveToWindow(); updateTrackingAreas() }
     override func mouseEntered(with event: NSEvent) { set(true) }
-    override func mouseExited(with event: NSEvent) { set(false); onPointer?(nil) }
+    override func mouseExited(with event: NSEvent) { set(false) }
 
     // MARK: click-through
     // The window is as big as the biggest mode (see NotchLayout.panelSize), so most of it is empty. A window gets every click inside its
@@ -279,7 +273,11 @@ public final class NotchPanelController {
 
         // A fresh root view each time the geometry changes (a display was added or removed); the same hosting view otherwise.
         let view = NotchView(controller: c, notchWidth: g.width, notchHeight: g.height, model: slot.model, tray: NotchTray.shared)
-        if let host = p.contentView?.subviews.first as? NSHostingView<NotchView> { host.rootView = view } else {
+        // The root view is replaced only when the geometry changed. Replacing it on every hover or click made SwiftUI re-evaluate the whole
+        // tree in the first frame of an open or a close: about 75 ms, so the start of the animation stuttered.
+        if let host = p.contentView?.subviews.first as? NSHostingView<NotchView> {
+            if host.rootView.notchWidth != g.width || host.rootView.notchHeight != g.height { host.rootView = view }
+        } else {
             // The hosting view is NOT the window's content view. As the content view it resizes the window from inside AppKit's
             // constraint pass and throws when its own state changes there (the hover crash, reproduced with synthetic mouse moves).
             let host = NSHostingView(rootView: view)
@@ -291,7 +289,6 @@ public final class NotchPanelController {
             box.onHover = { on in model.hover = on; if !on { model.expanded = false } }
             box.onDropHover = { on in model.dropTargeted = on }
             box.onFiles = { urls in NotchTray.shared.add(urls); model.expanded = true }
-            box.onPointer = { p in model.pointer = p }
             box.visibleSize = shown
             host.frame = box.bounds; host.autoresizingMask = [.width, .height]
             box.addSubview(host)
