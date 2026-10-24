@@ -72,7 +72,7 @@ public enum AssistantText {
 
     Answer the user's question about this session in at most three short sentences. \
     You may name apps, windows or sites from the facts, because the user is asking. \
-    If the facts do not contain the answer, say that Focus does not have it, and mention that readings are kept in memory only during the session and until the next one starts.
+    If the facts do not contain the answer, say that Hushd does not have it, and mention that readings are kept in memory only during the session and until the next one starts.
     """
 }
 

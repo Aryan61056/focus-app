@@ -4,7 +4,7 @@ import FocusJudge
 @testable import FocusUI
 @testable import FocusSense
 
-/// Pausing means Focus stops looking and stops acting (owner, 2026-10-15: "the app seems to keep working even when paused").
+/// Pausing means Hushd stops looking and stops acting (owner, 2026-10-15: "the app seems to keep working even when paused").
 @MainActor
 final class PauseTests: XCTestCase {
     var t = 0.0
@@ -44,7 +44,7 @@ final class PauseTests: XCTestCase {
         c.act(.breakTime, minutes: 5); XCTAssertTrue(c.isHeld)
         c.act(.resume)
         c.windowChanged(WindowSnapshot(app: "Browser", title: "Private browsing", url: "https://bank.example/login"))
-        XCTAssertEqual(c.presence.reason, "sensitive"); XCTAssertFalse(c.isHeld, "a private window keeps the watcher on so Focus knows when it ends")
+        XCTAssertEqual(c.presence.reason, "sensitive"); XCTAssertFalse(c.isHeld, "a private window keeps the watcher on so Hushd knows when it ends")
     }
 
     func testNoPictureIsTakenWhilePausedAndItComesBackOnResume() async {

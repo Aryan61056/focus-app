@@ -4,7 +4,7 @@ import AppKit
 
 /// The beta program in one place: which build this is, the local journal, the feedback sheet and the tester's missions.
 /// Feedback is a file the tester saves. If the build names a GitHub project, the tester's browser can open its issue form and they drag
-/// the file in; if it names an address, their own mail app can attach it. Either way the tester sends it. Focus sends nothing.
+/// the file in; if it names an address, their own mail app can attach it. Either way the tester sends it. Hushd sends nothing.
 @MainActor @Observable
 public final class BetaCenter {
     public let build: BetaBuild
@@ -51,7 +51,7 @@ public final class BetaCenter {
         guard let url = build.issueURL(kind), let onOpenWeb else { return false }
         return onOpenWeb(url)
     }
-    /// The project's releases page, where newer builds are. Nothing is checked or downloaded by Focus.
+    /// The project's releases page, where newer builds are. Nothing is checked or downloaded by Hushd.
     @discardableResult public func openNewestBuild() -> Bool {
         guard let url = build.releasesURL, let onOpenWeb else { return false }
         return onOpenWeb(url)
@@ -77,10 +77,10 @@ public final class BetaCenter {
         let model: Bool? = { switch c.judgeStatus { case .ready: return true; case .unavailable: return false; case .unknown: return nil } }()
         let access: Bool? = { switch c.windowAccess { case .allowed: return true; case .appNamesOnly: return false; case .unknown: return nil } }()
         return [
-            .init(id: "model", title: "Apple model", detail: model == false ? "Turn on Apple Intelligence in System Settings. Without it Focus does nothing."
-                  : "Focus judges windows with Apple's on-device model.", ok: model, fix: model == false ? .model : nil),
-            .init(id: "access", title: "Window titles", detail: access == false ? "Allow Accessibility so Focus can read window titles, not only app names."
-                  : "Focus reads the app, title and address of the window in front.", ok: access, fix: access == false ? .access : nil),
+            .init(id: "model", title: "Apple model", detail: model == false ? "Turn on Apple Intelligence in System Settings. Without it Hushd does nothing."
+                  : "Hushd judges windows with Apple's on-device model.", ok: model, fix: model == false ? .model : nil),
+            .init(id: "access", title: "Window titles", detail: access == false ? "Allow Accessibility so Hushd can read window titles, not only app names."
+                  : "Hushd reads the app, title and address of the window in front.", ok: access, fix: access == false ? .access : nil),
             .init(id: "log", title: "Beta log", detail: journal.recording ? "Kinds and times of what happened, kept on this Mac for your reports."
                   : "Off. Reports carry no timeline, so problems are harder to find.", ok: journal.recording, fix: journal.recording ? nil : .log),
         ]
@@ -103,8 +103,8 @@ public final class BetaCenter {
         panel.nameFieldStringValue = r.fileName
         panel.allowedContentTypes = [.json]
         panel.directoryURL = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first
-        panel.message = forGitHub ? "Save the report. Next, Focus opens the GitHub form and you drag this file into it."
-                                  : "Save the report, then send the file to whoever gave you this build. Focus sends nothing."
+        panel.message = forGitHub ? "Save the report. Next, Hushd opens the GitHub form and you drag this file into it."
+                                  : "Save the report, then send the file to whoever gave you this build. Hushd sends nothing."
         guard panel.runModal() == .OK, let url = panel.url else { return .cancelled }
         return save(r, to: url) ? .saved(url) : .failed
     }
@@ -116,8 +116,8 @@ public final class BetaCenter {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         let url = dir.appendingPathComponent(r.fileName)
         guard save(r, to: url) else { return false }
-        let subject = "Focus \(build.label): \(r.kind.title)"
-        let body = "\(r.message)\n\nThe attached file is everything Focus put in this report. You can open it to check before sending."
+        let subject = "Hushd \(build.label): \(r.kind.title)"
+        let body = "\(r.message)\n\nThe attached file is everything Hushd put in this report. You can open it to check before sending."
         return onEmail(url, to, subject, body)
     }
 
@@ -150,11 +150,11 @@ public struct BetaMission: Identifiable, Equatable, Sendable {
                   done: !sessions.isEmpty),
             .init(id: "long", title: "Stay 25 minutes", detail: "One session with 25 minutes or more of active time.", symbol: "timer",
                   done: sessions.contains { $0.activeSeconds >= 1500 }),
-            .init(id: "describe", title: "Describe a project", detail: "A line under Projects about what counts as work helps Focus decide.", symbol: "text.alignleft",
+            .init(id: "describe", title: "Describe a project", detail: "A line under Projects about what counts as work helps Hushd decide.", symbol: "text.alignleft",
                   done: store?.projects.contains { !$0.context.trimmingCharacters(in: .whitespaces).isEmpty } ?? false),
             .init(id: "back", title: "Use Back to task", detail: "After a nudge, press Back to task and see where it takes you.", symbol: "arrow.uturn.backward.circle",
                   done: journal.count(.backToTask) > 0),
-            .init(id: "review", title: "Answer a Review moment", detail: "Tell Focus whether a flagged moment was right or fine.", symbol: "flag",
+            .init(id: "review", title: "Answer a Review moment", detail: "Tell Hushd whether a flagged moment was right or fine.", symbol: "flag",
                   done: (store?.agreement.answered ?? 0) > 0),
             .init(id: "days", title: "Use it on three days", detail: "Real days of work show what one session cannot.", symbol: "calendar",
                   done: days >= 3),

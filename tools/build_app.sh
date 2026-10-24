@@ -1,5 +1,5 @@
 #!/bin/bash
-# Builds mac/.build/Focus.app from the SwiftPM release build: a local, ad-hoc-signed development bundle.
+# Builds mac/.build/Hushd.app from the SwiftPM release build: a local, ad-hoc-signed development bundle.
 # Pass --install to also copy it to ~/Applications, where Spotlight finds it (no sudo).
 # For a copy to hand to other people use tools/build_dmg.sh (it sets FOCUS_DISTRIBUTION=1). Signing, notarization and the bundle id are
 # owner decisions still open.
@@ -22,7 +22,7 @@ fi
 cd "$(dirname "$0")/../mac"
 export DEVELOPER_DIR="${DEVELOPER_DIR:-$(xcode-select -p)}"; unset SDKROOT
 swift build -c release --product focus-app 2>&1 | tail -1
-APP=".build/Focus.app"
+APP=".build/Hushd.app"
 rm -rf "$APP"; mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp ".build/release/focus-app" "$APP/Contents/MacOS/focus-app"
 # SwiftPM records SDK 14 (the deployment target) in the binary, and macOS then draws the app in its old-design compatibility mode:
@@ -45,8 +45,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-  <key>CFBundleName</key><string>Focus</string>
-  <key>CFBundleDisplayName</key><string>Focus</string>
+  <key>CFBundleName</key><string>Hushd</string>
+  <key>CFBundleDisplayName</key><string>Hushd</string>
   <key>CFBundleIdentifier</key><string>__BUNDLE_ID__</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundleExecutable</key><string>focus-app</string>
@@ -58,11 +58,11 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
   <key>NSPrincipalClass</key><string>NSApplication</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>CKSharingSupported</key><true/>
-  <key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>Focus</string><key>CFBundleURLSchemes</key><array><string>focusapp</string></array></dict></array>
-  <key>NSAppleEventsUsageDescription</key><string>Focus can switch your browser to the tab you were working in, or close the tab you were warned about, when you turn that on. It sends nothing anywhere.</string>
-  <key>NSLocalNetworkUsageDescription</key><string>Focus talks to your iPhone on your Wi-Fi so the phone can show and control your session. It only listens after you turn on Session, iPhone.</string>
+  <key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>Hushd</string><key>CFBundleURLSchemes</key><array><string>focusapp</string></array></dict></array>
+  <key>NSAppleEventsUsageDescription</key><string>Hushd can switch your browser to the tab you were working in, or close the tab you were warned about, when you turn that on. It sends nothing anywhere.</string>
+  <key>NSLocalNetworkUsageDescription</key><string>Hushd talks to your iPhone on your Wi-Fi so the phone can show and control your session. It only listens after you turn on Session, iPhone.</string>
   <key>NSBonjourServices</key><array><string>_focuslink._tcp</string></array>
-  <key>NSScreenCaptureUsageDescription</key><string>Focus shows you a small picture of the window it is reading. The picture stays in memory and is never saved.</string>
+  <key>NSScreenCaptureUsageDescription</key><string>Hushd shows you a small picture of the window it is reading. The picture stays in memory and is never saved.</string>
 </dict></plist>
 PLIST
 sed -i '' "s|__BUNDLE_ID__|$BUNDLE_ID|" "$APP/Contents/Info.plist"
@@ -104,8 +104,8 @@ if [ -n "$ICON_NAME" ]; then /usr/libexec/PlistBuddy -c "Add :CFBundleIconName s
 plutil -lint "$APP/Contents/Info.plist" >/dev/null
 # The iPhone app, when one was built (tools/build_iphone.sh): carried inside so the iPhone window can install it on a plugged-in phone.
 # Copied as it is, with its own signature; it sits in Resources, so signing the outer app below leaves it alone.
-IPHONE_APP="${FOCUS_IPHONE_APP:-$(pwd)/../companion/.build/Focus for iPhone.app}"
-if [ -d "$IPHONE_APP" ]; then ditto "$IPHONE_APP" "$APP/Contents/Resources/Focus for iPhone.app"; echo "carrying the iPhone app from $IPHONE_APP"; fi
+IPHONE_APP="${FOCUS_IPHONE_APP:-$(pwd)/../companion/.build/Hushd for iPhone.app}"
+if [ -d "$IPHONE_APP" ]; then ditto "$IPHONE_APP" "$APP/Contents/Resources/Hushd for iPhone.app"; echo "carrying the iPhone app from $IPHONE_APP"; fi
 if [ "$SIGNED" = 1 ]; then
   # Signed for iCloud: the profile travels inside the bundle and the entitlements must be allowed by it.
   cp "$FOCUS_PROVISIONING_PROFILE" "$APP/Contents/embedded.provisionprofile"
@@ -119,7 +119,7 @@ fi
 codesign --verify --verbose=1 "$APP" 2>&1 | tail -1
 echo "built $(pwd)/$APP"
 if [ "${1:-}" = "--install" ]; then
-  DEST="$HOME/Applications/Focus.app"
+  DEST="$HOME/Applications/Hushd.app"
   mkdir -p "$HOME/Applications"
   # Quit a running copy first so the replaced bundle is the one that opens next.
   osascript -e "tell application id \"$BUNDLE_ID\" to quit" >/dev/null 2>&1 || true

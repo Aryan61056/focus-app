@@ -27,7 +27,7 @@ struct StuckCard: View {
                         }
                     }.transition(.rise(reduce: reduceMotion))
                 } else {
-                    Text("Focus has no suggestion right now. You can write one small action to try.").font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2)
+                    Text("Hushd has no suggestion right now. You can write one small action to try.").font(Tokens.text(.callout)).foregroundStyle(Tokens.ink2)
                     HStack {
                         TextField("One thing you can do next", text: $manual).textFieldStyle(.roundedBorder).onSubmit(useManual)
                             .accessibilityLabel("Your next action")

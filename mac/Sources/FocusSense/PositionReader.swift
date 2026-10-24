@@ -4,7 +4,7 @@ import FocusUI
 
 /// Reads and restores where you are inside the front window: how far its main scroll area is scrolled and where the text cursor sits.
 /// Numbers only. It never reads the text in the window (the length of the text is asked of the app as a number). It needs the Accessibility
-/// permission Focus already uses, and does nothing without it. Many windows do not expose a scroll bar or a cursor; then there is nothing
+/// permission Hushd already uses, and does nothing without it. Many windows do not expose a scroll bar or a cursor; then there is nothing
 /// to note and nothing to put back, and that is normal.
 public enum PositionReader {
     @MainActor static func app(named name: String) -> NSRunningApplication? {

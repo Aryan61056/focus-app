@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Focus. Gentle focus for your Mac</title>
-  <meta name="description" content="Tell Focus what you are working on. An on-device AI compares the window in front with it, and nudges you gently when you drift. No account, no cloud.">
+  <title>Hushd. Gentle focus for your Mac</title>
+  <meta name="description" content="Tell Hushd what you are working on. An on-device AI compares the window in front with it, and nudges you gently when you drift. No account, no cloud.">
   <meta name="theme-color" content="#135e3d">
   <link rel="icon" href="assets/app/icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,9 +20,9 @@
 <!-- The nav is a notch: a bar hanging from the top edge with concave fillets, white over the sky, deep green over paper. -->
 <header class="nav" data-tone="sky">
   <nav class="nav__pill" aria-label="Main">
-    <a class="nav__logo" href="#top" aria-label="Focus home">
+    <a class="nav__logo" href="#top" aria-label="Hushd home">
       <img src="assets/app/icon.png" alt="" width="26" height="26">
-      <span>Focus</span>
+      <span>Hushd</span>
     </a>
     <div class="nav__links" id="nav-links">
       <a class="nav__link" href="#island">The notch</a>
@@ -43,7 +43,7 @@
   <div class="sky__fog" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
   <canvas class="hero__art" aria-hidden="true"></canvas>
   <div class="hero__icon-wrap">
-    <img class="hero__icon" src="assets/app/icon.png" alt="Focus app icon" width="148" height="148">
+    <img class="hero__icon" src="assets/app/icon.png" alt="Hushd app icon" width="148" height="148">
   </div>
   <div class="hero__inner">
     <p class="hero__kicker reveal" data-reveal-load style="--d:120ms">
@@ -51,7 +51,7 @@
       Made for Mac. Runs on your Mac.
     </p>
     <h1 class="hero__title reveal" data-reveal-load style="--d:200ms"><span class="soft">Notice the drift.</span> Come back gently.</h1>
-    <p class="hero__sub reveal" data-reveal-load style="--d:300ms">Tell Focus what you are working on. An on-device AI compares the window in front with it, and nudges you softly when you wander.</p>
+    <p class="hero__sub reveal" data-reveal-load style="--d:300ms">Tell Hushd what you are working on. An on-device AI compares the window in front with it, and nudges you softly when you wander.</p>
     <div class="hero__actions reveal" data-reveal-load style="--d:400ms">
       <a class="btn btn--white" href="#download">
         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9m0 0 3.5-3.5M10 12 6.5 8.5M4 15.5h12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -64,7 +64,7 @@
 
   <div class="showcase">
     <figure class="showcase__frame">
-      <img src="assets/app/today.jpg" alt="The Focus window during a session: the task Calc homework, a green ring that says on task, and a panel called What Focus is reading that explains its call." width="2480" height="1600" loading="eager">
+      <img src="assets/app/today.jpg" alt="The Hushd window during a session: the task Calc homework, a green ring that says on task, and a panel called What Hushd is reading that explains its call." width="2480" height="1600" loading="eager">
     </figure>
   </div>
 </section>
@@ -82,7 +82,7 @@
         <span class="mac__bar-left"><b>Notes</b><i>File</i><i>Edit</i><i>View</i></span>
         <span class="mac__bar-right"><i>Wed 14 Oct</i><i>9:41</i></span>
       </div>
-      <!-- The notch: the hardware cut-out in the middle, Focus's wings around it. Sized by a spring in main.js. -->
+      <!-- The notch: the hardware cut-out in the middle, Hushd's wings around it. Sized by a spring in main.js. -->
       <div class="notch" role="status" aria-live="polite">
         <div class="notch__rest">
           <svg class="ring" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/></svg>
@@ -104,7 +104,7 @@
         <div class="mac__win-body" data-win-body></div>
       </div>
 
-      <p class="mac__read" aria-live="polite"><span class="mac__read-label">Focus read</span> <span data-read>Notes, “Calc homework”. Shares words with your task.</span> <b data-call>On task</b></p>
+      <p class="mac__read" aria-live="polite"><span class="mac__read-label">Hushd read</span> <span data-read>Notes, “Calc homework”. Shares words with your task.</span> <b data-call>On task</b></p>
     </div>
 
     <div class="island__controls">
@@ -120,15 +120,15 @@
         <svg class="i-play" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4.5v11l9.5-5.5z"/></svg>
       </button>
     </div>
-    <p class="island__caption" aria-live="polite" data-caption>The ring is closed. You are on task, so Focus says nothing.</p>
+    <p class="island__caption" aria-live="polite" data-caption>The ring is closed. You are on task, so Hushd says nothing.</p>
   </div>
 </section>
 
 <!-- How it decides: carousel ------------------------------------------------------------------------------------ -->
 <section class="decides paper" id="decides" data-tone="paper">
   <div class="wrap">
-    <h2 class="section-title reveal">How Focus decides</h2>
-    <p class="section-sub reveal" style="--d:80ms">Every call is shown to you. The model can be wrong, so Focus leans quiet.</p>
+    <h2 class="section-title reveal">How Hushd decides</h2>
+    <p class="section-sub reveal" style="--d:80ms">Every call is shown to you. The model can be wrong, so Hushd leans quiet.</p>
   </div>
   <div class="rail" data-rail>
     <ul class="rail__track" data-track>
@@ -198,7 +198,7 @@
 <!-- Features: bento --------------------------------------------------------------------------------------------- -->
 <section class="features paper" id="features" data-tone="paper">
   <div class="wrap">
-    <h2 class="section-title reveal">Focus is there <span class="soft">when you drift.</span></h2>
+    <h2 class="section-title reveal">Hushd is there <span class="soft">when you drift.</span></h2>
     <div class="bento">
       <article class="tile tile--wide art art--fog reveal" data-art="wanderer" data-ay="0.2">
         <div class="ui ui--notchrest" data-ui>
@@ -206,10 +206,10 @@
           <span class="hw" aria-hidden="true"></span>
           <span>24:10</span>
         </div>
-        <div class="tile__cap"><h3>Never invisible</h3><p>While Focus watches, a ring sits in the notch and the menu bar.</p></div>
+        <div class="tile__cap"><h3>Never invisible</h3><p>While Hushd watches, a ring sits in the notch and the menu bar.</p></div>
       </article>
       <article class="tile tile--shot reveal" style="--d:70ms">
-        <img src="assets/app/projects.jpg" alt="The Projects page: a project called Calc homework with a box for what Focus should know about it." loading="lazy" width="2480" height="1600">
+        <img src="assets/app/projects.jpg" alt="The Projects page: a project called Calc homework with a box for what Hushd should know about it." loading="lazy" width="2480" height="1600">
         <div class="tile__cap tile__cap--on-light"><h3>Projects remember</h3><p>A sentence about the work beats any list of rules.</p></div>
       </article>
       <article class="tile art reveal" data-art="jerome" data-ax="0.2" data-ay="0.3" style="--d:0ms">
@@ -236,7 +236,7 @@
           <div class="rv"><b>10:42</b><span>Read as drifting. Two checks agreed.</span><em>That was fine</em></div>
           <div class="rv"><b>11:05</b><span>Read as on task. Shares words with your task.</span></div>
         </div>
-        <div class="tile__cap"><h3>Review shows why</h3><p>See why each moment was flagged, and tell Focus when it got one wrong.</p></div>
+        <div class="tile__cap"><h3>Review shows why</h3><p>See why each moment was flagged, and tell Hushd when it got one wrong.</p></div>
       </article>
       <article class="tile art reveal" data-art="thinker" data-ax="0.5" data-ay="0.15" style="--d:70ms">
         <div class="ui ui--words" data-ui>
@@ -301,7 +301,7 @@
   <canvas class="room__art" aria-hidden="true"></canvas>
   <div class="room__inner">
     <h2 class="reveal">A quiet room, <span class="soft">on a busy Mac.</span></h2>
-    <p class="reveal" style="--d:80ms">Focus starts gentle. It notices when you wander and says so softly. Stricter steps are there if you ask for them.</p>
+    <p class="reveal" style="--d:80ms">Hushd starts gentle. It notices when you wander and says so softly. Stricter steps are there if you ask for them.</p>
     <ul class="levels reveal" style="--d:160ms" aria-label="Nudge styles">
       <li><b>Gentle</b><span>A nudge in the notch, then it waits.</span></li>
       <li><b>Standard</b><span>Asks once more, then a pause screen.</span></li>
@@ -314,7 +314,7 @@
 <section class="wordscroll paper" data-tone="paper">
   <div class="wordscroll__stage">
     <img class="wordscroll__icon" src="assets/app/icon.png" alt="" width="96" height="96">
-    <p class="wordscroll__text" data-wordsplit>Say what you are working on. Focus reads the window in front, compares, and stays quiet unless it is sure.</p>
+    <p class="wordscroll__text" data-wordsplit>Say what you are working on. Hushd reads the window in front, compares, and stays quiet unless it is sure.</p>
     <p class="wordscroll__ask" data-wordsplit>What will you finish today?</p>
   </div>
 </section>
@@ -325,7 +325,7 @@
     <div class="getcard reveal">
       <div class="getcard__head">
         <img src="assets/app/icon.png" alt="" width="56" height="56">
-        <div><h2>Focus for Mac</h2><p>Public beta, Apple silicon</p></div>
+        <div><h2>Hushd for Mac</h2><p>Public beta, Apple silicon</p></div>
       </div>
       <ul class="getcard__list">
         <li>Apple’s on-device model, nothing to download</li>
@@ -350,12 +350,12 @@
     <h2 class="section-title reveal">Questions</h2>
     <div class="qa">
       <div class="q reveal">
-        <button type="button" aria-expanded="false"><span>What does Focus look at?</span><i></i></button>
+        <button type="button" aria-expanded="false"><span>What does Hushd look at?</span><i></i></button>
         <div class="a"><div><p>The app, window title and page address of the window in front, only during a session. If you turn on screen reading, it also reads the words in that window. The model sees words, never the picture.</p></div></div>
       </div>
       <div class="q q--r reveal">
         <button type="button" aria-expanded="false"><span>Does anything leave my Mac?</span><i></i></button>
-        <div class="a"><div><p>Focus judges with Apple’s on-device model. There is no account, no cloud service of ours and no analytics. Pictures and screen words stay in memory and are dropped when the window changes.</p></div></div>
+        <div class="a"><div><p>Hushd judges with Apple’s on-device model. There is no account, no cloud service of ours and no analytics. Pictures and screen words stay in memory and are dropped when the window changes.</p></div></div>
       </div>
       <div class="q reveal">
         <button type="button" aria-expanded="false"><span>What if it gets it wrong?</span><i></i></button>
@@ -363,7 +363,7 @@
       </div>
       <div class="q q--r reveal">
         <button type="button" aria-expanded="false"><span>Will it say what I was looking at?</span><i></i></button>
-        <div class="a"><div><p>No. Nudges talk about your task, never the distraction, so Focus is safe to have on screen next to a colleague.</p></div></div>
+        <div class="a"><div><p>No. Nudges talk about your task, never the distraction, so Hushd is safe to have on screen next to a colleague.</p></div></div>
       </div>
       <div class="q reveal">
         <button type="button" aria-expanded="false"><span>Does it read my messages?</span><i></i></button>
@@ -399,7 +399,7 @@
   <canvas class="footer__art" aria-hidden="true"></canvas>
   <div class="footer__inner wrap">
     <div class="footer__brand">
-      <a class="footer__logo" href="#top"><img src="assets/app/icon.png" alt="" width="44" height="44"><span>Focus</span></a>
+      <a class="footer__logo" href="#top"><img src="assets/app/icon.png" alt="" width="44" height="44"><span>Hushd</span></a>
       <p class="footer__line">A calm colleague for focused work.</p>
       <p class="footer__blurb">Projects, gentle nudges and a ring in the notch. Everything runs on your Mac.</p>
       <a class="btn btn--white btn--sm" href="#download">Download for macOS</a>

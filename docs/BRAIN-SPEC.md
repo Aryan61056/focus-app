@@ -55,11 +55,11 @@ step(state, event):
 | S2 | Timed clock | Mode Timed, not paused: `remaining <= 120` and wrap-up not sent → one-shot `WrapUp`. `remaining <= 0` → end the session (section 3.3, end). |
 | S3 | Held | If any hold is active, stop here (S4-S10 do not run). |
 | S4 | Return complete | `returnPendingSince != nil` and `t >= returnPendingSince + 15` → enter **Recovering**. |
-| S5 | Recovering done | Focus is Recovering and `t >= recoveringSince + 5` → focus **OnTask**. |
-| S6 | Grace | Focus is OnTask, a block exists, and `timer(t) >= preset.grace` → focus **Drifting**. |
+| S5 | Recovering done | Hushd is Recovering and `t >= recoveringSince + 5` → focus **OnTask**. |
+| S6 | Grace | Hushd is OnTask, a block exists, and `timer(t) >= preset.grace` → focus **Drifting**. |
 | S7 | Confirm | Section 4.4 conditions all hold → focus **Confirmed** (or **Persisting**, see 4.6). |
 | S8 | Interrupt due | Section 4.7 conditions all hold → one-shot `Interrupt`. |
-| S9 | Persist | Focus is Confirmed and `t >= confirmedAt + 12` → focus **Persisting** (no visible change). |
+| S9 | Persist | Hushd is Confirmed and `t >= confirmedAt + 12` → focus **Persisting** (no visible change). |
 | S10 | Cadence | Section 6.2 conditions hold → one-shot `RequestJudgment`. |
 
 ---
@@ -245,7 +245,7 @@ and if the block `wasConfirmed` and re-entry is enabled, open the re-entry promp
 
 S7 confirms when **all** hold:
 
-1. Focus is Drifting, no return pending.
+1. Hushd is Drifting, no return pending.
 2. `timer(t) >= preset.confirmAfter`.
 3. `strongs` holds an **independent pair**: two entries `a`, `b` with `b.observedAt - a.observedAt >= 10` when `contentKey`s differ, or `>= 20` when they are equal. **ST**
 4. `lastEvidence.class == STRONG`.
@@ -393,7 +393,7 @@ After a request, `nextCheckAt = ∞` until the answer arrives. `allowVision = !p
 
 | Situation after applying | Interval (s) **ST** |
 |---|---|
-| Focus Confirmed or Persisting, no return pending | 8 (owner, 2026-10-18: notice a slip fast; window changes are immediate) |
+| Hushd Confirmed or Persisting, no return pending | 8 (owner, 2026-10-18: notice a slip fast; window changes are immediate) |
 | Return pending | 4 |
 | ON from a session rule or `ruleLabel` | none (deterministic, re-checked only on window change) |
 | ON from cache | 20 (sets `onStreak = 3`) |

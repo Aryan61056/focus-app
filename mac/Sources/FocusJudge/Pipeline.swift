@@ -49,7 +49,7 @@ public enum Pipeline {
         }
         // On-screen text that talks to the AI is not judged: unsure, so it can never lead to a nudge (docs/T7-injection.md).
         if useGuard && Rules.looksInjected(m) {
-            return Judgement(label: .unsure, stage: .guarded, reason: "This window's text contains instructions aimed at the AI. Focus ignored it.", latencyMs: 0)
+            return Judgement(label: .unsure, stage: .guarded, reason: "This window's text contains instructions aimed at the AI. Hushd ignored it.", latencyMs: 0)
         }
         let prompt = Prompts.prompt(for: m)
         var first = await judge.reasonFirst(prompt: prompt)

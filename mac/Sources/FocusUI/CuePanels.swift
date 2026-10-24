@@ -51,7 +51,7 @@ final class BannerPanel: NSPanel {
         level = .statusBar
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         isMovable = false; hidesOnDeactivate = false
-        // Hiding Focus (Command-H, or Hide Others from another app) hides its main window, never a nudge.
+        // Hiding Hushd (Command-H, or Hide Others from another app) hides its main window, never a nudge.
         canHide = false
     }
     override var canBecomeKey: Bool { false }
@@ -102,7 +102,7 @@ struct BannerView: View {
         }
     }
 
-    /// One line of what Focus saw, with the sparkle wherever the AI did the work. Numbers are monospaced so they never jitter.
+    /// One line of what Hushd saw, with the sparkle wherever the AI did the work. Numbers are monospaced so they never jitter.
     @ViewBuilder var meta: some View {
         HStack(spacing: 6) {
             switch banner.kind {

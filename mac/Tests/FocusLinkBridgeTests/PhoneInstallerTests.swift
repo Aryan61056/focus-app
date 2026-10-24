@@ -31,7 +31,7 @@ final class PhoneInstallerTests: XCTestCase {
     }
     static func list(_ devices: String...) -> Data { Data(#"{"result":{"devices":[\#(devices.joined(separator: ","))]}}"#.utf8) }
 
-    private let appURL = URL(fileURLWithPath: "/tmp/Focus for iPhone.app")
+    private let appURL = URL(fileURLWithPath: "/tmp/Hushd for iPhone.app")
 
     func testNothingIsOfferedWhenThisCopyHasNoIPhoneApp() async {
         let tool = FakeTool([])
@@ -101,7 +101,7 @@ final class PhoneInstallerTests: XCTestCase {
         XCTAssertEqual(DeviceListing.reason(json: message("Developer Mode is disabled on this device."), errorText: ""),
                        "Turn on Developer Mode on the iPhone (Settings, Privacy & Security), then try again.")
         XCTAssertEqual(DeviceListing.reason(json: message("The device is locked."), errorText: ""), "Unlock the iPhone and try again.")
-        XCTAssertEqual(DeviceListing.reason(json: nil, errorText: ""), "Focus could not install on this iPhone.")
+        XCTAssertEqual(DeviceListing.reason(json: nil, errorText: ""), "Hushd could not install on this iPhone.")
         XCTAssertEqual(DeviceListing.reason(json: nil, errorText: "line one\nline two"), "Could not install: line one", "falls back to the first line the tool printed")
         let long = String(repeating: "word ", count: 80)
         XCTAssertLessThanOrEqual(DeviceListing.reason(json: message(long), errorText: "").count, 180, "a long message is cut")
@@ -119,7 +119,7 @@ final class PhoneInstallerTests: XCTestCase {
     func testTheBundledAppIsFoundInResourcesOrByTheDevelopmentOverride() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("focus-installer-\(UUID().uuidString)", isDirectory: true)
         defer { try? FileManager.default.removeItem(at: dir) }
-        let app = dir.appendingPathComponent("Focus for iPhone.app", isDirectory: true)
+        let app = dir.appendingPathComponent("Hushd for iPhone.app", isDirectory: true)
         try FileManager.default.createDirectory(at: app, withIntermediateDirectories: true)
         XCTAssertNil(PhoneInstaller.bundledApp(environment: ["FOCUS_IPHONE_APP": app.path]), "a folder without an Info.plist is not an app")
         try Data("<plist/>".utf8).write(to: app.appendingPathComponent("Info.plist"))

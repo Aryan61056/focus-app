@@ -1,4 +1,4 @@
-"""Runs the AppleScript that Focus generates for Arc and Dia against stand-in apps that follow the two dictionaries.
+"""Runs the AppleScript that Hushd generates for Arc and Dia against stand-in apps that follow the two dictionaries.
 
 What this proves: the scripts' own logic (look in the space you worked in first, fall back to any space, bring the space and the tab
 forward, bring the window to the front, say "none" or "changed" when there is nothing to do, escaping of quotes and backslashes, private

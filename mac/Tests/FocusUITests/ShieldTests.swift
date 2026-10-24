@@ -433,7 +433,7 @@ final class ShieldTests: XCTestCase {
         await advance(c, to: t + Shield.frictionIdle - 2)
         XCTAssertTrue(hidden.isEmpty && switched == 0, "nothing yet while the wait and the grace run")
         await advance(c, to: t + 4)
-        XCTAssertEqual(hidden, ["Safari"], "then Focus acts on the site, here hiding because it was already acted on once")
+        XCTAssertEqual(hidden, ["Safari"], "then Hushd acts on the site, here hiding because it was already acted on once")
         await advance(c, to: t + 100)
         XCTAssertGreaterThanOrEqual(hidden.count, 2, "and again while you stay behind the cover")
     }

@@ -1,6 +1,6 @@
 import Foundation
 
-// "What brings you back": for each time you drifted and came back, which of Focus's cues had appeared most recently, and how long after it
+// "What brings you back": for each time you drifted and came back, which of Hushd's cues had appeared most recently, and how long after it
 // appeared you were back. Counts and kinds only (no window, app, site or text), saved with the session like the other counts. It reports what
 // was on screen, not what caused the return, and it decides nothing: no cue is chosen or skipped because of it.
 

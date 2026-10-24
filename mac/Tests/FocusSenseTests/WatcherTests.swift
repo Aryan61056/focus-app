@@ -34,7 +34,7 @@ final class WatcherTests: XCTestCase {
         let (c, src, w) = make()
         c.begin(task: "x", shadow: false)
         src.next = WindowSnapshot(app: "Notes", title: "a"); w.poll()
-        src.next = nil; w.poll()   // Focus itself is in front
+        src.next = nil; w.poll()   // Hushd itself is in front
         XCTAssertEqual(c.currentWindow?.app, "Notes")
     }
 

@@ -43,7 +43,7 @@ public enum LengthStops {
     public var length: StartLength = .open
     /// Used when `length` is `.minutes`.
     public var minutes = 25
-    /// Set once the person moves the slider, so Focus stops suggesting a length of its own.
+    /// Set once the person moves the slider, so Hushd stops suggesting a length of its own.
     public var lengthTouched = false
     /// The suggested length that was applied for them, if any, so the form can say it is their usual.
     public var usualMinutes: Int?

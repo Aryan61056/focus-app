@@ -3,7 +3,7 @@ import SwiftUI
 import Observation
 
 // The shield: a panel on every display, above everything including the menu bar, the Dock and full-screen apps, that swallows the mouse
-// and shows one card. It replaces the old pause screen that lived inside Focus's own window, which other windows simply covered.
+// and shows one card. It replaces the old pause screen that lived inside Hushd's own window, which other windows simply covered.
 // There is always a way out: "Back to task" never waits.
 
 final class ShieldPanel: NSPanel {
@@ -63,7 +63,7 @@ struct ShieldCard: View {
                     .accessibilityElement(children: .combine)
                 } else {
                     Button { c.openExplanation() } label: { Label("Explain why this is on task", systemImage: "sparkle") }.buttonStyle(ShieldButtonStyle(.quiet))
-                        .help("Focus checks your words against the window")
+                        .help("Hushd checks your words against the window")
                 }
             }
             if let m = shield.message, c.overrideLockRemaining <= 0 { ShieldNotice(text: m).padding(.top, Space.xs) }
@@ -202,7 +202,7 @@ struct TriesLeft: View {
     }
 }
 
-/// Why the last explanation did not pass, or what Focus did about it: amber, with a full edge, never a side stripe.
+/// Why the last explanation did not pass, or what Hushd did about it: amber, with a full edge, never a side stripe.
 struct ShieldNotice: View {
     var text: String
     var body: some View {
@@ -219,7 +219,7 @@ struct ShieldNotice: View {
 }
 
 /// Press and hold to go back to the task. Native AppKit, not a SwiftUI gesture: mouse down and up reach it directly, even when
-/// Focus is not the active app, and a test can drive it. The fill shows the hold; letting go starts over.
+/// Hushd is not the active app, and a test can drive it. The fill shows the hold; letting go starts over.
 struct HoldPad: NSViewRepresentable {
     var c: SessionController
     func makeNSView(context: Context) -> HoldPadView { HoldPadView(c: c) }
@@ -317,7 +317,7 @@ struct ShieldContent: View {
     }
 }
 
-/// Keeps one shield panel on every display while `SessionController.shield` is set. Brings Focus forward so the keyboard works,
+/// Keeps one shield panel on every display while `SessionController.shield` is set. Brings Hushd forward so the keyboard works,
 /// follows display changes, and never closes by itself: only the controller clearing the shield does.
 @MainActor
 public final class ShieldController {

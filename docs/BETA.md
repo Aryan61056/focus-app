@@ -1,6 +1,6 @@
 # Beta testing
 
-How Focus gets from this Mac to testers and how their feedback gets back, without breaking the on-device rule.
+How Hushd gets from this Mac to testers and how their feedback gets back, without breaking the on-device rule.
 Tester-facing pages: the [README](../README.md) (the repository's front page), [beta/TESTER-GUIDE.md](beta/TESTER-GUIDE.md) and
 [beta/TEST-PLAN.md](beta/TEST-PLAN.md).
 
@@ -17,7 +17,7 @@ tools/beta/publish.sh <name>  ──▶         profile ▸ Send feedback ▸ pr
                                   ◀── issue with the report file (or a file by hand) ──
 ```
 
-Every hop between people is done by a person. Focus never sends anything: it opens the GitHub form in the tester's browser when they
+Every hop between people is done by a person. Hushd never sends anything: it opens the GitHub form in the tester's browser when they
 click, and the tester drags the saved file in and submits. The scripts never upload anything except `publish.sh`, which publishes the
 build the owner made, and `feedback.py pull`, which only downloads report files attached to issues.
 
@@ -27,7 +27,7 @@ build the owner made, and `feedback.py pull`, which only downloads report files 
 |---|---|---|
 | Front page | `README.md` | Download link, what a tester needs, five install steps, how to send feedback, what a report holds and never holds. |
 | Releases | <https://github.com/Aryan61056/focus-app/releases> | One pre-release per beta, tag `v<version>-beta.<n>` at the commit it was built from, with the DMG and its SHA-256 file attached and the text from `github-release.md` (install steps, new in this build, known issues, links to the forms). |
-| Issue forms | `.github/ISSUE_TEMPLATE/beta-bug.yml`, `beta-wrong-call.yml`, `beta-idea.yml` | Labelled `beta` plus `bug`, `wrong call` or `idea`. Each has a Build field Focus fills through the address (`?template=…&title=…&build=…`, nothing else), the tester's own words, and a box to drop the report file in. The wrong-call form asks for the *kind* of window, never its contents. `config.yml` links the tester guide and the downloads. |
+| Issue forms | `.github/ISSUE_TEMPLATE/beta-bug.yml`, `beta-wrong-call.yml`, `beta-idea.yml` | Labelled `beta` plus `bug`, `wrong call` or `idea`. Each has a Build field Hushd fills through the address (`?template=…&title=…&build=…`, nothing else), the tester's own words, and a box to drop the report file in. The wrong-call form asks for the *kind* of window, never its contents. `config.yml` links the tester guide and the downloads. |
 | Labels | the repository | `beta`, `wrong call`, `idea` (and GitHub's own `bug`). `feedback.py pull` reads issues labelled `beta`. |
 
 ## In the app
@@ -38,20 +38,20 @@ build the owner made, and `feedback.py pull`, which only downloads report files 
 | Beta page | Settings ▸ Beta, the profile, Help ▸ Beta Page | Days left as a ring and the build; **Ready to test**: three checks (Apple's model, window titles, the beta log) with a Fix button for any that needs the tester; the seven tries as a bar and a two-column list; Send feedback and Wrong call, and where reports go; the log switches. |
 | Feedback sheet | Profile, Help ▸ Send Feedback (⌥⌘F), the Beta page, Today notices | Kind as four pills, the tester's words, five checkboxes for what goes with it, "See the whole file" shows the exact JSON. With a GitHub project: **Post on GitHub** saves the file, then shows it as a tile to drag and three steps with **Open the form**; **Save file** is beside it. With an address: **Email report** opens a mail draft with the file attached. With neither: **Save report**. "Issues are public" sits beside the buttons. |
 | Welcome | Today, first launch of any beta build | "Thanks for testing beta N. The Beta page has seven things to try." Open Beta or Later; never again after either. |
-| Beta log | `~/Library/Application Support/Focus/beta.json` (0600) | Up to 600 events: launch, quit, unclean exit, session start and end (minutes), warning, pause screen, check-in, Back to task (found or not), model refusal or unavailable, slow moment (seconds), report saved, weekly answer. Kinds, times and numbers only. Switch and Clear on the Beta page. |
+| Beta log | `~/Library/Application Support/Hushd/beta.json` (0600) | Up to 600 events: launch, quit, unclean exit, session start and end (minutes), warning, pause screen, check-in, Back to task (found or not), model refusal or unavailable, slow moment (seconds), report saved, weekly answer. Kinds, times and numbers only. Switch and Clear on the Beta page. |
 | Unclean exits | `running.marker` beside the log | Written at launch, removed on a clean quit. Still there at the next launch means a crash, force quit or power loss: logged, and Today offers "Write a report" once. |
-| Slow moments | `HangWatch` | A main-thread timer that notices when it fired two seconds or more late while Focus is in front. Gaps over a minute are sleep, not hangs. No sampling, no second thread. |
+| Slow moments | `HangWatch` | A main-thread timer that notices when it fired two seconds or more late while Hushd is in front. Gaps over a minute are sleep, not hangs. No sampling, no second thread. |
 | Crash summary | Read from macOS's own `~/Library/Logs/DiagnosticReports/focus-app-*.ips` | Exception, signal, termination and up to 24 frames of the crashed thread as `image symbol`. Paths, incident and device IDs and the app-specific text block are dropped. Only goes in a report when the tester leaves "The last crash" ticked. |
-| Recent calls | `SessionController.readings` (memory, the current or last session) | Up to 12 of Focus's calls as `on`/`unsure`/`off` and how: `model`, `rule`, `words`, `refused`, `private`, `skipped`. Never the app, title, address, key or reason. Checkbox "Focus's last calls", shown only when there are calls. |
-| Weekly question | Today, between sessions | "How is Focus working for you this week?" Five dots, one click, Skip. Only after three finished sessions, at most once a week, never during a session. Switch on the Beta page. |
+| Recent calls | `SessionController.readings` (memory, the current or last session) | Up to 12 of Hushd's calls as `on`/`unsure`/`off` and how: `model`, `rule`, `words`, `refused`, `private`, `skipped`. Never the app, title, address, key or reason. Checkbox "Hushd's last calls", shown only when there are calls. |
+| Weekly question | Today, between sessions | "How is Hushd working for you this week?" Five dots, one click, Skip. Only after three finished sessions, at most once a week, never during a session. Switch on the Beta page. |
 | Missions | Beta page, profile bar | Seven things to try (finish a session, 25 minutes, describe a project, Back to task, answer Review, three days, send a report). Each ticks itself from what is already on the Mac; none needs typing. |
 | What's new | Today notice once per build, profile, Help | The build's release notes and, under "Known, no report needed", its known issues. |
-| End date | Today notice, profile, Beta page | After it: "This beta build is out of date. A newer one is on GitHub." with **Get the newest**. The app keeps working; a beta never locks anyone out of their own data, and Focus never downloads or installs anything itself. |
+| End date | Today notice, profile, Beta page | After it: "This beta build is out of date. A newer one is on GitHub." with **Get the newest**. The app keeps working; a beta never locks anyone out of their own data, and Hushd never downloads or installs anything itself. |
 
 ### What a report holds
 
 Schema `focus-feedback/1` ([fixture](../tools/beta/fixtures/sample-report.json)). Always: the tester's words, kind, optional contact they typed (the field is hidden when reports go to GitHub, where the issue already says who posted it), app version, build, build ID, channel.
-Each optional and on by default: macOS version, Mac model, memory, Apple silicon, Low Power, model ready or not, permission states, switches and choices from Settings (the never-judged list as a count only); counts from the last 14 days (sessions, minutes, drifts, nudges, refusals, read totals, Review answers, projects and how many are described, days used); the last 14 days of the beta log and weekly answers; Focus's recent calls; the crash summary.
+Each optional and on by default: macOS version, Mac model, memory, Apple silicon, Low Power, model ready or not, permission states, switches and choices from Settings (the never-judged list as a count only); counts from the last 14 days (sessions, minutes, drifts, nudges, refusals, read totals, Review answers, projects and how many are described, days used); the last 14 days of the beta log and weekly answers; Hushd's recent calls; the crash summary.
 
 **Never:** task or project names, project descriptions, window titles, addresses, words read from the screen, pictures, model reasons, parked thoughts, the notch line, the profile name. `BetaTests.testReportCarriesNoTaskProjectTitleOrScreenText` plants each of those in a store and fails if any reaches the file; `testRecentCallsSayHowNeverWhichWindow` does the same for the calls.
 
@@ -93,8 +93,8 @@ python3 -m unittest discover -s tools/beta -p 'test_*.py'
 - `feedback.py ingest` **refuses** files the app could not have written: wrong schema, unknown keys or event kinds, an unknown call or
   source, a file path anywhere, long text outside the tester's message, more than 512 KB. It **warns** (and still files) when the tester's
   own words look like a password, card number or API key, so you can delete them. Duplicates (same report ID) are filed once.
-- `feedback.py report` de-duplicates journal events across reports from the same tester, groups crashes by exception plus the first Focus
-  frame, and for wrong calls counts how Focus reached its newest call (model, rule, words). The HTML page is static, has no scripts or
+- `feedback.py report` de-duplicates journal events across reports from the same tester, groups crashes by exception plus the first Hushd
+  frame, and for wrong calls counts how Hushd reached its newest call (model, rule, words). The HTML page is static, has no scripts or
   outside addresses, follows light and dark, and is never published.
 
 Gitignored: `beta/inbox/`, `beta/releases/`, `beta/testers.csv`. Committed: `beta/BUILD`, `beta/notes/`.
@@ -119,7 +119,6 @@ build keeps Help ▸ Send Feedback and drops the weekly question and crash notic
 - Developer ID signing and notarization (removes "Open Anyway" and turns Friends and iPhone sync on); the bundle ID is still the placeholder.
 - Whether real accounts are wanted (above).
 - The beta's length (`--days`, default 30) and whether the weekly question stays on by default.
-- The product name: the README, releases and app say "Focus", the working name.
 
 ## Verified and not
 

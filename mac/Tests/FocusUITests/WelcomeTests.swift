@@ -39,7 +39,7 @@ final class WelcomeTests: XCTestCase {
         let skipped = make()
         skipped.finishWelcome(explained: false)
         XCTAssertFalse(skipped.showsWelcome)
-        XCTAssertFalse(skipped.prefs.introSeen, "skipped: Today still says how Focus works")
+        XCTAssertFalse(skipped.prefs.introSeen, "skipped: Today still says how Hushd works")
         let done = make()
         done.finishWelcome(explained: true)
         XCTAssertFalse(done.showsWelcome)

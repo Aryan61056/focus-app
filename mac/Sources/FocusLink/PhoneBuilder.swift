@@ -46,8 +46,8 @@ public struct ProcessProgramRunner: ProgramRunner {
 /// Everything needed to build the iPhone app on this Mac, found without asking: where the project is, whether xcodegen is there, which
 /// Apple team to sign with. Each lookup is a plain function so a test can feed it a made-up Mac.
 public enum PhoneBuild {
-    /// The repository folder this copy of Focus was built from (the folder with `companion/project.yml`), or nil for a copy with no such folder.
-    /// `tools/build_app.sh` stamps the app's own path (`<repo>/mac/.build/Focus.app`) into it; FOCUS_REPO overrides.
+    /// The repository folder this copy of Hushd was built from (the folder with `companion/project.yml`), or nil for a copy with no such folder.
+    /// `tools/build_app.sh` stamps the app's own path (`<repo>/mac/.build/Hushd.app`) into it; FOCUS_REPO overrides.
     public static func sourceRoot(environment: [String: String] = ProcessInfo.processInfo.environment, bundle: Bundle = .main) -> URL? {
         func hasProject(_ url: URL) -> Bool { FileManager.default.fileExists(atPath: url.appendingPathComponent("companion/project.yml").path) }
         if let path = environment["FOCUS_REPO"], !path.isEmpty { let u = URL(fileURLWithPath: path, isDirectory: true); return hasProject(u) ? u : nil }

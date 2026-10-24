@@ -11,13 +11,13 @@ on it". Replies acknowledge each other's ups and downs.
 - A weekly scoreboard (owner) ranked on how focused people were, with slips counted too (owner: "just include").
 - Per person, per day: focused minutes, slips (confirmed drifts), sessions. Plus the current focus-day streak.
 - Never: task or project names, app or site names, window titles, screen text, pictures, reasons, Review answers.
-  The existing rule holds: Focus never names a distraction unless you ask, and friends cannot ask.
+  The existing rule holds: Hushd never names a distraction unless you ask, and friends cannot ask.
 - Practice sessions are left out: they do not classify, so they would only add unearned minutes.
 
 ## Look (owner, 2026-10-16: "a lot more fun than analytical", then "a bit less big", "not for kids", "not too much text")
 Fun but grown-up: a low podium for the top three with small gold, silver and bronze rank badges, everyone else on a race
 track, emoji avatars (a fixed list of twelve, so nothing typed travels) on a soft color per friend, one Cheer button per
-friend, cheers as speech bubbles. Explanations, including "Focus can be wrong", sit behind info buttons (hover or click),
+friend, cheers as speech bubbles. Explanations, including "Hushd can be wrong", sit behind info buttons (hover or click),
 not on the page. Amber still marks only slips; Reduce Motion drops the motion.
 
 ## How you respond (owner)
@@ -27,7 +27,7 @@ nothing to moderate. At most three per friend per day (Claude's call: enough to 
 ## Scoreboard (Claude's calls)
 - Resets each calendar week, so one bad week never follows anyone.
 - Two boards: **Most focused** (focused time, highest first) and **Fewest slips** (slips per focused hour, lowest
-  first; you need an hour of focus that week to be ranked, so not using Focus does not win).
+  first; you need an hour of focus that week to be ranked, so not using Hushd does not win).
 - No points, levels or percentages. Times in monospaced digits, a seven-day bar strip per person.
 
 ## Privacy and the earlier decisions

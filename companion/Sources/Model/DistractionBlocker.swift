@@ -6,7 +6,7 @@ import DeviceActivity
 import FocusLinkNet
 
 /// Covers the apps and sites the person picked while a session is running, using Apple's Screen Time shield. This is the one
-/// thing iOS lets an app do about other apps. Focus never learns which apps were picked: the picker hands back opaque tokens
+/// thing iOS lets an app do about other apps. Hushd never learns which apps were picked: the picker hands back opaque tokens
 /// that only the system can turn into names and icons.
 @MainActor @Observable
 final class DistractionBlocker {
@@ -83,7 +83,7 @@ final class DistractionBlocker {
             default: break   // including .unauthorized (iOS 26.4): this build has no Family Controls capability
             }
         }
-        return String(localized: "Screen Time isn't available in this build of Focus. Blocking needs a build signed with the Family Controls capability.")
+        return String(localized: "Screen Time isn't available in this build of Hushd. Blocking needs a build signed with the Family Controls capability.")
     }
 
     // MARK: blocking

@@ -1,6 +1,6 @@
 import Foundation
 
-/// A link other tools can open to do one thing in Focus: `focusapp://back` is "Back to task". Shortcuts ("Open URLs"), Raycast, Alfred, a
+/// A link other tools can open to do one thing in Hushd: `focusapp://back` is "Back to task". Shortcuts ("Open URLs"), Raycast, Alfred, a
 /// Stream Deck button or a bookmark can use it. Nothing else is accepted: no pause, no ending a session, nothing that takes data in or out.
 /// (`focusapp` is a working name, like the app's: it changes with the product name.)
 public enum FocusLink {

@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// History: a few totals, then every session as a timeline as long as the session, grouped by day. The selected session's details,
-/// what Focus did in it and your note sit in the Focus panel on the right.
+/// what Hushd did in it and your note sit in the Hushd panel on the right.
 struct HistoryView: View {
     @Bindable var store: DataStore
     @State private var selected: UUID?
@@ -80,7 +80,7 @@ struct HistoryView: View {
     }
 }
 
-/// One session in the Focus panel: when and how long, its timeline, what Focus did (as counts), your note, and delete.
+/// One session in the Hushd panel: when and how long, its timeline, what Hushd did (as counts), your note, and delete.
 struct SessionDrawer: View {
     @Bindable var store: DataStore
     var session: SessionRecord
@@ -105,7 +105,7 @@ struct SessionDrawer: View {
                 MiniTimeline(segments: session.segments, height: 16, animated: true).padding(.top, Space.xs)
                 FlowRow(spacing: Space.s) { legend("On task", .on); legend("Unsure", .unsure); legend("Off topic", .off) }.font(Tokens.text(.caption2)).foregroundStyle(Tokens.ink2)
             }
-            PanelSection(title: "What Focus did", ai: true) {
+            PanelSection(title: "What Hushd did", ai: true) {
                 VStack(alignment: .leading, spacing: Space.xs) {
                     if let r = session.reads, r.total > 0 {
                         fact("checkmark.circle", Tokens.accent, r.onTask, "counted on task")

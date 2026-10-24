@@ -87,7 +87,7 @@ struct JustFinishedCard: View {
                     if c.askLoudness && settled {
                         Divider().overlay(Tokens.line)
                         FlowRow(spacing: Space.xs) {
-                            Text("Was Focus too loud?").font(Tokens.text(.body, .semibold))
+                            Text("Was Hushd too loud?").font(Tokens.text(.body, .semibold))
                             Button("Too quiet") { c.prefs.answerLoudness(.tooQuiet) }.buttonStyle(FocusButtonStyle(.plain, small: true))
                             Button("About right") { c.prefs.answerLoudness(.aboutRight) }.buttonStyle(FocusButtonStyle(.plain, small: true))
                             Button("Too loud") { c.prefs.answerLoudness(.tooLoud) }.buttonStyle(FocusButtonStyle(.plain, small: true))
@@ -160,7 +160,7 @@ struct GoalCluster: View {
         if c.prefs.showProgress, c.prefs.dailyGoalMinutes > 0 {
             let goal = Rewards.Goal(seconds: c.todayOnTaskSeconds(), goalSeconds: Double(c.prefs.dailyGoalMinutes) * 60)
             let streak = Rewards.streak(store.sessions, today: .now)
-            // Flat, in the Focus panel: a heading, the ring and the week, no card around them.
+            // Flat, in the Hushd panel: a heading, the ring and the week, no card around them.
             Group {
                 VStack(spacing: Space.m) {
                     HStack {
@@ -231,7 +231,7 @@ struct GoalRing: View {
 struct HowDecidesButton: View {
     @State private var open = false
     var body: some View {
-        Button { open = true } label: { Label("How Focus decides", systemImage: "info.circle").font(Tokens.text(.body, .medium)).foregroundStyle(Tokens.ink2) }
+        Button { open = true } label: { Label("How Hushd decides", systemImage: "info.circle").font(Tokens.text(.body, .medium)).foregroundStyle(Tokens.ink2) }
             .buttonStyle(.plain)
             .popover(isPresented: $open, arrowEdge: .bottom) {
                 VStack(alignment: .leading, spacing: Space.m) {
@@ -261,7 +261,7 @@ struct HowItWorks: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s) {
             HStack(alignment: .firstTextBaseline) {
-                SectionTitle(text: "How Focus works")
+                SectionTitle(text: "How Hushd works")
                 Spacer()
                 Button("Hide") { c.prefs.introSeen = true }.buttonStyle(FocusButtonStyle(.plain, small: true))
             }

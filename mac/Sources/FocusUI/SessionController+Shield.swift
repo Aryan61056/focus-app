@@ -46,7 +46,7 @@ extension SessionController {
     }
 
     /// Sitting behind the cover is not free. A while after it appears, with no explanation started and no step back to the task,
-    /// Focus acts on the site the way the last step of the ladder does, and again every 45 seconds. A site you keep coming back to
+    /// Hushd acts on the site the way the last step of the ladder does, and again every 45 seconds. A site you keep coming back to
     /// is acted on at once: the strike count is the number of rounds already done.
     func enforceOnIdleFriction(_ t: Double) {
         guard isActive, !shadow, prefs.escalate, let s = shield, s.kind == .friction, !s.asking, !s.checking,
@@ -77,7 +77,7 @@ extension SessionController {
     }
 
     // MARK: claims
-    /// Saying "this window is part of the task". A window Focus has read as off topic needs an explanation that checks out;
+    /// Saying "this window is part of the task". A window Hushd has read as off topic needs an explanation that checks out;
     /// anything else is taken at its word, as before.
     var claimNeedsVerification: Bool {
         guard isActive, !shadow else { return false }
@@ -111,7 +111,7 @@ extension SessionController {
     }
     func pageHasPass(_ w: WindowSnapshot) -> Bool { (passedPages[pageKey(w)] ?? 0) > now() }
 
-    /// When a pass runs out on the page you are on, Focus reads it again as if it had never been explained.
+    /// When a pass runs out on the page you are on, Hushd reads it again as if it had never been explained.
     func expirePasses(_ t: Double) {
         guard isActive, !passedPages.isEmpty else { return }
         let expired = passedPages.filter { $0.value <= t }.map(\.key)
@@ -124,7 +124,7 @@ extension SessionController {
     func rememberClaim() { if !pendingClaimWords.isEmpty { acceptedClaimWords.append(pendingClaimWords) } }
 
     /// The claim passed. Only this page is accepted, only for a few minutes, only in this session, and nothing is learned: the project's
-    /// rules are not touched, so one explanation never turns into "that site is fine". `counted` is false for a window Focus had not
+    /// rules are not touched, so one explanation never turns into "that site is fine". `counted` is false for a window Hushd had not
     /// flagged, which needed no explanation.
     func acceptClaim(counted: Bool = true) {
         if let w = currentWindow {
@@ -161,7 +161,7 @@ extension SessionController {
     }
 
     // MARK: explaining
-    /// Opens the form straight away: telling Focus you were on task is not a punishment. Only a lock stops it, and only wrong answers cause one.
+    /// Opens the form straight away: telling Hushd you were on task is not a punishment. Only a lock stops it, and only wrong answers cause one.
     public func openExplanation() {
         guard var s = shield, !s.asking, !s.checking else { return }
         if shieldWaitRemaining() > 0 { return }
@@ -180,7 +180,7 @@ extension SessionController {
         let words = OverrideClaim.content(OverrideClaim.tidy(raw))
         if acceptedClaimWords.contains(where: { OverrideClaim.similarity($0, words) >= 0.6 }) { s.message = OverrideClaim.reusedMessage; shield = s; return }
         guard prefs.useModel, let w else {
-            s.message = prefs.useModel ? "Focus cannot see a window to check." : "Checking is switched off in Settings."
+            s.message = prefs.useModel ? "Hushd cannot see a window to check." : "Checking is switched off in Settings."
             shield = s; return
         }
         s.checking = true; s.message = nil
@@ -196,7 +196,7 @@ extension SessionController {
 
     func finishExplanation(_ r: Verification.Result, windowKey: String) {
         guard var s = shield, s.checking else { return }
-        // You moved to another window while Focus was reading: that answer is about a window you are no longer in.
+        // You moved to another window while Hushd was reading: that answer is about a window you are no longer in.
         if let w = currentWindow, Keys.window(w) != windowKey { s.checking = false; shield = s; return }
         if r.passed { rememberClaim(); if !pendingClaim.isEmpty { explainedClaims[windowKey] = pendingClaim }; acceptClaim(); return }
         s.checking = false
@@ -212,14 +212,14 @@ extension SessionController {
             switch r.why {
             case .ruleSaysNever: s.message = "Your rule says this never counts. Change it in Projects."
             case .injected: s.message = OverrideClaim.Issue.injected.message
-            case .sensitive: s.message = "This is a private window, so Focus cannot read it."
-            case .couldNotTell: s.message = "Focus could not tell, so the block stays. \(n) \(n == 1 ? "try" : "tries") left."
+            case .sensitive: s.message = "This is a private window, so Hushd cannot read it."
+            case .couldNotTell: s.message = "Hushd could not tell, so the block stays. \(n) \(n == 1 ? "try" : "tries") left."
             default: s.message = "This does not look like \(taskName). \(n) \(n == 1 ? "try" : "tries") left."
             }
         }
         shield = s
-        // A wrong explanation costs something at once: Focus acts on the window the way the last step does (hides the app, or on
-        // Strict closes the tab). Only a real "this is not on task" reading or an attempt to give Focus orders counts. Focus not being
+        // A wrong explanation costs something at once: Hushd acts on the window the way the last step does (hides the app, or on
+        // Strict closes the tab). Only a real "this is not on task" reading or an attempt to give Hushd orders counts. Hushd not being
         // able to tell, a private window or your own "never" rule are not held against you.
         if r.why == .notOnTask || r.why == .injected {
             explainStrikes += 1

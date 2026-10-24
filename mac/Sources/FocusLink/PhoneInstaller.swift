@@ -55,7 +55,7 @@ public enum DeviceListing {
         let lower = text.lowercased()
         if lower.contains("developer mode") { return "Turn on Developer Mode on the iPhone (Settings, Privacy & Security), then try again." }
         if lower.contains("locked") { return "Unlock the iPhone and try again." }
-        if text.isEmpty { return "Focus could not install on this iPhone." }
+        if text.isEmpty { return "Hushd could not install on this iPhone." }
         return "Could not install: " + (text.count > 160 ? String(text.prefix(157)) + "..." : text)
     }
 
@@ -101,14 +101,14 @@ public struct XcrunDeviceTool: DeviceTool {
     }
 }
 
-/// Puts the Focus iPhone app on a plugged-in iPhone, from the iPhone window. It needs Xcode's device tool, and either an iPhone build
-/// inside this copy of Focus (tools/build_iphone.sh) or this Mac's copy of the project, which Focus then builds itself. With neither it
+/// Puts the Hushd iPhone app on a plugged-in iPhone, from the iPhone window. It needs Xcode's device tool, and either an iPhone build
+/// inside this copy of Hushd (tools/build_iphone.sh) or this Mac's copy of the project, which Hushd then builds itself. With neither it
 /// says nothing.
 /// Nothing leaves the Mac except the app itself, to the phone that was picked, over the cable.
 @MainActor @Observable
 public final class PhoneInstaller {
     public enum State: Equatable {
-        /// This copy of Focus has no iPhone app inside it, so there is nothing to offer.
+        /// This copy of Hushd has no iPhone app inside it, so there is nothing to offer.
         case notIncluded
         /// Xcode's device tool is missing or failed to start.
         case needsXcode
@@ -158,7 +158,7 @@ public final class PhoneInstaller {
         self.tool = tool; self.appURL = appURL; self.build = build
     }
 
-    /// The iPhone app inside this copy of Focus (Contents/Resources/Focus for iPhone.app), or the one FOCUS_IPHONE_APP names.
+    /// The iPhone app inside this copy of Hushd (Contents/Resources/Hushd for iPhone.app), or the one FOCUS_IPHONE_APP names.
     public nonisolated static func bundledApp(environment: [String: String] = ProcessInfo.processInfo.environment, bundle: Bundle = .main) -> URL? {
         func app(at url: URL?) -> URL? {
             guard let url else { return nil }
@@ -168,10 +168,10 @@ public final class PhoneInstaller {
             return url
         }
         if let path = environment["FOCUS_IPHONE_APP"], !path.isEmpty { return app(at: URL(fileURLWithPath: path)) }
-        return app(at: bundle.resourceURL?.appendingPathComponent("Focus for iPhone.app"))
+        return app(at: bundle.resourceURL?.appendingPathComponent("Hushd for iPhone.app"))
     }
 
-    /// True when pressing Install will first make the iPhone app here (no build inside this copy of Focus, but the project is on this Mac).
+    /// True when pressing Install will first make the iPhone app here (no build inside this copy of Hushd, but the project is on this Mac).
     public var buildsItself: Bool { appURL() == nil && build.source() != nil }
 
     /// Asks which iPhones are reachable. `quietly` keeps a settled answer on screen while it checks again, so a refresh does not flicker.
@@ -199,7 +199,7 @@ public final class PhoneInstaller {
         }
     }
 
-    /// Puts the app on the phone. With an iPhone build inside this copy of Focus that is just the install; otherwise Focus makes the build
+    /// Puts the app on the phone. With an iPhone build inside this copy of Hushd that is just the install; otherwise Hushd makes the build
     /// itself from this Mac's copy of the project first (xcodegen, then xcodebuild signed with your team), so no one has to run a script.
     public func install(on target: InstallTarget) async {
         switch state {
@@ -229,7 +229,7 @@ public final class PhoneInstaller {
         let project = root.appendingPathComponent("companion", isDirectory: true)
         let out = project.appendingPathComponent(".build", isDirectory: true)
         let derived = out.appendingPathComponent("DerivedData", isDirectory: true)
-        let finished = out.appendingPathComponent("Focus for iPhone.app", isDirectory: true)
+        let finished = out.appendingPathComponent("Hushd for iPhone.app", isDirectory: true)
         let phone = target.name
 
         state = .building(phone: phone, step: "Preparing the project")

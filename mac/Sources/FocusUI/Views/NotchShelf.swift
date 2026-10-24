@@ -9,7 +9,7 @@ public enum NotchTab: String, CaseIterable, Sendable { case home, tray, widgets
 }
 
 /// What can sit beside the session on home. Chosen on the widgets page or in Settings; read only, like everything in the notch.
-/// Everything here is worked out on this Mac from what Focus already keeps; nothing is fetched.
+/// Everything here is worked out on this Mac from what Hushd already keeps; nothing is fetched.
 public enum NotchWidget: String, CaseIterable, Identifiable, Sendable {
     case today, goal, streak, week, parked, clock, battery, note, tray
     public var id: String { rawValue }
@@ -24,7 +24,7 @@ public enum NotchWidget: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .today: return "Time on task so far today."
         case .goal: return "How far you are into your daily goal."
-        case .streak: return "Focus days in a row, rest days allowed."
+        case .streak: return "Hushd days in a row, rest days allowed."
         case .week: return "Seven days of focus as small bars."
         case .parked: return "How many thoughts are waiting, and the latest."
         case .clock: return "The time and the date."
@@ -110,7 +110,7 @@ struct SessionWidget: View {
                     Text(c.clockText()).font(Tokens.fixed(.title3, .semibold, rounded: true)).monospacedDigit().fixedSize()
                 }
                 if let fraction { ShelfTrack(fraction: fraction) }
-                // Never invisible: the open notch says what Focus reads. The whole sentence is the tooltip and VoiceOver's.
+                // Never invisible: the open notch says what Hushd reads. The whole sentence is the tooltip and VoiceOver's.
                 HStack(spacing: 5) {
                     Image(systemName: "eye").font(.system(size: 9, weight: .semibold))
                     Text(c.prefs.readScreen ? "Titles and screen" : "Window titles")
@@ -277,7 +277,7 @@ struct MiniWeek: View {
             }
         }
         .frame(height: height, alignment: .bottom)
-        .accessibilityLabel("Focus hours, last seven days")
+        .accessibilityLabel("Hushd hours, last seven days")
     }
 }
 

@@ -21,7 +21,7 @@ import FocusSense
     static func close(_ w: WindowSnapshot) -> Bool { run(TabScript.close(app: w.app, url: w.url)) == "ok" }
 }
 
-/// Chrome, Brave and Edge do not report the page address through Accessibility, so without it Focus could not tell one tab from another
+/// Chrome, Brave and Edge do not report the page address through Accessibility, so without it Hushd could not tell one tab from another
 /// (every Chrome tab looked like the same "site", and no tab could be switched to or closed). This asks the browser for the front tab's
 /// address with AppleScript, only while a session runs and only when a tab feature is on. Private windows return nothing.
 /// If the user refuses the permission it stops asking for a minute.

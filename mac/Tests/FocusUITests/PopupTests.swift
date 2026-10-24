@@ -4,7 +4,7 @@ import SwiftUI
 import FocusJudge
 
 /// The prompts that come while you drift reach you where you are working: the banner over the front window carries the ladder's check-in
-/// and the scheduled prompts, which used to show only inside Focus's own window (behind the app you were in).
+/// and the scheduled prompts, which used to show only inside Hushd's own window (behind the app you were in).
 @MainActor
 final class PopupReachTests: XCTestCase {
     var t = 0.0
@@ -128,7 +128,7 @@ final class PopupCopyTests: XCTestCase {
     }
 }
 
-/// Hiding Focus (Command-H, or Hide Others from another app) hid every panel with the main window: the notch, the banner, the gray and
+/// Hiding Hushd (Command-H, or Hide Others from another app) hid every panel with the main window: the notch, the banner, the gray and
 /// the shield vanished for the rest of the session. Found 2026-10-16 when the demo's "hide" action left nothing to render.
 @MainActor
 final class PanelsSurviveHidingTests: XCTestCase {
@@ -159,7 +159,7 @@ final class BannerSizeTests: XCTestCase {
             heights.append(b.sizeForTesting.height)
         }
         b.stop()
-        for h in heights { XCTAssertGreaterThan(h, 110, "title, a line of what Focus saw and the buttons, plus the shadow margin") }
+        for h in heights { XCTAssertGreaterThan(h, 110, "title, a line of what Hushd saw and the buttons, plus the shadow margin") }
         XCTAssertEqual(heights.first!, heights.last!, accuracy: 0.5, "the same kind measures the same after other kinds")
         let long = SessionController(judge: CountingJudge { _ in Verdict(label: .onTask) }, store: DataStore(), prefs: noWords(), now: { t })
         long.windowChanged(WindowSnapshot(app: "Notes", title: "x"))

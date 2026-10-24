@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Focus app window</title>
+<title>Hushd app window</title>
 <link rel="stylesheet" href="board.css">
 <link rel="stylesheet" href="b-lichen.css">
 <link rel="stylesheet" href="app.css">
@@ -36,7 +36,7 @@
 <main class="board">
   <header class="board-head">
     <div>
-      <h1>Focus app window, direction B</h1>
+      <h1>Hushd app window, direction B</h1>
       <p>The full app around the quiet ring: projects, history, insights, review and settings, plus a notch that is deliberately more aesthetic than functional. Synthetic data. A mockup, not product code.</p>
     </div>
     <nav class="board-nav" aria-label="Boards"><a href="index.html">Compare directions</a><a href="b-lichen.html">Lichen components</a></nav>
@@ -64,7 +64,7 @@
         <!-- Sidebar -->
         <aside class="a-side" aria-label="Sidebar">
           <div class="a-lights" aria-hidden="true"><i></i><i></i><i></i></div>
-          <div class="a-brand"><span class="ring"><svg><use href="#r-on"/></svg></span>Focus</div>
+          <div class="a-brand"><span class="ring"><svg><use href="#r-on"/></svg></span>Hushd</div>
           <nav class="a-nav" aria-label="Main">
             <button type="button" data-go="today" aria-current="page"><svg><use href="#i-today"/></svg>Today</button>
             <button type="button" data-go="projects"><svg><use href="#i-projects"/></svg>Projects<span class="count">4</span></button>
@@ -113,7 +113,7 @@
 
                   <div class="a-panel a-read" id="read" data-v="on">
                     <div class="a-read-head">
-                      <h2>What Focus is reading</h2>
+                      <h2>What Hushd is reading</h2>
                       <span class="seg" id="read-states" role="group" aria-label="Show a sample reading"><button type="button" data-v="on" aria-pressed="true">On task</button><button type="button" data-v="unsure" aria-pressed="false">Not sure</button><button type="button" data-v="off" aria-pressed="false">Off topic</button></span>
                       <span class="when" id="read-when">Checked 4 seconds ago</span>
                     </div>
@@ -127,7 +127,7 @@
                         <div><b id="read-label">On task</b><p id="read-why">A page of calculus exercises, which is the work Calc homework is about.</p></div>
                       </div>
                     </div>
-                    <ol class="a-pipe" id="read-pipe" aria-label="How Focus reached this reading">
+                    <ol class="a-pipe" id="read-pipe" aria-label="How Hushd reached this reading">
                       <li><b>Read</b><span>The app, the title and the words in the window</span></li>
                       <li><b>Compared</b><span>With “Calc homework” and what you wrote about it</span></li>
                       <li class="last"><b id="pipe-3">Confident</b><span id="pipe-3s">It matches the task. Nothing to do.</span></li>
@@ -136,12 +136,12 @@
                       <div class="a-h3">Recent readings<small>Kept only while this session runs</small></div>
                       <div id="read-rows"></div>
                     </div>
-                    <p class="a-sub a-honest">Focus runs Apple’s on-device model, and it can be wrong. When it is not sure it does nothing, and it only speaks up after two checks agree and the drift lasts.</p>
+                    <p class="a-sub a-honest">Hushd runs Apple’s on-device model, and it can be wrong. When it is not sure it does nothing, and it only speaks up after two checks agree and the drift lasts.</p>
                   </div>
 
                   <div>
                     <div class="a-h2">Your day<small>8:00 to 18:00</small></div>
-                    <div class="a-track" id="day-track" aria-label="Focus timeline for today"></div>
+                    <div class="a-track" id="day-track" aria-label="Hushd timeline for today"></div>
                     <div class="a-axis" id="day-axis" aria-hidden="true"></div>
                     <div class="a-legend"><span><i class="on"></i>On task</span><span><i class="un"></i>Unsure</span><span><i class="off"></i>Off topic</span></div>
                     <p class="a-sentence">2 h 14 min on task across 3 sessions. You slipped twice and were back in about a minute each time.</p>
@@ -188,7 +188,7 @@
 
             <!-- PROJECTS -->
             <div class="a-view" data-view="projects" hidden>
-              <div class="a-head"><div><h1>Projects</h1><p>What each project is about. Focus reads this to decide what counts, and keeps it between sessions.</p></div><button class="btn plain" type="button"><svg><use href="#i-plus"/></svg>New project</button></div>
+              <div class="a-head"><div><h1>Projects</h1><p>What each project is about. Hushd reads this to decide what counts, and keeps it between sessions.</p></div><button class="btn plain" type="button"><svg><use href="#i-plus"/></svg>New project</button></div>
               <div class="a-split">
                 <div class="a-list" role="list" aria-label="Projects">
                   <button type="button" aria-current="true"><b>Calc homework</b><small>Today · 3 h 40 min this week</small></button>
@@ -198,20 +198,20 @@
                 </div>
                 <div>
                   <div class="a-head" style="margin-bottom:14px"><div><h1 style="font-size:22px">Calc homework</h1><p>Created 14 September · 6 sessions · 9 h 40 min in total</p></div><button class="btn primary" type="button"><svg><use href="#i-play"/></svg>Start session</button></div>
-                  <div class="a-field"><label for="ctx">What Focus should know about this project</label><textarea class="a-text" id="ctx" rows="3">Calculus II, chapter 5: integration by parts. The textbook is the PDF in Documents. Graphing and checking answers on Desmos is part of the work.</textarea><span class="help">Focus compares every window with this and your task. A sentence or two of detail helps more than any list. It stays on this Mac.</span></div>
+                  <div class="a-field"><label for="ctx">What Hushd should know about this project</label><textarea class="a-text" id="ctx" rows="3">Calculus II, chapter 5: integration by parts. The textbook is the PDF in Documents. Graphing and checking answers on Desmos is part of the work.</textarea><span class="help">Hushd compares every window with this and your task. A sentence or two of detail helps more than any list. It stays on this Mac.</span></div>
                   <div class="a-field"><label for="nxt">Next step</label><input class="a-text" id="nxt" value="Check problem 4"></div>
                   <div class="a-panel tint a-try" id="try">
-                    <div class="a-h3">Ask Focus about a window<small>Type anything. Nothing is read from your screen.</small></div>
+                    <div class="a-h3">Ask Hushd about a window<small>Type anything. Nothing is read from your screen.</small></div>
                     <div class="a-try-row">
                       <input class="a-text" id="try-app" value="Safari" aria-label="App">
                       <input class="a-text" id="try-title" value="Integration by parts, worked examples" aria-label="Window title">
-                      <button class="btn" type="button" id="try-go">Ask Focus</button>
+                      <button class="btn" type="button" id="try-go">Ask Hushd</button>
                     </div>
                     <div class="a-try-out" id="try-out" aria-live="polite"></div>
                   </div>
                   <details class="a-rules">
                     <summary><span>Rules you set</span><small>Optional. 3 apps, 3 sites, 1 folder, 1 never</small></summary>
-                    <p class="a-sub">Rules are checked first, before Focus reads anything. Most projects do not need them. Tell it what the project is about and let it decide.</p>
+                    <p class="a-sub">Rules are checked first, before Hushd reads anything. Most projects do not need them. Tell it what the project is about and let it decide.</p>
                     <div class="a-field">
                       <div>
                         <div class="a-group"><span>Apps</span><div class="a-chipset"><span class="a-tag"><svg class="a-ico"><use href="#i-app"/></svg>Preview<button type="button" aria-label="Remove Preview"><svg><use href="#i-x"/></svg></button></span><span class="a-tag"><svg class="a-ico"><use href="#i-app"/></svg>Notes<button type="button" aria-label="Remove Notes"><svg><use href="#i-x"/></svg></button></span><span class="a-tag"><svg class="a-ico"><use href="#i-app"/></svg>Calculator<button type="button" aria-label="Remove Calculator"><svg><use href="#i-x"/></svg></button></span><button class="a-add" type="button">Add app</button></div></div>
@@ -241,7 +241,7 @@
               </div>
               <div class="a-hist">
                 <div>
-                  <div class="a-thead a-hcols" style="padding:0 10px 8px"><span>Date</span><span>Project</span><span class="a-right">Length</span><span>Focus</span><span class="a-right">Slips</span><span class="a-right">Nudges</span></div>
+                  <div class="a-thead a-hcols" style="padding:0 10px 8px"><span>Date</span><span>Project</span><span class="a-right">Length</span><span>Hushd</span><span class="a-right">Slips</span><span class="a-right">Nudges</span></div>
                   <div class="a-rows" id="hist-rows" role="listbox" aria-label="Sessions"></div>
                 </div>
                 <aside class="a-panel a-drawer" id="hist-drawer" aria-live="polite"></aside>
@@ -267,7 +267,7 @@
                 </div>
                 <div class="a-stack">
                   <div class="a-panel a-acc">
-                    <div class="a-h2">How well Focus is reading you<small>this month</small></div>
+                    <div class="a-h2">How well Hushd is reading you<small>this month</small></div>
                     <p class="a-quote" style="font-size:19px;margin-bottom:12px">You agreed with <b>9 of 11</b> calls. Both corrections became rules.</p>
                     <div class="a-split-bar" role="img" aria-label="1,284 readings: 1,096 on task, 131 not sure, 57 off topic"><i class="on" style="flex:1096"></i><i class="un" style="flex:131"></i><i class="off" style="flex:57"></i></div>
                     <div class="a-legend"><span><i class="on"></i>On task 1,096</span><span><i class="un"></i>Not sure 131</span><span><i class="off"></i>Off topic 57</span></div>
@@ -287,7 +287,7 @@
                     <div class="a-hbar"><span>Messages</span><span class="tr"><i style="width:14%"></i></span><span>14%</span></div>
                     <div class="a-hbar"><span>News</span><span class="tr"><i style="width:8%"></i></span><span>8%</span></div>
                     <div class="a-hbar"><span>Shopping</span><span class="tr"><i style="width:5%"></i></span><span>5%</span></div>
-                    <p class="a-sub" style="margin-top:8px">Categories only. Focus does not keep a list of the pages you visited.</p>
+                    <p class="a-sub" style="margin-top:8px">Categories only. Hushd does not keep a list of the pages you visited.</p>
                   </div>
 
                   </div>
@@ -296,22 +296,22 @@
 
             <!-- REVIEW -->
             <div class="a-view" data-view="review" hidden>
-              <div class="a-head"><div><h1>Review</h1><p>Moments Focus would have nudged you about, and why. Your answers teach it what counts.</p></div><span class="a-agree">Agreed with you on <b>9 of 11</b></span></div>
+              <div class="a-head"><div><h1>Review</h1><p>Moments Hushd would have nudged you about, and why. Your answers teach it what counts.</p></div><span class="a-agree">Agreed with you on <b>9 of 11</b></span></div>
               <div class="a-panel tint a-banner">
                 <span class="ring"><svg><use href="#r-unsure"/></svg></span>
-                <div><b>Practice mode</b><div class="a-sub" style="margin-top:2px">Focus is watching but will not interrupt you yet. Two more sessions.</div><div class="a-steps" aria-label="Practice progress: 1 of 3 sessions"><i class="done"></i><i></i><i></i></div></div>
+                <div><b>Practice mode</b><div class="a-sub" style="margin-top:2px">Hushd is watching but will not interrupt you yet. Two more sessions.</div><div class="a-steps" aria-label="Practice progress: 1 of 3 sessions"><i class="done"></i><i></i><i></i></div></div>
                 <button class="btn plain" type="button">Turn nudges on now</button>
               </div>
               <div class="a-h2">5 moments to look at</div>
               <div id="review-list"></div>
-              <p class="a-sub" style="margin-top:12px">Answers stay on this Mac. You can see and undo everything Focus learns under Projects.</p>
+              <p class="a-sub" style="margin-top:12px">Answers stay on this Mac. You can see and undo everything Hushd learns under Projects.</p>
             </div>
 
             <!-- SETTINGS -->
             <div class="a-view" data-view="settings" hidden>
               <div class="a-head"><div><h1>Settings</h1></div></div>
               <div class="a-set">
-                <nav aria-label="Settings sections"><button type="button" aria-current="true">General</button><button type="button">Nudges</button><button type="button">What Focus looks at</button><button type="button">Privacy</button><button type="button">Appearance</button><button type="button">Shortcuts</button></nav>
+                <nav aria-label="Settings sections"><button type="button" aria-current="true">General</button><button type="button">Nudges</button><button type="button">What Hushd looks at</button><button type="button">Privacy</button><button type="button">Appearance</button><button type="button">Shortcuts</button></nav>
                 <div>
                   <section>
                     <div class="a-h2">Nudges</div>
@@ -327,10 +327,10 @@
                     </div>
                   </section>
                   <section>
-                    <div class="a-h2">What Focus looks at</div>
+                    <div class="a-h2">What Hushd looks at</div>
                     <div class="a-form">
                       <div class="a-frow"><div><b>Window titles and text</b><small>The app name, the title, the page address and the words in the window.</small></div><button class="a-switch" type="button" role="switch" aria-checked="true" aria-label="Titles and text"></button></div>
-                      <div class="a-frow"><div><b>Screenshots</b><small>Lets Focus read pages as an image. Needs Screen Recording permission. Not stored.</small></div><button class="a-switch" type="button" role="switch" aria-checked="false" aria-label="Screenshots"></button></div>
+                      <div class="a-frow"><div><b>Screenshots</b><small>Lets Hushd read pages as an image. Needs Screen Recording permission. Not stored.</small></div><button class="a-switch" type="button" role="switch" aria-checked="false" aria-label="Screenshots"></button></div>
                       <div class="a-frow"><div><b>Never looked at</b><small>Password managers, banking sites and private windows are skipped, always.</small></div><span class="a-kv"><svg class="a-ico"><use href="#i-lock"/></svg>Always on</span></div>
                     </div>
                   </section>
@@ -384,12 +384,12 @@
         <div class="wall"></div>
         <div class="menubar"><div class="left"><span class="app">Notes</span><span>File</span><span>Edit</span><span>View</span></div><div class="right"><span>Wi-Fi</span><span>12:26</span></div></div>
         <div class="win veilable" style="top:48px;left:7%;right:7%;bottom:-30px"><div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="title">Chapter 5 notes</span></div><div class="body"><div class="ln h"></div><div class="ln w90"></div><div class="ln w75"></div><div class="ln w60"></div><div class="ln w90"></div></div></div>
-        <div class="isl" id="isl" data-mood="on" tabindex="0" role="group" aria-label="Focus in the notch">
+        <div class="isl" id="isl" data-mood="on" tabindex="0" role="group" aria-label="Hushd in the notch">
           <div class="ears"><span class="ring" id="isl-ring"><svg><use href="#r-prog"/></svg></span><span class="t" id="isl-t">24:10</span></div>
           <div class="body">
             <div class="view-rest">
               <div class="row"><span class="ring" id="isl-ring2"><svg><use href="#r-prog"/></svg></span><div><b>Calc homework</b><span class="s" id="isl-s">On task</span></div><span class="t" id="isl-t2">24:10</span></div>
-              <div class="btns"><button class="btn" type="button" id="isl-b1">Pause</button><button class="btn" type="button">Open Focus</button></div>
+              <div class="btns"><button class="btn" type="button" id="isl-b1">Pause</button><button class="btn" type="button">Open Hushd</button></div>
             </div>
             <div class="view-nudge">
               <div class="msg">Back to Calc homework?</div>
@@ -417,7 +417,7 @@
       <div class="stage isl-pop-stage">
         <div class="wall"></div>
         <div class="menubar"><div class="left"><span class="app">Notes</span><span>File</span><span>Edit</span><span>View</span></div><div class="right"><span class="ring mb-ring" style="background:var(--sel);border-radius:6px;padding:2px;font-size:22px"><svg><use href="#r-on"/></svg></span><span>12:26</span></div></div>
-        <div class="mpop glass" role="menu" aria-label="Focus menu">
+        <div class="mpop glass" role="menu" aria-label="Hushd menu">
           <div class="head"><span class="ring"><svg><use href="#r-prog"/></svg></span><b>Calc homework</b><span class="t">24:10</span><span>On task · Open session</span><span class="read">Reading Notes: matches the task</span></div>
           <hr>
           <button class="mi" role="menuitem" type="button">Pause<kbd>⌥P</kbd></button>
@@ -432,7 +432,7 @@
           <button class="mi" role="menuitem" type="button">Extend<span class="go">Timed only</span></button>
           <button class="mi" role="menuitem" type="button">End session</button>
           <hr>
-          <button class="mi" role="menuitem" type="button">Open Focus<kbd>⌘1</kbd></button>
+          <button class="mi" role="menuitem" type="button">Open Hushd<kbd>⌘1</kbd></button>
           <button class="mi" role="menuitem" type="button">Settings<kbd>⌘,</kbd></button>
         </div>
       </div>

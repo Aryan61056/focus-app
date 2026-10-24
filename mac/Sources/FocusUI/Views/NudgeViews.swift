@@ -1,8 +1,8 @@
 import SwiftUI
 import FocusBrain
 
-/// Nudge surfaces inside the Focus window. The banner over the window you are in carries the same moments wherever you are, so these show
-/// only when the banner is switched off or not up (RootView). Same parts as the banner: the state ring, the words, one line of what Focus
+/// Nudge surfaces inside the Hushd window. The banner over the window you are in carries the same moments wherever you are, so these show
+/// only when the banner is switched off or not up (RootView). Same parts as the banner: the state ring, the words, one line of what Hushd
 /// saw, and at most three answers. Copy follows PLAN 4.12: calm, second person, never names what you were looking at.
 struct CueCardHeader<Meta: View>: View {
     var ring: RingState
@@ -66,7 +66,7 @@ struct CueClose: View {
     }
 }
 
-/// After a warning went unanswered: a plain question. "Yes" asks you to explain a window Focus read as off topic; "Back to task" sends you back.
+/// After a warning went unanswered: a plain question. "Yes" asks you to explain a window Hushd read as off topic; "Back to task" sends you back.
 struct CheckInCard: View {
     @Bindable var c: SessionController
     var body: some View {

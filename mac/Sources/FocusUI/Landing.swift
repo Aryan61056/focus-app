@@ -135,7 +135,7 @@ public final class LandingController {
     }
 }
 
-/// The beacon: while Focus is nudging you, a faint ring outlines the window "Back to task" would take you to, even when something else is
+/// The beacon: while Hushd is nudging you, a faint ring outlines the window "Back to task" would take you to, even when something else is
 /// on top of it, so the way back is something you can see and not something you have to remember. It asks for nothing, it is click-through,
 /// and it is gone the moment you are back. Off by default. A steady ring with Reduce Motion on; otherwise it breathes slowly.
 @MainActor

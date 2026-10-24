@@ -7,7 +7,7 @@ public enum BetaEventKind: String, Codable, CaseIterable, Sendable {
     case launch, quit, uncleanExit
     case sessionStart, sessionEnd          // sessionEnd value: active minutes
     case warning, pauseScreen, checkIn     // a nudge the person saw
-    case backToTask                        // value: 1 when Focus found the place, 0 when it did not
+    case backToTask                        // value: 1 when Hushd found the place, 0 when it did not
     case judgeRefusal, judgeUnavailable
     case saveFailed
     case hang                              // value: seconds the app did not respond
@@ -29,7 +29,7 @@ public struct BetaPulse: Codable, Equatable, Sendable {
     public init(at: Date, score: Int, note: String? = nil) { self.at = at; self.score = score; self.note = note }
 }
 
-/// The beta's own small file beside the store (~/Library/Application Support/Focus/beta.json), plus a marker that says the app is
+/// The beta's own small file beside the store (~/Library/Application Support/Hushd/beta.json), plus a marker that says the app is
 /// running, so the next launch knows whether the last one ended without quitting. A journal with no URL lives in memory (tests, demo).
 @MainActor @Observable
 public final class BetaJournal {

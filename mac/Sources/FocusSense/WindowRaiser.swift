@@ -4,7 +4,7 @@ import FocusUI
 
 /// Brings one particular window of an app forward, not just the app. Activating an app raises whichever of its windows was in front, so
 /// "Back to task" landed in the wrong Xcode project, the wrong Pages document or the wrong terminal. The match is pure (and tested);
-/// the raising uses Accessibility, which Focus already needs to read window titles. Without the permission it does nothing and the caller
+/// the raising uses Accessibility, which Hushd already needs to read window titles. Without the permission it does nothing and the caller
 /// falls back to bringing the app forward.
 public enum WindowRaiser {
     public struct Candidate: Equatable, Sendable {
@@ -53,7 +53,7 @@ public enum WindowRaiser {
     @MainActor public static func raise(pid: pid_t, matching target: WindowSnapshot) -> Bool {
         guard AXIsProcessTrusted() else { return false }
         let app = AXUIElementCreateApplication(pid)
-        AXUIElementSetMessagingTimeout(app, 0.5)   // a hung app must not freeze Focus
+        AXUIElementSetMessagingTimeout(app, 0.5)   // a hung app must not freeze Hushd
         var ref: CFTypeRef?
         if AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &ref) != .success || (ref as? [AXUIElement])?.isEmpty != false {
             askForAccessibility(app)   // an Electron app shows its windows only after this; the next trip finds them
@@ -77,13 +77,13 @@ public enum WindowRaiser {
     }
 
     /// Electron apps (VS Code, Slack, Notion, Discord, Obsidian) build their accessibility tree only when asked, so their windows and tabs are
-    /// invisible to Focus until then. Asking is harmless to other apps (they answer "unsupported"). The app keeps it on until it quits.
+    /// invisible to Hushd until then. Asking is harmless to other apps (they answer "unsupported"). The app keeps it on until it quits.
     @MainActor static func askForAccessibility(_ app: AXUIElement) {
         AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, kCFBooleanTrue)
     }
 
     /// Every tab strip button in every window of the app, with its window: a tab bar is an AXTabGroup whose children are radio buttons or tabs
-    /// (Terminal, Finder, Firefox, Preview, TextEdit, Xcode and others). Bounded, so a huge window cannot stall Focus.
+    /// (Terminal, Finder, Firefox, Preview, TextEdit, Xcode and others). Bounded, so a huge window cannot stall Hushd.
     @MainActor static func tabButtons(app: AXUIElement, windows: [AXUIElement]) -> [(window: AXUIElement, button: AXUIElement, title: String)] {
         var found: [(AXUIElement, AXUIElement, String)] = []
         for win in windows {

@@ -46,7 +46,7 @@ final class ReadingTests: XCTestCase {
         c.begin(task: "Calc homework", preset: .standard, shadow: false)
         XCTAssertEqual(c.latest?.source, .rule)
         XCTAssertEqual(c.latest?.call, .on)
-        XCTAssertTrue(c.latest?.reason.hasPrefix("You told Focus") ?? false)
+        XCTAssertTrue(c.latest?.reason.hasPrefix("You told Hushd") ?? false)
         XCTAssertEqual(c.stats.rule, 1)
     }
 
@@ -70,7 +70,7 @@ final class ReadingTests: XCTestCase {
         await advance(c, to: 5)
         XCTAssertEqual(c.latest?.failed, true)
         XCTAssertEqual(c.latest?.call, .unsure)
-        XCTAssertEqual(c.latest?.reason, "Focus could not read this one, so it did nothing.")
+        XCTAssertEqual(c.latest?.reason, "Hushd could not read this one, so it did nothing.")
     }
 
     func testStatsAreSavedWithTheSessionAndHoldNoText() async {

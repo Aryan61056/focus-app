@@ -3,15 +3,15 @@
 # three times, and fails if the app died (the 2026-10-01 hover crash) or its notch panel was not on screen.
 # Since 2026-10-15 the notch window is a fixed size (437 by 132 pt on a 185 pt notch since 2026-10-16) for the whole session (the shape inside it grows), so window frames can no
 # longer show whether hover arrived; that needs eyes on the real notch. Only the dev build is started, watched and stopped: an installed
-# copy of Focus that is running a session is left alone.
-# Moves your pointer for about 15 seconds. Needs a built mac/.build/Focus.app (tools/build_app.sh) and a logged-in desktop. Not part of `swift test`.
+# copy of Hushd that is running a session is left alone.
+# Moves your pointer for about 15 seconds. Needs a built mac/.build/Hushd.app (tools/build_app.sh) and a logged-in desktop. Not part of `swift test`.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export DEVELOPER_DIR="${DEVELOPER_DIR:-$(xcode-select -p)}"; unset SDKROOT
-DEV="mac/.build/Focus.app/Contents/MacOS/focus-app"
+DEV="mac/.build/Hushd.app/Contents/MacOS/focus-app"
 T=$(mktemp -d); swiftc -o "$T/hover" tools/hover_pointer.swift; swiftc -o "$T/frames" tools/panel_frames.swift
 pkill -f "$DEV" 2>/dev/null || true; sleep 1
-open -n --env FOCUS_DEMO=1 mac/.build/Focus.app --args -ApplePersistenceIgnoreState YES
+open -n --env FOCUS_DEMO=1 mac/.build/Hushd.app --args -ApplePersistenceIgnoreState YES
 sleep 6
 PID=$(pgrep -f "$DEV" | head -1)
 "$T/frames" "$PID" > "$T/frames.txt" &

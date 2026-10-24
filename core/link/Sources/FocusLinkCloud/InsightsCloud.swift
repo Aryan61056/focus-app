@@ -72,7 +72,7 @@ public enum CloudAvailability: Equatable, Sendable {
     }
 
     public func availability() async -> CloudAvailability {
-        guard entitled, let containerID else { return .unavailable("This build of Focus is not set up for iCloud yet.") }
+        guard entitled, let containerID else { return .unavailable("This build of Hushd is not set up for iCloud yet.") }
         if container == nil { container = CKContainer(identifier: containerID) }
         do {
             switch try await container!.accountStatus() {
@@ -159,7 +159,7 @@ public enum CloudAvailability: Equatable, Sendable {
         case notSetUp, plain(String)
         public var errorDescription: String? {
             switch self {
-            case .notSetUp: return "This build of Focus is not set up for iCloud yet."
+            case .notSetUp: return "This build of Hushd is not set up for iCloud yet."
             case .plain(let s): return s
             }
         }

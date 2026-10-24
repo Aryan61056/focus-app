@@ -1,17 +1,17 @@
 import SwiftUI
 import FocusBrain
 
-// "Workspace" (owner, 2026-10-16): the pieces every screen shares. Visual first, labels of a few words, one green accent, and Focus's
+// "Workspace" (owner, 2026-10-16): the pieces every screen shares. Visual first, labels of a few words, one green accent, and Hushd's
 // own work in plain sight: what it is reading, the checks it ran, and a short log of what it did.
 
-/// The bar at the top of Today: Focus, the window it is reading, its three checks as dots, and how long ago it looked.
+/// The bar at the top of Today: Hushd, the window it is reading, its three checks as dots, and how long ago it looked.
 struct FocusBar: View {
     @Bindable var c: SessionController
     var reading: Reading?
     var body: some View {
         HStack(spacing: Space.xs) {
             Image(systemName: "sparkles").font(Tokens.symbol(13, .semibold)).foregroundStyle(Tokens.accent).accessibilityHidden(true)
-            Text("Focus").font(Tokens.text(.body, .semibold))
+            Text("Hushd").font(Tokens.text(.body, .semibold))
             Text(status).font(Tokens.text(.body)).foregroundStyle(Tokens.ink2).lineLimit(1)
             if c.isJudging && !c.isHeld { ThinkingDot() }
             Spacer(minLength: Space.s)
@@ -61,7 +61,7 @@ struct CheckDots: View {
     }
 }
 
-/// Focus's call, large: its ring, two words, and one line of why. The full reason is a tooltip, so the screen stays quiet.
+/// Hushd's call, large: its ring, two words, and one line of why. The full reason is a tooltip, so the screen stays quiet.
 struct VerdictView: View {
     var reading: Reading
     var body: some View {
@@ -94,7 +94,7 @@ struct VerdictView: View {
 }
 
 /// The session as one band: each reading holds until the next. Solid green is on task, a dashed outline is not sure, a lower amber
-/// block is off topic, so the call is never color alone. Tap a stretch to see Focus's reason for it.
+/// block is off topic, so the call is never color alone. Tap a stretch to see Hushd's reason for it.
 struct SessionTimeline: View {
     struct Stretch: Identifiable, Equatable {
         var id: UUID?
@@ -192,7 +192,7 @@ struct SessionCounts: View {
     static func minutes(_ s: Double) -> String { s < 60 ? "\(Int(s)) s" : (s < 3600 ? "\(Int(s / 60)) min" : "\(Int(s / 3600)) h \(Int(s.truncatingRemainder(dividingBy: 3600) / 60)) min") }
 }
 
-/// What Focus did, newest first, a few words each: the AI's work, shown as support rather than surveillance.
+/// What Hushd did, newest first, a few words each: the AI's work, shown as support rather than surveillance.
 struct ActivityLog: View {
     struct Entry: Identifiable, Equatable {
         enum Kind: Equatable { case counted, unsure, offTopic, back, skipped, privateWindow, failed }
@@ -268,7 +268,7 @@ struct ActivityLog: View {
     }
 }
 
-/// One group in the Focus panel: a small heading (with the sparkle when it is the AI's work), its content, a hairline under it.
+/// One group in the Hushd panel: a small heading (with the sparkle when it is the AI's work), its content, a hairline under it.
 struct PanelSection<Content: View>: View {
     var title: String
     var ai = false
@@ -286,7 +286,7 @@ struct PanelSection<Content: View>: View {
     }
 }
 
-/// True while a page's Focus panel sits under the page instead of beside it (a narrow window), where the page's own scroll carries both.
+/// True while a page's Hushd panel sits under the page instead of beside it (a narrow window), where the page's own scroll carries both.
 private struct PanelStackedKey: EnvironmentKey { static let defaultValue = false }
 extension EnvironmentValues { var panelStacked: Bool { get { self[PanelStackedKey.self] } set { self[PanelStackedKey.self] = newValue } } }
 
@@ -324,14 +324,14 @@ struct Totals: View {
     }
 }
 
-/// The line CLAUDE.md asks to keep in view wherever Focus's call is shown.
+/// The line CLAUDE.md asks to keep in view wherever Hushd's call is shown.
 struct CanBeWrong: View {
     var body: some View {
-        Text("Focus can be wrong. When it isn't sure, it does nothing.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
+        Text("Hushd can be wrong. When it isn't sure, it does nothing.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
     }
 }
 
-/// A page with the Focus panel at its right: the page scrolls on its own and the panel keeps a fixed width. The panel gives up some of
+/// A page with the Hushd panel at its right: the page scrolls on its own and the panel keeps a fixed width. The panel gives up some of
 /// that width before the page does, so a smaller window keeps a readable page. When the page would still be squeezed (a narrow window, or
 /// the sidebar open in a small one) the panel goes under the page inside the same scroll, so nothing is hidden.
 /// `main` is the page's content, not a scroll view: this layout supplies the scrolling in both arrangements.
@@ -370,7 +370,7 @@ struct PanelLayout<Main: View, Side: View>: View {
     }
 }
 
-/// The windows of this session by time: icon, a bar as long as the time, and the minutes. The bar's style is the call Focus made most
+/// The windows of this session by time: icon, a bar as long as the time, and the minutes. The bar's style is the call Hushd made most
 /// of that time (solid on task, dashed not sure, amber off topic). Private and never-judged windows are left out.
 struct SessionWindows: View {
     struct Row: Identifiable, Equatable { var id: String { app }; var app: String; var seconds: Double; var call: Reading.Call }

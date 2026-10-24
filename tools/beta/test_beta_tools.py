@@ -56,7 +56,7 @@ class Validation(unittest.TestCase):
         self.refused(r, "never writes")
 
     def test_refuses_path_anywhere_the_app_writes(self):
-        self.refused(variant(crash__frames__0="focus-app /Users/sam/Applications/Focus.app"), "file path")
+        self.refused(variant(crash__frames__0="focus-app /Users/sam/Applications/Hushd.app"), "file path")
         self.refused(variant(system__model="/Users/sam"), "file path")
 
     def test_refuses_long_settings_value(self):
@@ -221,7 +221,7 @@ class GitHubPull(unittest.TestCase):
 
 class ReleaseText(unittest.TestCase):
     M = {"name": "0.1.0-beta.2", "version": "0.1.0", "build": 2, "buildID": "20261019-abc", "expires": "2026-11-18", "sha256": "ab" * 32,
-         "signing": "ad-hoc", "repo": "https://github.com/o/r", "tag": "v0.1.0-beta.2", "dmg": "Focus-0.1.0-beta.2.dmg",
+         "signing": "ad-hoc", "repo": "https://github.com/o/r", "tag": "v0.1.0-beta.2", "dmg": "Hushd-0.1.0-beta.2.dmg",
          "notes": ["Post feedback on GitHub"], "known": ["The notch can lag after sleep"]}
 
     def test_origin_repo_forms(self):
@@ -232,7 +232,7 @@ class ReleaseText(unittest.TestCase):
 
     def test_github_text_has_the_steps_forms_and_checksum(self):
         body = release_text.github_body(self.M)
-        for want in ["Focus-0.1.0-beta.2.dmg", "Open Anyway", "November 18, 2026", "Post feedback on GitHub", "The notch can lag after sleep",
+        for want in ["Hushd-0.1.0-beta.2.dmg", "Open Anyway", "November 18, 2026", "Post feedback on GitHub", "The notch can lag after sleep",
                      "https://github.com/o/r/issues/new?template=beta-wrong-call.yml", "ab" * 32, "Issues are public"]:
             self.assertIn(want, body)
         # The claims CLAUDE.md bans until the privacy tests pass, and no em dashes in testers' copy.
@@ -248,7 +248,7 @@ class ReleaseText(unittest.TestCase):
         self.assertIn("https://github.com/o/r/issues", text)
         local = release_text.invite(dict(self.M, repo=None))
         self.assertNotIn("github.com", local)
-        self.assertIn("Open Focus-0.1.0-beta.2.dmg", local)
+        self.assertIn("Open Hushd-0.1.0-beta.2.dmg", local)
 
 
 class Roster(unittest.TestCase):

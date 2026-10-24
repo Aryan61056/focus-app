@@ -18,7 +18,7 @@ public struct SessionState: Codable, Equatable, Sendable {
     public var offTopicRunning: Bool
     /// How far the Mac's warning has climbed: 0 warned, 1 check-in, 2 pause screen, 3 hid the app.
     public var driftStep: Int
-    /// A practice session: Focus watches but does not nudge.
+    /// A practice session: Hushd watches but does not nudge.
     public var practice: Bool
     /// A short line the Mac wants shown, such as "Back in 40 s". Nil most of the time.
     public var note: String?

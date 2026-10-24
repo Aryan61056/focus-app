@@ -37,14 +37,14 @@ if ! git -C "$ROOT" branch -r --contains "$COMMIT" 2>/dev/null | grep -q .; then
 fi
 if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then echo "$TAG is already published on $REPO" >&2; exit 1; fi
 
-echo "publish Focus $VERSION beta $BUILD to $REPO_URL as pre-release $TAG at ${COMMIT:0:12}, with $(basename "$DMG") ($(du -h "$DMG" | cut -f1))"
+echo "publish Hushd $VERSION beta $BUILD to $REPO_URL as pre-release $TAG at ${COMMIT:0:12}, with $(basename "$DMG") ($(du -h "$DMG" | cut -f1))"
 if [ "$DRY" = 1 ]; then echo "----- release text"; cat "$DIR/github-release.md"; echo "-----"; echo "dry run: nothing published"; exit 0; fi
 if [ "$YES" != 1 ]; then
   read -r -p "This makes the build public on GitHub. Type 'publish' to go on: " answer
   [ "$answer" = publish ] || { echo "nothing published"; exit 1; }
 fi
 gh release create "$TAG" "$DMG" "$DMG.sha256" --repo "$REPO" --target "$COMMIT" --prerelease \
-  --title "Focus $VERSION beta $BUILD" --notes-file "$DIR/github-release.md"
+  --title "Hushd $VERSION beta $BUILD" --notes-file "$DIR/github-release.md"
 python3 - "$DIR/release.json" <<'PYEND'
 import json, sys, datetime
 p = sys.argv[1]; m = json.load(open(p)); m["published"] = datetime.date.today().isoformat(); json.dump(m, open(p, "w"), indent=2)

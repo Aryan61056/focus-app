@@ -1,4 +1,4 @@
-# Focus App: Product and Engineering Plan
+# Hushd App: Product and Engineering Plan
 
 *Working title. The name is still open (section 12).*
 
@@ -450,13 +450,13 @@ The earlier cat design, kept intact as an opt-in style:
 | E4 | Weekly trends; weekly recap and a shareable card (user-initiated). | P1 / P2 |
 | E5 | Retention controls: 7 / 30 / 90 days or "no history"; export CSV; delete everything. | P1 |
 | E6 | End-of-day reflection written by the local model. Check tone before shipping. | P2 |
-| E7 | Focus calendar: a contribution-graph style heatmap of focused time. | P1 |
+| E7 | Hushd calendar: a contribution-graph style heatmap of focused time. | P1 |
 | E8 | **Summary: four numbers and a note.** Time, focused share, longest stretch, recoveries, plus a note box. Details are one click away. Celebrates starting as well as finishing. | P0 |
 | E9 | **Insights end in an action:** every insight comes with a one-tap next step or a celebration, and there are at most three per week. | P1 |
 | E10 | **Trigger map:** the top three "drift starters" (apps, sites, times of day). | P1 |
 | E11 | **Self-experiments:** try Gentle vs. Standard, or Open vs. Timed, for a week and compare time to recover and longest stretch. Local only. | P2 |
 
-### F. Focus helpers
+### F. Hushd helpers
 
 | # | Feature | Tier |
 |---|---|---|
@@ -737,7 +737,7 @@ Local SQLite: projects (profile, linked resources, context card, notes, defaults
 | Look | Liquid Glass through standard SwiftUI controls and toolbars. It's mandatory in builds with the latest Xcode ✅, and macOS 27 has a user glass-opacity slider that we must respect ✅. Custom surfaces use `glassEffect`. | Fluent 2 via WinUI. Mica on the main window; Acrylic on flyouts, the pill and cards. |
 | Type and icons | SF Pro, SF Symbols | Segoe UI Variable, Segoe Fluent Icons |
 | Main window | One window, sidebar + detail, system toolbar | NavigationView, integrated title bar, Snap Layouts friendly |
-| Settings | `Settings` scene, ⌘, tabs: General · Focus · Effects · Style · Privacy · Advanced | Settings page styled like Windows Settings (SettingsCard / SettingsExpander from the Community Toolkit); same sections |
+| Settings | `Settings` scene, ⌘, tabs: General · Hushd · Effects · Style · Privacy · Advanced | Settings page styled like Windows Settings (SettingsCard / SettingsExpander from the Community Toolkit); same sections |
 | Always-available entry | MenuBarExtra with a template ring glyph; optional Dock icon (the notch can hide crowded menu bar items); hotkey; clickable pill | Tray ring icon (new icons start in the overflow flyout, so never the only entry); taskbar button; hotkey; clickable pill |
 | Pill | Small glass capsule in a non-activating panel above full-screen apps | Acrylic pill in a topmost, no-activate layered window; per-monitor DPI v2 |
 | Notch panel | Small non-activating panel that grows down from the notch (Mac only); click, hotkey or an alert opens it | Not applicable; the floating top panel is used |
@@ -746,7 +746,7 @@ Local SQLite: projects (profile, linked resources, context card, notes, defaults
 | Control surfaces | Control Center and menu bar controls, macOS 26 and later ✅ | Widgets board (P2) 🔍 |
 | Nudge card | Glass card, default button on Return, Esc dismisses | Acrylic card styled like a flyout, accent button, Enter and Esc |
 | Gate | Behind-window blur sheet matched to the window frame 🔍 | System backdrop (Acrylic) window matched to the frame 🔍 |
-| Notifications | UserNotifications; respect Focus | App notifications (`AppNotificationManager`); respect Do Not Disturb |
+| Notifications | UserNotifications; respect Hushd | App notifications (`AppNotificationManager`); respect Do Not Disturb |
 | Reduce motion | `accessibilityDisplayShouldReduceMotion` → fades and static states | `UISettings.AnimationsEnabled` → same |
 | Transparency | Reduce Transparency → opaque surfaces | Transparency effects off → opaque surfaces |
 | Contrast | Increase Contrast → outlines | High-contrast themes → system colors only |

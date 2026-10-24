@@ -1,5 +1,5 @@
 import AppKit
-// Draws the app icon (the Focus ring on a deep green rounded square) into an .iconset folder. Usage: make_icon <out.iconset>
+// Draws the app icon (the Hushd ring on a deep green rounded square) into an .iconset folder. Usage: make_icon <out.iconset>
 let out = CommandLine.arguments[1]
 try? FileManager.default.createDirectory(atPath: out, withIntermediateDirectories: true)
 func render(_ px: Int) -> Data {

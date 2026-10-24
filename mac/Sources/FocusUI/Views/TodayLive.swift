@@ -1,8 +1,8 @@
 import SwiftUI
 import FocusBrain
 
-// Today while a session runs, for a three second glance: Focus's bar, its call, the session as one band, three numbers.
-// Pause, Break and End live in the toolbar; what Focus did and Ask Focus live in the Focus panel on the right.
+// Today while a session runs, for a three second glance: Hushd's bar, its call, the session as one band, three numbers.
+// Pause, Break and End live in the toolbar; what Hushd did and Ask Hushd live in the Hushd panel on the right.
 
 struct TodayLiveMain: View {
     @Bindable var c: SessionController
@@ -14,7 +14,7 @@ struct TodayLiveMain: View {
     @State private var pinned: UUID?
     @State private var width: CGFloat = 800
 
-    /// The big picture only exists once screen reading is on; until then the Focus panel carries the invitation.
+    /// The big picture only exists once screen reading is on; until then the Hushd panel carries the invitation.
     var showPreviewColumn: Bool { showPreview && pinned == nil && c.prefs.readScreen }
 
     var shown: Reading? { pinned.flatMap { id in c.readings.first { $0.id == id } } ?? c.latest }
@@ -126,20 +126,20 @@ struct AllReadings: View {
     }
 }
 
-/// The Focus panel on Today. During a session: what Focus did, Ask Focus and the screen picture offer.
-/// Between sessions: today's goal and how Focus decides.
+/// The Hushd panel on Today. During a session: what Hushd did, Ask Hushd and the screen picture offer.
+/// Between sessions: today's goal and how Hushd decides.
 struct TodayPanel: View {
     @Bindable var c: SessionController
     var body: some View {
         FocusPanelColumn {
             if c.isActive {
-                PanelSection(title: "What Focus did", ai: true) { ActivityLog(readings: c.readings) }
-                if c.aiAvailable && !c.stuckShown && c.presence.reason != "break" { PanelSection(title: "Ask Focus", ai: true) { AskPanel(c: c, compact: true) } }
+                PanelSection(title: "What Hushd did", ai: true) { ActivityLog(readings: c.readings) }
+                if c.aiAvailable && !c.stuckShown && c.presence.reason != "break" { PanelSection(title: "Ask Hushd", ai: true) { AskPanel(c: c, compact: true) } }
                 if !c.prefs.readScreen {
                     PanelSection(title: "Screen reading") {
                         Button { c.prefs.readScreen = true; c.onRequestPreviewAccess?() } label: { Label("Show the window here", systemImage: "eye") }
                             .buttonStyle(FocusButtonStyle(.secondary, small: true))
-                            .help("Focus shows the window it reads and uses the words on it. Nothing is saved.")
+                            .help("Hushd shows the window it reads and uses the words on it. Nothing is saved.")
                     }
                 }
             }

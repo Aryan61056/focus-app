@@ -2,7 +2,7 @@ import UserNotifications
 import FocusLinkNet
 
 /// The one honest thing a phone app can do about a phone that gets picked up mid-session. iOS lets no app see what you do in
-/// other apps, so this does not catch you, and it does not claim to. It does this: if you leave Focus while a session is
+/// other apps, so this does not catch you, and it does not claim to. It does this: if you leave Hushd while a session is
 /// running on your Mac, one quiet notification follows after a short delay, naming the task and nothing else. Coming back
 /// cancels it. Wording is in the past tense, because the session may have ended since.
 @MainActor final class PickupReminder {
@@ -37,7 +37,7 @@ import FocusLinkNet
         guard let delay = Self.plan(clock: clock, live: live, now: now, lastShown: lastShown) else { return }
         let content = UNMutableNotificationContent()
         content.title = String(localized: "Still on \(clock.state.task)?")
-        content.body = String(localized: "Your session was running when you left Focus.")
+        content.body = String(localized: "Your session was running when you left Hushd.")
         content.interruptionLevel = .passive
         center.add(UNNotificationRequest(identifier: Self.identifier, content: content, trigger: UNTimeIntervalNotificationTrigger(timeInterval: delay, repeats: false)))
         armedAt = now

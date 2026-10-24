@@ -127,7 +127,7 @@ final class NotchHasNoWayOutTests: XCTestCase {
             .appendingPathComponent("Sources/FocusUI/Views/NotchView.swift")
         let src = try String(contentsOf: url, encoding: .utf8)
         let actions = src.components(separatedBy: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") && !$0.trimmingCharacters(in: .whitespaces).hasPrefix("///") }.joined(separator: "\n")
-        for banned in [".pause", ".resume", ".dismiss", ".snooze", ".breakTime", "takeNudgeBreak", "rhythmTakeBreak", "rhythmKeepGoing", "answerCheckIn", "claimOnTask", "leaveGate", "requestEnd", "end()", "openApp", "Not now", "Yes, I am", "Take a break", "Open Focus", "Resume", "Pause"] {
+        for banned in [".pause", ".resume", ".dismiss", ".snooze", ".breakTime", "takeNudgeBreak", "rhythmTakeBreak", "rhythmKeepGoing", "answerCheckIn", "claimOnTask", "leaveGate", "requestEnd", "end()", "openApp", "Not now", "Yes, I am", "Take a break", "Open Hushd", "Resume", "Pause"] {
             XCTAssertFalse(actions.contains(banned), "the notch must not offer \(banned)")
         }
         XCTAssertEqual(actions.components(separatedBy: "pill(\"").count - 1, 1, "one button only")

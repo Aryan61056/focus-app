@@ -17,7 +17,7 @@ struct ProjectsView: View {
                     .buttonStyle(FocusButtonStyle(.secondary))
             }
             if store.projects.isEmpty {
-                EmptyState(symbol: "folder", title: "No projects yet", text: "Start a session and Focus makes a project from what you type. Or add one now and tell it what counts.") {
+                EmptyState(symbol: "folder", title: "No projects yet", text: "Start a session and Hushd makes a project from what you type. Or add one now and tell it what counts.") {
                     Button("New project") { let p = store.addProject(name: "New project"); selected = p.id }.buttonStyle(FocusButtonStyle(.primary))
                 }
             } else {
@@ -83,7 +83,7 @@ struct ProjectDetail: View {
                     HStack(alignment: .top) { titleBlock(binding); Spacer(); startButton.fixedSize() }
                     VStack(alignment: .leading, spacing: Space.s) { titleBlock(binding); startButton.fixedSize() }
                 }
-                field("What Focus should know", help: "Focus compares every window with this and your task. A sentence or two of detail helps more than any list. It stays on this Mac.") {
+                field("What Hushd should know", help: "Hushd compares every window with this and your task. A sentence or two of detail helps more than any list. It stays on this Mac.") {
                     ZStack(alignment: .topLeading) {
                         if binding.wrappedValue.context.isEmpty {
                             Text("For example: writing the methods chapter. The survey tool, Zotero and the stats docs count.")
@@ -242,12 +242,12 @@ struct AskFocusBox: View {
     var askTitle: some View {
         HStack(spacing: 5) {
             Image(systemName: "sparkles").foregroundStyle(Tokens.accent).accessibilityHidden(true)
-            Text("Ask Focus about a window").font(Tokens.text(.body, .semibold))
+            Text("Ask Hushd about a window").font(Tokens.text(.body, .semibold))
         }.fixedSize()
     }
     var askNote: some View { Text("Typed, not read from your screen").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize() }
     var askButton: some View {
-        Button(asking ? "Asking" : "Ask Focus") { ask() }.buttonStyle(FocusButtonStyle(.secondary)).fixedSize()
+        Button(asking ? "Asking" : "Ask Hushd") { ask() }.buttonStyle(FocusButtonStyle(.secondary)).fixedSize()
             .disabled(asking || title.trimmingCharacters(in: .whitespaces).isEmpty)
     }
     func field(_ prompt: String, _ text: Binding<String>) -> some View {
@@ -271,7 +271,7 @@ struct RulesDisclosure: View {
         let never = profile.alwaysOffApps.count + profile.alwaysOffDomains.count
         DisclosureGroup(isExpanded: $open) {
             VStack(alignment: .leading, spacing: Space.xxs) {
-                Text("Checked before Focus reads anything. Most projects don't need them.")
+                Text("Checked before Hushd reads anything. Most projects don't need them.")
                     .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true).padding(.bottom, Space.xs)
                 Text("Counts as on task").font(Tokens.text(.caption, .semibold))
                 RuleGroup(title: "Apps", symbol: "app", items: $profile.alwaysAllowApps, addLabel: "Add app")

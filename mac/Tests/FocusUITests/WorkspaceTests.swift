@@ -1,7 +1,7 @@
 import XCTest
 @testable import FocusUI
 
-/// The Workspace pieces that turn readings into pictures: the session band, the windows tally and "What Focus did".
+/// The Workspace pieces that turn readings into pictures: the session band, the windows tally and "What Hushd did".
 @MainActor
 final class WorkspaceTests: XCTestCase {
     func r(_ at: Double, _ app: String, _ call: Reading.Call, source: Reading.Source = .model, key: String? = nil, byWords: Bool = false) -> Reading {

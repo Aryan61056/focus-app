@@ -98,8 +98,8 @@ struct FriendsView: View {
                     Button(b.rawValue) { friends.board = b }.buttonStyle(ChoiceStyle(on: board == b)).fixedSize()
                 }
                 InfoTip(text: board == .focused
-                        ? "Ranked by time on task. Slips are Focus's calls, and Focus can be wrong. Starts over every week."
-                        : "Ranked by slips per hour on task, after an hour of focus. Focus can be wrong. Starts over every week.")
+                        ? "Ranked by time on task. Slips are Hushd's calls, and Hushd can be wrong. Starts over every week."
+                        : "Ranked by slips per hour on task, after an hour of focus. Hushd can be wrong. Starts over every week.")
                 Spacer(minLength: Space.xs)
                 Text(Self.weekTitle(.now)).font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).monospacedDigit().fixedSize()
             }
@@ -754,7 +754,7 @@ struct FriendsIntro: View {
         VStack(spacing: Space.l) {
             stage
             VStack(spacing: Space.xxs) {
-                Text("Focus with friends").font(Tokens.text(.headline, .semibold))
+                Text("Hushd with friends").font(Tokens.text(.headline, .semibold))
                 HStack(spacing: Space.xxs) {
                     Text("A weekly race, and a cheer when someone needs one.").font(Tokens.text(.body)).foregroundStyle(Tokens.ink2)
                     InfoTip(text: Self.shared + " Turn it off any time and what you shared is deleted.")

@@ -11,14 +11,14 @@ struct UnpairedView: View {
                 .padding(.top, 36)
                 .reveal(0, key: "unpaired")
             VStack(spacing: 10) {
-                Text("Focus for iPhone").font(.largeTitle.weight(.bold))
+                Text("Hushd for iPhone").font(.largeTitle.weight(.bold))
                 Text("See your Mac's session at a glance, start and pause it from here, and keep your phone honest while you work.")
                     .font(.body).foregroundStyle(Palette.ink2).multilineTextAlignment(.center)
             }
             .reveal(1, key: "unpaired")
             VStack(spacing: 12) {
                 PrimaryButton(title: "Add your Mac", systemImage: "macbook.and.iphone", action: onAdd)
-                Text("On your Mac, open Focus and click Connect your iPhone in the sidebar.")
+                Text("On your Mac, open Hushd and click Connect your iPhone in the sidebar.")
                     .font(.footnote).foregroundStyle(Palette.ink2).multilineTextAlignment(.center)
                 Button("Try a demo") { model.startDemo() }
                     .font(.body.weight(.medium)).foregroundStyle(Palette.ink2)

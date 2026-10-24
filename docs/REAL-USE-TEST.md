@@ -6,18 +6,18 @@ Automated tests and demo renders do not prove real sensing or model accuracy. Ru
 
 ## Prepare
 
-1. Quit other Focus copies yourself. Close personal windows and notifications. Use only these fabricated pages and an empty Music library; no real conversations, documents or credentials.
+1. Quit other Hushd copies yourself. Close personal windows and notifications. Use only these fabricated pages and an empty Music library; no real conversations, documents or credentials.
 2. Launch the built bundle from the repo:
 
    ```sh
    cd ~/focus-app
-   open -n --env FOCUS_TEST_STORE="$TMPDIR/focus-test" mac/.build/Focus.app
+   open -n --env FOCUS_TEST_STORE="$TMPDIR/focus-test" mac/.build/Hushd.app
    ```
 
-   Do not set `FOCUS_DEMO=1`: it bypasses real sensing. Test history is `$TMPDIR/focus-test/store.json`; test preferences use `focus-app.test.focus-test`. Reusing that folder reuses its test settings. Normal Focus history/settings are separate.
+   Do not set `FOCUS_DEMO=1`: it bypasses real sensing. Test history is `$TMPDIR/focus-test/store.json`; test preferences use `focus-app.test.focus-test`. Reusing that folder reuses its test settings. Normal Hushd history/settings are separate.
 3. Grant **Accessibility** and **Screen Recording** to this bundle in System Settings > Privacy & Security. Relaunch if requested. If an old grant appears enabled but fails after rebuilding, remove and re-add this bundle yourself. I cannot grant permissions.
 4. Set **Standard / Often / Proactive**. For repeatable timing, turn **Ease in, then push harder when behind** off. Turn **If you stay away after a warning** off to isolate the core loop from full-screen enforcement. Keep the notch and reminder banner on; early **Heads-up before a warning**, sound, speech, scheduled prompts, **Hold to go back to your task** and the iPhone link off. These are test settings, not changed product defaults.
-5. In **What Focus reads**, keep the model and never-judged list on; turn screen reading on. Turn **Count matching words as on task** off so the work page reaches the model. Use no project allow/never/folder rules. If Today reports an unavailable model, missing permission or only app names, report **BLOCKED**, not PASS. Do not download a model just for this test without discussing it.
+5. In **What Hushd reads**, keep the model and never-judged list on; turn screen reading on. Turn **Count matching words as on task** off so the work page reaches the model. Use no project allow/never/folder rules. If Today reports an unavailable model, missing permission or only app names, report **BLOCKED**, not PASS. Do not download a model just for this test without discussing it.
 6. Open the offline fixtures in separate tabs of one normal Safari window:
 
    ```sh
@@ -33,7 +33,7 @@ Setup: PASS / FAIL / BLOCKED ___; build ___; macOS ___; browser ___; Accessibili
 
 ## Observe without changing what is being tested
 
-Today already shows the session state, current verdict, reason, reading age, **All readings**, preview and **Words Focus read** disclosure. Select **Back to now** if you pinned an old reading. Keep Safari frontmost during each block; briefly inspect Today between blocks, then switch back. Focus does not sense its own front window, so waiting in Today can make the reading age grow. Use a watch or phone clock, without the companion app.
+Today already shows the session state, current verdict, reason, reading age, **All readings**, preview and **Words Hushd read** disclosure. Select **Back to now** if you pinned an old reading. Keep Safari frontmost during each block; briefly inspect Today between blocks, then switch back. Hushd does not sense its own front window, so waiting in Today can make the reading age grow. Use a watch or phone clock, without the companion app.
 
 With Standard + Often, fake-clock tests warn about **45 seconds** after sustained drift (Normal: 75 seconds). Real model/OCR latency can delay it: allow up to **3 minutes**. One off-topic verdict alone is insufficient. `Not sure` must not confirm a nudge; on the clearly unrelated feed, persistent uncertainty is a detection miss, not a successful drift test. Pictures refresh nominally every 3 seconds, OCR every 8 seconds; power constraints slow capture.
 

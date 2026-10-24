@@ -4,7 +4,7 @@ import AppKit
 // Where "Back to task" goes, shown without words where it can be: the app's own icon, and a short name beside it.
 
 enum PlaceIcon {
-    /// The icon of a running app, by the name Focus read it under. Nil when it is not running (then a plain window glyph stands in).
+    /// The icon of a running app, by the name Hushd read it under. Nil when it is not running (then a plain window glyph stands in).
     @MainActor static func image(for app: String) -> NSImage? {
         NSWorkspace.shared.runningApplications.first { $0.localizedName == app && $0.activationPolicy == .regular }?.icon
     }

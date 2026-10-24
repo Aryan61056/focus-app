@@ -3,7 +3,7 @@ import FocusUI
 
 /// Where the current window comes from. The real one reads the Accessibility tree; tests use a fake. Nothing here may touch the network.
 public protocol WindowSource {
-    /// The window the user is looking at, or nil when nothing should be judged (no window, or Focus itself is in front).
+    /// The window the user is looking at, or nil when nothing should be judged (no window, or Hushd itself is in front).
     func current() -> WindowSnapshot?
     /// True once the user has allowed Accessibility. Without it only the app name is available.
     var isTrusted: Bool { get }

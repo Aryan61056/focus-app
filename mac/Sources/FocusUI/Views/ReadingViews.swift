@@ -7,7 +7,7 @@ extension Reading {
     var tint: Color { call == .on ? Tokens.accent : Tokens.ink }
     var appText: String { source == .sensitive ? "Private window" : (app.isEmpty ? "A window" : app) }
     var titleText: String { source == .sensitive || source == .skipped ? "Not read" : title }
-    /// Third step of "how Focus decided", in plain words.
+    /// Third step of "how Hushd decided", in plain words.
     var outcomeTitle: String {
         if failed { return "Could not read it" }
         switch (source, call) {
@@ -20,14 +20,14 @@ extension Reading {
         }
     }
     var outcomeText: String {
-        if failed { return "Treated as not sure. Focus does nothing." }
+        if failed { return "Treated as not sure. Hushd does nothing." }
         switch (source, call) {
         case (.sensitive, _): return "Private windows are never read."
-        case (.skipped, _): return "It is on your never-judged list, so Focus did not read it."
-        case (.rule, _): return byWords ? "The model was not needed. This is quiet by design: a match can only make Focus say less." : "A rule you set applies, so the model was not needed."
+        case (.skipped, _): return "It is on your never-judged list, so Hushd did not read it."
+        case (.rule, _): return byWords ? "The model was not needed. This is quiet by design: a match can only make Hushd say less." : "A rule you set applies, so the model was not needed."
         case (_, .on): return "It matches the task. Nothing to do."
-        case (_, .unsure): return "Focus waits and does nothing."
-        case (_, .off): return "Focus keeps watching. It speaks up only if this lasts."
+        case (_, .unsure): return "Hushd waits and does nothing."
+        case (_, .off): return "Hushd keeps watching. It speaks up only if this lasts."
         }
     }
 }
@@ -51,7 +51,7 @@ struct ReadingSplit: View {
 }
 
 
-/// The picture Focus took of the window it is reading, large, in a fixed frame so the card does not jump as pictures arrive.
+/// The picture Hushd took of the window it is reading, large, in a fixed frame so the card does not jump as pictures arrive.
 /// Every state fills the same frame: the picture, a reason it is not shown, or an invitation to turn screen reading on.
 /// The model never sees this picture: it reads the app, the window title and the page or file address, plus the words if screen reading is on.
 struct PreviewCard: View {
@@ -104,9 +104,9 @@ struct PreviewCard: View {
         return "photo"
     }
     var message: String {
-        if !c.prefs.readScreen { return "Let Focus show you the window it is reading. It also reads the words on screen to judge. Nothing is saved." }
+        if !c.prefs.readScreen { return "Let Hushd show you the window it is reading. It also reads the words on screen to judge. Nothing is saved." }
         if let held = c.previewHeld { return held }
-        if c.previewAccess == .denied { return "Allow Screen Recording for Focus in System Settings so it can look at the window." }
+        if c.previewAccess == .denied { return "Allow Screen Recording for Hushd in System Settings so it can look at the window." }
         return "Waiting for a picture. Switch to a window and it appears here."
     }
 
@@ -120,7 +120,7 @@ struct PreviewCard: View {
                 Button("Turn off") { c.prefs.readScreen = false }.buttonStyle(FocusButtonStyle(.plain, small: true))
             }
             if !c.screenText.isEmpty, c.previewFrame != nil {
-                DisclosureGroup("Words Focus read") {
+                DisclosureGroup("Words Hushd read") {
                     Text(String(c.screenText.prefix(600)).replacingOccurrences(of: "\n", with: " "))
                         .font(Tokens.text(.caption2)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading).textSelection(.enabled)
@@ -144,7 +144,7 @@ struct PreviewOffer: View {
         Inset(padding: Space.s) {
             HStack(spacing: Space.s) {
                 Image(systemName: "eye").font(Tokens.symbol(14)).foregroundStyle(Tokens.ink2).accessibilityHidden(true)
-                Text("Focus can also show the window it reads and use the words on it. Nothing is saved.")
+                Text("Hushd can also show the window it reads and use the words on it. Nothing is saved.")
                     .font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2).fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: Space.s)
                 Button("Show the window here") { c.prefs.readScreen = true; c.onRequestPreviewAccess?() }.buttonStyle(FocusButtonStyle(.secondary, small: true)).fixedSize()

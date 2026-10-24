@@ -1,5 +1,5 @@
 """Scripting dictionaries for the stand-in Arc and Dia (FakeSpaces.swift), shaped like the real ones read with `sdef /Applications/Arc.app`
-and `sdef /Applications/Dia.app`: the same class, element, property and command names. Only what Focus's scripts use is here."""
+and `sdef /Applications/Dia.app`: the same class, element, property and command names. Only what Hushd's scripts use is here."""
 common_cmds = '''
 <command name="close" code="coreclos" description="Close"><direct-parameter description="target" type="specifier"/></command>
 <command name="count" code="corecnte" description="Return the number of elements of a particular class within an object."><cocoa class="NSCountCommand"/><direct-parameter description="the object" type="specifier"/><parameter name="each" code="kocl" description="class" type="type" optional="yes"><cocoa key="ObjectClass"/></parameter><result description="count" type="integer"/></command>

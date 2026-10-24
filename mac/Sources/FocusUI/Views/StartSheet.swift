@@ -37,11 +37,11 @@ public struct StartSheet: View {
 
     static func confirmLine(task: String, project: Project?) -> String? {
         guard !task.isEmpty else { return nil }
-        guard let p = project else { return "New project. Focus compares each window with this task. You can describe it later under Projects." }
+        guard let p = project else { return "New project. Hushd compares each window with this task. You can describe it later under Projects." }
         let ctx = p.context.trimmingCharacters(in: .whitespacesAndNewlines)
-        if ctx.isEmpty { return "Focus knows this project. A line about it under Projects helps it decide." }
+        if ctx.isEmpty { return "Hushd knows this project. A line about it under Projects helps it decide." }
         let short = ctx.count > 70 ? String(ctx.prefix(67)) + "..." : ctx
-        return "Focus will use what you wrote: \u{201C}\(short)\u{201D}"
+        return "Hushd will use what you wrote: \u{201C}\(short)\u{201D}"
     }
 
     /// "Calc homework 50" or "essay 25 min" start a timed session: a trailing number from 5 to 240, with an optional "m", "min" or "minutes".

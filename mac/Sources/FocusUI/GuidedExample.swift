@@ -16,8 +16,8 @@ public final class GuidedExample {
     @ObservationIgnored private var playback: Task<Void, Never>?
     public static let titles = ["Start with your work", "Notice a detour", "A gentle way back", "Pick up where you left off"]
     public static let explanations = [
-        "You set a task. Focus compares a window with what you want to do.",
-        "A short glance is not enough. Focus waits for sustained evidence.",
+        "You set a task. Hushd compares a window with what you want to do.",
+        "A short glance is not enough. Hushd waits for sustained evidence.",
         "The example nudge appears in your Mac notch. It names your task, never the detour.",
         "When your work returns, the nudge clears and the ring settles."
     ]

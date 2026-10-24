@@ -4,8 +4,8 @@ import QuickLookThumbnailing
 import Observation
 
 /// A shelf in the notch for files you are working with (owner, 2026-10-14: "add a file tray", after Droppy). Drag a file onto the
-/// notch to keep it here, drag it out to wherever it is going. Focus keeps only where each file is, in memory: nothing is copied,
-/// moved, read or opened, and the shelf is empty again after Focus quits.
+/// notch to keep it here, drag it out to wherever it is going. Hushd keeps only where each file is, in memory: nothing is copied,
+/// moved, read or opened, and the shelf is empty again after Hushd quits.
 @MainActor @Observable
 public final class NotchTray {
     public struct Item: Identifiable, Equatable {

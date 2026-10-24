@@ -32,13 +32,13 @@ extension SessionController {
     }
 
     // MARK: pressure through the day
-    /// How hard Focus pushes right now. Steady when the daily goal or progress is switched off, because a goal you cannot see should not push.
+    /// How hard Hushd pushes right now. Steady when the daily goal or progress is switched off, because a goal you cannot see should not push.
     public var pressure: DayPressure {
         guard prefs.paceMatters, prefs.showProgress, prefs.dailyGoalMinutes > 0 else { return .steady }
         return DayPressure.level(goalMinutes: prefs.dailyGoalMinutes, onTaskSeconds: todayOnTaskSeconds(), at: date())
     }
 
-    /// The line on Today that says why Focus is easy or firm, or nil when it is steady.
+    /// The line on Today that says why Hushd is easy or firm, or nil when it is steady.
     public var paceLine: String? {
         let goal = Double(prefs.dailyGoalMinutes) * 60
         let seconds = todayOnTaskSeconds()
@@ -80,7 +80,7 @@ extension SessionController {
     }
 
     // MARK: what the last step does
-    /// True when closing the tab you are on is allowed (Strict, switched on, and a tab Focus may close).
+    /// True when closing the tab you are on is allowed (Strict, switched on, and a tab Hushd may close).
     var closeAllowed: Bool { prefs.closeOnStrict && sessionPreset == .strict && Enforcement.mayClose(currentWindow, neverJudged: prefs.neverJudgedApps, skipPersonal: prefs.skipPersonal) }
 
     /// The banner says so when the next round closes the tab, so it is never a surprise.
@@ -131,12 +131,12 @@ extension SessionController {
 
     /// "Back to task" on the banner.
     public func bannerBackToTask() { act(.backToTask) }
-    /// "This is part of it" on the heads-up. A window Focus has read as off topic has to be explained; otherwise it is taken at its word.
+    /// "This is part of it" on the heads-up. A window Hushd has read as off topic has to be explained; otherwise it is taken at its word.
     public func bannerPartOfIt() { headsUpAt = nil; driftWatch.clearReadings(); refreshBanner(now()); claimOnTask() }
     /// The small cross on the banner. A reminder stays hidden until you have been back on task and drift again.
     public func dismissBanner() { headsUpAt = nil; bannerHidden = true; refreshBanner(now()) }
 
-    /// Notes which of Focus's cues are on screen while you are away, for "What brings you back" in Insights. Reads state, changes nothing.
+    /// Notes which of Hushd's cues are on screen while you are away, for "What brings you back" in Insights. Reads state, changes nothing.
     func observeCues(_ t: Double) {
         guard awayFlagged, !shadow else { return }
         var v = Set<CueKind>()
@@ -167,7 +167,7 @@ extension SessionController {
     }
 
     /// The trackpad keeps buzzing while you are off task, not just once: every 20 seconds after a warning (12 on Strict, and the
-    /// buzz is stronger), and a light one every 15 seconds while Focus suspects you are drifting.
+    /// buzz is stronger), and a light one every 15 seconds while Hushd suspects you are drifting.
     func pulseHaptics(_ t: Double) {
         guard prefs.hapticTap, isActive, !shadow, !isPaused else { return }
         let state = presence.state

@@ -4,13 +4,13 @@ import FocusBrain
 import FocusJudge
 import SwiftUI
 
-/// Whether Focus can read window titles. Without Accessibility it can only see which app is in front.
+/// Whether Hushd can read window titles. Without Accessibility it can only see which app is in front.
 public enum WindowAccess: Equatable, Sendable { case unknown, allowed, appNamesOnly }
 
 /// Whether the live preview can run. It needs Screen Recording, which only the user can grant.
 public enum PreviewAccess: Equatable, Sendable { case unknown, allowed, denied }
 
-/// One picture of the window Focus is reading. Held in memory for the running session; never written to disk, never sent to the model.
+/// One picture of the window Hushd is reading. Held in memory for the running session; never written to disk, never sent to the model.
 public struct PreviewFrame: Identifiable, @unchecked Sendable {
     public let id = UUID()
     public let image: CGImage
@@ -26,7 +26,7 @@ public struct Surface: Equatable, Sendable { public var kind: String; public var
 public struct TimerState: Equatable, Sendable { public var seconds = 0.0, running = false, visible = false, at = 0.0 }
 public struct ClockState: Equatable, Sendable { public var seconds = 0.0, running = false, at = 0.0 }
 public struct LearnedRule: Equatable, Sendable { public var scope: String, kind: String, keyType: String, key: String }
-/// One thing Focus read and concluded. Lives in memory for the running session only; titles are never saved.
+/// One thing Hushd read and concluded. Lives in memory for the running session only; titles are never saved.
 public struct Reading: Identifiable, Equatable, Sendable {
     public enum Call: Sendable { case on, unsure, off }
     public enum Source: Sendable { case model, rule, sensitive, skipped }
@@ -35,7 +35,7 @@ public struct Reading: Identifiable, Equatable, Sendable {
     public var key: String, app: String, title: String
     public var call: Call, source: Source
     public var reason: String
-    /// The model refused or errored; Focus treated it as unsure (CLAUDE.md principle 7).
+    /// The model refused or errored; Hushd treated it as unsure (CLAUDE.md principle 7).
     public var failed = false
     /// Settled by words the window shares with the task, not by the model.
     public var byWords = false
@@ -84,7 +84,7 @@ public final class SessionController {
     /// Until this time the pause screen's "That was fine" and "Snooze" stay disabled.
     public private(set) var gateHoldUntil: Double?
     @ObservationIgnored var warnedAt: Double?
-    /// The last window Focus read as on task, so the ladder can switch a browser back to it. Memory only, dropped with the session.
+    /// The last window Hushd read as on task, so the ladder can switch a browser back to it. Memory only, dropped with the session.
     @ObservationIgnored var lastOnTask: WindowSnapshot?
     /// The windows, tabs and documents you worked in, with the time in each, so "Back to task" can go to the right one (Places.swift).
     @ObservationIgnored public internal(set) var places = TaskPlaces()
@@ -107,7 +107,7 @@ public final class SessionController {
     @ObservationIgnored var lastPositionAt: Double?
     /// The window you were in when you pressed Back to task, if it was somewhere off the task, so it can be put away after the trip.
     @ObservationIgnored var awayAtPress: WindowSnapshot?
-    /// The Mac's output volume (the app provides it) and what Focus did to it, so it can always be given back.
+    /// The Mac's output volume (the app provides it) and what Hushd did to it, so it can always be given back.
     @ObservationIgnored public var systemVolume: SystemVolume?
     @ObservationIgnored var easedSound: EasedSound?
     @ObservationIgnored var soundLetGo = false
@@ -138,7 +138,7 @@ public final class SessionController {
     @ObservationIgnored private var edgePreviewStart: Double?
     @ObservationIgnored private var haloPreviewStart: Double?
     @ObservationIgnored private var fogPreviewStart: Double?
-    /// Bring the Focus window forward on the pointer's screen (the pause screen lives there).
+    /// Bring the Hushd window forward on the pointer's screen (the pause screen lives there).
     @ObservationIgnored public var onForeground: (() -> Void)?
     /// Hide the app you drifted into (the last step of the ladder). The name only; the app decides how.
     @ObservationIgnored public var onHideApp: ((String) -> Void)?
@@ -158,7 +158,7 @@ public final class SessionController {
     @ObservationIgnored var headsUpAt: Double?
     @ObservationIgnored var bannerHidden = false
     @ObservationIgnored var blockedSites: [String: String] = [:]
-    /// Pages whose explanation Focus accepted, with when each stops counting. A page is one window key plus its exact title, so another video
+    /// Pages whose explanation Hushd accepted, with when each stops counting. A page is one window key plus its exact title, so another video
     /// on the same site is a different page. Session only: nothing here is saved or becomes a rule.
     @ObservationIgnored var passedPages: [String: Double] = [:]
     /// Explanations accepted this session. Each one buys less time and the next must clear a higher bar; there is a cap (Shield.claimCap).
@@ -179,7 +179,7 @@ public final class SessionController {
     @ObservationIgnored var lastPulseAt = -1000.0
     /// When the current hold began, nil when not held. The notch counts up from it ("paused for").
     public internal(set) var heldSince: Double?
-    /// When Focus last asked "still paused?" in the notch; nil unless that note is on show.
+    /// When Hushd last asked "still paused?" in the notch; nil unless that note is on show.
     public internal(set) var heldCheckInAt: Double?
     @ObservationIgnored var heldNextCheckIn = 0.0
     @ObservationIgnored var workSeconds = 0.0
@@ -212,7 +212,7 @@ public final class SessionController {
     public private(set) var windowAccess = WindowAccess.unknown
     /// Settings, "Show the welcome again".
     public var welcomeRequested = false
-    /// The welcome takes the window on a new Mac: never seen, no session yet and none running. Someone who already used Focus
+    /// The welcome takes the window on a new Mac: never seen, no session yet and none running. Someone who already used Hushd
     /// (the intro was seen or sessions are saved) never gets it unasked.
     public var showsWelcome: Bool {
         guard !isActive else { return false }
@@ -220,7 +220,7 @@ public final class SessionController {
         guard !prefs.welcomeSeen, !prefs.introSeen, let store, store.sessions.isEmpty else { return false }
         return true
     }
-    /// The welcome was finished or skipped. `explained` marks Today's "How Focus works" as seen too, since the welcome said the same.
+    /// The welcome was finished or skipped. `explained` marks Today's "How Hushd works" as seen too, since the welcome said the same.
     public func finishWelcome(explained: Bool) {
         prefs.welcomeSeen = true; welcomeRequested = false
         if explained { prefs.introSeen = true }
@@ -248,14 +248,14 @@ public final class SessionController {
     }
     @ObservationIgnored public var onOpenModelSettings: (() -> Void)?
     public private(set) var probe = ProbeState.idle
-    /// One read of the window in front (set by the app). Nil when Focus itself is in front.
+    /// One read of the window in front (set by the app). Nil when Hushd itself is in front.
     @ObservationIgnored public var senseNow: (() -> WindowSnapshot?)?
     @ObservationIgnored private var probeTask: Task<Void, Never>?
     public private(set) var readings: [Reading] = []
-    /// Judge calls in flight, so the app can show that Focus is reading right now.
+    /// Judge calls in flight, so the app can show that Hushd is reading right now.
     public private(set) var judging = 0
     public var isJudging: Bool { judging > 0 }
-    /// Writing help from the on-device model: task coach, session recap, Ask Focus. Never decides anything; all of it is a suggestion.
+    /// Writing help from the on-device model: task coach, session recap, Ask Hushd. Never decides anything; all of it is a suggestion.
     @ObservationIgnored public var assistant: any Assistant = DefaultAssistant.make()
     public internal(set) var recap = AIState<Recap>.idle
     public internal(set) var answer = AIState<String>.idle
@@ -346,7 +346,7 @@ public final class SessionController {
 
     public init(judge: any Judge, store: DataStore? = nil, prefs: Preferences? = nil, now: @escaping () -> Double = SessionController.clock, date: @escaping () -> Date = Date.init) {
         self.judge = judge; self.store = store; self.now = now; self.date = date
-        // Throwaway preferences (tests, snapshots, the scripted demo) keep Focus's timing the same at every hour; the real ones follow the day's pace.
+        // Throwaway preferences (tests, snapshots, the scripted demo) keep Hushd's timing the same at every hour; the real ones follow the day's pace.
         self.prefs = prefs ?? { let p = Preferences(defaults: UserDefaults(suiteName: "focus.tests.\(UUID().uuidString)")!); p.paceMatters = false; return p }()
     }
 
@@ -478,7 +478,7 @@ public final class SessionController {
         }
     }
 
-    /// "Yes, I am" says the window belongs to the task. A window Focus read as off topic has to be explained (see claimOnTask);
+    /// "Yes, I am" says the window belongs to the task. A window Hushd read as off topic has to be explained (see claimOnTask);
     /// "No" or "Back to task" only sends you back.
     public func answerCheckIn(onTask: Bool) {
         if onTask { claimOnTask() } else { checkIn = nil; act(.backToTask) }
@@ -486,7 +486,7 @@ public final class SessionController {
     }
 
     /// The pause screen. There is no snooze and no one-click "That was fine": going back to the task is always open, and explaining the window
-    /// opens only after the wait and only passes if Focus's own reading of the window agrees.
+    /// opens only after the wait and only passes if Hushd's own reading of the window agrees.
     public var gateOpen: Bool { pauseWanted }
     public func gateHoldRemaining() -> Double { max(0, (gateHoldUntil ?? 0) - now()) }
     public func leaveGate(fine: Bool) {
@@ -512,7 +512,7 @@ public final class SessionController {
         return driftLevel(t)
     }
     /// Where the gray goes. Every display by default; with "only the window you drifted into", just that window's frame, and nowhere when
-    /// that window cannot be told (Focus itself is in front, or the frame is unknown) or is somewhere you worked on the task. A Settings
+    /// that window cannot be told (Hushd itself is in front, or the frame is unknown) or is somewhere you worked on the task. A Settings
     /// preview always covers the screen, because there is no drifted window to show it on.
     public enum VeilRegion: Equatable, Sendable { case screens, window(CGRect), none }
     public func veilRegion(windowFrame: CGRect?) -> VeilRegion {
@@ -617,7 +617,7 @@ public final class SessionController {
     public func takeNudgeBreak() { act(.breakTime, minutes: NudgeCopy.breakMinutes) }
 
     // MARK: senses
-    /// Ask "too quiet, about right, too loud" once, after the first finished session in which Focus actually spoke up (not practice).
+    /// Ask "too quiet, about right, too loud" once, after the first finished session in which Hushd actually spoke up (not practice).
     /// Review holds moments practice mode flagged. With practice removed it appears only while old moments are left to answer.
     public var showsReview: Bool { !prefs.practiceRemoved || !(store?.review.isEmpty ?? true) }
     public var askLoudness: Bool { !prefs.loudnessAsked && !shadow && (summary?.interrupts ?? 0) > 0 }
@@ -629,7 +629,7 @@ public final class SessionController {
     }
 
     public func setWindowAccess(_ a: WindowAccess) { if windowAccess != a { windowAccess = a } }
-    /// Counts down so the user can switch to another window, then reports what Focus can see there.
+    /// Counts down so the user can switch to another window, then reports what Hushd can see there.
     public func runProbe(seconds: Int = 5, tick: UInt64 = 1_000_000_000) {
         probeTask?.cancel()
         probeTask = Task { @MainActor [weak self] in
@@ -680,7 +680,7 @@ public final class SessionController {
         previewHeld = nil
         if Rules.isSensitive(m) {
             previewHeld = "Private window. Not captured."; previewFrame = nil
-            if !sensitiveUp { sensitiveUp = true; send(.sensitiveEntered); record(Reading(at: now(), date: date(), key: "sensitive", app: "", title: "", call: .unsure, source: .sensitive, reason: "A private window. Focus did not read it.")) }
+            if !sensitiveUp { sensitiveUp = true; send(.sensitiveEntered); record(Reading(at: now(), date: date(), key: "sensitive", app: "", title: "", call: .unsure, source: .sensitive, reason: "A private window. Hushd did not read it.")) }
             return
         }
         if sensitiveUp { sensitiveUp = false; send(.sensitiveLeft) }
@@ -693,9 +693,9 @@ public final class SessionController {
             return
         }
         if let until = passedPages[pageKey(w)], until > now() {
-            // You explained this exact page and Focus accepted it for a short while. A rule for this page only, never saved.
+            // You explained this exact page and Hushd accepted it for a short while. A rule for this page only, never saved.
             record(Reading(at: now(), date: date(), key: Keys.window(w), app: w.app, title: w.title, call: .on, source: .rule,
-                           reason: "You explained this page and Focus accepted it for a few minutes. Then it reads it again on its own."))
+                           reason: "You explained this page and Hushd accepted it for a few minutes. Then it reads it again on its own."))
             send(.windowChange(WindowChangeInput(windowKey: Keys.window(w), siteKey: Keys.site(w), ruleLabel: .onTask)))
             return
         }
@@ -721,10 +721,10 @@ public final class SessionController {
 
     static func ruleReason(_ rule: String) -> String {
         switch rule {
-        case "always_allow_app": return "You told Focus this app counts for the project."
-        case "always_allow_domain": return "You told Focus this site counts for the project."
-        case "always_off_app": return "You told Focus this app never counts for the project."
-        case "always_off_domain": return "You told Focus this site never counts for the project."
+        case "always_allow_app": return "You told Hushd this app counts for the project."
+        case "always_allow_domain": return "You told Hushd this site counts for the project."
+        case "always_off_app": return "You told Hushd this app never counts for the project."
+        case "always_off_domain": return "You told Hushd this site never counts for the project."
         default: return "It is linked to this project."
         }
     }
@@ -770,7 +770,7 @@ public final class SessionController {
     /// The project of the session that just ended (or is running).
     public var projectForNote: Project? { store?.project(projectId) }
 
-    /// "Ask Focus about a window": runs the same judge on text the user typed. Nothing is read from the screen.
+    /// "Ask Hushd about a window": runs the same judge on text the user typed. Nothing is read from the screen.
     public func ask(app: String, title: String, project p: Project) async -> Judgement {
         var profile = p.profile
         if !p.context.isEmpty { profile.context = p.context }
@@ -863,7 +863,7 @@ public final class SessionController {
         syncShield()
     }
 
-    /// Pausing means Focus stops looking and stops acting: the picture and words go, and any cover, check-in or prompt that was up comes down.
+    /// Pausing means Hushd stops looking and stops acting: the picture and words go, and any cover, check-in or prompt that was up comes down.
     private func enterHold(_ t: Double) {
         shield = nil; checkIn = nil; escalationGate = false; headsUpAt = nil
         heldSince = t; heldCheckInAt = nil; heldNextCheckIn = t + Self.heldFirstCheckIn
@@ -895,7 +895,7 @@ public final class SessionController {
         if !prefs.useModel {
             // The user switched the model off: say so, count it as not sure, and never ask the model.
             record(Reading(at: observedAt, date: date(), key: windowKey, app: w.app, title: w.title, call: .unsure, source: .skipped,
-                           reason: "The on-device model is switched off in Settings. Focus only follows your rules and matching words."))
+                           reason: "The on-device model is switched off in Settings. Hushd only follows your rules and matching words."))
             var input = JudgmentInput(requestId: id, observedAt: observedAt, windowKey: windowKey, contentKey: content, label: .unsure)
             input.strong = false
             send(.judgment(input))
@@ -947,7 +947,7 @@ public final class SessionController {
 extension SessionController {
     /// The judge's own words, trimmed to one short line. A refusal never shows its raw text.
     static func tidy(_ reason: String, failed: Bool) -> String {
-        if failed { return "Focus could not read this one, so it did nothing." }
+        if failed { return "Hushd could not read this one, so it did nothing." }
         let t = reason.trimmingCharacters(in: .whitespacesAndNewlines)
         if t.isEmpty { return "No reason given." }
         return t.count > 160 ? String(t.prefix(157)) + "..." : t
@@ -969,18 +969,18 @@ extension SessionController {
     public func offTopicSecondsNow() -> Double { offTopic.seconds + (offTopic.running ? nowSeconds() - offTopic.at : 0) }
 
     public var isPaused: Bool { presence.state == "paused" }
-    /// The session is on hold (you paused, took a break or snoozed, or Focus paused itself for a call, idle time or sleep). Focus reads nothing
+    /// The session is on hold (you paused, took a break or snoozed, or Hushd paused itself for a call, idle time or sleep). Hushd reads nothing
     /// then: no window, no picture, no words, no cover, nothing acted on. A private window is the one hold that still has to watch, to know when it ends.
     public var isHeld: Bool { presence.state == "paused" && presence.reason != "sensitive" }
     public var saveFailed: Bool { store?.saveFailed ?? false }
     /// What the Today card says while nothing is being read.
     public var heldLine: String {
         switch presence.reason {
-        case "break": return "On a break. Focus is not reading your windows or screen until it ends."
-        case "snooze": return "Snoozed. Focus is not reading your windows or screen."
-        case "meeting": return "In a call. Focus is not reading your windows or screen while it lasts."
-        case "idle", "sleep": return "You are away. Focus is not reading your windows or screen."
-        default: return "Paused. Focus is not reading your windows or screen."
+        case "break": return "On a break. Hushd is not reading your windows or screen until it ends."
+        case "snooze": return "Snoozed. Hushd is not reading your windows or screen."
+        case "meeting": return "In a call. Hushd is not reading your windows or screen while it lasts."
+        case "idle", "sleep": return "You are away. Hushd is not reading your windows or screen."
+        default: return "Paused. Hushd is not reading your windows or screen."
         }
     }
     /// A session is running and not on hold: the only time the screen and windows may be looked at.

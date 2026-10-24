@@ -6,7 +6,7 @@ import Foundation
 // one is "the task". Names and addresses of on-task windows only, memory only, dropped with the session (CLAUDE.md: sessions save counts,
 // never text). Pure, so the choice is tested; the app does the raising (focus-app/Places.swift, FocusSense/WindowRaiser.swift).
 
-/// Where you were inside a window the last time Focus read it as on task: how far down it was scrolled and where the cursor sat. Numbers
+/// Where you were inside a window the last time Hushd read it as on task: how far down it was scrolled and where the cursor sat. Numbers
 /// only (never the words), memory only, dropped with the session. "Back to task" puts you back there, not at whatever the window drifted to.
 public struct PlacePosition: Equatable, Sendable {
     /// 0 is the top, 1 the bottom of the window's main scroll area.
@@ -35,12 +35,12 @@ public struct PlacePosition: Equatable, Sendable {
     public func scrollIsNear(_ other: Double) -> Bool { scroll.map { abs($0 - other) < 0.01 } ?? true }
 }
 
-/// One window, tab or document you worked in while Focus read it as on task.
+/// One window, tab or document you worked in while Hushd read it as on task.
 public struct TaskPlace: Equatable, Sendable, Identifiable {
     public var window: WindowSnapshot
     /// Where you were in it, if the app could be asked. Nil is normal: many windows do not say.
     public var position: PlacePosition?
-    /// When Focus last read it as on task, and how long you stayed on task in it. Seconds on the controller's clock.
+    /// When Hushd last read it as on task, and how long you stayed on task in it. Seconds on the controller's clock.
     public var lastSeen: Double
     public var dwell: Double
     public var id: String { TaskPlaces.identity(window) }
@@ -58,7 +58,7 @@ public struct TaskPlace: Equatable, Sendable, Identifiable {
     }
 }
 
-/// How a trip back ended, as far as Focus can tell: the exact window or tab was raised, only the app came forward, nothing could be found,
+/// How a trip back ended, as far as Hushd can tell: the exact window or tab was raised, only the app came forward, nothing could be found,
 /// or you were already there.
 /// A place that was gone (the document closed, the tab shut, the app quit) and was opened again is `reopened`.
 public enum ReturnOutcome: Equatable, Sendable { case exact, appOnly, notFound, alreadyThere, reopened }
@@ -104,7 +104,7 @@ public struct TaskPlaces: Equatable, Sendable {
         return Keys.window(w) + inSpace
     }
 
-    /// Focus read this window as on task.
+    /// Hushd read this window as on task.
     public mutating func noteOnTask(_ w: WindowSnapshot, at t: Double) {
         guard !w.app.isEmpty else { return }
         var fresh = TaskPlace(window: w, lastSeen: t)
@@ -116,7 +116,7 @@ public struct TaskPlaces: Equatable, Sendable {
         if all.count > Self.capacity, let drop = all.indices.dropFirst().min(by: { all[$0].dwell < all[$1].dwell }) { all.remove(at: drop) }
     }
 
-    /// Whether `w` is somewhere Focus has read as on task this session.
+    /// Whether `w` is somewhere Hushd has read as on task this session.
     public func contains(_ w: WindowSnapshot) -> Bool { all.contains { $0.id == Self.identity(w) } }
 
     /// Remember where you are in `w`. Ignored for a window that was never read as on task, and an empty reading never erases a good one.

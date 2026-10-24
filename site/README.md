@@ -1,4 +1,4 @@
-# Focus website
+# Hushd website
 
 Static page, no build step: `index.html`, `styles.css`, `main.js`, `halftone.js`.
 
@@ -10,7 +10,7 @@ Serve it over HTTP: the halftone art reads image pixels from a canvas, which bro
 ## Images
 The repo ignores image files (privacy rule in `.gitignore`) except under `site/assets/`. To recreate them:
 
-- `assets/app/icon.png`: `sips -s format png -Z 512 mac/.build/Focus.app/Contents/Resources/AppIcon.icns --out site/assets/app/icon.png` after `./tools/build_app.sh`.
+- `assets/app/icon.png`: `sips -s format png -Z 512 mac/.build/Hushd.app/Contents/Resources/AppIcon.icns --out site/assets/app/icon.png` after `./tools/build_app.sh`.
 - `assets/app/today.jpg`, `assets/app/projects.jpg`: the demo window (`FOCUS_DEMO=1`, optionally `FOCUS_DEMO_ACTIONS=section:projects`), captured with `screencapture -o -l <window id>`. Demo data only, never a real screen.
 - `assets/art/*.jpg`, about 1100 px tall, from Wikimedia Commons:
   - `thinker.jpg`: File:The Thinker, Rodin.jpg (public domain)

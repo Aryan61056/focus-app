@@ -1,7 +1,7 @@
 import AppKit
 import QuartzCore
 
-/// One click-through window per display that drains the color from everything on screen, not only from Focus's own window.
+/// One click-through window per display that drains the color from everything on screen, not only from Hushd's own window.
 /// A window-server backdrop layer samples what is behind the window and a saturation filter removes the color. Both are private
 /// Core Animation classes (the same ones vibrancy uses), looked up by name; if either is missing the panel falls back to a plain gray wash,
 /// which still mutes the screen but cannot remove color. A faint gray wash is also laid over the backdrop so the effect is visible either way.
@@ -52,7 +52,7 @@ final class VeilPanel: NSPanel {
         level = .mainMenu
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         ignoresMouseEvents = true; isMovable = false; hidesOnDeactivate = false
-        canHide = false   // hiding Focus does not lift the gray
+        canHide = false   // hiding Hushd does not lift the gray
         let v = NSView(); v.wantsLayer = true
         wash.backgroundColor = NSColor(white: 0.3, alpha: 1).cgColor; wash.opacity = 0
         edges.type = .radial; edges.startPoint = CGPoint(x: 0.5, y: 0.5); edges.endPoint = CGPoint(x: 1, y: 1); edges.opacity = 0

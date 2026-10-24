@@ -43,7 +43,7 @@ public enum Tokens {
     public static let cardEdge = Color(light: 0x000000, dark: 0xFFFFFF, lightAlpha: 0.06, darkAlpha: 0.05)
     public static let track = Color(light: 0x1A1B1B, dark: 0xFFFFFF, lightAlpha: 0.16, darkAlpha: 0.2)
     /// Surfaces that float over other apps (the banner, nudge cards, prompts). Opaque, so they read the same over any window and whether
-    /// or not Focus is the active app: glass and tinted glass drain to gray in a window that is not active, and these never are.
+    /// or not Hushd is the active app: glass and tinted glass drain to gray in a window that is not active, and these never are.
     public static let float = Color(light: 0xFFFFFF, dark: 0x1C2620)
     public static let floatEdge = Color(light: 0x000000, dark: 0xFFFFFF, lightAlpha: 0.1, darkAlpha: 0.12)
 

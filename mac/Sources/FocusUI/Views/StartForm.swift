@@ -186,7 +186,7 @@ struct StartForm: View {
                 Button { c.sharpenTask(parsed.task) } label: { Label("Suggest a clearer task", systemImage: "sparkles") }.buttonStyle(FocusButtonStyle(.plain, small: true))
             }
         case .working: HStack { ThinkingDot(); Text("Thinking about it on this Mac").font(Tokens.text(.caption)) }
-        case .failed: Text("Focus has no suggestion right now. Your task is fine as it is.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
+        case .failed: Text("Hushd has no suggestion right now. Your task is fine as it is.").font(Tokens.text(.caption)).foregroundStyle(Tokens.ink2)
         case .ready(let suggestion):
             VStack(alignment: .leading, spacing: 8) {
                 HStack { Text("Suggestion").font(Tokens.text(.body, .semibold)); AITag() }

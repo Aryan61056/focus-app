@@ -22,7 +22,7 @@ struct PairingView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    step(1, "On your Mac", "Open Focus and click Connect your iPhone in the sidebar, then press Pair an iPhone. You can scan the square with your Camera, or type the code below.")
+                    step(1, "On your Mac", "Open Hushd and click Connect your iPhone in the sidebar, then press Pair an iPhone. You can scan the square with your Camera, or type the code below.")
                     macPicker
                     step(2, "Type the code", "It's 16 letters and numbers.")
                     TextField("XXXX-XXXX-XXXX-XXXX", text: $code)

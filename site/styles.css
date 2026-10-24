@@ -1,4 +1,4 @@
-/* Focus site. Droppy's structure in Focus's Lichen colors: a green sky with halftone art, mint-tinted paper, deep green ink. */
+/* Hushd site. Droppy's structure in Hushd's Lichen colors: a green sky with halftone art, mint-tinted paper, deep green ink. */
 
 @property --notch-ink { syntax: "<color>"; inherits: true; initial-value: #ffffff; }
 @property --dock-ink { syntax: "<color>"; inherits: true; initial-value: #135e3d; }
