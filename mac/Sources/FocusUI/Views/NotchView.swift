@@ -190,12 +190,12 @@ struct GlassFoot: View, Animatable {
     var animatableData: Double { get { foot } set { foot = newValue } }
     var body: some View {
         GeometryReader { g in
-            let h = max(1, g.size.height)
-            // The band against the hardware notch stays black, and eases into the glass over the next 18 pt.
-            let cap = notchHeight > 0 ? min(0.9, (notchHeight + 2) / h) : 0
-            let end = notchHeight > 0 ? min(0.95, (notchHeight + 20) / h) : 0
-            LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: cap),
-                                   .init(color: .black.opacity(foot), location: max(cap + 0.001, end)), .init(color: .black.opacity(foot), location: 1)],
+            // Black from the hardware notch down to GlassLook.solid of the card (the rest of the card is glass), then easing out into the
+            // glass over the lower half, so it is dark where it meets the notch and clear at the foot (owner, 2026-11-08: "add more black, not
+            // full glass").
+            let solid = notchHeight > 0 ? GlassLook.solid : 0
+            LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: solid),
+                                   .init(color: .black.opacity(foot * 0 + max(foot, GlassLook.foot)), location: 1)],
                            startPoint: .top, endPoint: .bottom)
         }
     }
@@ -215,6 +215,9 @@ struct NotchBlur: NSViewRepresentable {
 enum GlassLook {
     /// Black laid over the glass itself (0 clear, 1 solid).
     static let tint = 0.34
+    /// How much of the card's height stays solid black under the hardware notch, and how black the foot still is (0 clear glass).
+    static let solid = 0.42
+    static let foot = 0.18
 }
 
 /// The notch presence. Aesthetic, not functional (owner, 2026-10-01), and since 2026-10-13 not a way out either: it only shows.
