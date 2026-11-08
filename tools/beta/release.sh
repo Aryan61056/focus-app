@@ -85,6 +85,14 @@ if [ -d "$SITE/public" ] && [ -x "$SPARKLE_BIN/generate_appcast" ]; then
   rm -f "$UP"/Hushd-*.dmg "$UP"/*.delta "$UP/appcast.xml"
   cp "$DMG" "$UP/"
   "$SPARKLE_BIN/generate_appcast" --account hushd --download-url-prefix "${BETA_FEED%/*}/" "$UP" >/dev/null
+  # What the Download page and the beta pass show and link to; one file so the pages never name a build that is not there.
+  python3 - "$SITE/src/site/release.json" "$VERSION" "$N" "Hushd-$NAME.dmg" "$UP/Hushd-$NAME.dmg" "$EXPIRES" <<'PYEND'
+import json, os, sys
+path, version, build, name, dmg, expires = sys.argv[1:7]
+os.makedirs(os.path.dirname(path), exist_ok=True)
+json.dump({"version": version, "label": f"Beta {build}", "build": int(build), "file": name, "bytes": os.path.getsize(dmg), "expires": expires}, open(path, "w"), indent=2)
+open(path, "a").write("\n")
+PYEND
   echo "site updated: $UP (Hushd-$NAME.dmg and appcast.xml); commit it in the site project, then publish the site"
 else
   echo "no site project at $SITE (set FOCUS_SITE_DIR): the build is in $OUT but no feed was written"
