@@ -226,12 +226,8 @@ struct TodayRing: View {
     }
 }
 
-/// A small pane of glass inside the card: a faint fill that is lighter at the top, a hairline edge lit from above.
+/// A small tile inside the card: a faint wash of white and nothing else, so the glass behind it stays the glass.
 struct GlassTile: View {
     var radius: CGFloat
-    var body: some View {
-        RoundedRectangle(cornerRadius: radius, style: .continuous)
-            .fill(LinearGradient(colors: [.white.opacity(0.16), .white.opacity(0.06)], startPoint: .top, endPoint: .bottom))
-            .overlay { RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(LinearGradient(colors: [.white.opacity(0.38), .white.opacity(0.06)], startPoint: .top, endPoint: .bottom), lineWidth: 0.8) }
-    }
+    var body: some View { RoundedRectangle(cornerRadius: radius, style: .continuous).fill(Color.white.opacity(0.09)) }
 }

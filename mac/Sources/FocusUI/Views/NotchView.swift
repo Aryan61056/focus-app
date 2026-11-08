@@ -158,17 +158,15 @@ private struct NotchMaterial: View {
         // would draw it grey), then Liquid Glass on top where the Mac has it, so the lower part of the card is see-through, as iOS 27's is.
         ZStack {
             if glassy && (settled || layered) {
-                // Regular Liquid Glass with a dark tint: it bends and frosts what is behind the card, and keeps the white words readable
-                // over a bright wallpaper. (Clear glass showed the wallpaper at full strength.)
-                if #available(macOS 26, *) { Color.clear.glassEffect(.regular.tint(Color.black.opacity(GlassLook.tint)), in: Rectangle()) }
+                // The system's own Liquid Glass, in the card's own shape: it refracts what is behind the card at the edge and draws its own
+                // rim, so nothing is painted on top of it. Clear, with a little black for the white words (owner, 2026-11-08: no white
+                // tinge, "100% iOS 27 Liquid Glass native"; regular glass and the hand-drawn highlights read as frosted plastic).
+                if #available(macOS 26, *) { Color.clear.glassEffect(.clear.tint(Color.black.opacity(GlassLook.tint)), in: shape) }
             }
-            // One layer, so the black only ever gets less opaque or more: a cross-fade of two black layers dips to see-through halfway,
-            // which flashed grey on the way in and out.
-            GlassFoot(foot: settled && glassy ? 0 : 1, notchHeight: notchHeight)
-            // One soft band of light crosses the card as it settles, then it is gone: the glass catching the light as it arrives.
-            if glassy { GlassSweep(go: settled) }
+            // The black is solid while the shape moves (so it grows out of the hardware notch), then leaves, except the band that sits
+            // against the notch. One layer, so it only ever gets less opaque: a cross-fade of two blacks flashed grey.
+            GlassFoot(foot: settled && glassy ? 0 : 1, notchHeight: notchHeight).clipShape(shape)
         }
-        .clipShape(shape)
         .animation(settled ? Motion.out(0.5) : Motion.out(0.1), value: settled)
         .task(id: expanded) {
             if expanded {
@@ -192,19 +190,13 @@ struct GlassFoot: View, Animatable {
     var animatableData: Double { get { foot } set { foot = newValue } }
     var body: some View {
         GeometryReader { g in
-            let stop = NotchLayout.blackStop(height: g.size.height, notchHeight: notchHeight)
-            ZStack {
-                // Solid under the hardware notch, then straight down into glass: a little shade is left in the upper half so the words
-                // stay clear, and none at the foot.
-                let mid = GlassLook.shade * (1 - foot) + foot
-                LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: stop),
-                                       .init(color: .black.opacity(mid), location: min(0.95, stop + 0.2)), .init(color: .black.opacity(foot), location: 1)],
-                               startPoint: .top, endPoint: .bottom)
-                // Light pooling under the cap and along the lower lip, as thick glass has.
-                LinearGradient(stops: [.init(color: .white.opacity(0.10 * (1 - foot)), location: stop), .init(color: .white.opacity(0), location: min(0.9, stop + 0.22)),
-                                       .init(color: .white.opacity(0), location: 0.62), .init(color: .white.opacity(0.20 * (1 - foot)), location: 1)],
-                               startPoint: .top, endPoint: .bottom).blendMode(.plusLighter)
-            }
+            let h = max(1, g.size.height)
+            // The band against the hardware notch stays black, and eases into the glass over the next 18 pt.
+            let cap = notchHeight > 0 ? min(0.9, (notchHeight + 2) / h) : 0
+            let end = notchHeight > 0 ? min(0.95, (notchHeight + 20) / h) : 0
+            LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: cap),
+                                   .init(color: .black.opacity(foot), location: max(cap + 0.001, end)), .init(color: .black.opacity(foot), location: 1)],
+                           startPoint: .top, endPoint: .bottom)
         }
     }
 }
@@ -222,44 +214,7 @@ struct NotchBlur: NSViewRepresentable {
 /// The numbers that make the open card glass, in one place.
 enum GlassLook {
     /// Black laid over the glass itself (0 clear, 1 solid).
-    static let tint = 0.30
-    /// How much of the black cap's shade is left just under it, fading to none at the foot.
-    static let shade = 0.34
-}
-
-/// The glass edge: a bright hairline that is strongest where the light would strike (the lower right and the upper left, as in the
-/// CSS liquid-glass recipe at kube.io) and weak elsewhere, over a wider, fainter inner edge, so the card reads as a slab with thickness.
-struct GlassRim: View {
-    var shape: NotchShape
-    var body: some View {
-        ZStack {
-            shape.stroke(AngularGradient(stops: [
-                .init(color: .white.opacity(0.22), location: 0), .init(color: .white.opacity(0.70), location: 0.12),
-                .init(color: .white.opacity(0.20), location: 0.28), .init(color: .white.opacity(0.10), location: 0.5),
-                .init(color: .white.opacity(0.62), location: 0.62), .init(color: .white.opacity(0.14), location: 0.78),
-                .init(color: .white.opacity(0.22), location: 1)], center: .center), lineWidth: 1.1)
-            shape.stroke(LinearGradient(colors: [.white.opacity(0), .white.opacity(0.10)], startPoint: .top, endPoint: .bottom), lineWidth: 5).clipShape(shape)
-        }
-        .allowsHitTesting(false)
-    }
-}
-
-/// A soft diagonal band of light that crosses the card once when it has settled.
-struct GlassSweep: View {
-    var go: Bool
-    @State private var phase: CGFloat = -1
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    var body: some View {
-        GeometryReader { g in
-            LinearGradient(colors: [.white.opacity(0), .white.opacity(0.20), .white.opacity(0)], startPoint: .leading, endPoint: .trailing)
-                .frame(width: g.size.width * 0.38).rotationEffect(.degrees(18)).blendMode(.plusLighter)
-                .offset(x: g.size.width * phase).opacity(go && !reduceMotion ? 1 : 0)
-        }
-        .allowsHitTesting(false)
-        .onChange(of: go) { _, on in
-            if on { phase = -0.5; withAnimation(.easeInOut(duration: 1.1).delay(0.05)) { phase = 1.1 } } else { phase = -1 }
-        }
-    }
+    static let tint = 0.34
 }
 
 /// The notch presence. Aesthetic, not functional (owner, 2026-10-01), and since 2026-10-13 not a way out either: it only shows.
@@ -372,7 +327,7 @@ public struct NotchView: View {
         .gesture(press, including: big ? .subviews : .all)
         // Light catching the rim of the glass, only once it has opened out of the bezel.
         .overlay {
-            GlassRim(shape: shape).opacity(open && mode == .open ? 1 : 0)
+            EmptyView()
         }
         .opacity(hasNotch || shown ? 1 : 0)
     }
