@@ -200,7 +200,7 @@ struct Stage<Content: View>: View {
         content
             .padding(Space.xl)
             .frame(maxWidth: .infinity, minHeight: 214)
-            .glassSurface(RoundedRectangle(cornerRadius: 22, style: .continuous), fallback: Tokens.window2)
+            .glassSurface(RoundedRectangle(cornerRadius: Tokens.radiusFloat, style: .continuous), fallback: Tokens.window2)
     }
 }
 

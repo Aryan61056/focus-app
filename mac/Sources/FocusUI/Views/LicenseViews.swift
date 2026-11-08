@@ -193,7 +193,7 @@ struct LicenseStep: View {
         }
         .padding(Space.xl)
         .frame(maxWidth: .infinity)
-        .glassSurface(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .glassSurface(RoundedRectangle(cornerRadius: Tokens.radiusFloat, style: .continuous))
         .contentShape(Rectangle()).onTapGesture { focused = true }
     }
 
@@ -228,7 +228,7 @@ struct PassCard: View {
             .opacity(pop ? 1 : 0).offset(y: pop || reduceMotion ? 0 : 6)
         }
         .padding(Space.xl).frame(maxWidth: .infinity)
-        .glassSurface(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .glassSurface(RoundedRectangle(cornerRadius: Tokens.radiusFloat, style: .continuous))
         .onAppear {
             guard !reduceMotion else { pop = true; return }
             withAnimation(.spring(response: 0.42, dampingFraction: 0.6).delay(0.08)) { pop = true }
