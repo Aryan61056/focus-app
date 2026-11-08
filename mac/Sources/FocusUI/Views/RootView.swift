@@ -70,6 +70,9 @@ public struct RootView: View {
             if c.showsWelcome {
                 // A new Mac: the welcome takes the whole window until it is finished or skipped.
                 WelcomeView(c: c)
+            } else if c.needsLicense, let license = c.license {
+                // Welcome done (or from before), but no valid key on this Mac: the key screen takes the window, never mid-session.
+                LicenseGateView(c: c, license: license)
             } else if SnapshotMode.on {
                 // ImageRenderer cannot draw a split view, so offscreen snapshots keep a plain sidebar and page.
                 HStack(spacing: 0) { Sidebar(c: c, selection: $selection).background(Tokens.sidebar); detail }
@@ -116,7 +119,7 @@ public struct RootView: View {
         // The app is green, so system controls are too: sidebar icons, the selected length, links. No macOS blue anywhere.
         .tint(Tokens.accent)
         // The welcome fills the window and its last step needs about 540 points, so it keeps the old minimum height; the app itself goes smaller.
-        .frame(minWidth: 760, minHeight: c.showsWelcome ? 600 : 520)
+        .frame(minWidth: 760, minHeight: c.showsWelcome || c.needsLicense ? 600 : 520)
         .onGeometryChange(for: Bool.self) { $0.size.width >= Self.sidebarFits } action: { fits in
             // Only when the width crosses the line, so a sidebar you opened in a narrow window stays while you drag.
             guard fits != roomForSidebar else { return }
@@ -289,7 +292,7 @@ struct SourceList: View {
         let places = [AppSection.today, .projects].filter { shows($0.rawValue) }
         let records = [AppSection.history, .insights, .review].filter { ($0 != .review || c.showsReview) && shows($0.rawValue) }
         let social = [AppSection.friends].filter { c.friends != nil && shows($0.rawValue) }
-        let pages = SettingsPage.allCases.filter { ($0 != .beta || c.beta != nil) && shows($0.rawValue) }
+        let pages = SettingsPage.allCases.filter { ($0 != .beta || c.beta != nil) && ($0 != .license || c.license != nil) && shows($0.rawValue) }
         List(selection: $item) {
             // A group with nothing matching the search is left out, heading and all.
             if !places.isEmpty { Section { ForEach(places) { s in row(s) } } }

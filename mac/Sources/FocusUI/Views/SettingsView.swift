@@ -5,11 +5,11 @@ import AppKit
 
 /// Settings split into pages, each its own row in the sidebar, the way System Settings and Droppy lay them out.
 public enum SettingsPage: String, CaseIterable, Identifiable, Hashable, Sendable {
-    case general = "General", nudges = "Nudges", cues = "Cues", notch = "Notch", rhythm = "Rhythm and goals", reading = "What Hushd reads", privacy = "Privacy", beta = "Beta"
+    case general = "General", license = "License", nudges = "Nudges", cues = "Cues", notch = "Notch", rhythm = "Rhythm and goals", reading = "What Hushd reads", privacy = "Privacy", beta = "Beta"
     public var id: String { rawValue }
     var symbol: String {
         switch self {
-        case .general: return "gearshape"; case .nudges: return "hand.wave"; case .cues: return "bell"
+        case .general: return "gearshape"; case .license: return "key"; case .nudges: return "hand.wave"; case .cues: return "bell"
         case .notch: return "rectangle.topthird.inset"; case .rhythm: return "metronome"; case .reading: return "eye"; case .privacy: return "hand.raised"; case .beta: return "testtube.2"
         }
     }
@@ -332,6 +332,7 @@ struct SettingsView: View {
                         }
                     }
                 }
+                if page == .license, let license = c.license { LicenseSettings(license: license, sessionActive: c.isActive) }
                 if let beta = c.beta { BetaSettings(c: c, beta: beta, page: page) }
                 group("Privacy", .privacy) {
                     row("Where the work happens", "The judge is Apple's on-device model. There is no account.") { Text("On this Mac").foregroundStyle(Tokens.ink2) }

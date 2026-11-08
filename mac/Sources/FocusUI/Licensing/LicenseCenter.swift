@@ -124,12 +124,12 @@ public final class LicenseCenter {
     public private(set) var busy = false
     /// The last thing that went wrong while the person was doing something, in words.
     public private(set) var error: String?
+    /// What is typed in the key field. Lives here so the field and the bottom bar's button share it.
+    public var draft = ""
     /// A key was just accepted and the person hasn’t pressed Continue yet, so the success state stays up instead of vanishing.
     public private(set) var awaitingContinue = false
     /// Whether the app is locked without a license. Dev builds are not (so the person building Hushd isn’t asked), unless forced.
     public let enforced: Bool
-    /// Opens a page on the Hushd website in the browser, set by the app (outside the scanned modules).
-    @ObservationIgnored public var onOpenWeb: ((URL) -> Bool)?
     @ObservationIgnored public var now: () -> Date = Date.init
 
     @ObservationIgnored private let transport: LicenseTransport
@@ -155,6 +155,8 @@ public final class LicenseCenter {
     }
     /// The app shows the license screen instead of its work. Never while a session runs: the caller checks that.
     public var needsLicense: Bool { enforced && (!allowsUse || awaitingContinue) }
+    /// A key is held and counts (confirmed, being checked, or offline within the grace period).
+    public var holdsKey: Bool { allowsUse && info != nil }
     public var info: LicenseInfo? {
         switch status { case .checking(let i), .active(let i), .offline(let i, _): return i; case .blocked(_, let i): return i; case .unlicensed: return nil }
     }
@@ -185,7 +187,7 @@ public final class LicenseCenter {
         switch await transport(.activate, key) {
         case .ok(let info):
             store(LicenseRecord(key: key, info: info, validatedAt: now()))
-            status = .active(info); awaitingContinue = true
+            status = .active(info); awaitingContinue = true; draft = ""
             return true
         case .refused(let why, _): error = why.message; return false
         case .unreachable: error = "Hushd couldn’t reach the internet. Connect and try again."; return false
@@ -229,7 +231,9 @@ public final class LicenseCenter {
     public func acknowledge() { awaitingContinue = false }
     public func clearError() { error = nil }
 
-    @discardableResult public func openWeb(_ url: URL) -> Bool { onOpenWeb?(url) ?? false }
+    /// Opens the page where beta keys come from, in the browser. Set by the app, which knows the address.
+    @ObservationIgnored public var onGetKey: (() -> Void)?
+    public func getKey() { onGetKey?() }
 
     // MARK: private
 

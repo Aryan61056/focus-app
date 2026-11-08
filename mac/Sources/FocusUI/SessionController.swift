@@ -220,6 +220,11 @@ public final class SessionController {
         guard !prefs.welcomeSeen, !prefs.introSeen, let store, store.sessions.isEmpty else { return false }
         return true
     }
+    /// Hushd's license (Licensing/LicenseCenter.swift), set by the app. Nil in the scripted demo and in snapshots.
+    public var license: LicenseCenter?
+    /// The license screen takes the window: no valid key on this Mac (or a key was just accepted and awaits Continue). Never while a
+    /// session runs, so a check that fails mid-session waits until it ends.
+    public var needsLicense: Bool { !isActive && (license?.needsLicense ?? false) }
     /// The welcome was finished or skipped. `explained` marks Today's "How Hushd works" as seen too, since the welcome said the same.
     public func finishWelcome(explained: Bool) {
         prefs.welcomeSeen = true; welcomeRequested = false
