@@ -318,7 +318,7 @@ struct SettingsView: View {
                     group("Updates", .general) {
                         row("Update Hushd", u.summary) {
                             if u.readyVersion != nil {
-                                Button("Restart to update") { c.installUpdate() }.buttonStyle(FocusButtonStyle(.primary, small: true)).disabled(c.isActive)
+                                Button("Restart to update") { u.install() }.buttonStyle(FocusButtonStyle(.primary, small: true)).disabled(c.isActive)
                             } else {
                                 Button(u.busy ? "Checking\u{2026}" : "Check for updates") { u.check() }.buttonStyle(FocusButtonStyle(.secondary, small: true)).disabled(u.busy)
                             }

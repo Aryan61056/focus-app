@@ -36,6 +36,7 @@ import FocusUI
         u.automaticallyDownloadsUpdates = true
         model.setAutomaticQuietly(u.automaticallyChecksForUpdates)
         model.onCheck = { [weak self] in self?.updater?.checkForUpdates() }
+        model.onInstall = { [weak self] in self?.restart() }
         model.onSetAutomatic = { [weak self] on in self?.updater?.automaticallyChecksForUpdates = on }
         controller.releaseUpdates = model
         controller.onInstallUpdate = { [weak self] _ in self?.restart() }

@@ -26,6 +26,9 @@ window, and updates that download without fetching the DMG again. The website's 
   will accept an update again.
 - Feed address: `FOCUS_FEED_URL`, default `https://hushd.store/updates/appcast.xml` **(a placeholder, the owner's to choose: hushd.store,
   GitHub Releases, anywhere https)**. `tools/release.sh <version>` builds, signs and prints what to upload; it publishes nothing.
+- Betas have their own feed (`FOCUS_BETA_FEED_URL`, default `https://hushd.store/updates/beta/appcast.xml`, also a placeholder):
+  `tools/beta/release.sh` signs every beta image in `beta/updates/` into `beta/updates/appcast.xml`; nothing is uploaded. Betas already
+  handed out (beta 1 and 2) have no updater, so each tester installs the first updater build by hand once.
 - Build numbers: releases use the UTC time (YYYYMMDDHHMM); beta builds use `beta/BUILD`. Sparkle compares build numbers only.
 - Verified 2026-11-08 on this Mac with a local feed: build 100 found 101, downloaded and verified it, "Restart to update" replaced the app in
   place, the signature verified and the designated requirement (`identifier "<bundle id>"`, what macOS keys the Accessibility grant on) was

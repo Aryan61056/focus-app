@@ -296,7 +296,7 @@ public final class SessionController {
     /// One button: restart into a newer build if one is waiting, else build the newest first.
     public func updateNow() {
         guard !isActive, updateBuild != .building else { return }
-        if updateOffer != nil, let o = updateOffer { onInstallUpdate?(o) } else { onBuildUpdate?() }
+        if let o = updateOffer { onInstallUpdate?(o) } else if let build = onBuildUpdate { build() } else { onCheckUpdates?() }
     }
     /// Updates from the release feed for an installed copy (Updates/ReleaseUpdates.swift). Nil in dev builds, the demo and tests.
     public var releaseUpdates: ReleaseUpdates?

@@ -21,6 +21,7 @@ public final class ReleaseUpdates {
     /// Look for a new version once a day (and download it quietly). Mirrors Sparkle's own setting; Check for updates always works.
     public private(set) var automatic: Bool
     @ObservationIgnored public var onCheck: (() -> Void)?
+    @ObservationIgnored public var onInstall: (() -> Void)?
     @ObservationIgnored public var onSetAutomatic: ((Bool) -> Void)?
     @ObservationIgnored public var now: () -> Date = Date.init
 
@@ -32,6 +33,8 @@ public final class ReleaseUpdates {
     /// Sets the mirror without telling Sparkle (it is where the value came from).
     public func setAutomaticQuietly(_ on: Bool) { automatic = on }
     public func check() { onCheck?() }
+    /// Restart into the downloaded version. Straight to the updater, so it works whatever happened to the Today notice.
+    public func install() { onInstall?() }
 
     public var busy: Bool {
         switch state { case .checking, .found, .downloading, .preparing, .installing: return true; default: return false }
