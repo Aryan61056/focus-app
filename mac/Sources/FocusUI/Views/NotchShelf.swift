@@ -117,7 +117,7 @@ struct ShelfHome: View {
         let timed = c.mode == .timed
         let left = c.clockSeconds()
         let elapsed = timed ? max(0, c.totalSeconds - left) : left
-        RoundedRectangle(cornerRadius: 11, style: .continuous).fill(Color.white.opacity(0.09))
+        GlassTile(radius: 11)
             .frame(width: 46.5, height: 46.5)
             .overlay { LiveRing(c.ringState, color: tint).frame(width: 24, height: 24) }
             .rise(0, arrived).offset(x: 20, y: 13)
@@ -224,4 +224,10 @@ struct TodayRing: View {
         .animation(Motion.out(0.5), value: fraction)
         .accessibilityHidden(true)
     }
+}
+
+/// A small tile inside the card: a faint wash of white and nothing else, so the glass behind it stays the glass.
+struct GlassTile: View {
+    var radius: CGFloat
+    var body: some View { RoundedRectangle(cornerRadius: radius, style: .continuous).fill(Color.white.opacity(0.09)) }
 }
