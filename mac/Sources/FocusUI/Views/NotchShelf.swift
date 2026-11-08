@@ -117,7 +117,7 @@ struct ShelfHome: View {
         let timed = c.mode == .timed
         let left = c.clockSeconds()
         let elapsed = timed ? max(0, c.totalSeconds - left) : left
-        RoundedRectangle(cornerRadius: 11, style: .continuous).fill(Color.white.opacity(0.09))
+        GlassTile(radius: 11)
             .frame(width: 46.5, height: 46.5)
             .overlay { LiveRing(c.ringState, color: tint).frame(width: 24, height: 24) }
             .rise(0, arrived).offset(x: 20, y: 13)
@@ -223,5 +223,15 @@ struct TodayRing: View {
         .animation(Motion.out(0.9).delay(0.3), value: arrived)
         .animation(Motion.out(0.5), value: fraction)
         .accessibilityHidden(true)
+    }
+}
+
+/// A small pane of glass inside the card: a faint fill that is lighter at the top, a hairline edge lit from above.
+struct GlassTile: View {
+    var radius: CGFloat
+    var body: some View {
+        RoundedRectangle(cornerRadius: radius, style: .continuous)
+            .fill(LinearGradient(colors: [.white.opacity(0.16), .white.opacity(0.06)], startPoint: .top, endPoint: .bottom))
+            .overlay { RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(LinearGradient(colors: [.white.opacity(0.38), .white.opacity(0.06)], startPoint: .top, endPoint: .bottom), lineWidth: 0.8) }
     }
 }
