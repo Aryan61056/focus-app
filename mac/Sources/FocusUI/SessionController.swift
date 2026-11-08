@@ -298,6 +298,8 @@ public final class SessionController {
         guard !isActive, updateBuild != .building else { return }
         if updateOffer != nil, let o = updateOffer { onInstallUpdate?(o) } else { onBuildUpdate?() }
     }
+    /// Updates from the release feed for an installed copy (Updates/ReleaseUpdates.swift). Nil in dev builds, the demo and tests.
+    public var releaseUpdates: ReleaseUpdates?
     /// Friends, when the app set them up (docs/SOCIAL.md). nil in tests and snapshots.
     public var friends: FriendsStore?
     /// The beta program (docs/BETA.md): build info, the local event journal and feedback. Nil in tests unless a test sets one.

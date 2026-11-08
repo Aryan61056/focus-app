@@ -61,6 +61,7 @@ struct FocusApp: App {
     @State private var backHotKey = GlobalHotKey()
     @State private var parkingPanel: ParkingPanelController?
     @State private var updater: Updater?
+    @State private var sparkle: SparkleUpdater?
 
     init() {
         // Hushd lives in the menu bar and the notch and watches a session with its window closed, so macOS must never quit it
@@ -201,6 +202,9 @@ struct FocusApp: App {
                         let env = ProcessInfo.processInfo.environment
                         controller.license = LicenseSetup.make(demo: env["FOCUS_DEMO"] == "1", testFolder: env["FOCUS_TEST_STORE"])
                     }
+                    if sparkle == nil, ProcessInfo.processInfo.environment["FOCUS_DEMO"] != "1", SparkleUpdater.applies {
+                        let sp = SparkleUpdater(controller: controller); sparkle = sp; sp.start()
+                    }
                     if updater == nil, ProcessInfo.processInfo.environment["FOCUS_DEMO"] != "1" { let u = Updater(controller: controller); updater = u; u.start() }
                     controller.setJudgeStatus(DefaultJudge.status())
                     Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in MainActor.assumeIsolated { controller.setJudgeStatus(DefaultJudge.status()) } }
@@ -263,6 +267,11 @@ struct FocusApp: App {
         .defaultSize(width: 1240, height: 800)
         .windowToolbarStyle(.unified)
         .commands {
+            CommandGroup(after: .appInfo) {
+                if controller.releaseUpdates != nil {
+                    Button("Check for Updates\u{2026}") { sparkle?.check() }.disabled(controller.releaseUpdates?.busy ?? false)
+                }
+            }
             CommandGroup(replacing: .help) {
                 Button("See how it works") { controller.showExample() }
                     .keyboardShortcut("d", modifiers: [.command, .shift]).disabled(controller.isActive)

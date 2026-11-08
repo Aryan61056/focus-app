@@ -314,6 +314,22 @@ struct SettingsView: View {
                         }
                     }
                 }
+                if let u = c.releaseUpdates {
+                    group("Updates", .general) {
+                        row("Update Hushd", u.summary) {
+                            if u.readyVersion != nil {
+                                Button("Restart to update") { c.installUpdate() }.buttonStyle(FocusButtonStyle(.primary, small: true)).disabled(c.isActive)
+                            } else {
+                                Button(u.busy ? "Checking\u{2026}" : "Check for updates") { u.check() }.buttonStyle(FocusButtonStyle(.secondary, small: true)).disabled(u.busy)
+                            }
+                        }
+                        Text(u.summary).font(Tokens.text(.caption)).foregroundStyle(u.state.isFailure ? Tokens.slip : Tokens.ink2).frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, Space.xxs).animation(.smooth(duration: 0.25), value: u.summary)
+                        row("Check for updates every day", "A new version downloads in the background and waits for you. Hushd never restarts by itself, and never during a session.") {
+                            Toggle("", isOn: Binding(get: { u.automatic }, set: { u.setAutomatic($0) })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
+                        }
+                    }
+                }
                 if c.updateSource != nil {
                     group("Updates", .general) {
                         row("Offer new builds from this Mac", "When a newer build appears in the project's build folder, Hushd offers to restart into it between sessions. Nothing is downloaded and the network is not used; it never restarts by itself.") {

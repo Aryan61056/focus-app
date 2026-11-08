@@ -1,5 +1,6 @@
 #!/bin/bash
-# Packs Hushd.app into a disk image people install from: mac/.build/Hushd-<version>.dmg, holding the app and an Applications shortcut,
+# Packs Hushd.app into a disk image people install from: mac/.build/Hushd-<version>.dmg, holding the app and an Applications shortcut
+# on a drawn drag-to-Applications window (laid out through Finder, see make_laid_out_dmg below),
 # with a SHA-256 file beside it. Nothing is uploaded or published.
 #
 #   ./tools/build_dmg.sh              builds the app for handing out (tools/build_app.sh, FOCUS_DISTRIBUTION=1), then packs it
@@ -74,7 +75,67 @@ TEXT
 fi
 
 rm -f "$DMG" "$DMG.sha256"
-hdiutil create -volname "Hushd" -srcfolder "$STAGE" -fs HFS+ -format UDZO -imagekey zlib-level=9 -ov "$DMG" >/dev/null
+
+# The window people see when they open the image: a drawn background (tools/dmg-background.swift, same look as the welcome), the app and
+# the Applications shortcut laid out on glass tiles with an arrow between them. Finder keeps that layout in a .DS_Store, which only
+# Finder writes, so this asks Finder (AppleScript) once; the first run shows "Terminal wants to control Finder", allow it. If Finder
+# does not answer in 90 s, or anything here fails, the image is made plain and the script says so (set FOCUS_DMG_PLAIN=1 to skip on purpose).
+make_laid_out_dmg() {
+  local vol="Hushd" rw="$WORK/rw.dmg" art="$WORK/art" size_mb
+  swiftc -O "$ROOT/tools/dmg-background.swift" -o "$WORK/bg" 2>/dev/null || return 1
+  "$WORK/bg" "$art" $([ "$DEVELOPER_ID" = 1 ] && echo --notarized) || return 1
+  tiffutil -cathidpicheck "$art/background.png" "$art/background@2x.png" -out "$WORK/background.tiff" 2>/dev/null || return 1
+  size_mb=$(( $(du -sk "$STAGE/Hushd.app" | cut -f1) / 1024 * 2 + 40 ))
+  hdiutil detach "/Volumes/$vol" -force >/dev/null 2>&1 || true
+  hdiutil create -size "${size_mb}m" -fs HFS+ -volname "$vol" -ov "$rw" >/dev/null 2>&1 || return 1
+  hdiutil attach "$rw" -mountpoint "/Volumes/$vol" -nobrowse -noverify >/dev/null 2>&1 || return 1
+  ditto "$STAGE/Hushd.app" "/Volumes/$vol/Hushd.app"
+  ln -s /Applications "/Volumes/$vol/Applications"
+  mkdir "/Volumes/$vol/.background"
+  cp "$WORK/background.tiff" "/Volumes/$vol/.background/background.tiff"
+  cat > "$WORK/layout.scpt" <<APPLESCRIPT
+tell application "Finder"
+  tell disk "$vol"
+    open
+    set current view of container window to icon view
+    set toolbar visible of container window to false
+    set statusbar visible of container window to false
+    set the bounds of container window to {200, 120, 860, 550}
+    set opts to the icon view options of container window
+    set arrangement of opts to not arranged
+    set icon size of opts to 112
+    set text size of opts to 13
+    set background picture of opts to file ".background:background.tiff"
+    set position of item "Hushd.app" of container window to {180, 190}
+    set position of item "Applications" of container window to {480, 190}
+    close
+    open
+    update without registering applications
+    delay 2
+    close
+  end tell
+end tell
+APPLESCRIPT
+  osascript "$WORK/layout.scpt" >/dev/null 2>&1 &
+  local pid=$! waited=0
+  while kill -0 "$pid" 2>/dev/null && [ "$waited" -lt 90 ]; do sleep 1; waited=$((waited + 1)); done
+  if kill -0 "$pid" 2>/dev/null; then kill "$pid" 2>/dev/null; echo "Finder did not answer in 90 s" >&2; hdiutil detach "/Volumes/$vol" -force >/dev/null 2>&1; return 1; fi
+  wait "$pid" || { hdiutil detach "/Volumes/$vol" -force >/dev/null 2>&1; return 1; }
+  sync; sleep 1
+  [ -f "/Volumes/$vol/.DS_Store" ] || { echo "Finder did not write the layout" >&2; hdiutil detach "/Volumes/$vol" -force >/dev/null 2>&1; return 1; }
+  chflags hidden "/Volumes/$vol/.background" 2>/dev/null || true
+  hdiutil detach "/Volumes/$vol" >/dev/null 2>&1 || { sleep 2; hdiutil detach "/Volumes/$vol" -force >/dev/null 2>&1; }
+  hdiutil convert "$rw" -format UDZO -imagekey zlib-level=9 -ov -o "$DMG" >/dev/null 2>&1
+}
+
+LAYOUT="plain"
+if [ "${FOCUS_DMG_PLAIN:-}" != 1 ] && make_laid_out_dmg; then
+  LAYOUT="laid out"
+else
+  [ "${FOCUS_DMG_PLAIN:-}" = 1 ] || echo "WARNING: the drag-to-Applications window could not be laid out, so this image opens plain (see above). Re-run, and allow Terminal to control Finder if asked." >&2
+  rm -f "$DMG"
+  hdiutil create -volname "Hushd" -srcfolder "$STAGE" -fs HFS+ -format UDZO -imagekey zlib-level=9 -ov "$DMG" >/dev/null
+fi
 
 if [ "$DEVELOPER_ID" = 1 ] && [ -n "${FOCUS_SIGN_IDENTITY:-}" ]; then
   codesign --force --sign "$FOCUS_SIGN_IDENTITY" "$DMG"
@@ -102,7 +163,7 @@ GATEKEEPER="$(spctl -a -t exec -vv "$MOUNT/Hushd.app" 2>&1 | head -1 || true)"
 hdiutil detach "$MOUNT" -quiet
 
 ( cd "$BUILD" && shasum -a 256 "$(basename "$DMG")" > "$(basename "$DMG").sha256" )
-echo "built $DMG ($(du -h "$DMG" | cut -f1)), version $VERSION, architectures: $ARCHS"
+echo "built $DMG ($(du -h "$DMG" | cut -f1)), $LAYOUT window, version $VERSION, architectures: $ARCHS"
 echo "sha256 $(cut -d' ' -f1 "$DMG.sha256")"
 echo "Gatekeeper on this Mac says: $GATEKEEPER"
 if [ "$DEVELOPER_ID" = 0 ]; then echo "ad-hoc signed: other Macs will ask for Open Anyway once (see the note on the disk). Not notarized."; fi
