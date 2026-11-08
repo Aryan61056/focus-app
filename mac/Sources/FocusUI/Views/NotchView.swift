@@ -195,7 +195,8 @@ struct GlassFoot: View, Animatable {
             // full glass").
             let solid = notchHeight > 0 ? GlassLook.solid : 0
             LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: solid),
-                                   .init(color: .black.opacity(foot * 0 + max(foot, GlassLook.foot)), location: 1)],
+                                   .init(color: .black.opacity(max(foot, GlassLook.mid)), location: 0.55),
+                                   .init(color: .black.opacity(max(foot, GlassLook.foot)), location: 1)],
                            startPoint: .top, endPoint: .bottom)
         }
     }
@@ -216,8 +217,24 @@ enum GlassLook {
     /// Black laid over the glass itself (0 clear, 1 solid).
     static let tint = 0.34
     /// How much of the card's height stays solid black under the hardware notch, and how black the foot still is (0 clear glass).
-    static let solid = 0.42
-    static let foot = 0.18
+    static let solid = 0.16
+    /// Black left at the middle of the card and at its foot: the glass shows through all the way down, darker toward the notch.
+    static let mid = 0.5
+    static let foot = 0.06
+}
+
+/// The edge light of a pane of glass, and only that: a hairline, bright where a light from the upper left would catch the edge and
+/// where the far edge catches it back, faint everywhere else. Nothing is painted inside the shape.
+struct GlassRim: View {
+    var shape: NotchShape
+    var body: some View {
+        shape.stroke(AngularGradient(stops: [
+            .init(color: .white.opacity(0.10), location: 0), .init(color: .white.opacity(0.45), location: 0.14),
+            .init(color: .white.opacity(0.10), location: 0.3), .init(color: .white.opacity(0.06), location: 0.5),
+            .init(color: .white.opacity(0.40), location: 0.64), .init(color: .white.opacity(0.08), location: 0.8),
+            .init(color: .white.opacity(0.10), location: 1)], center: .center), lineWidth: 0.8)
+            .allowsHitTesting(false)
+    }
 }
 
 /// The notch presence. Aesthetic, not functional (owner, 2026-10-01), and since 2026-10-13 not a way out either: it only shows.
@@ -330,7 +347,7 @@ public struct NotchView: View {
         .gesture(press, including: big ? .subviews : .all)
         // Light catching the rim of the glass, only once it has opened out of the bezel.
         .overlay {
-            EmptyView()
+            GlassRim(shape: shape).opacity(open && mode == .open ? 1 : 0)
         }
         .opacity(hasNotch || shown ? 1 : 0)
     }
