@@ -288,6 +288,8 @@ public final class SessionController {
     public private(set) var updateOffer: UpdateOffer?
     @ObservationIgnored private var updateDismissed: String?
     @ObservationIgnored public var onCheckUpdates: (() -> Void)?
+    /// Opens the bundled open-source notices; the app target sets it, as FocusUI itself may not open files or URLs.
+    @ObservationIgnored public var onOpenNotices: (() -> Void)?
     /// "Update now": builds the latest source on this Mac, then restarts into it. The app wires `onBuildUpdate`; never during a session.
     public enum UpdateBuild: Equatable, Sendable { case idle, building, failed }
     public private(set) var updateBuild = UpdateBuild.idle

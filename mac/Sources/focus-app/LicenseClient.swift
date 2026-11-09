@@ -29,7 +29,6 @@ enum LicenseClient {
 
     static func transport() -> LicenseTransport {
         let device = deviceID()
-        let name = Host.current().localizedName ?? "Mac"
         let version = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0") + "+" + (Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "0")
         let url = endpoint
         let session: URLSession = {
@@ -45,8 +44,7 @@ enum LicenseClient {
             req.httpMethod = "POST"
             req.setValue("application/json", forHTTPHeaderField: "content-type")
             req.setValue("Hushd/\(version)", forHTTPHeaderField: "user-agent")
-            var body: [String: String] = ["key": key, "device_id": device, "app_version": version]
-            if call == .activate { body["device_name"] = name }
+            let body: [String: String] = ["key": key, "device_id": device, "app_version": version]
             req.httpBody = try? JSONSerialization.data(withJSONObject: body)
             guard let (data, _) = try? await session.data(for: req) else { return .unreachable }
             return parse(data)

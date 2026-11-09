@@ -352,6 +352,9 @@ struct SettingsView: View {
                 if let beta = c.beta { BetaSettings(c: c, beta: beta, page: page) }
                 group("Privacy", .privacy) {
                     row("Where the work happens", "The judge is Apple's on-device model. There is no account.") { Text("On this Mac").foregroundStyle(Tokens.ink2) }
+                    row("Open-source notices", "Hushd updates itself with Sparkle (MIT license). Its notice is kept inside the app.") {
+                        Button("Open") { c.onOpenNotices?() }.buttonStyle(FocusButtonStyle(.plain, small: true))
+                    }
                     row("Your data", "\(store.projects.count) projects, \(store.sessions.count) sessions and \(store.review.count) review moments.") {
                         HStack {
                             Button("Export") { export() }.buttonStyle(FocusButtonStyle(.plain, small: true))

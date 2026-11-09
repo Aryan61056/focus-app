@@ -35,6 +35,11 @@ SPARKLE_FW="$(pwd)/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-ar
 [ -d "$SPARKLE_FW" ] || { echo "no Sparkle.framework at $SPARKLE_FW (run swift package resolve)" >&2; exit 1; }
 mkdir -p "$APP/Contents/Frameworks"
 ditto "$SPARKLE_FW" "$APP/Contents/Frameworks/Sparkle.framework"
+# Sparkle is MIT-licensed: its copyright and permission notice ship inside the app and open from Settings, Privacy.
+SPARKLE_LICENSE="$(pwd)/.build/checkouts/Sparkle/LICENSE"
+[ -f "$SPARKLE_LICENSE" ] || SPARKLE_LICENSE="$(pwd)/.build/artifacts/sparkle/Sparkle/LICENSE"
+[ -f "$SPARKLE_LICENSE" ] || { echo "no Sparkle LICENSE found (run swift package resolve)" >&2; exit 1; }
+{ printf 'Hushd uses these open-source components.\n\n== Sparkle (software updates) ==\nhttps://sparkle-project.org\n\n'; cat "$SPARKLE_LICENSE"; } > "$APP/Contents/Resources/Acknowledgements.txt"
 install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/focus-app" 2>/dev/null || true
 T="$(mktemp -d)"
 # The icon: Resources/AppIcon.icon (an Icon Composer document: the ring on deep green, Liquid Glass with the system's dark and tinted

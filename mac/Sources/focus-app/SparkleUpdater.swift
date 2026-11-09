@@ -41,6 +41,9 @@ import FocusUI
         controller.releaseUpdates = model
         controller.onInstallUpdate = { [weak self] _ in self?.restart() }
         controller.onCheckUpdates = { [weak self] in self?.updater?.checkForUpdates() }
+        controller.onOpenNotices = {
+            if let url = Bundle.main.url(forResource: "Acknowledgements", withExtension: "txt") { NSWorkspace.shared.open(url) }
+        }
     }
 
     func check() { updater?.checkForUpdates() }
