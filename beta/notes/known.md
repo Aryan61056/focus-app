@@ -3,3 +3,4 @@
 - Friends and iPhone sync are off in this build: they need an Apple developer signature it does not have yet
 - If a browser stops responding, Hushd can pause for up to 3 seconds while it waits for the tab's address
 - The iPhone app is not part of this download
+- If you installed beta 1 or 2, install this one over it by hand once; from here on Hushd updates itself

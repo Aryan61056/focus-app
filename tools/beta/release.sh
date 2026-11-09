@@ -56,8 +56,10 @@ echo "beta $NAME: ends $EXPIRES, notes $(basename "$NOTES"), $KNOWN_COUNT known 
 if [ "$DRY" = 1 ]; then echo "dry run: nothing built"; exit 0; fi
 [ -e "$OUT" ] && { echo "$OUT already exists" >&2; exit 1; }
 
-# Betas update from their own feed (beta numbers are small counters, releases use timestamps, so the two must not share one).
-BETA_FEED="${FOCUS_BETA_FEED_URL:-https://hushd.store/updates/beta/appcast.xml}"
+# Betas update from the feed on the website (owner, 2026-11-08: the files live in the site). Beta numbers are small counters and
+# releases use timestamps, so a stable release would need its own feed. The bundle id is the one every installed copy keeps.
+BETA_FEED="${FOCUS_BETA_FEED_URL:-https://hushd.store/updates/appcast.xml}"
+export FOCUS_BUNDLE_ID="${FOCUS_BUNDLE_ID:-store.hushd.app}"
 FOCUS_FEED_URL="$BETA_FEED" FOCUS_CHANNEL=beta FOCUS_BUILD_NUMBER="$N" FOCUS_VERSION="$VERSION" FOCUS_BETA_EXPIRES="$EXPIRES" \
 FOCUS_FEEDBACK_EMAIL="$EMAIL" FOCUS_FEEDBACK_REPO="$REPO" FOCUS_RELEASE_NOTES_FILE="$NOTES" FOCUS_KNOWN_ISSUES_FILE="$KNOWN" \
 "$ROOT/tools/build_dmg.sh"
@@ -73,11 +75,27 @@ fi
 
 mkdir -p "$OUT"
 cp "$DMG" "$DMG.sha256" "$OUT/"
-# The beta feed: every beta image in beta/updates/, signed into appcast.xml with Hushd's update key. Upload both where BETA_FEED says.
+# The website's copy: the newest image and the signed feed go into the site project's public/updates/, so one publish of the site puts
+# the Download button and the update feed on the new build together. Only the newest image is kept there (a copy of each beta would
+# grow the site's history by the image every time, and Sparkle only ever installs the newest). Set FOCUS_SITE_DIR to the site project.
 SPARKLE_BIN="$ROOT/mac/.build/artifacts/sparkle/Sparkle/bin"
-if [ -x "$SPARKLE_BIN/generate_appcast" ]; then
-  mkdir -p "$ROOT/beta/updates"; cp "$DMG" "$ROOT/beta/updates/"
-  "$SPARKLE_BIN/generate_appcast" --account hushd --download-url-prefix "${BETA_FEED%/*}/" "$ROOT/beta/updates" >/dev/null && echo "beta feed: $ROOT/beta/updates/appcast.xml (for $BETA_FEED; not uploaded)"
+SITE="${FOCUS_SITE_DIR:-$ROOT/../focus-site}"
+if [ -d "$SITE/public" ] && [ -x "$SPARKLE_BIN/generate_appcast" ]; then
+  UP="$SITE/public/updates"; mkdir -p "$UP"
+  rm -f "$UP"/Hushd-*.dmg "$UP"/*.delta "$UP/appcast.xml"
+  cp "$DMG" "$UP/"
+  "$SPARKLE_BIN/generate_appcast" --account hushd --download-url-prefix "${BETA_FEED%/*}/" "$UP" >/dev/null
+  # What the Download page and the beta pass show and link to; one file so the pages never name a build that is not there.
+  python3 - "$SITE/src/site/release.json" "$VERSION" "$N" "Hushd-$NAME.dmg" "$UP/Hushd-$NAME.dmg" "$EXPIRES" <<'PYEND'
+import json, os, sys
+path, version, build, name, dmg, expires = sys.argv[1:7]
+os.makedirs(os.path.dirname(path), exist_ok=True)
+json.dump({"version": version, "label": f"Beta {build}", "build": int(build), "file": name, "bytes": os.path.getsize(dmg), "expires": expires}, open(path, "w"), indent=2)
+open(path, "a").write("\n")
+PYEND
+  echo "site updated: $UP (Hushd-$NAME.dmg and appcast.xml); commit it in the site project, then publish the site"
+else
+  echo "no site project at $SITE (set FOCUS_SITE_DIR): the build is in $OUT but no feed was written"
 fi
 cp "$NOTES" "$OUT/notes.md"
 if [ -f "$KNOWN" ]; then cp "$KNOWN" "$OUT/known.md"; else : > "$OUT/known.md"; fi
@@ -91,5 +109,5 @@ python3 "$ROOT/tools/beta/release_text.py" --invite "$OUT/release.json" > "$OUT/
 python3 "$ROOT/tools/beta/release_text.py" --github "$OUT/release.json" > "$OUT/github-release.md"
 echo "$N" > "$COUNTER"
 echo "release folder: $OUT"
-echo "next: tools/beta/publish.sh $NAME puts it on GitHub as a pre-release, or hand $OUT/Hushd-$NAME.dmg and invite.txt"
-echo "      to testers yourself; log who got it with tools/beta/testers.py sent <name> $NAME"
+echo "next: commit public/updates/ in the site project and publish the site (the Download button and installed copies pick it up);"
+echo "      tools/beta/publish.sh $NAME also puts it on GitHub as a pre-release, if you want it there too"
