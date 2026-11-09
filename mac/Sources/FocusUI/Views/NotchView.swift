@@ -67,10 +67,11 @@ extension NotchLayout {
         return mode == .open ? CGSize(width: s.width, height: s.height + pillGap + pillHeight) : s
     }
 
-    /// Where the black ends and the glass begins, as a share of the open card's height: Droppy keeps its top 61 percent solid (240 of 392
-    /// px in its capture) and fades to glass over the rest. A card too short to show that (the nudge) keeps a band under the hardware notch.
+    /// Where the black ends and the glass begins, as a share of the open card's height. Only a cap stays solid, so the card still grows
+    /// out of the hardware notch without a seam; everything under it is glass (owner, 2026-11-08: "way more glassy", replacing the 61 percent
+    /// of Droppy's capture). A card too short to show that (the nudge) keeps a band under the hardware notch.
     static func blackStop(height: CGFloat, notchHeight: CGFloat) -> CGFloat {
-        height >= openHeight - 1 ? 0.61 : min(0.75, (notchHeight + 14) / max(1, height))
+        height >= openHeight - 1 ? min(0.3, max(0.1, (notchHeight + 10) / max(1, height))) : min(0.75, (notchHeight + 14) / max(1, height))
     }
 
     /// Where the shape starts and ends: the size of the hardware notch, so it grows out of it and tucks back into it. Pixels inside the
@@ -157,14 +158,16 @@ private struct NotchMaterial: View {
         // would draw it grey), then Liquid Glass on top where the Mac has it, so the lower part of the card is see-through, as iOS 27's is.
         ZStack {
             if glassy && (settled || layered) {
-                if #available(macOS 26, *) { Color.clear.glassEffect(.clear, in: Rectangle()) }
+                // The system's own Liquid Glass, in the card's own shape: it refracts what is behind the card at the edge and draws its own
+                // rim, so nothing is painted on top of it. Clear, with a little black for the white words (owner, 2026-11-08: no white
+                // tinge, "100% iOS 27 Liquid Glass native"; regular glass and the hand-drawn highlights read as frosted plastic).
+                if #available(macOS 26, *) { Color.clear.glassEffect(.clear.tint(Color.black.opacity(GlassLook.tint)), in: shape) }
             }
-            // One layer, so the black only ever gets less opaque or more: a cross-fade of two black layers dips to see-through halfway,
-            // which flashed grey on the way in and out.
-            GlassFoot(foot: settled && glassy ? 0.12 : 1, notchHeight: notchHeight)
+            // The black is solid while the shape moves (so it grows out of the hardware notch), then leaves, except the band that sits
+            // against the notch. One layer, so it only ever gets less opaque: a cross-fade of two blacks flashed grey.
+            GlassFoot(foot: settled && glassy ? 0 : 1, notchHeight: notchHeight).clipShape(shape)
         }
-        .clipShape(shape)
-        .animation(settled ? Motion.out(0.5) : Motion.out(0.1), value: settled)
+        .animation(settled ? Motion.out(0.95) : Motion.out(0.1), value: settled)
         .task(id: expanded) {
             if expanded {
                 try? await Task.sleep(for: .seconds(0.4))
@@ -179,22 +182,39 @@ private struct NotchMaterial: View {
     var glassy: Bool { if #available(macOS 26, *) { return !reduceTransparency } else { return false } }
 }
 
-/// The card's black, graded: solid where it meets the hardware notch (the top 61 percent), fading to `foot` opacity at the bottom, with the
-/// sheen glass catches along its lower edge. `foot` animates, so the card turns from solid black to glass and back without a flash.
+/// The card's black, graded: solid where it meets the hardware notch, thinning toward the glass at the foot. `foot` (1 all black, 0 the resting
+/// grade) animates, so the card turns from solid black to glass and back without a flash, wiped clear from the bottom up.
 struct GlassFoot: View, Animatable {
     var foot: Double
     var notchHeight: CGFloat
     var animatableData: Double { get { foot } set { foot = newValue } }
     var body: some View {
-        GeometryReader { g in
-            let stop = NotchLayout.blackStop(height: g.size.height, notchHeight: notchHeight)
-            ZStack {
-                LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: stop), .init(color: .black.opacity(foot), location: 1)],
-                               startPoint: .top, endPoint: .bottom)
-                LinearGradient(stops: [.init(color: .white.opacity(0), location: 0.55), .init(color: .white.opacity(0.16 * (1 - foot) / 0.88), location: 1)],
-                               startPoint: .top, endPoint: .bottom).blendMode(.plusLighter)
-            }
+        LinearGradient(stops: stops(), startPoint: .top, endPoint: .bottom)
+    }
+
+    /// The glass is poured in from the foot: the black retreats upward as `foot` falls from 1 to 0, with a soft front, so the card
+    /// clears like condensation wiping off rather than fading all at once. At 1 it is all black; at 0 it is the resting grade: black
+    /// from the hardware notch down to GlassLook.solid, easing out into the glass (owner, 2026-11-08: "add more black, not full glass").
+    func stops() -> [Gradient.Stop] {
+        let solid = notchHeight > 0 ? GlassLook.solid : 0
+        let band = 0.5
+        let front = (1 - foot) * (1 + band)
+        var out: [Gradient.Stop] = []
+        for n in 0...24 {
+            let y = Double(n) / 24
+            let t = min(1, max(0, (front - (1 - y)) / band))
+            let uncovered = t * t * (3 - 2 * t)
+            let g = Self.grade(y, solid: solid)
+            let a = foot <= 0 ? g : g * uncovered + (1 - uncovered)
+            out.append(Gradient.Stop(color: Color.black.opacity(a), location: y))
         }
+        return out
+    }
+
+    static func grade(_ y: Double, solid: Double) -> Double {
+        if y <= solid { return 1 }
+        if y <= 0.55 { return 1 + (GlassLook.mid - 1) * (y - solid) / (0.55 - solid) }
+        return GlassLook.mid + (GlassLook.foot - GlassLook.mid) * (y - 0.55) / 0.45
     }
 }
 
@@ -206,6 +226,33 @@ struct NotchBlur: NSViewRepresentable {
         return v
     }
     func updateNSView(_ v: NSVisualEffectView, context: Context) {}
+}
+
+/// The numbers that make the open card glass, in one place.
+enum GlassLook {
+    /// Black laid over the glass itself (0 clear, 1 solid).
+    static let tint = 0.34
+    /// How much of the card's height stays solid black under the hardware notch, and how black the foot still is (0 clear glass).
+    static let solid = 0.16
+    /// Black left at the middle of the card and at its foot: the glass shows through all the way down, darker toward the notch.
+    static let mid = 0.5
+    static let foot = 0.06
+}
+
+/// The edge light of a pane of glass, and only that: a hairline, bright where a light from the upper left would catch the edge and
+/// where the far edge catches it back, faint everywhere else. Nothing is painted inside the shape.
+struct GlassRim: View {
+    var shape: NotchShape
+    /// -1 to 1: the pointer's side. The bright parts of the edge turn a little toward it.
+    var light: Double = 0
+    var body: some View {
+        shape.stroke(AngularGradient(stops: [
+            .init(color: .white.opacity(0.10), location: 0), .init(color: .white.opacity(0.45), location: 0.14),
+            .init(color: .white.opacity(0.10), location: 0.3), .init(color: .white.opacity(0.06), location: 0.5),
+            .init(color: .white.opacity(0.40), location: 0.64), .init(color: .white.opacity(0.08), location: 0.8),
+            .init(color: .white.opacity(0.10), location: 1)], center: .center, angle: .degrees(light * 28)), lineWidth: 0.8)
+            .allowsHitTesting(false)
+    }
 }
 
 /// The notch presence. Aesthetic, not functional (owner, 2026-10-01), and since 2026-10-13 not a way out either: it only shows.
@@ -226,6 +273,8 @@ public struct NotchView: View {
     @State private var flashTask: Task<Void, Never>?
     /// The mouse is down on the shape: it squeezes in, and springs open when the click lands.
     @GestureState private var pressing = false
+    /// Where the pointer is across the open card, -1 (left edge) to 1 (right edge): the light on the glass's edge leans toward it.
+    @State private var lightX = 0.0
 
     public init(controller: SessionController, notchWidth: CGFloat, notchHeight: CGFloat, forced: NotchMode? = nil, model: NotchModel? = nil, tray: NotchTray? = nil) {
         self.c = controller; self.notchWidth = notchWidth; self.notchHeight = notchHeight; self.forced = forced; self.model = model ?? NotchModel()
@@ -318,10 +367,17 @@ public struct NotchView: View {
         .gesture(press, including: big ? .subviews : .all)
         // Light catching the rim of the glass, only once it has opened out of the bezel.
         .overlay {
-            shape.stroke(LinearGradient(colors: [.white.opacity(0.04), .white.opacity(0.1), .white.opacity(0.42)], startPoint: .top, endPoint: .bottom), lineWidth: 1)
-                .opacity(open && mode == .open ? 1 : 0)
+            GlassRim(shape: shape, light: lightX).opacity(open && mode == .open ? 1 : 0)
         }
         .opacity(hasNotch || shown ? 1 : 0)
+        .onContinuousHover { phase in
+            guard big, !reduceMotion else { return }
+            switch phase {
+            case .active(let p): lightX = max(-1, min(1, (p.x / max(1, size.width) - 0.5) * 2))
+            case .ended: lightX = 0
+            }
+        }
+        .animation(reduceMotion ? nil : Motion.out(0.45), value: lightX)
     }
 
     /// A click on the shape opens it, and a click on the open card closes it. A nudge stays open until it is answered.
