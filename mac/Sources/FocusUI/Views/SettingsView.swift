@@ -5,11 +5,11 @@ import AppKit
 
 /// Settings split into pages, each its own row in the sidebar, the way System Settings and Droppy lay them out.
 public enum SettingsPage: String, CaseIterable, Identifiable, Hashable, Sendable {
-    case general = "General", nudges = "Nudges", cues = "Cues", notch = "Notch", rhythm = "Rhythm and goals", reading = "What Hushd reads", privacy = "Privacy", beta = "Beta"
+    case general = "General", license = "License", nudges = "Nudges", cues = "Cues", notch = "Notch", rhythm = "Rhythm and goals", reading = "What Hushd reads", privacy = "Privacy", beta = "Beta"
     public var id: String { rawValue }
     var symbol: String {
         switch self {
-        case .general: return "gearshape"; case .nudges: return "hand.wave"; case .cues: return "bell"
+        case .general: return "gearshape"; case .license: return "key"; case .nudges: return "hand.wave"; case .cues: return "bell"
         case .notch: return "rectangle.topthird.inset"; case .rhythm: return "metronome"; case .reading: return "eye"; case .privacy: return "hand.raised"; case .beta: return "testtube.2"
         }
     }
@@ -314,6 +314,22 @@ struct SettingsView: View {
                         }
                     }
                 }
+                if let u = c.releaseUpdates {
+                    group("Updates", .general) {
+                        row("Update Hushd", u.summary) {
+                            if u.readyVersion != nil {
+                                Button("Restart to update") { u.install() }.buttonStyle(FocusButtonStyle(.primary, small: true)).disabled(c.isActive)
+                            } else {
+                                Button(u.busy ? "Checking\u{2026}" : "Check for updates") { u.check() }.buttonStyle(FocusButtonStyle(.secondary, small: true)).disabled(u.busy)
+                            }
+                        }
+                        Text(u.summary).font(Tokens.text(.caption)).foregroundStyle(u.state.isFailure ? Tokens.slip : Tokens.ink2).frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, Space.xxs).animation(.smooth(duration: 0.25), value: u.summary)
+                        row("Check for updates every day", "A new version downloads in the background and waits for you. Hushd never restarts by itself, and never during a session.") {
+                            Toggle("", isOn: Binding(get: { u.automatic }, set: { u.setAutomatic($0) })).labelsHidden().toggleStyle(.switch).tint(Tokens.accent)
+                        }
+                    }
+                }
                 if c.updateSource != nil {
                     group("Updates", .general) {
                         row("Offer new builds from this Mac", "When a newer build appears in the project's build folder, Hushd offers to restart into it between sessions. Nothing is downloaded and the network is not used; it never restarts by itself.") {
@@ -332,6 +348,7 @@ struct SettingsView: View {
                         }
                     }
                 }
+                if page == .license, let license = c.license { LicenseSettings(license: license, sessionActive: c.isActive) }
                 if let beta = c.beta { BetaSettings(c: c, beta: beta, page: page) }
                 group("Privacy", .privacy) {
                     row("Where the work happens", "The judge is Apple's on-device model. There is no account.") { Text("On this Mac").foregroundStyle(Tokens.ink2) }

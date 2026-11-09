@@ -56,7 +56,9 @@ echo "beta $NAME: ends $EXPIRES, notes $(basename "$NOTES"), $KNOWN_COUNT known 
 if [ "$DRY" = 1 ]; then echo "dry run: nothing built"; exit 0; fi
 [ -e "$OUT" ] && { echo "$OUT already exists" >&2; exit 1; }
 
-FOCUS_CHANNEL=beta FOCUS_BUILD_NUMBER="$N" FOCUS_VERSION="$VERSION" FOCUS_BETA_EXPIRES="$EXPIRES" \
+# Betas update from their own feed (beta numbers are small counters, releases use timestamps, so the two must not share one).
+BETA_FEED="${FOCUS_BETA_FEED_URL:-https://hushd.store/updates/beta/appcast.xml}"
+FOCUS_FEED_URL="$BETA_FEED" FOCUS_CHANNEL=beta FOCUS_BUILD_NUMBER="$N" FOCUS_VERSION="$VERSION" FOCUS_BETA_EXPIRES="$EXPIRES" \
 FOCUS_FEEDBACK_EMAIL="$EMAIL" FOCUS_FEEDBACK_REPO="$REPO" FOCUS_RELEASE_NOTES_FILE="$NOTES" FOCUS_KNOWN_ISSUES_FILE="$KNOWN" \
 "$ROOT/tools/build_dmg.sh"
 
@@ -71,6 +73,12 @@ fi
 
 mkdir -p "$OUT"
 cp "$DMG" "$DMG.sha256" "$OUT/"
+# The beta feed: every beta image in beta/updates/, signed into appcast.xml with Hushd's update key. Upload both where BETA_FEED says.
+SPARKLE_BIN="$ROOT/mac/.build/artifacts/sparkle/Sparkle/bin"
+if [ -x "$SPARKLE_BIN/generate_appcast" ]; then
+  mkdir -p "$ROOT/beta/updates"; cp "$DMG" "$ROOT/beta/updates/"
+  "$SPARKLE_BIN/generate_appcast" --account hushd --download-url-prefix "${BETA_FEED%/*}/" "$ROOT/beta/updates" >/dev/null && echo "beta feed: $ROOT/beta/updates/appcast.xml (for $BETA_FEED; not uploaded)"
+fi
 cp "$NOTES" "$OUT/notes.md"
 if [ -f "$KNOWN" ]; then cp "$KNOWN" "$OUT/known.md"; else : > "$OUT/known.md"; fi
 BUILD_ID="$(/usr/libexec/PlistBuddy -c "Print :FocusBuildID" "$PLIST")"

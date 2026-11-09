@@ -28,6 +28,8 @@ let package = Package(
     dependencies: [
         // How the iPhone companion talks to this app: local network only, see ../core/link and docs/COMPANION.md.
         .package(path: "../core/link"),
+        // Self-updates for the copy people install (docs/UPDATES.md). Updates are only accepted when signed with Hushd's own key.
+        .package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.10.1"),
     ],
     targets: [
         .target(name: "FocusJudge", swiftSettings: [.swiftLanguageMode(.v5)]),
@@ -46,7 +48,7 @@ let package = Package(
         // Friends over iCloud (docs/SOCIAL.md): the only CloudKit code, kept out of the engine modules check_privacy.py scans.
         .target(name: "FocusSocial", dependencies: ["FocusUI"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .executableTarget(name: "focus-sense-check", dependencies: ["FocusSense"], swiftSettings: [.swiftLanguageMode(.v5)]),
-        .executableTarget(name: "focus-app", dependencies: ["FocusUI", "FocusSense", "FocusLink", "FocusSocial"], swiftSettings: [.swiftLanguageMode(.v5)]),
+        .executableTarget(name: "focus-app", dependencies: ["FocusUI", "FocusSense", "FocusLink", "FocusSocial", .product(name: "Sparkle", package: "Sparkle")], swiftSettings: [.swiftLanguageMode(.v5)]),
         .executableTarget(name: "script-dump", dependencies: ["FocusUI"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .executableTarget(name: "focus-snapshot", dependencies: ["FocusUI"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .testTarget(name: "FocusUITests", dependencies: ["FocusUI", "FocusBrain", "FocusJudge"], swiftSettings: [.swiftLanguageMode(.v5)]),

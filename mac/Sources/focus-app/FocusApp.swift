@@ -30,12 +30,17 @@ struct FocusApp: App {
             let folder = URL(fileURLWithPath: dir, isDirectory: true)
             try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             let defaults = UserDefaults(suiteName: "focus-app.test.\(folder.lastPathComponent)") ?? .standard
-            return SessionController(judge: DefaultJudge.make(), store: DataStore(url: folder.appendingPathComponent("store.json")), prefs: Preferences(defaults: defaults))
+            let c = SessionController(judge: DefaultJudge.make(), store: DataStore(url: folder.appendingPathComponent("store.json")), prefs: Preferences(defaults: defaults))
+            c.license = LicenseSetup.make(demo: false, testFolder: dir)
+            return c
         }
         let store = DataStore(url: DataStore.defaultURL)
         // Once: remove the one-project-per-keystroke leftovers an earlier build made while a name was typed (a copy of the file is kept).
         if !UserDefaults.standard.bool(forKey: "cleanedTypingLeftovers.1") { store.removeTypingLeftovers(); UserDefaults.standard.set(true, forKey: "cleanedTypingLeftovers.1") }
-        return SessionController(judge: DefaultJudge.make(), store: store, prefs: Preferences())
+        // The license is made with the controller, so the first frame already knows whether to show the key step.
+        let c = SessionController(judge: DefaultJudge.make(), store: store, prefs: Preferences())
+        c.license = LicenseSetup.make(demo: false, testFolder: nil)
+        return c
     }
     /// With two displays the pause screen would otherwise appear on whichever one the window was last on, not where you are looking.
     static func bringToPointerScreen() {
@@ -56,6 +61,7 @@ struct FocusApp: App {
     @State private var backHotKey = GlobalHotKey()
     @State private var parkingPanel: ParkingPanelController?
     @State private var updater: Updater?
+    @State private var sparkle: SparkleUpdater?
 
     init() {
         // Hushd lives in the menu bar and the notch and watches a session with its window closed, so macOS must never quit it
@@ -192,6 +198,13 @@ struct FocusApp: App {
                         let env = ProcessInfo.processInfo.environment
                         controller.beta = BetaSetup.make(demo: env["FOCUS_DEMO"] == "1", testFolder: env["FOCUS_TEST_STORE"])
                     }
+                    if controller.license == nil {
+                        let env = ProcessInfo.processInfo.environment
+                        controller.license = LicenseSetup.make(demo: env["FOCUS_DEMO"] == "1", testFolder: env["FOCUS_TEST_STORE"])
+                    }
+                    if sparkle == nil, ProcessInfo.processInfo.environment["FOCUS_DEMO"] != "1", SparkleUpdater.applies {
+                        let sp = SparkleUpdater(controller: controller); sparkle = sp; sp.start()
+                    }
                     if updater == nil, ProcessInfo.processInfo.environment["FOCUS_DEMO"] != "1" { let u = Updater(controller: controller); updater = u; u.start() }
                     controller.setJudgeStatus(DefaultJudge.status())
                     Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in MainActor.assumeIsolated { controller.setJudgeStatus(DefaultJudge.status()) } }
@@ -254,6 +267,11 @@ struct FocusApp: App {
         .defaultSize(width: 1240, height: 800)
         .windowToolbarStyle(.unified)
         .commands {
+            CommandGroup(after: .appInfo) {
+                if controller.releaseUpdates != nil {
+                    Button("Check for Updates\u{2026}") { sparkle?.check() }.disabled(controller.releaseUpdates?.busy ?? false)
+                }
+            }
             CommandGroup(replacing: .help) {
                 Button("See how it works") { controller.showExample() }
                     .keyboardShortcut("d", modifiers: [.command, .shift]).disabled(controller.isActive)
@@ -264,6 +282,8 @@ struct FocusApp: App {
                     .disabled(controller.beta == nil)
                 Button("What\u{2019}s New in This Build") { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); controller.beta?.notesShown = true }
                     .disabled((controller.beta?.build.notes.isEmpty ?? true) && (controller.beta?.build.knownIssues.isEmpty ?? true))
+                Button("License\u{2026}") { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); controller.requestSettingsPage(.license) }
+                    .disabled(controller.license == nil)
                 Button("Beta Page") { NSApp.activate(ignoringOtherApps: true); openWindow(id: "main"); controller.requestSettingsPage(.beta) }
                     .disabled(controller.beta == nil)
                 if controller.beta?.canOpenReleases == true {

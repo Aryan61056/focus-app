@@ -17,19 +17,25 @@ struct WelcomeView: View {
         self.c = c; self._step = State(initialValue: step); self._asked = State(initialValue: asked); self._task = State(initialValue: task)
     }
 
-    static let steps = 3
+    enum Kind { case intro, license, access, task }
+    /// The license step is there only when the app has a license to ask for (not in the scripted demo or snapshots).
+    var kinds: [Kind] { c.license == nil ? [.intro, .access, .task] : [.intro, .license, .access, .task] }
+    var kind: Kind { kinds[min(max(step, 0), kinds.count - 1)] }
+    /// A key is required and this Mac has none that counts.
+    var locked: Bool { c.license.map { $0.enforced && !$0.allowsUse } ?? false }
     static let column: CGFloat = 560
 
     var body: some View {
         VStack(spacing: 0) {
-            StepDots(step: step, of: Self.steps).padding(.top, Space.l)
+            StepDots(step: step, of: kinds.count).padding(.top, Space.l)
             // Each step starts at the same height, so the picture and title stay put as you move between steps.
             Spacer(minLength: Space.l).frame(maxHeight: 72)
             Group {
-                switch step {
-                case 0: intro
-                case 1: access
-                default: firstTask
+                switch kind {
+                case .intro: intro
+                case .license: if let license = c.license { LicenseStep(license: license) }
+                case .access: access
+                case .task: firstTask
                 }
             }
             .frame(width: Self.column)
@@ -40,7 +46,7 @@ struct WelcomeView: View {
         }
         .padding(.horizontal, Space.xxl).padding(.bottom, Space.xl)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Tokens.window)
+        .background(SetupBackdrop(step: step))
         .animation(reduceMotion ? Motion.reduced : Motion.out(0.3), value: step)
         .modifier(PlainTitleBar())
     }
@@ -54,7 +60,7 @@ struct WelcomeView: View {
                      line: "A gentle nudge when you drift. When Hushd isn't sure, it does nothing.")
             HStack(spacing: Space.xl) {
                 Fact(symbol: "lock", text: "Stays on this Mac")
-                Fact(symbol: "person.slash", text: "No account")
+                Fact(symbol: "key", text: "One key, no account")
                 Fact(symbol: "pause.circle", text: "Pause any time")
             }
         }
@@ -133,26 +139,38 @@ struct WelcomeView: View {
     var bottomBar: some View {
         HStack(spacing: Space.xs) {
             if step == 0 {
-                Button("Skip setup") { c.finishWelcome(explained: false) }.buttonStyle(FocusButtonStyle(.plain))
+                // A key is required, so skipping the welcome goes to the key instead of past it.
+                Button("Skip setup") { if locked, let k = kinds.firstIndex(of: .license) { step = k } else { c.finishWelcome(explained: false) } }
+                    .buttonStyle(FocusButtonStyle(.plain))
             } else {
-                Button { step -= 1 } label: { Label("Back", systemImage: "chevron.left") }.buttonStyle(FocusButtonStyle(.plain))
+                GlassBack { step -= 1 }
             }
             Spacer()
-            switch step {
-            case 0:
-                Button("Continue") { step = 1 }.buttonStyle(FocusButtonStyle(.primary)).keyboardShortcut(.defaultAction)
-            case 1:
-                if allowed {
-                    Button("Continue") { step = 2 }.buttonStyle(FocusButtonStyle(.primary)).keyboardShortcut(.defaultAction)
-                } else {
-                    Button("Not now") { step = 2 }.buttonStyle(FocusButtonStyle(.secondary))
-                    Button("Open System Settings") { asked = true; c.onOpenAccessSettings?() }
-                        .buttonStyle(FocusButtonStyle(.primary)).keyboardShortcut(.defaultAction)
+            switch kind {
+            case .intro:
+                GlassPrimary(title: "Continue") { step += 1 }.keyboardShortcut(.defaultAction)
+            case .license:
+                if let license = c.license {
+                    if !license.holdsKey { Button("Get a key") { license.getKey() }.buttonStyle(FocusButtonStyle(.plain)) }
+                    if !license.holdsKey && !license.enforced { Button("Not now") { step += 1 }.buttonStyle(FocusButtonStyle(.secondary)) }
+                    if license.holdsKey {
+                        GlassPrimary(title: "Continue") { license.acknowledge(); step += 1 }.keyboardShortcut(.defaultAction)
+                    } else {
+                        GlassPrimary(title: license.busy ? "Checking" : "Activate", busy: license.busy,
+                                     enabled: !license.busy && license.draftIsComplete) { Task { _ = await license.activateDraft() } }
+                            .keyboardShortcut(.defaultAction)
+                    }
                 }
-            default:
+            case .access:
+                if allowed {
+                    GlassPrimary(title: "Continue") { step += 1 }.keyboardShortcut(.defaultAction)
+                } else {
+                    Button("Not now") { step += 1 }.buttonStyle(FocusButtonStyle(.secondary))
+                    GlassPrimary(title: "Open System Settings") { asked = true; c.onOpenAccessSettings?() }.keyboardShortcut(.defaultAction)
+                }
+            case .task:
                 Button("Start later") { c.finishWelcome(explained: true) }.buttonStyle(FocusButtonStyle(.secondary))
-                Button("Start session", action: startSession).buttonStyle(FocusButtonStyle(.primary))
-                    .disabled(parsed.task.isEmpty).keyboardShortcut(.defaultAction)
+                GlassPrimary(title: "Start session", enabled: !parsed.task.isEmpty, action: startSession).keyboardShortcut(.defaultAction)
             }
         }
         .frame(maxWidth: 760)
@@ -182,8 +200,7 @@ struct Stage<Content: View>: View {
         content
             .padding(Space.xl)
             .frame(maxWidth: .infinity, minHeight: 214)
-            .background(RoundedRectangle(cornerRadius: Tokens.radiusCard, style: .continuous).fill(Tokens.window2))
-            .overlay { RoundedRectangle(cornerRadius: Tokens.radiusCard, style: .continuous).strokeBorder(Tokens.cardEdge) }
+            .glassSurface(RoundedRectangle(cornerRadius: Tokens.radiusFloat, style: .continuous), fallback: Tokens.window2)
     }
 }
 

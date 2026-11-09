@@ -11,6 +11,7 @@
 #   FOCUS_PROVISIONING_PROFILE path to a macOS profile for FOCUS_BUNDLE_ID with iCloud (CloudKit) and Push enabled
 # and optionally FOCUS_BUNDLE_ID (default com.example.focus-app.dev) and FOCUS_CLOUD_CONTAINER (default iCloud.<bundle id>).
 set -euo pipefail
+TOOLS_DIR="$(cd "$(dirname "$0")" && pwd)"
 BUNDLE_ID="${FOCUS_BUNDLE_ID:-com.example.focus-app.dev}"
 CLOUD_CONTAINER="${FOCUS_CLOUD_CONTAINER:-iCloud.$BUNDLE_ID}"
 SIGNED=0
@@ -29,6 +30,12 @@ cp ".build/release/focus-app" "$APP/Contents/MacOS/focus-app"
 # no Liquid Glass toolbar, sidebar or controls. Stamp the SDK it was really built with.
 SDK_VERSION="$(xcrun --sdk macosx --show-sdk-version)"
 vtool -set-build-version macos 14.0 "$SDK_VERSION" -replace -output "$APP/Contents/MacOS/focus-app" "$APP/Contents/MacOS/focus-app"
+# Sparkle (self-updates, docs/UPDATES.md) is linked dynamically, so every bundle carries its framework and finds it next to the program.
+SPARKLE_FW="$(pwd)/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
+[ -d "$SPARKLE_FW" ] || { echo "no Sparkle.framework at $SPARKLE_FW (run swift package resolve)" >&2; exit 1; }
+mkdir -p "$APP/Contents/Frameworks"
+ditto "$SPARKLE_FW" "$APP/Contents/Frameworks/Sparkle.framework"
+install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/focus-app" 2>/dev/null || true
 T="$(mktemp -d)"
 # The icon: Resources/AppIcon.icon (an Icon Composer document: the ring on deep green, Liquid Glass with the system's dark and tinted
 # looks) compiled to Assets.car for macOS 26 and later, plus AppIcon.icns, pre-rendered for older systems. If this Xcode cannot
@@ -99,6 +106,18 @@ fi
 if [ -n "${FOCUS_KNOWN_ISSUES_FILE:-}" ] && [ -f "$FOCUS_KNOWN_ISSUES_FILE" ] && grep -qv '^\s*\(#.*\)\?$' "$FOCUS_KNOWN_ISSUES_FILE"; then
   plutil -insert FocusKnownIssues -string "$(cat "$FOCUS_KNOWN_ISSUES_FILE")" "$APP/Contents/Info.plist"
 fi
+# Updates for a copy handed out (tools/build_dmg.sh sets FOCUS_DISTRIBUTION=1): where the feed is and the public half of Hushd's own update key.
+# A dev build carries neither, so it never asks a server for anything and keeps updating from its own build folder (Updater.swift).
+# The feed address is the owner's to choose; FOCUS_FEED_URL overrides the placeholder.
+if [ "${FOCUS_DISTRIBUTION:-}" = 1 ]; then
+  FEED="${FOCUS_FEED_URL:-https://hushd.store/updates/appcast.xml}"
+  KEY="${FOCUS_UPDATE_PUBLIC_KEY:-$(tr -d '[:space:]' < "$TOOLS_DIR/update/public-key.txt")}"
+  printf '%s' "$FEED" | grep -Eq '^https://' || { echo "FOCUS_FEED_URL must be an https address" >&2; exit 1; }
+  for kv in "SUFeedURL string $FEED" "SUPublicEDKey string $KEY" "SUEnableAutomaticChecks bool true" "SUScheduledCheckInterval integer 86400" \
+            "SUAutomaticallyUpdate bool true" "SUAllowsAutomaticUpdates bool true"; do
+    /usr/libexec/PlistBuddy -c "Add :${kv%% *} ${kv#* }" "$APP/Contents/Info.plist"
+  done
+fi
 # Assets.car holds the layered icon; the system finds it by name.
 if [ -n "$ICON_NAME" ]; then /usr/libexec/PlistBuddy -c "Add :CFBundleIconName string $ICON_NAME" "$APP/Contents/Info.plist"; fi
 plutil -lint "$APP/Contents/Info.plist" >/dev/null
@@ -106,6 +125,12 @@ plutil -lint "$APP/Contents/Info.plist" >/dev/null
 # Copied as it is, with its own signature; it sits in Resources, so signing the outer app below leaves it alone.
 IPHONE_APP="${FOCUS_IPHONE_APP:-$(pwd)/../companion/.build/Hushd for iPhone.app}"
 if [ -d "$IPHONE_APP" ]; then ditto "$IPHONE_APP" "$APP/Contents/Resources/Hushd for iPhone.app"; echo "carrying the iPhone app from $IPHONE_APP"; fi
+# Sparkle's own parts are signed first, inside out, with the same identity as the app (ad hoc when there is none).
+SPARKLE_ID="${FOCUS_SIGN_IDENTITY:--}"
+find "$APP/Contents/Frameworks/Sparkle.framework" -name '*.xpc' -o -name 'Autoupdate' -o -name 'Updater.app' | sort -r | while read -r part; do
+  codesign --force --options runtime --sign "$SPARKLE_ID" "$part" 2>&1 | grep -v 'replacing existing' || true
+done
+codesign --force --options runtime --sign "$SPARKLE_ID" "$APP/Contents/Frameworks/Sparkle.framework" 2>&1 | grep -v 'replacing existing' || true
 if [ "$SIGNED" = 1 ]; then
   # Signed for iCloud: the profile travels inside the bundle and the entitlements must be allowed by it.
   cp "$FOCUS_PROVISIONING_PROFILE" "$APP/Contents/embedded.provisionprofile"
